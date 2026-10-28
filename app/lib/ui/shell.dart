@@ -18,8 +18,11 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _index = 0;
-  bool _startupDone = false;
+  // Static so a language change (which remounts the shell) keeps the current
+  // tab and does not show the startup dialogs again.
+  static int _lastIndex = 0;
+  static bool _startupDoneGlobal = false;
+  int _index = _lastIndex;
 
   @override
   void initState() {
@@ -28,8 +31,8 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _startup() async {
-    if (_startupDone) return;
-    _startupDone = true;
+    if (_startupDoneGlobal) return;
+    _startupDoneGlobal = true;
     final services = context.read<AppServices>();
     try {
       final decision = await services.backend.detect();
@@ -49,7 +52,7 @@ class _AppShellState extends State<AppShell> {
         children: [
           NavigationRail(
             selectedIndex: _index,
-            onDestinationSelected: (i) => setState(() => _index = i),
+            onDestinationSelected: (i) => setState(() => _index = _lastIndex = i),
             labelType: NavigationRailLabelType.all,
             leading: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Icon(Icons.mic_external_on, size: 32)),
             destinations: [

@@ -36,6 +36,11 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// UI language: 'zh', 'en' or 'ja'; null until the user picks one (then the
+  /// system locale decides).
+  String? get uiLanguage => _prefs.getString('ui_language');
+  Future<void> setUiLanguage(String code) => _set('ui_language', code);
+
   BackendChoice get backend => BackendChoice.values.byName(_get('backend', 'auto'));
   Future<void> setBackend(BackendChoice b) => _set('backend', b.name);
 

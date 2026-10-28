@@ -144,7 +144,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: tr('settings.uiLanguage'),
             children: [
               SegmentedButton<String>(
-                segments: const [ButtonSegment(value: 'zh', label: Text('繁體中文')), ButtonSegment(value: 'en', label: Text('English'))],
+                segments: [
+                  for (final code in I18n.supported) ButtonSegment(value: code, label: Text(I18n.nativeNames[code]!)),
+                ],
                 selected: {I18n.lang},
                 onSelectionChanged: (v) => I18n.lang = v.first,
               ),

@@ -14,6 +14,7 @@ import '../services/prep_pipeline.dart';
 import '../services/settings.dart';
 import '../services/sidecars.dart';
 import '../services/song_library.dart';
+import 'i18n.dart';
 
 class AppServices {
   AppServices({
@@ -58,6 +59,8 @@ class EngineLoadError implements Exception {
 Future<AppServices> bootstrapServices() async {
   final paths = await AppPaths.init();
   final settings = await AppSettings.load();
+  I18n.notifier.value = settings.uiLanguage ?? I18n.fromLocale(Platform.localeName);
+  I18n.onChanged = (lang) => settings.setUiLanguage(lang);
 
   final Engine engine;
   try {

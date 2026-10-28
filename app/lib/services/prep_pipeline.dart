@@ -57,7 +57,7 @@ class PrepPipeline extends ChangeNotifier {
   void enqueue(Song s) {
     if (isQueued(s.id)) return;
     _queue.add(s.id);
-    _emit(s, PrepStage.pending, message: '排隊中');
+    _emit(s, PrepStage.pending, message: '');
     _pump();
   }
 
@@ -108,7 +108,7 @@ class PrepPipeline extends ChangeNotifier {
     for (final m in needed) {
       if (await models.isInstalled(m)) continue;
       await models.install(m, cancel: cancel, onProgress: (file, dp, done, total) {
-        _emit(song, PrepStage.pending, fraction: total > 0 ? done / total : 0, message: '下載模型 ${m.title}: $file');
+        _emit(song, PrepStage.pending, fraction: total > 0 ? done / total : 0, message: '${m.title}: $file');
       });
     }
   }
@@ -129,7 +129,7 @@ class PrepPipeline extends ChangeNotifier {
       song.stage = PrepStage.acquire;
       await library.save(song);
       if (song.sourceType == SourceType.youtube) {
-        _emit(song, PrepStage.acquire, message: '下載影片');
+        _emit(song, PrepStage.acquire, message: '');
         final out = await sidecars.downloadVideo(song.sourceUrl!, f.dir, cancel: cancel, onProgress: (frac, line) {
           _emit(song, PrepStage.acquire, fraction: frac < 0 ? 0 : frac, message: line);
         });
@@ -147,8 +147,8 @@ class PrepPipeline extends ChangeNotifier {
     if (!await File(f.mixWav).exists()) {
       song.stage = PrepStage.decode;
       await library.save(song);
-      _emit(song, PrepStage.decode, message: '轉檔為 WAV');
-      await sidecars.toWav(song.sourceFile!, f.mixWav, cancel: cancel, onProgress: (fr) => _emit(song, PrepStage.decode, fraction: fr, message: '轉檔為 WAV'));
+      _emit(song, PrepStage.decode, message: 'WAV');
+      await sidecars.toWav(song.sourceFile!, f.mixWav, cancel: cancel, onProgress: (fr) => _emit(song, PrepStage.decode, fraction: fr, message: 'WAV'));
     }
     checkCancel();
 
@@ -156,7 +156,7 @@ class PrepPipeline extends ChangeNotifier {
     if (song.hasVideo && !await File(f.videoMp4).exists()) {
       song.stage = PrepStage.video;
       await library.save(song);
-      _emit(song, PrepStage.video, message: '擷取影片軌');
+      _emit(song, PrepStage.video, message: '');
       try {
         await sidecars.toVideoOnlyMp4(song.sourceFile!, f.videoMp4, cancel: cancel);
       } catch (e) {
@@ -180,7 +180,7 @@ class PrepPipeline extends ChangeNotifier {
         primaryOut: f.vocalsWav,
         secondaryOut: quality == SeparationQuality.fast ? f.instWav : null,
       );
-      await _await(job, cancel, (pr) => _emit(song, PrepStage.separateVocals, fraction: pr.fraction, message: '分離人聲 (${pr.stage})'));
+      await _await(job, cancel, (pr) => _emit(song, PrepStage.separateVocals, fraction: pr.fraction, message: pr.stage));
     }
     checkCancel();
 
@@ -195,7 +195,7 @@ class PrepPipeline extends ChangeNotifier {
         inputWav: f.mixWav,
         primaryOut: f.instWav,
       );
-      await _await(job, cancel, (pr) => _emit(song, PrepStage.separateInstrumental, fraction: pr.fraction, message: '分離伴奏 (${pr.stage})'));
+      await _await(job, cancel, (pr) => _emit(song, PrepStage.separateInstrumental, fraction: pr.fraction, message: pr.stage));
     }
     checkCancel();
 
@@ -210,7 +210,7 @@ class PrepPipeline extends ChangeNotifier {
         options: {'language': song.language},
         notesOut: f.notesJson,
       );
-      await _await(job, cancel, (pr) => _emit(song, PrepStage.transcribe, fraction: pr.fraction, message: '轉譜 (${pr.stage})'));
+      await _await(job, cancel, (pr) => _emit(song, PrepStage.transcribe, fraction: pr.fraction, message: pr.stage));
       song.gameModelId = m.id;
     }
     checkCancel();
@@ -221,14 +221,14 @@ class PrepPipeline extends ChangeNotifier {
       await library.save(song);
       final m = ModelRegistry.swiftF0;
       final job = rt.f0Extract(modelPath: models.pathOf(m, 'model.onnx'), inputWav: f.vocalsWav, f0Out: f.refF0Json);
-      await _await(job, cancel, (pr) => _emit(song, PrepStage.referenceF0, fraction: pr.fraction, message: '參考音高曲線'));
+      await _await(job, cancel, (pr) => _emit(song, PrepStage.referenceF0, fraction: pr.fraction, message: ''));
     }
 
     song.stage = PrepStage.done;
     song.error = null;
     song.separationQuality = quality.name;
     await library.save(song);
-    _emit(song, PrepStage.done, fraction: 1, message: '完成');
+    _emit(song, PrepStage.done, fraction: 1, message: '');
   }
 
   Future<void> _await(EngineJob job, Future<void> cancel, void Function(JobProgress) onProgress) async {

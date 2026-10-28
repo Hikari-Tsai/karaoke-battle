@@ -1,5 +1,6 @@
 // Root widget: theme, bootstrap, providers, error page.
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'services/backend_manager.dart';
@@ -36,6 +37,14 @@ class _KaraokeAppState extends State<KaraokeApp> {
       builder: (context, lang, child) => MaterialApp(
         title: tr('app.title'),
         debugShowCheckedModeBanner: false,
+        // Material/Cupertino widget strings follow the UI language too.
+        locale: switch (lang) { 'en' => const Locale('en'), 'ja' => const Locale('ja'), _ => const Locale('zh', 'TW') },
+        supportedLocales: const [Locale('zh', 'TW'), Locale('en'), Locale('ja')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: buildTheme(Brightness.light),
         darkTheme: buildTheme(Brightness.dark),
         themeMode: ThemeMode.dark,
@@ -54,7 +63,8 @@ class _KaraokeAppState extends State<KaraokeApp> {
                 ChangeNotifierProvider<PrepPipeline>.value(value: s.pipeline),
                 ChangeNotifierProvider<SetupController>(create: (_) => SetupController(s.models, s.sidecars)),
               ],
-              child: const AppShell(),
+              // Keyed on the language so every screen (including const subtrees) is rebuilt.
+              child: AppShell(key: ValueKey('shell-$lang')),
             );
           },
         ),
