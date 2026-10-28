@@ -53,6 +53,13 @@ GAME 權重為非商業授權，整個 App 的使用因此受該條款約束。
 （全曲只用一個半音位移量，自動估計）。完整的對齊方法、指標定義、公式與校準結果見
 [docs/SCORING.md](docs/SCORING.md)。
 
+## 安裝與使用
+
+從上方徽章下載 DMG 或 zip 安裝。macOS 第一次請在 App 上按右鍵「打開」（未公證）；Windows 在 SmartScreen 選「仍要執行」。
+首次啟動會下載模型（約 500 MB）與外部工具，Windows 另可選擇下載 CUDA 執行環境。
+新增歌曲（YouTube 連結或拖入檔案）後等待備歌完成，戴上耳機按「開始演唱」。
+完整步驟、資料位置與常見問題見 [docs/INSTALL.md](docs/INSTALL.md)。
+
 ## 建置
 
 ```bash

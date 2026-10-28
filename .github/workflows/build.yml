@@ -396,6 +396,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout (release body template)
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          sparse-checkout: .github/release-body.md
+          sparse-checkout-cone-mode: false
+
       - name: Download artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -422,6 +428,8 @@ jobs:
         with:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
+          # Installation + usage guide (zh-TW) followed by the auto-generated change list.
+          body_path: .github/release-body.md
           generate_release_notes: true
           files: |
             artifacts/KaraokeBattle-macos-universal/*.dmg
