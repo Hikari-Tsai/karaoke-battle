@@ -158,7 +158,8 @@ jobs:
         run: |
           set -euo pipefail
           # Flutter puts the bundle here (PRODUCT_NAME.app); fall back to a glob in case the name changes.
-          APP="app/build/macos/Build/Products/Release/${APP_NAME}.app"
+          APP="app/build/macos/Build/Products/Release/${APP_DISPLAY_NAME}.app"
+          [[ -d "$APP" ]] || APP="app/build/macos/Build/Products/Release/${APP_NAME}.app"
           [[ -d "$APP" ]] || APP="$(ls -d app/build/macos/Build/Products/Release/*.app | head -n 1)"
           echo "app bundle: $APP"
           FW="$APP/Contents/Frameworks"
