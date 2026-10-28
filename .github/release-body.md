@@ -31,6 +31,6 @@
 完整說明：[docs/INSTALL.md](https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/INSTALL.md) ·
 評分方式：[docs/SCORING.md](https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/SCORING.md)
 
-> 轉譜模型 GAME 採 CC BY-NC-SA 4.0（非商業）授權；以 yt-dlp 下載 YouTube 內容僅供個人本機使用。
+> 轉譜模型 GAME 1.0（Team OpenVPI）採 CC BY-NC-SA 4.0（非商業）授權，引用與致謝見 docs/CITATIONS.md；以 yt-dlp 下載 YouTube 內容僅供個人本機使用。
 
 ---

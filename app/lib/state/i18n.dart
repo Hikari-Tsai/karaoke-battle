@@ -289,4 +289,5 @@ const Map<String, (String, String, String)> _table = {
   'about.nonCommercial': ('非商業使用', 'non-commercial', '非商用'),
   'about.appLicense': ('本程式以 MIT 授權釋出。', 'This app is released under the MIT license.', 'このアプリは MIT ライセンスで公開されています。'),
   'about.engineVersion': ('引擎版本', 'Engine version', 'エンジンのバージョン'),
+  'about.citations': ('引用與致謝（docs/CITATIONS.md）', 'Citations and acknowledgements (docs/CITATIONS.md)', '引用と謝辞（docs/CITATIONS.md）'),
 };

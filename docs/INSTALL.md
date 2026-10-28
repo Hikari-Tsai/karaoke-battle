@@ -97,5 +97,5 @@
 
 ## 授權注意事項
 
-* 轉譜模型 GAME 採 **CC BY-NC-SA 4.0（非商業）**，使用本 App 受此條款約束。
+* 轉譜模型 GAME 1.0（作者 Team OpenVPI）採 **CC BY-NC-SA 4.0（非商業）**，使用本 App 受此條款約束；完整引用見 [CITATIONS.md](CITATIONS.md)。
 * 用 yt-dlp 下載 YouTube 內容可能違反 YouTube 服務條款，僅供個人在本機使用，風險自負。

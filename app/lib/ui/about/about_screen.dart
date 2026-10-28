@@ -11,10 +11,12 @@ class AboutScreen extends StatelessWidget {
 
   static const _items = <(String, String, String, bool)>[
     // name, license, url, nonCommercial
-    ('Karaoke Battle', 'MIT', 'https://github.com', false),
-    ('GAME (openvpi) — transcription models', 'CC BY-NC-SA 4.0', 'https://github.com/openvpi/GAME', true),
-    ('UVR MDX-Net (Kim_Vocal_2, Inst_HQ_4)', 'MIT', 'https://github.com/Anjok07/ultimatevocalremovergui', false),
-    ('SwiftF0', 'MIT', 'https://github.com/lars76/swift-f0', false),
+    ('Karaoke Battle', 'MIT', 'https://github.com/Hikari-Tsai/karaoke-battle', false),
+    ('GAME 1.0 Small / Large — Team OpenVPI (openvpi/GAME v1.0.3, unmodified)', 'CC BY-NC-SA 4.0', 'https://github.com/openvpi/GAME/releases/tag/v1.0.3', true),
+    ('UVR MDX-Net: Kim_Vocal_2 (KimberleyJensen), Inst_HQ_4 — Anjok07 & aufr33; architecture: kuielab', 'MIT', 'https://github.com/Anjok07/ultimatevocalremovergui', false),
+    ('python-audio-separator (MDX pipeline port)', 'MIT', 'https://github.com/nomadkaraoke/python-audio-separator', false),
+    ('SwiftF0 — Lars Nieradzik (arXiv:2508.18440)', 'MIT', 'https://github.com/lars76/swift-f0', false),
+    ('mir_eval (scoring metric definitions) — Raffel et al., ISMIR 2014', 'MIT', 'https://github.com/mir-evaluation/mir_eval', false),
     ('ONNX Runtime', 'MIT', 'https://github.com/microsoft/onnxruntime', false),
     ('miniaudio', 'MIT-0', 'https://github.com/mackron/miniaudio', false),
     ('pocketfft', 'BSD-3-Clause', 'https://github.com/mreineck/pocketfft', false),
@@ -57,6 +59,10 @@ class AboutScreen extends StatelessWidget {
               onTap: () => launchUrl(Uri.parse(it.$3)),
             ),
           const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => launchUrl(Uri.parse('https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/CITATIONS.md')),
+            child: Text(tr('about.citations')),
+          ),
           TextButton(onPressed: () => showLicensePage(context: context, applicationName: tr('app.title')), child: const Text('Flutter package licenses')),
         ],
       ),

@@ -134,7 +134,13 @@ total = 100 × Σ(wᵢ · sᵢ) / Σ(wᵢ)      只對「可評估」的子分�
 * 顫音只在原唱本身大量使用顫音的歌曲才計分；其他歌曲靠另外五項。
 * 歌詞不評分（中日文歌詞加伴奏串音的語音辨識誤差太大，給出的分數沒有意義）。
 
-## 8. 開發工具
+## 8. 參考文獻
+
+指標定義依 mir_eval（Raffel et al., ISMIR 2014）的 `melody` 與 `transcription` 模組；
+RPA / RCA 的 50 cent 容差與八度等價出自 Poliner et al. 2007 與 Salamon et al. 2014；
+DTW 帶寬限制出自 Sakoe & Chiba 1978。完整引用與 BibTeX 見 [CITATIONS.md](CITATIONS.md)。
+
+## 9. 開發工具
 
 ```bash
 cd app
