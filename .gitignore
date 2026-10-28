@@ -1,0 +1,23 @@
+# Build outputs
+build/
+engine/build*/
+app/build/
+app/.dart_tool/
+app/.flutter-plugins*
+app/.packages
+app/macos/Pods/
+app/macos/Flutter/ephemeral/
+app/windows/flutter/ephemeral/
+*.dSYM/
+
+# Third-party binaries fetched by scripts (never committed)
+engine/third_party/onnxruntime/
+/dist/
+/sidecars/
+/models/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp

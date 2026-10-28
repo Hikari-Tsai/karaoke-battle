@@ -1,0 +1,169 @@
+{
+  "$schema_note": "Sidecar programs downloaded by the app at first run (never bundled in the installer). Generated 2026-10-28. Every sha256 below was computed locally from a fresh download (and cross-checked against the publisher's checksum file where one exists). Pinned to release assets; 'latest' GitHub tags are rolling and are NOT used because their files change.",
+  "install_dir": "<app support>/sidecars/",
+  "update_policy": "The app may query the GitHub releases API for newer yt-dlp/deno releases (they ship checksum files); ffmpeg builds should be updated by regenerating this manifest.",
+  "yt-dlp": {
+    "version": "2026.10.26",
+    "release_url": "https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.26",
+    "checksums_url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/SHA2-256SUMS",
+    "license": "Unlicense (yt-dlp itself); PyInstaller-bundled executables include third-party components listed in THIRD_PARTY_LICENSES.txt in the repo",
+    "notes": [
+      "yt-dlp_macos is a Mach-O universal binary (x86_64 + arm64), verified with lipo -info on 2026-10-28 - one download serves both Mac architectures.",
+      "Windows binaries from this release require Windows 10 or later.",
+      "yt-dlp-ejs (YouTube JavaScript challenge solver scripts) is bundled inside the official PyInstaller executables; no extra download needed.",
+      "YouTube additionally requires an external JavaScript runtime. Deno is the recommended runtime and the only one enabled by default (minimum deno 2.3.0). Pass --js-runtimes deno:<path-to-deno> when deno is not on PATH (on Windows a deno.exe next to yt-dlp.exe is also found automatically).",
+      "Without a JS runtime, yt-dlp omits the web and tv_samsung clients and many YouTube downloads fail."
+    ],
+    "assets": {
+      "macos-universal2": {
+        "filename": "yt-dlp_macos",
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp_macos",
+        "size": 37466304,
+        "sha256": "0f922c15ccc0b83eefa1c8bc9104e434318c4bf16e408e1ee93b7745a6efe0aa",
+        "archs": [
+          "x86_64",
+          "arm64"
+        ],
+        "install_as": "yt-dlp",
+        "chmod": "0755"
+      },
+      "win-x64": {
+        "filename": "yt-dlp.exe",
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp.exe",
+        "size": 23575744,
+        "sha256": "f5389d3698ecde4ef06f4e6b1ce0294fe9ac1396228c8990b8d3416d6d177a7d",
+        "install_as": "yt-dlp.exe"
+      }
+    }
+  },
+  "deno": {
+    "version": "2.9.8",
+    "release_url": "https://github.com/denoland/deno/releases/tag/v2.9.8",
+    "license": "MIT",
+    "purpose": "JavaScript runtime required by yt-dlp for YouTube (EJS challenge solving). Download 'deno', not 'denort'.",
+    "min_version_for_ytdlp": "2.3.0",
+    "assets": {
+      "macos-arm64": {
+        "filename": "deno-aarch64-apple-darwin.zip",
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-aarch64-apple-darwin.zip",
+        "size": 38770795,
+        "sha256": "9f0bf660393da2eaff044cdc7444cb08c73f235849b61d224d825a194ce7c98e",
+        "sha256_url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-aarch64-apple-darwin.zip.sha256sum",
+        "extract": "deno",
+        "install_as": "deno",
+        "chmod": "0755"
+      },
+      "macos-x86_64": {
+        "filename": "deno-x86_64-apple-darwin.zip",
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-apple-darwin.zip",
+        "size": 42797031,
+        "sha256": "4b2f5edd2639b7470f034238b321d7002d8dfb4726d8558f52c17afac370eb2c",
+        "sha256_url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-apple-darwin.zip.sha256sum",
+        "extract": "deno",
+        "install_as": "deno",
+        "chmod": "0755"
+      },
+      "win-x64": {
+        "filename": "deno-x86_64-pc-windows-msvc.zip",
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-pc-windows-msvc.zip",
+        "size": 42917472,
+        "sha256": "cba84b26e0df5ae7f74fc66b86a95b866872a86292ebd84fa1e959927edd93bf",
+        "sha256_url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-pc-windows-msvc.zip.sha256sum",
+        "extract": "deno.exe",
+        "install_as": "deno.exe"
+      }
+    },
+    "note": "Deno is not universal2; the app picks the asset by Process.runtimeArchitecture / sysctl hw.machine. Rosetta-translated x86_64 deno also works on Apple silicon but is slower."
+  },
+  "ffmpeg": {
+    "version": "9.0.2",
+    "evaluation": {
+      "evermeet.cx": "x86_64 only (author states no Apple Silicon builds will be provided). Static, configured with --enable-gpl --enable-version3 (libx264/x265/xvid...) => GPLv3 binary. Ships .sig (GPG) files, no sha256 file. Kept as a reference/alternative only; not selected.",
+      "ffmpeg.martin-riedl.de": "Separate arm64 and x86_64 (amd64) static release builds of 9.0.2 with per-file .sha256 files. Configured with --enable-gpl --enable-version3 (libx264, libx265, openssl...) => GPLv3 binary. No LGPL variant is offered. Selected for macOS.",
+      "BtbN/FFmpeg-Builds": "Windows x64; the *-win64-lgpl-* variant is built without GPL components (LICENSE.txt in the zip = LGPL v3). Dated autobuild-* releases are immutable, the 'latest' tag is rolling. Selected for Windows (pinned autobuild)."
+    },
+    "licensing_note": "ffmpeg is executed as a separate process (Process.start) and is downloaded by the user at first run; it is never linked into or shipped inside the app bundle. GPLv3 macOS builds are therefore acceptable (mere aggregation), but the app must show the ffmpeg licence and offer the corresponding source link (https://ffmpeg.org/download.html, build pages above) in About. If a strictly LGPL macOS build is required later, replace the macOS entries (e.g. build with --disable-gpl via scripts).",
+    "assets": {
+      "macos-arm64": {
+        "ffmpeg": {
+          "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip",
+          "size": 28395699,
+          "sha256": "c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924",
+          "sha256_url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip.sha256",
+          "extract": "ffmpeg",
+          "install_as": "ffmpeg",
+          "chmod": "0755",
+          "arch": "arm64"
+        },
+        "ffprobe": {
+          "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffprobe.zip",
+          "size": 28317701,
+          "sha256": "fcbe839537485eaee7a7a8bc5cbc0f90d53617e80943e8a5b2e31cb851197ea6",
+          "sha256_url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffprobe.zip.sha256",
+          "extract": "ffprobe",
+          "install_as": "ffprobe",
+          "chmod": "0755",
+          "arch": "arm64"
+        },
+        "license": "GPLv3",
+        "source": "https://ffmpeg.martin-riedl.de/"
+      },
+      "macos-x86_64": {
+        "ffmpeg": {
+          "url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1789931006_9.0.2/ffmpeg.zip",
+          "size": 33816391,
+          "sha256": "7c6b4125b191cbf773832dc51f424cf2b6bb7da43007d1e066f95909e47cacd4",
+          "sha256_url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1789931006_9.0.2/ffmpeg.zip.sha256",
+          "extract": "ffmpeg",
+          "install_as": "ffmpeg",
+          "chmod": "0755",
+          "arch": "x86_64"
+        },
+        "ffprobe": {
+          "url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1789931006_9.0.2/ffprobe.zip",
+          "size": 33719233,
+          "sha256": "2322438ed2f6319a691291b247d09c69dcaa3a982460d1f269a7e1af335cfdfd",
+          "sha256_url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1789931006_9.0.2/ffprobe.zip.sha256",
+          "extract": "ffprobe",
+          "install_as": "ffprobe",
+          "chmod": "0755",
+          "arch": "x86_64"
+        },
+        "license": "GPLv3",
+        "source": "https://ffmpeg.martin-riedl.de/"
+      },
+      "macos-x86_64-alternative-evermeet": {
+        "ffmpeg": {
+          "url": "https://evermeet.cx/ffmpeg/ffmpeg-9.0.2.zip",
+          "size": 26198325,
+          "sha256": "4acc0be580f9b2788029eb7bd4d645ff87968911b0a62aeeb3940d42d54558d5",
+          "sig_url": "https://evermeet.cx/ffmpeg/ffmpeg-9.0.2.zip.sig",
+          "extract": "ffmpeg",
+          "arch": "x86_64"
+        },
+        "license": "GPLv3",
+        "source": "https://evermeet.cx/ffmpeg/",
+        "selected": false
+      },
+      "win-x64": {
+        "archive": {
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-27-18-38/ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0.zip",
+          "filename": "ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0.zip",
+          "size": 172594345,
+          "sha256": "79e8ff30c01ac58a2bc4e820c86be81d426ea0bee10df8030fc6ac3c72fe785c",
+          "sha256_url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-27-18-38/checksums.sha256",
+          "extract": {
+            "ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0/bin/ffmpeg.exe": "ffmpeg.exe",
+            "ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0/bin/ffprobe.exe": "ffprobe.exe",
+            "ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0/LICENSE.txt": "ffmpeg-LICENSE.txt"
+          },
+          "not_extracted": [
+            "bin/ffplay.exe"
+          ]
+        },
+        "license": "LGPLv3 (BtbN lgpl variant)",
+        "source": "https://github.com/BtbN/FFmpeg-Builds"
+      }
+    }
+  }
+}

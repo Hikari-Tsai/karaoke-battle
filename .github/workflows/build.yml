@@ -1,0 +1,400 @@
+# Karaoke Battle - macOS universal + Windows x64 builds.
+#
+# Jobs
+#   macos    macos-14 runner: ORT 1.23.2 universal2 headers -> engine (arm64+x86_64, Ninja)
+#            -> flutter build macos --release -> dylibs copied into <App>.app/Contents/Frameworks
+#            -> (optional) Developer ID codesign + notarize -> .dmg artifact
+#   windows  windows-latest runner: ORT DirectML 1.24.4 + DirectML 1.15.4 -> engine (VS2022 x64)
+#            -> flutter build windows --release -> karaoke_engine.dll + onnxruntime.dll + DirectML.dll
+#            next to the exe -> .zip artifact
+#   release  on v* tags only: attaches both artifacts to a GitHub Release.
+#
+# Secrets (all optional; without them the macOS app is ad-hoc signed and not notarized):
+#   MACOS_CERT_P12        base64 of a "Developer ID Application" .p12
+#   MACOS_CERT_PASSWORD   password of that .p12
+#   APPLE_ID              Apple ID used for notarytool
+#   APPLE_TEAM_ID         10-character team id
+#   APPLE_APP_PASSWORD    app-specific password for APPLE_ID
+#
+# The CUDA pack and the sidecars (yt-dlp, ffmpeg, deno) are downloaded by the app at run time
+# from the manifests in scripts/, never here.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ORT_MACOS_VERSION: '1.23.2'
+  APP_NAME: karaoke_battle          # PRODUCT_NAME in app/macos/Runner/Configs/AppInfo.xcconfig and BINARY_NAME in app/windows/CMakeLists.txt
+  APP_DISPLAY_NAME: 'Karaoke Battle'
+
+jobs:
+  macos:
+    name: macOS (universal)
+    runs-on: macos-14
+    timeout-minutes: 90
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Version from tag
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            v="${GITHUB_REF#refs/tags/v}"
+          else
+            v="0.0.0"
+          fi
+          echo "version=${v}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "version=${v} build=${GITHUB_RUN_NUMBER}"
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2.22.0
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install tools
+        run: |
+          brew list ninja >/dev/null 2>&1 || brew install ninja
+          brew list create-dmg >/dev/null 2>&1 || brew install create-dmg
+          cmake --version | head -1; ninja --version; flutter --version
+
+      - name: Cache ONNX Runtime package
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: engine/third_party/onnxruntime/osx-universal2
+          key: ort-osx-universal2-${{ env.ORT_MACOS_VERSION }}-${{ hashFiles('scripts/fetch_ort.sh') }}
+
+      - name: Fetch ONNX Runtime ${{ env.ORT_MACOS_VERSION }} (universal2)
+        run: ./scripts/fetch_ort.sh
+
+      - name: Build engine (arm64 + x86_64) and smoke test
+        run: ./scripts/build_engine.sh --clean
+
+      - name: Verify universal binaries
+        run: |
+          set -e
+          for f in engine/build/libkaraoke_engine.dylib engine/build/ke_cli \
+                   engine/third_party/onnxruntime/osx-universal2/lib/libonnxruntime.${ORT_MACOS_VERSION}.dylib; do
+            lipo -info "$f"
+            lipo "$f" -verify_arch arm64 x86_64
+          done
+          # Run the CLI under both slices.
+          arch -arm64  engine/build/ke_cli gpu >/dev/null
+          arch -x86_64 engine/build/ke_cli gpu >/dev/null && echo "x86_64 slice runs under Rosetta" || echo "::warning::x86_64 slice could not be exercised on this runner"
+
+      - name: Upload engine artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: engine-macos-universal
+          path: |
+            engine/build/libkaraoke_engine.dylib
+            engine/build/ke_cli
+          if-no-files-found: error
+
+      # ------------------------------------------------------------------ Flutter app
+      - name: Check for Flutter app
+        id: app
+        shell: bash
+        run: |
+          if [[ -f app/pubspec.yaml ]]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; echo "::warning::app/pubspec.yaml not found - skipping Flutter build"; fi
+
+      - name: flutter build macos --release
+        if: steps.app.outputs.present == 'true'
+        working-directory: app
+        run: |
+          flutter config --enable-macos-desktop
+          flutter pub get
+          flutter build macos --release --build-name "${{ steps.ver.outputs.version }}" --build-number "${{ steps.ver.outputs.build_number }}"
+
+      - name: Bundle engine + ONNX Runtime into the app
+        if: steps.app.outputs.present == 'true'
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Flutter puts the bundle here (PRODUCT_NAME.app); fall back to a glob in case the name changes.
+          APP="app/build/macos/Build/Products/Release/${APP_NAME}.app"
+          [[ -d "$APP" ]] || APP="$(ls -d app/build/macos/Build/Products/Release/*.app | head -n 1)"
+          echo "app bundle: $APP"
+          FW="$APP/Contents/Frameworks"
+          mkdir -p "$FW"
+          cp engine/build/libkaraoke_engine.dylib "$FW/"
+          cp "engine/third_party/onnxruntime/osx-universal2/lib/libonnxruntime.${ORT_MACOS_VERSION}.dylib" "$FW/"
+          # Run-time paths used by the Dart side (docs/BUILD.md):
+          #   <App>.app/Contents/Frameworks/libkaraoke_engine.dylib
+          #   <App>.app/Contents/Frameworks/libonnxruntime.1.23.2.dylib
+          ls -la "$FW"
+          echo "app=$APP" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------------------------ signing (optional)
+      - name: Check signing secrets
+        id: signing
+        shell: bash
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          if [[ -n "$MACOS_CERT_P12" && -n "$MACOS_CERT_PASSWORD" ]]; then echo "sign=true" >> "$GITHUB_OUTPUT"; else echo "sign=false" >> "$GITHUB_OUTPUT"; echo "::notice::No MACOS_CERT_P12 - app will be ad-hoc signed (not distributable via Gatekeeper)"; fi
+          if [[ -n "$MACOS_CERT_P12" && -n "$APPLE_ID" && -n "$APPLE_TEAM_ID" && -n "$APPLE_APP_PASSWORD" ]]; then echo "notarize=true" >> "$GITHUB_OUTPUT"; else echo "notarize=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Import Developer ID certificate
+        if: steps.app.outputs.present == 'true' && steps.signing.outputs.sign == 'true'
+        shell: bash
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PW="$(openssl rand -hex 16)"
+          echo "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PW" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" "$HOME/Library/Keychains/login.keychain-db"
+          rm -f "$RUNNER_TEMP/cert.p12"
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" | grep 'Developer ID Application' | head -n 1 | sed -E 's/.*"(.*)".*/\1/')"
+          [[ -n "$IDENTITY" ]] || { echo "::error::No 'Developer ID Application' identity in the .p12"; exit 1; }
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "SIGN_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
+      - name: Codesign (Developer ID, hardened runtime)
+        if: steps.app.outputs.present == 'true' && steps.signing.outputs.sign == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="${{ steps.bundle.outputs.app }}"
+          ENT="app/macos/Runner/Release.entitlements"
+          # Sign inside-out: nested code first, then the main bundle (Apple discourages --deep).
+          find "$APP/Contents/Frameworks" -type f \( -name '*.dylib' -o -perm -u+x \) -print0 | while IFS= read -r -d '' f; do
+            codesign --force --options runtime --timestamp --keychain "$SIGN_KEYCHAIN" --sign "$SIGN_IDENTITY" "$f"
+          done
+          find "$APP/Contents/Frameworks" -name '*.framework' -maxdepth 1 -print0 | while IFS= read -r -d '' f; do
+            codesign --force --options runtime --timestamp --keychain "$SIGN_KEYCHAIN" --sign "$SIGN_IDENTITY" "$f"
+          done
+          codesign --force --options runtime --timestamp --keychain "$SIGN_KEYCHAIN" --entitlements "$ENT" --sign "$SIGN_IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          spctl --assess --type execute --verbose=2 "$APP" || echo "::notice::spctl assessment will pass after notarization"
+
+      - name: Codesign (ad-hoc, no secrets)
+        if: steps.app.outputs.present == 'true' && steps.signing.outputs.sign != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="${{ steps.bundle.outputs.app }}"
+          # Re-sign so the bundle (with the added dylibs) at least launches locally;
+          # Gatekeeper will still require right-click > Open on other Macs.
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      # ------------------------------------------------------------------ DMG
+      - name: Create DMG
+        if: steps.app.outputs.present == 'true'
+        id: dmg
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="${{ steps.bundle.outputs.app }}"
+          VERSION="${{ steps.ver.outputs.version }}"
+          OUT="dist/KaraokeBattle-${VERSION}-macos-universal.dmg"
+          mkdir -p dist
+          if command -v create-dmg >/dev/null; then
+            # create-dmg returns 2 when it could not add the custom icon/background; tolerate that.
+            create-dmg --volname "${APP_DISPLAY_NAME}" --window-size 540 380 --icon-size 128 \
+              --icon "$(basename "$APP")" 140 160 --app-drop-link 400 160 --no-internet-enable \
+              "$OUT" "$APP" || [[ $? -eq 2 ]]
+          fi
+          if [[ ! -f "$OUT" ]]; then
+            STAGE="$RUNNER_TEMP/dmgroot"; rm -rf "$STAGE"; mkdir -p "$STAGE"
+            cp -R "$APP" "$STAGE/"; ln -s /Applications "$STAGE/Applications"
+            hdiutil create -volname "${APP_DISPLAY_NAME}" -srcfolder "$STAGE" -ov -format UDZO "$OUT"
+          fi
+          ls -la dist
+          echo "dmg=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Sign DMG, notarize and staple
+        if: steps.app.outputs.present == 'true' && steps.signing.outputs.notarize == 'true'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          DMG="${{ steps.dmg.outputs.dmg }}"
+          codesign --force --timestamp --keychain "$SIGN_KEYCHAIN" --sign "$SIGN_IDENTITY" "$DMG"
+          xcrun notarytool submit "$DMG" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait --timeout 30m
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+          spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+
+      - name: Upload DMG
+        if: steps.app.outputs.present == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: KaraokeBattle-macos-universal
+          path: dist/*.dmg
+          if-no-files-found: error
+
+      - name: Remove signing keychain
+        if: always() && env.SIGN_KEYCHAIN != ''
+        shell: bash
+        run: security delete-keychain "$SIGN_KEYCHAIN" || true
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Version from tag
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then v="${GITHUB_REF#refs/tags/v}"; else v="0.0.0"; fi
+          echo "version=${v}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2.22.0
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache ONNX Runtime package
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: engine/third_party/onnxruntime/win-x64
+          key: ort-win-x64-dml-${{ hashFiles('scripts/fetch_ort.ps1') }}
+
+      - name: Fetch ONNX Runtime DirectML + DirectML
+        shell: pwsh
+        run: ./scripts/fetch_ort.ps1
+
+      - name: Build engine (VS 2022, x64) and smoke test
+        shell: pwsh
+        run: ./scripts/build_engine.ps1 -Clean
+
+      - name: Upload engine artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: engine-windows-x64
+          path: |
+            engine/build/Release/karaoke_engine.dll
+            engine/build/Release/karaoke_engine.lib
+            engine/build/Release/ke_cli.exe
+          if-no-files-found: error
+
+      - name: Check for Flutter app
+        id: app
+        shell: pwsh
+        run: |
+          if (Test-Path app/pubspec.yaml) { "present=true" >> $env:GITHUB_OUTPUT } else { "present=false" >> $env:GITHUB_OUTPUT; Write-Host "::warning::app/pubspec.yaml not found - skipping Flutter build" }
+
+      - name: flutter build windows --release
+        if: steps.app.outputs.present == 'true'
+        working-directory: app
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter pub get
+          flutter build windows --release --build-name "${{ steps.ver.outputs.version }}" --build-number "${{ steps.ver.outputs.build_number }}"
+
+      - name: Bundle engine + ONNX Runtime + DirectML next to the exe
+        if: steps.app.outputs.present == 'true'
+        id: bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Flutter output directory (contains karaoke_battle.exe, flutter_windows.dll, data\).
+          $out = 'app/build/windows/x64/runner/Release'
+          if (-not (Test-Path "$out/$env:APP_NAME.exe")) { throw "expected $out/$env:APP_NAME.exe" }
+          Copy-Item engine/build/Release/karaoke_engine.dll $out
+          Copy-Item engine/third_party/onnxruntime/win-x64/lib/onnxruntime.dll $out
+          Copy-Item engine/third_party/onnxruntime/win-x64/lib/onnxruntime_providers_shared.dll $out
+          Copy-Item engine/third_party/onnxruntime/win-x64/lib/DirectML.dll $out
+          Get-ChildItem engine/third_party/onnxruntime/win-x64/LICENSE-*.txt -ErrorAction SilentlyContinue | Copy-Item -Destination $out
+          # Run-time paths used by the Dart side (docs/BUILD.md): <exe dir>\karaoke_engine.dll, onnxruntime.dll, DirectML.dll
+          Get-ChildItem $out | Format-Table Length, Name
+          "out=$out" >> $env:GITHUB_OUTPUT
+
+      - name: Zip
+        if: steps.app.outputs.present == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $zip = "dist/KaraokeBattle-${{ steps.ver.outputs.version }}-windows-x64.zip"
+          Compress-Archive -Path "${{ steps.bundle.outputs.out }}/*" -DestinationPath $zip -CompressionLevel Optimal
+          Get-Item $zip | Format-Table Length, Name
+
+      - name: Upload zip
+        if: steps.app.outputs.present == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: KaraokeBattle-windows-x64
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: artifacts
+
+      - name: Package engine artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd artifacts
+          ls -R
+          V="${{ needs.macos.outputs.version }}"
+          tar -C engine-macos-universal -czf "engine-${V}-macos-universal.tar.gz" .
+          (cd engine-windows-x64 && zip -r "../engine-${V}-windows-x64.zip" .)
+          sha256sum ./*.tar.gz ./*.zip */*.dmg */*.zip > "SHA256SUMS-${V}.txt" || true
+          cat "SHA256SUMS-${V}.txt"
+
+      - name: Create release
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: |
+            artifacts/KaraokeBattle-macos-universal/*.dmg
+            artifacts/KaraokeBattle-windows-x64/*.zip
+            artifacts/engine-*.tar.gz
+            artifacts/engine-*.zip
+            artifacts/SHA256SUMS-*.txt
+          fail_on_unmatched_files: false

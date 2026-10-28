@@ -1,0 +1,208 @@
+{
+  "$schema_note": "CUDA pack manifest for Windows x64. Downloaded by the app at run time (never by CI) into <app support>/cuda_pack/. Generated 2026-10-28; all sha256 verified (ORT zip downloaded and hashed; wheel hashes are PyPI's published digests, wheel contents listed from the zip central directories).",
+  "pack_version": "2026.10.28",
+  "platform": "win-x64",
+  "install_dir": "<app support>/cuda_pack/",
+  "layout": "all extracted DLLs flattened into install_dir (no sub-directories); the engine is given install_dir/onnxruntime.dll and LoadLibraryExW with LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR resolves the rest from that directory",
+  "requirements": {
+    "gpu": "NVIDIA GPU with compute capability >= 7.5 recommended (ORT 1.31 CUDA 12 builds ship SASS for Turing+ and PTX for newer); older GPUs may work via PTX JIT",
+    "driver_min_windows": "527.41",
+    "driver_note": "CUDA 12.x runtime needs an NVIDIA driver >= 527.41 on Windows (CUDA 12.0 baseline, minor-version compatibility covers 12.9 libraries). Read the version from nvidia-smi or the DXGI adapter driver version (ke_cli gpu / ke_system_gpu_info_json); prompt the user to update if lower.",
+    "vc_redist": "MSVCP140.dll, VCRUNTIME140(_1).dll and MSVCP140_ATOMIC_WAIT.dll (Visual C++ 2022 x64 redistributable) - already required by the Flutter Windows runner",
+    "optional_not_bundled": [
+      "nvrtc64_120_0.dll (only needed by ORT's JIT-fused SDPA/RmsNorm kernels, which none of the karaoke models use)",
+      "nvcuda.dll (comes with the driver)"
+    ]
+  },
+  "download_total_bytes": 1892815118,
+  "download_total_human": "1.89 GB (1.76 GiB)",
+  "installed_total_bytes": 2591387144,
+  "installed_total_human": "2.59 GB (2.41 GiB)",
+  "onnxruntime": {
+    "name": "onnxruntime-win-x64-gpu_cuda12",
+    "version": "1.31.1",
+    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.1/onnxruntime-win-x64-gpu_cuda12-1.31.1.zip",
+    "filename": "onnxruntime-win-x64-gpu_cuda12-1.31.1.zip",
+    "size": 392924457,
+    "sha256": "5cbf65edc93dc7bb3296249b1b6e1b2228e575902af64d6163d0da2103cef9d5",
+    "license": "MIT (LICENSE in the zip)",
+    "extract": [
+      {
+        "path": "onnxruntime-win-x64-gpu_cuda12-1.31.1/lib/onnxruntime.dll",
+        "size": 17719608,
+        "sha256": "51c002601f22ecb7089931565b8908cd7c155d7bf8f8cffe21336835da861d07",
+        "required": true
+      },
+      {
+        "path": "onnxruntime-win-x64-gpu_cuda12-1.31.1/lib/onnxruntime_providers_shared.dll",
+        "size": 21816,
+        "sha256": "05c836c1f75858ffa034823cf227335014f02a7297fd273dbd5d487f5262c87b",
+        "required": true
+      },
+      {
+        "path": "onnxruntime-win-x64-gpu_cuda12-1.31.1/lib/onnxruntime_providers_cuda.dll",
+        "size": 366171448,
+        "sha256": "8629b290bc1a2c8877f0ae794baef861c0f7b964a982cdfd5e90ee1bc01a33ee",
+        "required": true
+      }
+    ],
+    "not_extracted": [
+      "lib/onnxruntime_providers_tensorrt.dll (TensorRT EP, not used)",
+      "lib/*.lib, include/* (build-time only)"
+    ]
+  },
+  "nvidia_wheels": [
+    {
+      "package": "nvidia-cuda-runtime-cu12",
+      "version": "12.9.79",
+      "filename": "nvidia_cuda_runtime_cu12-12.9.79-py3-none-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/59/df/e7c3a360be4f7b93cee39271b792669baeb3846c58a4df6dfcf187a7ffab/nvidia_cuda_runtime_cu12-12.9.79-py3-none-win_amd64.whl",
+      "size": 3591604,
+      "sha256": "8e018af8fa02363876860388bd10ccb89eb9ab8fb0aa749aaf58430a9f7c4891",
+      "license": "NVIDIA proprietary, redistributable (dist-info/licenses/License.txt)",
+      "extract": [
+        {
+          "path": "nvidia/cuda_runtime/bin/cudart64_12.dll",
+          "size": 583680,
+          "required": true,
+          "why": "direct import of onnxruntime_providers_cuda.dll"
+        }
+      ],
+      "not_extracted": []
+    },
+    {
+      "package": "nvidia-cublas-cu12",
+      "version": "12.9.2.10",
+      "filename": "nvidia_cublas_cu12-12.9.2.10-py3-none-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/20/e2/fc9a0e985249d873150276d5afb02e39a66817fedbf1a385724393e505ed/nvidia_cublas_cu12-12.9.2.10-py3-none-win_amd64.whl",
+      "size": 553162896,
+      "sha256": "623f43027d40d44ceadf0043f002bd25cf353e8f13ce90b9a87057019f560661",
+      "license": "NVIDIA proprietary, redistributable (dist-info/licenses/License.txt)",
+      "extract": [
+        {
+          "path": "nvidia/cublas/bin/cublas64_12.dll",
+          "size": 102518272,
+          "required": true,
+          "why": "direct import of onnxruntime_providers_cuda.dll"
+        },
+        {
+          "path": "nvidia/cublas/bin/cublasLt64_12.dll",
+          "size": 668673536,
+          "required": true,
+          "why": "direct import of onnxruntime_providers_cuda.dll"
+        }
+      ],
+      "not_extracted": [
+        "nvidia/cublas/bin/nvblas64_12.dll (BLAS drop-in, unused)"
+      ]
+    },
+    {
+      "package": "nvidia-cufft-cu12",
+      "version": "11.4.1.4",
+      "filename": "nvidia_cufft_cu12-11.4.1.4-py3-none-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/20/ee/29955203338515b940bd4f60ffdbc073428f25ef9bfbce44c9a066aedc5c/nvidia_cufft_cu12-11.4.1.4-py3-none-win_amd64.whl",
+      "size": 200067309,
+      "sha256": "8e5bfaac795e93f80611f807d42844e8e27e340e0cde270dcb6c65386d795b80",
+      "license": "NVIDIA proprietary, redistributable (dist-info/licenses/License.txt)",
+      "extract": [
+        {
+          "path": "nvidia/cufft/bin/cufft64_11.dll",
+          "size": 287136768,
+          "required": true,
+          "why": "loaded at run time by the CUDA EP (DFT/STFT kernels)"
+        }
+      ],
+      "not_extracted": [
+        "nvidia/cufft/bin/cufftw64_11.dll (FFTW shim, unused)"
+      ]
+    },
+    {
+      "package": "nvidia-cudnn-cu12",
+      "version": "9.27.0.42",
+      "filename": "nvidia_cudnn_cu12-9.27.0.42-py3-none-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/aa/38/f856579877f7c1c5066e61182e7de7bc27bf35a78c8d1b0fa592e6985bc4/nvidia_cudnn_cu12-9.27.0.42-py3-none-win_amd64.whl",
+      "size": 743068852,
+      "sha256": "06e9b0026f3bad97d2b58666330fabec04fe1672f776661ecb0ce0029c27f142",
+      "license": "NVIDIA cuDNN SLA, redistributable (dist-info/licenses/License.txt)",
+      "extract": [
+        {
+          "path": "nvidia/cudnn/bin/cudnn64_9.dll",
+          "size": 270448,
+          "required": true,
+          "why": "loaded at run time by the CUDA EP; shim that loads the sub-libraries below"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_graph64_9.dll",
+          "size": 99919472,
+          "required": true,
+          "why": "cudnn 9 graph API core"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_ops64_9.dll",
+          "size": 105686640,
+          "required": true,
+          "why": "pointwise/reduction/normalisation ops"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_cnn64_9.dll",
+          "size": 2997872,
+          "required": true,
+          "why": "convolution front end (MDX-Net, GAME encoder)"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_adv64_9.dll",
+          "size": 270983792,
+          "required": true,
+          "why": "RNN/attention; loaded lazily by cudnn64_9 - keep so cudnn initialises identically to a full install"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_engines_precompiled64_9.dll",
+          "size": 528169072,
+          "required": true,
+          "why": "precompiled conv engines (used for every conv plan)"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_engines_runtime_compiled64_9.dll",
+          "size": 45452912,
+          "required": true,
+          "why": "runtime-compiled engines (fallback plans)"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_engines_tensor_ir64_9.dll",
+          "size": 156272,
+          "required": true,
+          "why": "loaded by cudnn_graph"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_ext64_9.dll",
+          "size": 130160,
+          "required": true,
+          "why": "loaded by cudnn_graph"
+        },
+        {
+          "path": "nvidia/cudnn/bin/cudnn_heuristic64_9.dll",
+          "size": 94795376,
+          "required": true,
+          "why": "engine heuristics; needed for plan selection"
+        }
+      ],
+      "not_extracted": []
+    }
+  ],
+  "runtime_dll_dependency_summary": {
+    "direct_imports_of_onnxruntime_providers_cuda.dll": [
+      "cublasLt64_12.dll",
+      "cublas64_12.dll",
+      "cudart64_12.dll",
+      "nvcuda.dll",
+      "onnxruntime_providers_shared.dll"
+    ],
+    "loaded_dynamically_by_the_cuda_ep": [
+      "cufft64_11.dll",
+      "cudnn64_9.dll (+ cudnn_*64_9.dll sub-libraries)",
+      "nvrtc64_120_0.dll (optional)"
+    ],
+    "verified_how": "llvm-objdump -p on onnxruntime_providers_cuda.dll (import table) plus string scan for LoadLibrary names, 2026-10-28"
+  },
+  "self_test": "after installing, call ke_runtime_create(install_dir/onnxruntime.dll, KE_EP_CUDA, device, 0) and ke_runtime_selftest(rt, swiftf0.onnx); on failure delete the pack marker, fall back to DirectML and offer re-download (docs/BACKENDS.md)"
+}
