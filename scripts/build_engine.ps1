@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-  Configure + build the C++ engine with the Visual Studio 2022 x64 generator and run `ke_cli gpu`.
+  Configure + build the C++ engine with the newest Visual Studio x64 generator and run `ke_cli gpu`.
 
 .DESCRIPTION
     scripts\build_engine.ps1 [-Clean] [-DebugBuild] [-NoSmoke]
 
   Output: engine\build\Release\{karaoke_engine.dll, karaoke_engine.lib, ke_cli.exe}
   (engine\build\Debug\... with -DebugBuild). Override the build directory with $env:KE_BUILD_DIR.
-  Requires CMake >= 3.21 and Visual Studio 2022 with the "Desktop development with C++" workload
+  Requires CMake >= 3.21 and Visual Studio 2022 or newer with the "Desktop development with C++" workload
   (both preinstalled on GitHub's windows-latest runners).
 
   Not executed on the macOS development machine; exercised by the windows job of
@@ -34,7 +34,13 @@ if ($LASTEXITCODE -ne 0) { throw "fetch_ort.ps1 failed ($LASTEXITCODE)" }
 
 if ($Clean -and (Test-Path $BuildDir)) { Remove-Item -Recurse -Force $BuildDir }
 
-& cmake -S $Engine -B $BuildDir -G 'Visual Studio 17 2022' -A x64
+# Use the newest Visual Studio generator CMake can find (2022 on windows-2022 runners,
+# 2026 on windows-latest); override with $env:KE_CMAKE_GENERATOR if needed.
+if ($env:KE_CMAKE_GENERATOR) {
+  & cmake -S $Engine -B $BuildDir -G $env:KE_CMAKE_GENERATOR -A x64
+} else {
+  & cmake -S $Engine -B $BuildDir -A x64
+}
 if ($LASTEXITCODE -ne 0) { throw "cmake configure failed ($LASTEXITCODE)" }
 & cmake --build $BuildDir --config $Config --parallel
 if ($LASTEXITCODE -ne 0) { throw "cmake build failed ($LASTEXITCODE)" }
