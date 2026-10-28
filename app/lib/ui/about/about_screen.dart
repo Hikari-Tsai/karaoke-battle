@@ -13,7 +13,8 @@ class AboutScreen extends StatelessWidget {
     // name, license, url, nonCommercial
     ('Karaoke Battle', 'MIT', 'https://github.com/Hikari-Tsai/karaoke-battle', false),
     ('GAME 1.0 Small / Large — Team OpenVPI (openvpi/GAME v1.0.3, unmodified)', 'CC BY-NC-SA 4.0', 'https://github.com/openvpi/GAME/releases/tag/v1.0.3', true),
-    ('UVR MDX-Net: Kim_Vocal_2 (KimberleyJensen), Inst_HQ_4 — Anjok07 & aufr33; architecture: kuielab', 'MIT', 'https://github.com/Anjok07/ultimatevocalremovergui', false),
+    ('UVR-MDX-NET-Inst_HQ_4 — trained by UVR (Anjok07 & aufr33); MDX-Net architecture: kuielab', 'MIT', 'https://github.com/Anjok07/ultimatevocalremovergui', false),
+    ('Kim_Vocal_2 — trained by KimberleyJensen (distributed via UVR)', 'Author permission statement (no license file)', 'https://github.com/KimberleyJensen/kmdx-net_music-source-separation/issues/3', false),
     ('python-audio-separator (MDX pipeline port)', 'MIT', 'https://github.com/nomadkaraoke/python-audio-separator', false),
     ('SwiftF0 — Lars Nieradzik (arXiv:2508.18440)', 'MIT', 'https://github.com/lars76/swift-f0', false),
     ('mir_eval (scoring metric definitions) — Raffel et al., ISMIR 2014', 'MIT', 'https://github.com/mir-evaluation/mir_eval', false),

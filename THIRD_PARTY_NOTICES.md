@@ -27,7 +27,8 @@
 | FFmpeg (LGPL build) | LGPL 2.1+ | sidecar; the app runs it as a separate process |
 | Deno | MIT | sidecar, JS runtime for yt-dlp |
 | GAME 1.0 Small / Large | CC BY-NC-SA 4.0 | model weights, non-commercial; see attribution below |
-| UVR MDX-Net models (Kim_Vocal_2, Inst_HQ_4, Voc_FT) | MIT (per UVR README statement) | credit: UVR core developers Anjok07 & aufr33, KimberleyJensen (Kim_Vocal_2), kuielab / Woosung Choi (MDX-Net) |
+| UVR-MDX-NET-Inst_HQ_4, UVR-MDX-NET-Voc_FT | MIT (per UVR README statement) | trained by the UVR core developers Anjok07 & aufr33; MDX-Net architecture by kuielab (Woosung Choi, Minseok Kim et al.) |
+| Kim_Vocal_2 | no license file; author permission statement (GitHub issue #3 of KimberleyJensen/kmdx-net_music-source-separation, 2026-10-02: free to use "in any way you like, including for commercial use") | trained by KimberleyJensen with the kuielab mdx-net code; distributed by UVR |
 | SwiftF0 0.3.0 | MIT | Lars Nieradzik; paper arXiv:2508.18440 |
 
 ### GAME model attribution (CC BY-NC-SA 4.0)

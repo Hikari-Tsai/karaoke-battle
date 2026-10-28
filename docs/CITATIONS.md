@@ -32,23 +32,42 @@
 因為權重是非商業授權，整個 App 的使用受此條款約束；相同方式分享條款只在重新散布
 或衍生這些權重時生效，鏡像已依此原樣附上授權全文。
 
-### 1.2 UVR MDX-Net（人聲／伴奏分離）
+### 1.2 MDX-Net 分離模型（Kim_Vocal_2、UVR-MDX-NET-Inst_HQ_4、Voc_FT）
 
-* 上游：[Ultimate Vocal Remover GUI](https://github.com/Anjok07/ultimatevocalremovergui)（Anjok07、aufr33），
-  模型檔取自 [all_public_uvr_models](https://github.com/TRvlvr/model_repo/releases/tag/all_public_uvr_models)。
-* 上游 README 的要求（License 節）：
-  「For all third-party application developers who wish to use our models, please honor the MIT license
-  by providing credit to UVR and its developers.」沒有論文或 BibTeX。
-* 架構論文是 kuielab 的 KUIELab-MDX-Net；UVR README 將「original MDX-Net AI code」歸功於 Kuielab 與 Woosung Choi。
+這三個模型的血統有三層，引用時要分開看：**架構**來自 kuielab，**權重**由兩組不同的人訓練，
+**散布**經由 UVR。查證結果（2026-10-29）：
+
+| 模型 | 訓練者 | 最上游 | 權重授權 |
+| --- | --- | --- | --- |
+| UVR-MDX-NET-Inst_HQ_4、Voc_FT | UVR 核心開發者 **Anjok07 與 aufr33** 自行訓練 | UVR 本身（README：「UVR's core developers trained all of the models provided in this package (except for the Demucs v3 and v4 4-stem models)」） | MIT，依 UVR README 的聲明與署名要求 |
+| Kim_Vocal_2 | **KimberleyJensen**（獨立訓練，用 kuielab 的 mdx-net 訓練程式）；UVR 只是收錄散布 | <https://github.com/KimberleyJensen/kmdx-net_music-source-separation> | 上游無授權檔。作者於 2026-10-02 在該 repo [issue #3](https://github.com/KimberleyJensen/kmdx-net_music-source-separation/issues/3) 公開聲明：「You are free to use the MDX-Net model Kim_Vocal_2 (Kim_Vocal_2.onnx) in any way you like, including for commercial use.」這是作者的使用許可聲明而非正式授權條款，本專案依此使用並原文引用 |
+
+架構的最上游是 kuielab（Woosung Choi、Minseok Kim 等）：單 stem 的 TFC-TDF-U-Net（ISMIR 2020）與
+KUIELab-MDX-Net（MDX Workshop @ ISMIR 2021），程式碼 <https://github.com/kuielab/mdx-net>（MIT）。
+kuielab 沒有指定引用格式，但有兩篇論文，引用如下。
+
+上游要求：UVR README「License」節：「For all third-party application developers who wish to use our models,
+please honor the MIT license by providing credit to UVR and its developers.」KimberleyJensen 與 kuielab 沒有提出署名或引用要求。
 
 致謝文字：
 
-> 人聲分離使用 **Ultimate Vocal Remover (UVR)** 的 MDX-Net 模型 **Kim_Vocal_2**（KimberleyJensen 訓練）與
-> **UVR-MDX-NET-Inst_HQ_4**（UVR 核心開發者 Anjok07 與 aufr33 訓練）。MDX-Net 架構與原始程式碼來自
-> kuielab（Minseok Kim、Woosung Choi 等）。模型檔未經修改，鏡像於
+> 人聲分離使用 MDX-Net 模型 **Kim_Vocal_2**（由 **KimberleyJensen** 訓練，經作者公開許可使用）與
+> **UVR-MDX-NET-Inst_HQ_4**（由 **Ultimate Vocal Remover** 核心開發者 **Anjok07 與 aufr33** 訓練，MIT）。
+> MDX-Net（TFC-TDF-U-Net / KUIELab-MDX-Net）架構與訓練程式來自 **kuielab**（Woosung Choi、Minseok Kim 等）。
+> 模型檔未經修改，自 UVR 的公開模型庫取得，鏡像於
 > [aaatmy/uvr-mdx-net-onnx](https://huggingface.co/aaatmy/uvr-mdx-net-onnx)。
 
 ```bibtex
+@inproceedings{choi2020investigating,
+  title     = {Investigating U-Nets with Various Intermediate Blocks for Spectrogram-based Singing Voice Separation},
+  author    = {Choi, Woosung and Kim, Minseok and Chung, Jaehwa and Lee, Daewon and Jung, Soonyoung},
+  booktitle = {Proceedings of the 21st International Society for Music Information Retrieval Conference (ISMIR)},
+  year      = {2020},
+  eprint    = {1912.02591},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1912.02591}
+}
+
 @inproceedings{kim2021kuielab,
   title     = {KUIELab-MDX-Net: A Two-Stream Neural Network for Music Demixing},
   author    = {Kim, Minseok and Choi, Woosung and Chung, Jaehwa and Lee, Daewon and Jung, Soonyoung},
