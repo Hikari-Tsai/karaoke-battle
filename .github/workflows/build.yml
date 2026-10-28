@@ -20,11 +20,31 @@
 # from the manifests in scripts/, never here.
 name: build
 
+# Triggers: only changes that affect the binaries start a build. Documentation,
+# licences, the Python reference tests under engine/tests/ and the run-time
+# manifests in scripts/*.json (consumed by the app at run time, not by CI) do not.
+# Tag pushes (v*) always build: GitHub does not evaluate path filters for tags.
 on:
   push:
     branches: [main]
     tags: ['v*']
+    paths:
+      - 'engine/**'
+      - 'app/**'
+      - 'scripts/**'
+      - '.github/workflows/build.yml'
+      - '!**/*.md'
+      - '!engine/tests/**'
+      - '!scripts/*.json'
   pull_request:
+    paths:
+      - 'engine/**'
+      - 'app/**'
+      - 'scripts/**'
+      - '.github/workflows/build.yml'
+      - '!**/*.md'
+      - '!engine/tests/**'
+      - '!scripts/*.json'
   workflow_dispatch:
 
 concurrency:
