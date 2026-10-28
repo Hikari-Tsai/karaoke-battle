@@ -410,7 +410,11 @@ jobs:
           V="${{ needs.macos.outputs.version }}"
           tar -C engine-macos-universal -czf "engine-${V}-macos-universal.tar.gz" .
           (cd engine-windows-x64 && zip -r "../engine-${V}-windows-x64.zip" .)
-          sha256sum ./*.tar.gz ./*.zip */*.dmg */*.zip > "SHA256SUMS-${V}.txt" || true
+          # Stable file names so README download badges can point at
+          # releases/latest/download/<name> regardless of the version.
+          cp KaraokeBattle-macos-universal/*.dmg "KaraokeBattle-macos-universal.dmg"
+          cp KaraokeBattle-windows-x64/*.zip "KaraokeBattle-windows-x64.zip"
+          sha256sum ./*.tar.gz ./*.zip ./*.dmg */*.dmg */*.zip > "SHA256SUMS-${V}.txt" || true
           cat "SHA256SUMS-${V}.txt"
 
       - name: Create release
@@ -422,6 +426,8 @@ jobs:
           files: |
             artifacts/KaraokeBattle-macos-universal/*.dmg
             artifacts/KaraokeBattle-windows-x64/*.zip
+            artifacts/KaraokeBattle-macos-universal.dmg
+            artifacts/KaraokeBattle-windows-x64.zip
             artifacts/engine-*.tar.gz
             artifacts/engine-*.zip
             artifacts/SHA256SUMS-*.txt
