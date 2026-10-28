@@ -42,13 +42,21 @@ env:
 jobs:
   macos:
     name: macOS (universal)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 90
     outputs:
       version: ${{ steps.ver.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Select newest Xcode on the runner
+        shell: bash
+        run: |
+          latest="$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          echo "using ${latest}"
+          sudo xcode-select -s "${latest}"
+          xcodebuild -version
 
       - name: Version from tag
         id: ver

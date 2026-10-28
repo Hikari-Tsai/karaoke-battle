@@ -3,10 +3,10 @@
   Configure + build the C++ engine with the Visual Studio 2022 x64 generator and run `ke_cli gpu`.
 
 .DESCRIPTION
-    scripts\build_engine.ps1 [-Clean] [-Debug] [-NoSmoke]
+    scripts\build_engine.ps1 [-Clean] [-DebugBuild] [-NoSmoke]
 
   Output: engine\build\Release\{karaoke_engine.dll, karaoke_engine.lib, ke_cli.exe}
-  (engine\build\Debug\... with -Debug). Override the build directory with $env:KE_BUILD_DIR.
+  (engine\build\Debug\... with -DebugBuild). Override the build directory with $env:KE_BUILD_DIR.
   Requires CMake >= 3.21 and Visual Studio 2022 with the "Desktop development with C++" workload
   (both preinstalled on GitHub's windows-latest runners).
 
@@ -16,7 +16,7 @@
 [CmdletBinding()]
 param(
   [switch]$Clean,
-  [switch]$Debug,
+  [switch]$DebugBuild,
   [switch]$NoSmoke
 )
 $ErrorActionPreference = 'Stop'
@@ -24,7 +24,7 @@ $ErrorActionPreference = 'Stop'
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $Engine = Join-Path $Root 'engine'
 $BuildDir = if ($env:KE_BUILD_DIR) { $env:KE_BUILD_DIR } else { Join-Path $Engine 'build' }
-$Config = if ($Debug) { 'Debug' } else { 'Release' }
+$Config = if ($DebugBuild) { 'Debug' } else { 'Release' }
 
 if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) { throw 'cmake not found on PATH' }
 
