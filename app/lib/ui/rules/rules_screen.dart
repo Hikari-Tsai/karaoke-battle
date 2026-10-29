@@ -10,7 +10,16 @@ import '../widgets/rank.dart';
 class RulesScreen extends StatelessWidget {
   const RulesScreen({super.key});
 
-  static const _scoringDocUrl = '${UpdateChecker.repoUrl}/blob/main/docs/SCORING.md';
+  /// The scoring document in the current UI language
+  /// (docs/SCORING.md is Traditional Chinese, .en / .ja are translations).
+  static String scoringDocUrl([String? lang]) {
+    final file = switch (lang ?? I18n.lang) {
+      'en' => 'SCORING.en.md',
+      'ja' => 'SCORING.ja.md',
+      _ => 'SCORING.md',
+    };
+    return '${UpdateChecker.repoUrl}/blob/main/docs/$file';
+  }
 
   // (i18n key suffix, weight %, icon)
   static const _items = <(String, int, IconData)>[
@@ -123,7 +132,7 @@ class RulesScreen extends StatelessWidget {
           // --- full algorithm -----------------------------------------------------------
           Row(children: [
             FilledButton.tonalIcon(
-              onPressed: () => launchUrl(Uri.parse(_scoringDocUrl)),
+              onPressed: () => launchUrl(Uri.parse(scoringDocUrl())),
               icon: const Icon(Icons.menu_book),
               label: Text(tr('rules.fullDoc')),
             ),

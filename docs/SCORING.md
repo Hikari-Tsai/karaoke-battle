@@ -1,5 +1,7 @@
 # 評分演算法
 
+**中文** · [English](SCORING.en.md) · [日本語](SCORING.ja.md)
+
 本文說明 Karaoke Battle 如何把一次演唱（take）與參考資料比對並給分。實作在
 [`app/lib/scoring/`](../app/lib/scoring/)（純 Dart，無 Flutter 依賴），入口是
 `Scorer.score(ScoringInput) -> ScoreResult`。所有數值常數都可由 `ScoringOptions` 與
