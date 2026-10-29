@@ -5,7 +5,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -27,6 +26,7 @@ import '../sing/lyrics_overlay.dart';
 import '../sing/piano_roll.dart';
 import '../sing/video_pane.dart';
 import '../widgets/rank.dart';
+import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
 
 class ReplayScreen extends StatefulWidget {
@@ -56,7 +56,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
   ScoreData? _score;
   double _pitchShift = 0;
   double _videoAspect = 16 / 9;
-  List<(double, String)> _judgements = const []; // (onset s, tier)
+  List<JudgementMark> _judgements = const [];
   String _backing = '';
   double _offset = 0;
   bool _remixing = false;
@@ -101,15 +101,32 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           if (!l.isEmpty) lyrics = l;
         }
       } catch (_) {}
-      // Rhythm judgements of the take, placed at their notes' onsets.
-      final judgements = <(double, String)>[];
+      // Rhythm judgements of the take, placed at their notes' onsets; the
+      // signed onset error (sung minus expected) gives FAST / LATE.
+      final judgements = <JudgementMark>[];
       final rj = score?.raw['rhythm'];
       if (rj is Map) {
+        final errors = <int, double>{};
+        final nm = score?.raw['note_metrics'];
+        if (nm is Map) {
+          for (final e in (nm['per_note'] as List? ?? const [])) {
+            if (e is Map && e['index'] is num && e['onset_error_ms'] is num) {
+              errors[(e['index'] as num).toInt()] = (e['onset_error_ms'] as num).toDouble();
+            }
+          }
+        }
         for (final n in (rj['notes'] as List? ?? const [])) {
           final i = (n['index'] as num).toInt();
-          if (i >= 0 && i < notes.length) judgements.add((notes.onset[i], n['onset'] as String));
+          if (i < 0 || i >= notes.length) continue;
+          final err = errors[i];
+          judgements.add(JudgementMark(
+            time: notes.onset[i],
+            tier: n['onset'] as String,
+            midi: notes.pitch[i] + _pitchShift,
+            fast: err == null || err == 0 ? null : err < 0,
+          ));
         }
-        judgements.sort((a, b) => a.$1.compareTo(b.$1));
+        judgements.sort((a, b) => a.time.compareTo(b.time));
       }
 
       _backing = backing;
@@ -293,7 +310,11 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
               child: LyricsOverlay(lyrics: _lyrics!, position: s.position, noteOnsets: notes.onset, noteOffsets: notes.offset),
             ),
           ),
-        Positioned(top: 12, left: 0, right: 0, child: IgnorePointer(child: _JudgementPopup(position: s.position, judgements: _judgements))),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: JudgementLayer(position: s.position, marks: _judgements, minMidi: range.min, maxMidi: range.max),
+          ),
+        ),
       ]),
     );
     if (!hasVideo) return stage;
@@ -343,67 +364,6 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           ),
         ]),
       ),
-    );
-  }
-}
-
-/// The judgement of the note just reached, shown briefly like a rhythm game.
-class _JudgementPopup extends StatelessWidget {
-  const _JudgementPopup({required this.position, required this.judgements});
-  final ValueListenable<double> position;
-  final List<(double, String)> judgements;
-
-  static const _show = 0.7; // seconds
-
-  static (String, Color) _style(String tier) => switch (tier) {
-        'perfect' => ('PERFECT', const Color(0xFFFFD60A)),
-        'great' => ('GREAT', const Color(0xFFFF4FA3)),
-        'good' => ('GOOD', const Color(0xFF30D158)),
-        _ => ('MISS', const Color(0xFF8E8E93)),
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<double>(
-      valueListenable: position,
-      builder: (context, t, _) {
-        // Latest judgement whose onset has been reached.
-        var lo = 0, hi = judgements.length;
-        while (lo < hi) {
-          final m = (lo + hi) >> 1;
-          if (judgements[m].$1 <= t) {
-            lo = m + 1;
-          } else {
-            hi = m;
-          }
-        }
-        final i = lo - 1;
-        if (i < 0 || t - judgements[i].$1 > _show) return const SizedBox(height: 40);
-        final age = (t - judgements[i].$1) / _show; // 0..1
-        final (label, color) = _style(judgements[i].$2);
-        return SizedBox(
-          height: 40,
-          child: Center(
-            child: Opacity(
-              opacity: (1 - age).clamp(0.0, 1.0),
-              child: Transform.scale(
-                scale: 1.25 - 0.25 * (age * 4).clamp(0.0, 1.0),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    fontStyle: FontStyle.italic,
-                    letterSpacing: 2,
-                    shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
