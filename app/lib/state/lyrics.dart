@@ -249,3 +249,46 @@ List<LyricLine> parseVtt(String vtt) {
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Note-driven karaoke wipe
+// ---------------------------------------------------------------------------
+
+/// How far (0..1) the sung highlight should have moved across [line] at time
+/// [t], driven by the transcribed notes: the notes whose midpoint falls in
+/// the line each get an equal share of the text, the share fills over that
+/// note's duration and holds during the gaps between notes (so long notes
+/// keep the wipe on one syllable and a pause stops it). Without any note in
+/// the line it falls back to a linear wipe over the line's span.
+/// [onsets] and [offsets] are sorted by onset and of equal length.
+double noteWipeFraction(LyricLine line, List<double> onsets, List<double> offsets, double t, {double tolerance = 0.15}) {
+  final n = onsets.length;
+  // First note that could belong to the line (binary search on onset).
+  var lo = 0, hi = n;
+  final from = line.start - 2.0;
+  while (lo < hi) {
+    final mid = (lo + hi) >> 1;
+    if (onsets[mid] < from) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  final idx = <int>[];
+  for (var i = lo; i < n && onsets[i] <= line.end + tolerance; i++) {
+    final m = (onsets[i] + offsets[i]) / 2;
+    if (m >= line.start - tolerance && m <= line.end + tolerance) idx.add(i);
+  }
+  if (idx.isEmpty) {
+    final span = line.end - line.start;
+    return span <= 0 ? 1.0 : ((t - line.start) / span).clamp(0.0, 1.0);
+  }
+  final k = idx.length;
+  for (var j = 0; j < k; j++) {
+    final on = onsets[idx[j]];
+    final off = offsets[idx[j]];
+    if (t < on) return j / k;
+    if (t < off) return (j + (off > on ? (t - on) / (off - on) : 1.0)) / k;
+  }
+  return 1.0;
+}

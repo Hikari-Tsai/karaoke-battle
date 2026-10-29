@@ -101,4 +101,25 @@ how are you
     r.secondary = 'ja';
     expect(r.secondaryTrack, isNull);
   });
+
+  group('note-driven wipe', () {
+    const line = LyricLine(0, 4, 'abc');
+    // Notes: three inside the line, one after it, one long before it.
+    final on = [-3.0, 0.5, 1.0, 3.0, 6.0];
+    final off = [-2.5, 1.0, 2.0, 3.5, 7.0];
+
+    test('equal share per note, fills during the note, holds in gaps', () {
+      expect(noteWipeFraction(line, on, off, 0.25), 0);
+      expect(noteWipeFraction(line, on, off, 0.75), closeTo(0.5 / 3, 1e-9));
+      expect(noteWipeFraction(line, on, off, 1.5), closeTo(1.5 / 3, 1e-9));
+      expect(noteWipeFraction(line, on, off, 2.5), closeTo(2 / 3, 1e-9)); // gap: hold
+      expect(noteWipeFraction(line, on, off, 3.25), closeTo(2.5 / 3, 1e-9));
+      expect(noteWipeFraction(line, on, off, 3.9), 1);
+    });
+
+    test('falls back to a linear wipe without notes in the line', () {
+      expect(noteWipeFraction(line, const [], const [], 1), closeTo(0.25, 1e-9));
+      expect(noteWipeFraction(const LyricLine(10, 12, 'x'), on, off, 11), closeTo(0.5, 1e-9));
+    });
+  });
 }

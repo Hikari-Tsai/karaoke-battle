@@ -174,7 +174,7 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
                                             children: [
                                               VideoPane(session: s, path: widget.song.hasVideo ? s.files.videoMp4 : null),
                                               if (_lyrics != null && context.watch<AppSettings>().showLyrics)
-                                                Positioned(left: 0, right: 0, bottom: 0, child: LyricsOverlay(lyrics: _lyrics!, position: s.position)),
+                                                Positioned(left: 0, right: 0, bottom: 0, child: LyricsOverlay(lyrics: _lyrics!, position: s.position, noteOnsets: s.notes.onset, noteOffsets: s.notes.offset)),
                                               if (_lyrics != null)
                                                 Positioned(
                                                   top: 4,

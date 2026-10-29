@@ -12,9 +12,14 @@ import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
 
 class LyricsOverlay extends StatelessWidget {
-  const LyricsOverlay({super.key, required this.lyrics, required this.position});
+  const LyricsOverlay({super.key, required this.lyrics, required this.position, this.noteOnsets, this.noteOffsets});
   final Lyrics lyrics;
   final ValueListenable<double> position;
+
+  /// Transcribed notes (sorted by onset) that drive the wipe note by note;
+  /// without them the wipe is linear over each line.
+  final List<double>? noteOnsets;
+  final List<double>? noteOffsets;
 
   static const _shadow = [Shadow(color: Colors.black, blurRadius: 6), Shadow(color: Colors.black, blurRadius: 2)];
 
@@ -37,7 +42,11 @@ class LyricsOverlay extends StatelessWidget {
           // Between lines, show the upcoming line (dimmed) up to 4 s ahead.
           final upcoming = cur == null && next != null && next.start - t <= 4 ? next : null;
           final tr2 = cur == null ? null : trans?.lineAt((cur.start + cur.end) / 2);
-          final frac = cur == null ? 0.0 : ((t - cur.start) / (cur.end - cur.start).clamp(0.2, 1e9)).clamp(0.0, 1.0);
+          final frac = cur == null
+              ? 0.0
+              : (noteOnsets != null && noteOffsets != null
+                  ? noteWipeFraction(cur, noteOnsets!, noteOffsets!, t)
+                  : ((t - cur.start) / (cur.end - cur.start).clamp(0.2, 1e9)).clamp(0.0, 1.0));
           return Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(16, big * 1.2, 16, big * 0.5),
