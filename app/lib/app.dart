@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'services/backend_manager.dart';
 import 'services/prep_pipeline.dart';
+import 'services/replay_library.dart';
 import 'services/settings.dart';
 import 'services/song_library.dart';
 import 'state/app_services.dart';
@@ -63,6 +64,7 @@ class _KaraokeAppState extends State<KaraokeApp> {
                       ChangeNotifierProvider<BackendManager>.value(value: s.backend),
                       ChangeNotifierProvider<SongLibrary>.value(value: s.library),
                       ChangeNotifierProvider<PrepPipeline>.value(value: s.pipeline),
+                      ChangeNotifierProvider<ReplayLibrary>.value(value: s.replays),
                       ChangeNotifierProvider<SetupController>(create: (_) => SetupController(s.models, s.sidecars)),
                     ],
                     child: child!,

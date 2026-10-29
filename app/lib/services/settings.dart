@@ -131,6 +131,10 @@ class AppSettings extends ChangeNotifier {
   double get metronomeGain => _get('metronome_gain', 0.6);
   Future<void> setMetronomeGain(double v) => _set('metronome_gain', v.clamp(0.0, 1.5).toDouble());
 
+  /// Name written into exported replay files.
+  String get playerName => _prefs.getString('player_name') ?? '';
+  Future<void> setPlayerName(String v) => _set('player_name', v.trim());
+
   int get overlayPort => _get('overlay_port', 0);
   Future<void> setOverlayPort(int port) => _set('overlay_port', port);
 }

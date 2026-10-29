@@ -229,7 +229,7 @@ class _BrandButton extends StatelessWidget {
 
 /// The 1:1 score card (laid out at [size] logical px, rendered at 1080 px).
 class ShareCard extends StatelessWidget {
-  const ShareCard({super.key, required this.song, required this.score, required this.thumbPath, required this.date, this.badge});
+  const ShareCard({super.key, required this.song, required this.score, required this.thumbPath, required this.date, this.badge, this.badgeIcon = Icons.emoji_events});
   final Song song;
   final ScoreData score;
   final String? thumbPath;
@@ -237,6 +237,7 @@ class ShareCard extends StatelessWidget {
 
   /// Gold pill in the top right ("NEW RECORD" / "Personal best"); none when null.
   final String? badge;
+  final IconData badgeIcon;
 
   static const double size = 540;
   static const _order = ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'long_tone'];
@@ -286,7 +287,7 @@ class ShareCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: trophyColor, borderRadius: BorderRadius.circular(20)),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.emoji_events, size: 16, color: Colors.black),
+                          Icon(badgeIcon, size: 16, color: Colors.black),
                           const SizedBox(width: 4),
                           Text(badge!, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 13)),
                         ]),

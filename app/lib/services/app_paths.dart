@@ -23,6 +23,9 @@ enum DataRootSource { setting, environment, platformDefault }
 
 class AppPaths {
   AppPaths._(this.root, {this.defaultRoot = '', this.envRoot, this.source = DataRootSource.platformDefault});
+
+  /// Paths rooted at [root], for tests.
+  factory AppPaths.forTest(String root) => AppPaths._(root, defaultRoot: root);
   final String root;
 
   /// The platform default location; it also holds location.json (the

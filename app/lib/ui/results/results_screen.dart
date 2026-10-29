@@ -11,6 +11,7 @@ import '../../state/i18n.dart';
 import '../widgets/rank.dart';
 import 'new_record_dialog.dart';
 import 'replay_screen.dart';
+import '../replays/export_replay_dialog.dart';
 import '../../state/take_trace.dart';
 import '../../state/live_trace.dart';
 import '../../state/scoring_bridge.dart';
@@ -122,6 +123,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 label: Text(tr('replay.button')),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: OutlinedButton.icon(
+              onPressed: _score == null ? null : () => showExportReplayDialog(context, song: widget.song, take: widget.take),
+              icon: const Icon(Icons.ios_share),
+              label: Text(tr('export.button')),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.tonalIcon(

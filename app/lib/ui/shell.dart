@@ -7,6 +7,7 @@ import '../state/i18n.dart';
 import 'about/about_screen.dart';
 import 'rules/rules_screen.dart';
 import 'library/library_screen.dart';
+import 'replays/replays_screen.dart';
 import 'settings/settings_screen.dart';
 import 'startup/backend_dialog.dart';
 import 'startup/first_run_dialog.dart';
@@ -58,6 +59,7 @@ class _AppShellState extends State<AppShell> {
             leading: const SizedBox(height: 8),
             destinations: [
               NavigationRailDestination(icon: const Icon(Icons.library_music_outlined), selectedIcon: const Icon(Icons.library_music), label: Text(tr('nav.library'))),
+              NavigationRailDestination(icon: const Icon(Icons.ondemand_video_outlined), selectedIcon: const Icon(Icons.ondemand_video), label: Text(tr('nav.replays'))),
               NavigationRailDestination(icon: const Icon(Icons.emoji_events_outlined), selectedIcon: const Icon(Icons.emoji_events), label: Text(tr('nav.rules'))),
               NavigationRailDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings), label: Text(tr('nav.settings'))),
               NavigationRailDestination(icon: const Icon(Icons.info_outline), selectedIcon: const Icon(Icons.info), label: Text(tr('nav.about'))),
@@ -67,7 +69,7 @@ class _AppShellState extends State<AppShell> {
           Expanded(
             child: IndexedStack(
               index: _index,
-              children: const [LibraryScreen(), RulesScreen(), SettingsScreen(), AboutScreen()],
+              children: const [LibraryScreen(), ReplaysScreen(), RulesScreen(), SettingsScreen(), AboutScreen()],
             ),
           ),
         ],

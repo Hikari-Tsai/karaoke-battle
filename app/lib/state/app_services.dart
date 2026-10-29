@@ -11,6 +11,7 @@ import '../services/app_paths.dart';
 import '../services/backend_manager.dart';
 import '../services/model_registry.dart';
 import '../services/prep_pipeline.dart';
+import '../services/replay_library.dart';
 import '../services/settings.dart';
 import '../services/sidecars.dart';
 import '../services/song_library.dart';
@@ -26,6 +27,7 @@ class AppServices {
     required this.backend,
     required this.library,
     required this.pipeline,
+    required this.replays,
   });
 
   final AppPaths paths;
@@ -36,6 +38,7 @@ class AppServices {
   final BackendManager backend;
   final SongLibrary library;
   final PrepPipeline pipeline;
+  final ReplayLibrary replays;
 
   /// Path of the SwiftF0 model file (may not exist yet).
   String get swiftF0ModelPath => models.pathOf(ModelRegistry.swiftF0, 'model.onnx');
@@ -84,6 +87,8 @@ Future<AppServices> bootstrapServices() async {
   final library = SongLibrary(paths);
   await library.reload();
   final pipeline = PrepPipeline(library: library, sidecars: sidecars, models: models, backend: backend, settings: settings);
+  final replays = ReplayLibrary(paths, sidecars);
+  await replays.reload();
 
   return AppServices(
     paths: paths,
@@ -94,6 +99,7 @@ Future<AppServices> bootstrapServices() async {
     backend: backend,
     library: library,
     pipeline: pipeline,
+    replays: replays,
   );
 }
 

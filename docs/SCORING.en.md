@@ -67,7 +67,7 @@ instead, **each reference note is evaluated within its own time range**:
   never into the range of adjacent notes (a slide between notes is a transition; entering the next note early shows up in the previous note's offset error).
 * **Expected onset / offset**: when a reference curve is available, measured the same way on the original singer's curve, so the original singer singing it gets a perfect score.
 * **Onset hit**: `|onset error| ≤ 50 ms`; **offset hit**: both onset and pitch are hits and
-  `|offset error| ≤ max(50 ms, 20% × note length)`.
+  `|offset error| ≤ max(50 ms, 20% × note length)`. These hits only feed the precision / recall / F1 diagnostics below; **the rhythm sub-score uses the tiered judgement in 4.4**.
 * Notes in which the reference curve is entirely unvoiced are marked as not evaluable and excluded.
 * The precision denominator includes "notes sung wrong or right" plus "take voiced segments that fall outside all notes" (false alarms).
 

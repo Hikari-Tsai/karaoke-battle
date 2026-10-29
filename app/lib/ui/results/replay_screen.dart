@@ -29,9 +29,16 @@ import '../sing/video_pane.dart';
 import '../widgets/rank.dart';
 
 class ReplayScreen extends StatefulWidget {
-  const ReplayScreen({super.key, required this.song, required this.take});
+  const ReplayScreen({super.key, required this.song, required this.take, this.notesJsonPath, this.player});
   final Song song;
   final TakeInfo take;
+
+  /// Reference notes the take was judged on (an imported replay carries the
+  /// sharer's notes); defaults to the song's own notes.json.
+  final String? notesJsonPath;
+
+  /// Name of whoever sang an imported replay.
+  final String? player;
 
   @override
   State<ReplayScreen> createState() => _ReplayScreenState();
@@ -72,10 +79,11 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
       if (!await File(backing).exists()) backing = await File(files.instWav).exists() ? files.instWav : files.mixWav;
       final offset = await SingSession.takeTimeOffset(take);
 
-      final notes = await NoteList.load(files.notesJson);
+      final notesPath = widget.notesJsonPath ?? files.notesJson;
+      final notes = await NoteList.load(notesPath);
       final refF0 = await F0Curve.load(files.refF0Json, confidenceThreshold: 0.5);
       try {
-        final nj = jsonDecode(await File(files.notesJson).readAsString()) as Map<String, dynamic>;
+        final nj = jsonDecode(await File(notesPath).readAsString()) as Map<String, dynamic>;
         maskCurve(refF0, excludedSpansFromJson(nj));
       } catch (_) {}
       final score = await ScoringBridge.load(take.scoreJson);
@@ -176,7 +184,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
         },
         child: Scaffold(
           appBar: AppBar(
-            title: Text('${tr('replay.title')} — ${widget.song.title}'),
+            title: Text('${tr('replay.title')} — ${widget.song.title}${(widget.player ?? '').isEmpty ? '' : ' · ${widget.player}'}'),
             actions: [
               if (score != null)
                 Padding(

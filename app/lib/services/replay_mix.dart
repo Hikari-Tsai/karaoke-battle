@@ -17,7 +17,7 @@ String replayWavPath(String takeDir) => p.join(takeDir, 'replay.wav');
 Future<String> ensureReplayMix(
   Sidecars sidecars, {
   required String takeDir,
-  required String voiceWav,
+  required String? voiceWav,
   required String backingWav,
   required double offsetSeconds,
   double pitchShift = 0,
@@ -29,10 +29,11 @@ Future<String> ensureReplayMix(
   final ff = await sidecars.resolve(SidecarKind.ffmpeg);
   if (ff == null) throw StateError('ffmpeg not available');
 
+  final hasVoice = voiceWav != null && await File(voiceWav).exists();
   // Microphone recordings are usually far quieter than the track: bring the
   // voice to about 2 dB under the backing's average level (at most +24 dB).
-  final voiceDb = await _meanVolumeDb(sidecars, ff, voiceWav);
-  final backDb = await _meanVolumeDb(sidecars, ff, backingWav);
+  final voiceDb = hasVoice ? await _meanVolumeDb(sidecars, ff, voiceWav) : null;
+  final backDb = hasVoice ? await _meanVolumeDb(sidecars, ff, backingWav) : null;
   if (voiceDb != null && backDb != null) {
     final boostDb = (backDb + 20 * math.log(backingGain) / math.ln10 - 2 - voiceDb).clamp(0.0, 24.0);
     voiceGain *= math.pow(10, boostDb / 20).toDouble();
@@ -54,12 +55,15 @@ Future<String> ensureReplayMix(
   }
   backing.add('volume=${backingGain.toStringAsFixed(3)}[b]');
 
-  final filter = '${backing.join(',')};${voice.join(',')};[b][v]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[out]';
+  // Without a voice (a replay shared without its recording) only the backing plays.
+  final filter = hasVoice
+      ? '${backing.join(',')};${voice.join(',')};[b][v]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[out]'
+      : '${backing.join(',')};[b]anull[out]';
   final tmp = '$out.part.wav';
   final code = await sidecars.run(ff, [
     '-y', '-hide_banner', '-nostdin',
     '-i', backingWav,
-    '-i', voiceWav,
+    if (hasVoice) ...['-i', voiceWav],
     '-filter_complex', filter,
     '-map', '[out]',
     '-c:a', 'pcm_s16le',
