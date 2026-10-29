@@ -256,8 +256,8 @@ class Sidecars {
   // ---- running --------------------------------------------------------------
 
   /// Runs a process, streaming stderr/stdout lines to [onLine]. Returns exit code.
-  Future<int> run(String exe, List<String> args, {void Function(String line)? onLine, Future<void>? cancel, String? workingDir}) async {
-    final proc = await Process.start(exe, args, environment: _env(), workingDirectory: workingDir, runInShell: false);
+  Future<int> run(String exe, List<String> args, {void Function(String line)? onLine, Future<void>? cancel, String? workingDir, Map<String, String>? env}) async {
+    final proc = await Process.start(exe, args, environment: {..._env(), ...?env}, workingDirectory: workingDir, runInShell: false);
     cancel?.then((_) => proc.kill());
     final done = Completer<void>();
     var open = 2;
@@ -340,6 +340,33 @@ class Sidecars {
       url,
     ], cancel: cancel);
     if (code != 0) throw StateError('yt-dlp subtitles exited with $code');
+  }
+
+  /// Runs the Japanese reading script of the extracted pack at [packDir] on
+  /// [inJson] (a JSON array of lines), writing token lists to [outJson].
+  /// Offline: Deno resolves kuromoji from the pack's node_modules only.
+  Future<void> readJapanese(String packDir, String inJson, String outJson, {Future<void>? cancel}) async {
+    final deno = await resolve(SidecarKind.deno);
+    if (deno == null) throw StateError('deno not available');
+    final lines = <String>[];
+    final code = await run(
+      deno,
+      [
+        'run',
+        '--cached-only',
+        '--no-prompt',
+        '--config', p.join(packDir, 'deno.json'),
+        '--allow-read=$packDir,$inJson',
+        '--allow-write=$outJson',
+        p.join(packDir, 'ja_reading.ts'),
+        inJson,
+        outJson,
+      ],
+      cancel: cancel,
+      env: {'DENO_DIR': p.join(paths.cache, 'deno'), 'NO_COLOR': '1'},
+      onLine: lines.add,
+    );
+    if (code != 0) throw StateError('ja_reading exited with $code: ${lines.take(5).join(' | ')}');
   }
 
   static final _ffTime = RegExp(r'time=(\d+):(\d+):([\d.]+)');

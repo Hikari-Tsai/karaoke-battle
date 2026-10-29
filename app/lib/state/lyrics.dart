@@ -4,21 +4,33 @@
 import 'dart:math' as math;
 
 class LyricLine {
-  const LyricLine(this.start, this.end, this.text);
+  const LyricLine(this.start, this.end, this.text, {this.romaji});
   final double start;
   final double end;
   final String text;
 
-  Map<String, dynamic> toJson() => {'start': start, 'end': end, 'text': text};
+  /// Romanised reading (Japanese tracks only).
+  final String? romaji;
+
+  LyricLine withRomaji(String? r) => LyricLine(start, end, text, romaji: r);
+
+  Map<String, dynamic> toJson() => {'start': start, 'end': end, 'text': text, 'romaji': ?romaji};
   static LyricLine fromJson(Map<String, dynamic> j) =>
-      LyricLine((j['start'] as num).toDouble(), (j['end'] as num).toDouble(), j['text'] as String? ?? '');
+      LyricLine((j['start'] as num).toDouble(), (j['end'] as num).toDouble(), j['text'] as String? ?? '', romaji: j['romaji'] as String?);
 }
 
 class LyricTrack {
-  LyricTrack({required this.lang, required this.auto, required this.lines});
+  LyricTrack({required this.lang, required this.auto, required this.lines, this.romajiVersion = 0});
   final String lang; // YouTube subtitle key, e.g. ja, zh-TW, en-orig
   final bool auto; // automatically generated captions
-  final List<LyricLine> lines;
+  List<LyricLine> lines;
+
+  /// Version of the romaji rules the lines were romanised with (0 = none);
+  /// bumping [kRomajiVersion] re-romanises existing songs.
+  int romajiVersion;
+
+  bool get isJapanese => langFamily(lang) == 'ja';
+  bool get hasRomaji => romajiVersion > 0 && lines.any((l) => l.romaji != null && l.romaji!.isNotEmpty);
 
   /// Index of the line sounding at [t] (start <= t < end), or -1.
   int indexAt(double t) {
@@ -51,16 +63,25 @@ class LyricTrack {
     return i < 0 ? null : lines[i];
   }
 
-  Map<String, dynamic> toJson() => {'lang': lang, 'auto': auto, 'lines': [for (final l in lines) l.toJson()]};
+  Map<String, dynamic> toJson() => {
+        'lang': lang,
+        'auto': auto,
+        if (romajiVersion > 0) 'romaji_version': romajiVersion,
+        'lines': [for (final l in lines) l.toJson()],
+      };
   static LyricTrack fromJson(Map<String, dynamic> j) => LyricTrack(
         lang: j['lang'] as String? ?? '',
         auto: j['auto'] == true,
+        romajiVersion: (j['romaji_version'] as num?)?.toInt() ?? 0,
         lines: [for (final e in (j['lines'] as List? ?? const [])) LyricLine.fromJson((e as Map).cast<String, dynamic>())],
       );
 }
 
 /// All subtitle tracks fetched for a song plus the user's choice of the main
 /// lyrics and an optional translation shown under it.
+/// Bump when the romaji rules change so existing songs are re-romanised.
+const kRomajiVersion = 1;
+
 class Lyrics {
   Lyrics({required this.tracks, this.primary, this.secondary});
   final List<LyricTrack> tracks;

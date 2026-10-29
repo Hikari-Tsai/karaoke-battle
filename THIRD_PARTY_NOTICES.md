@@ -30,6 +30,8 @@
 | UVR-MDX-NET-Inst_HQ_4, UVR-MDX-NET-Voc_FT | MIT (per UVR README statement) | trained by the UVR core developers Anjok07 & aufr33; MDX-Net architecture by kuielab (Woosung Choi, Minseok Kim et al.) |
 | Kim_Vocal_2 | no license file; author permission statement (GitHub issue #3 of KimberleyJensen/kmdx-net_music-source-separation, 2026-10-02: free to use "in any way you like, including for commercial use") | trained by KimberleyJensen with the kuielab mdx-net code; distributed by UVR |
 | SwiftF0 0.3.0 | MIT | Lars Nieradzik; paper arXiv:2508.18440 |
+| kuromoji.js 0.1.2 (+ async, lodash, doublearray, zlibjs) | Apache-2.0 (+ MIT) | Japanese readings for romaji; downloaded on first Japanese lyrics from `aaatmy/kuromoji-ipadic-pack`, run with Deno |
+| mecab-ipadic 2.7.0-20070801 | NAIST / ICOT terms (redistribution permitted with notice) | dictionary bundled with kuromoji; Copyright 2000-2003 Nara Institute of Science and Technology, notice reproduced in the pack |
 
 ### GAME model attribution (CC BY-NC-SA 4.0)
 

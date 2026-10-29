@@ -7,7 +7,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
+import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -15,6 +17,7 @@ import 'package:path/path.dart' as p;
 import '../engine/engine.dart';
 import '../state/i18n.dart';
 import '../state/lyrics.dart';
+import '../state/romaji.dart';
 import 'backend_manager.dart';
 import 'model_registry.dart';
 import 'settings.dart';
@@ -169,9 +172,10 @@ class PrepPipeline extends ChangeNotifier {
     }
     checkCancel();
 
-    // 3b. thumbnail and subtitles (never fatal)
+    // 3b. thumbnail, subtitles and romaji (never fatal)
     await ensureThumbnail(song);
     await ensureLyrics(song);
+    await ensureRomaji(song);
     checkCancel();
 
     final rt = await backend.runtime();
@@ -274,6 +278,65 @@ class PrepPipeline extends ChangeNotifier {
     } finally {
       _lyricsInFlight.remove(song.id);
     }
+  }
+
+  final Set<String> _romajiInFlight = {};
+
+  /// Adds romaji to the Japanese subtitle tracks of [song]'s lyrics.json.
+  /// Downloads the reading pack (kuromoji + IPADIC) on first use and runs it
+  /// with Deno. Never fatal: on failure the lyrics simply have no romaji.
+  Future<void> ensureRomaji(Song song) async {
+    final f = library.files(song);
+    final file = File(f.lyricsJson);
+    if (!await file.exists()) return;
+    if (!_romajiInFlight.add(song.id)) return;
+    try {
+      final lyrics = Lyrics.fromJson(jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+      final todo = lyrics.tracks.where((t) => t.isJapanese && t.romajiVersion < kRomajiVersion).toList();
+      if (todo.isEmpty) return;
+      final pack = await _ensureJaPack();
+      for (final t in todo) {
+        final inJson = p.join(sidecars.paths.cache, 'ja_in_${song.id}_${t.lang}.json');
+        final outJson = p.join(sidecars.paths.cache, 'ja_out_${song.id}_${t.lang}.json');
+        await Directory(sidecars.paths.cache).create(recursive: true);
+        await File(inJson).writeAsString(jsonEncode([for (final l in t.lines) l.text]));
+        try {
+          await sidecars.readJapanese(pack, inJson, outJson);
+          final tokens = jsonDecode(await File(outJson).readAsString()) as List;
+          t.lines = [
+            for (var i = 0; i < t.lines.length; i++)
+              t.lines[i].withRomaji(i < tokens.length
+                  ? tokensToRomaji([for (final e in tokens[i] as List) JaToken.fromJson((e as Map).cast<String, dynamic>())])
+                  : null),
+          ];
+          t.romajiVersion = kRomajiVersion;
+        } finally {
+          for (final x in [inJson, outJson]) {
+            final tmp = File(x);
+            if (await tmp.exists()) await tmp.delete();
+          }
+        }
+      }
+      await file.writeAsString(jsonEncode(lyrics.toJson()));
+      notifyListeners();
+    } catch (e) {
+      debugPrint('romaji: $e');
+    } finally {
+      _romajiInFlight.remove(song.id);
+    }
+  }
+
+  /// Installs (download + verify) and extracts the Japanese reading pack;
+  /// returns the extracted directory.
+  Future<String> _ensureJaPack() async {
+    final m = ModelRegistry.jaReading;
+    if (!await models.isInstalled(m)) await models.install(m);
+    final dir = p.join(models.dirOf(m), 'pack');
+    if (!await File(p.join(dir, 'ja_reading.ts')).exists()) {
+      final zip = models.pathOf(m, 'kuromoji-pack.zip');
+      await Isolate.run(() => extractFileToDisk(zip, dir));
+    }
+    return dir;
   }
 
   final Set<String> _thumbInFlight = {};

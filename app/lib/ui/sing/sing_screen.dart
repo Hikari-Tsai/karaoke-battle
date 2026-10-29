@@ -241,6 +241,9 @@ class _SingScreenState extends State<SingScreen>
                                       position: s.position,
                                       noteOnsets: s.notes.onset,
                                       noteOffsets: s.notes.offset,
+                                      showRomaji: context
+                                          .watch<AppSettings>()
+                                          .showRomaji,
                                     ),
                                   ),
                                 ),

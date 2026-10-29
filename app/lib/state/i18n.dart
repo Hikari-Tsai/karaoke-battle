@@ -220,6 +220,7 @@ const Map<String, (String, String, String)> _table = {
   'sing.rollZoom': ('音符高度：往上拉放大音符，只顯示目前附近的音域', 'Note height: drag up for taller notes showing only the nearby range', '音符の高さ：上にドラッグすると音符が大きくなり、近くの音域だけを表示します'),
   'sing.lyrics': ('歌詞', 'Lyrics', '歌詞'),
   'sing.lyricsShow': ('顯示歌詞', 'Show lyrics', '歌詞を表示'),
+  'sing.lyricsRomaji': ('顯示羅馬拼音', 'Show romaji', 'ローマ字を表示'),
   'sing.lyricsMain': ('歌詞字幕', 'Lyrics track', '歌詞の字幕'),
   'sing.lyricsTranslation': ('翻譯', 'Translation', '翻訳'),
   'sing.lyricsNone': ('無', 'None', 'なし'),

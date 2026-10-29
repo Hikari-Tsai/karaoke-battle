@@ -111,7 +111,17 @@ class ModelRegistry {
     ],
   );
 
-  static const all = [swiftF0, mdxVocals, mdxInstrumental, gameLarge, gameSmall];
+  /// Japanese reading pack (kuromoji + IPADIC, run with Deno) for romaji
+  /// under Japanese lyrics. Optional: downloaded the first time it is needed.
+  static const jaReading = ModelSpec(
+    id: 'ja-reading',
+    repo: 'aaatmy/kuromoji-ipadic-pack',
+    title: 'kuromoji + IPADIC (Japanese readings)',
+    license: 'Apache-2.0 / NAIST-IPADIC',
+    files: [ModelFile('kuromoji-pack.zip', 17427711, '925ac6d9030adc03b053afada160d25b06cf59f2f152599a70d82f40383ddc26')],
+  );
+
+  static const all = [swiftF0, mdxVocals, mdxInstrumental, gameLarge, gameSmall, jaReading];
 
   /// Models required for the default pipeline.
   static const required = [swiftF0, mdxVocals, mdxInstrumental, gameLarge];

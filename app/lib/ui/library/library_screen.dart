@@ -117,7 +117,7 @@ class _SongCardState extends State<_SongCard> {
     if (widget.song.stage == PrepStage.done) {
       // Songs prepared before thumbnails / subtitles existed get them lazily.
       final pipeline = context.read<AppServices>().pipeline;
-      pipeline.ensureThumbnail(widget.song).then((_) => pipeline.ensureLyrics(widget.song));
+      pipeline.ensureThumbnail(widget.song).then((_) => pipeline.ensureLyrics(widget.song)).then((_) => pipeline.ensureRomaji(widget.song));
     }
   }
 

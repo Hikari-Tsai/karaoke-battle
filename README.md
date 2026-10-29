@@ -41,6 +41,7 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 | [aaatmy/uvr-mdx-net-onnx](https://huggingface.co/aaatmy/uvr-mdx-net-onnx) | 人聲分離 Kim_Vocal_2 | KimberleyJensen（經 UVR 散布） | 無授權檔；作者公開許可聲明 |
 | 同上 | 伴奏分離 UVR-MDX-NET-Inst_HQ_4 | UVR 核心開發者 Anjok07、aufr33 | MIT（依 UVR 聲明） |
 | [aaatmy/swift-f0-onnx](https://huggingface.co/aaatmy/swift-f0-onnx) | 即時與離線 F0 | Lars Nieradzik | MIT |
+| [aaatmy/kuromoji-ipadic-pack](https://huggingface.co/aaatmy/kuromoji-ipadic-pack) | 日文歌詞的羅馬拼音（遇到日文歌詞才下載） | kuromoji.js（Takuya Asano）、mecab-ipadic（NAIST） | Apache-2.0、IPADIC 條款 |
 
 三個鏡像都是上游官方檔案的原樣複製（未重新訓練、量化或匯出），只加上 manifest 與 SHA-256。
 GAME 權重為非商業授權，整個 App 的使用因此受該條款約束。

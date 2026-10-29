@@ -12,8 +12,11 @@ import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
 
 class LyricsOverlay extends StatelessWidget {
-  const LyricsOverlay({super.key, required this.lyrics, required this.position, this.noteOnsets, this.noteOffsets});
+  const LyricsOverlay({super.key, required this.lyrics, required this.position, this.noteOnsets, this.noteOffsets, this.showRomaji = true});
   final Lyrics lyrics;
+
+  /// Show the romanised reading under Japanese lines when available.
+  final bool showRomaji;
   final ValueListenable<double> position;
 
   /// Transcribed notes (sorted by onset) that drive the wipe note by note;
@@ -56,10 +59,16 @@ class LyricsOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (cur != null)
-                  _WipeText(text: cur.text, fraction: frac, fontSize: big)
-                else if (upcoming != null)
-                  Text(upcoming.text, textAlign: TextAlign.center, style: TextStyle(fontSize: big, color: Colors.white54, fontWeight: FontWeight.w700, shadows: _shadow))
+                if (cur != null) ...[
+                  _WipeText(text: cur.text, fraction: frac, fontSize: big),
+                  if (showRomaji && cur.romaji != null && cur.romaji!.isNotEmpty)
+                    _WipeText(text: cur.romaji!, fraction: frac, fontSize: small * 0.95, weight: FontWeight.w600),
+                ]
+                else if (upcoming != null) ...[
+                  Text(upcoming.text, textAlign: TextAlign.center, style: TextStyle(fontSize: big, color: Colors.white54, fontWeight: FontWeight.w700, shadows: _shadow)),
+                  if (showRomaji && upcoming.romaji != null && upcoming.romaji!.isNotEmpty)
+                    Text(upcoming.romaji!, textAlign: TextAlign.center, style: TextStyle(fontSize: small * 0.95, color: Colors.white38, shadows: _shadow)),
+                ]
                 else
                   SizedBox(height: big * 1.3),
                 if (tr2 != null)
@@ -84,14 +93,15 @@ class LyricsOverlay extends StatelessWidget {
 /// A line drawn twice: white underneath and the sung part in gold on top,
 /// clipped to [fraction] of the text width.
 class _WipeText extends StatelessWidget {
-  const _WipeText({required this.text, required this.fraction, required this.fontSize});
+  const _WipeText({required this.text, required this.fraction, required this.fontSize, this.weight = FontWeight.w800});
   final String text;
   final double fraction;
   final double fontSize;
+  final FontWeight weight;
 
   @override
   Widget build(BuildContext context) {
-    final base = TextStyle(fontSize: fontSize, fontWeight: FontWeight.w800, height: 1.25, shadows: LyricsOverlay._shadow);
+    final base = TextStyle(fontSize: fontSize, fontWeight: weight, height: 1.25, shadows: LyricsOverlay._shadow);
     return Stack(
       children: [
         Text(text, textAlign: TextAlign.center, style: base.copyWith(color: Colors.white)),
@@ -142,6 +152,8 @@ class LyricsMenu extends StatelessWidget {
       onSelected: (v) {
         if (v == 'toggle') {
           settings.setShowLyrics(!settings.showLyrics);
+        } else if (v == 'romaji') {
+          settings.setShowRomaji(!settings.showRomaji);
         } else if (v.startsWith('main:')) {
           lyrics.primary = v.substring(5);
           if (lyrics.secondary == lyrics.primary) lyrics.secondary = null;
@@ -154,6 +166,8 @@ class LyricsMenu extends StatelessWidget {
       },
       itemBuilder: (_) => [
         CheckedPopupMenuItem(value: 'toggle', checked: settings.showLyrics, child: Text(tr('sing.lyricsShow'))),
+        if (lyrics.primaryTrack?.hasRomaji ?? false)
+          CheckedPopupMenuItem(value: 'romaji', checked: settings.showRomaji, child: Text(tr('sing.lyricsRomaji'))),
         const PopupMenuDivider(),
         PopupMenuItem(enabled: false, height: 28, child: Text(tr('sing.lyricsMain'))),
         for (final t in lyrics.tracks) CheckedPopupMenuItem(value: 'main:${t.lang}', checked: t.lang == main, child: Text(_label(t))),

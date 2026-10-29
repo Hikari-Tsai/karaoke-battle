@@ -105,6 +105,10 @@ class AppSettings extends ChangeNotifier {
   bool get calibrationPromptDismissed => _get('calib_prompt_dismissed', false);
   Future<void> setCalibrationPromptDismissed(bool v) => _set('calib_prompt_dismissed', v);
 
+  /// Show romaji under Japanese lyrics.
+  bool get showRomaji => _get('show_romaji', true);
+  Future<void> setShowRomaji(bool v) => _set('show_romaji', v);
+
   /// Show synced lyrics (YouTube subtitles) on the sing screen.
   bool get showLyrics => _get('show_lyrics', true);
   Future<void> setShowLyrics(bool v) => _set('show_lyrics', v);

@@ -81,6 +81,7 @@ flutter:
   assets:
     - assets/cuda_pack.json
     - assets/sidecars.json
+    - assets/images/app_icon.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

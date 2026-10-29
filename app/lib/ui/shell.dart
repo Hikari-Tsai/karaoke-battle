@@ -55,7 +55,7 @@ class _AppShellState extends State<AppShell> {
             selectedIndex: _index,
             onDestinationSelected: (i) => setState(() => _index = _lastIndex = i),
             labelType: NavigationRailLabelType.all,
-            leading: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Icon(Icons.mic_external_on, size: 32)),
+            leading: const _BrandMark(),
             destinations: [
               NavigationRailDestination(icon: const Icon(Icons.library_music_outlined), selectedIcon: const Icon(Icons.library_music), label: Text(tr('nav.library'))),
               NavigationRailDestination(icon: const Icon(Icons.emoji_events_outlined), selectedIcon: const Icon(Icons.emoji_events), label: Text(tr('nav.rules'))),
@@ -70,6 +70,42 @@ class _AppShellState extends State<AppShell> {
               children: const [LibraryScreen(), RulesScreen(), SettingsScreen(), AboutScreen()],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// App logo at the top of the navigation rail: the full-colour app icon and
+/// the name, separated from the destinations so it does not read as a button.
+class _BrandMark extends StatelessWidget {
+  const _BrandMark();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 14, bottom: 6),
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.35), blurRadius: 12)],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset('assets/images/app_icon.png', width: 48, height: 48, filterQuality: FilterQuality.medium),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Karaoke\nBattle',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w800, height: 1.1, letterSpacing: 0.3),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(width: 48, child: Divider(height: 1, color: theme.colorScheme.outlineVariant)),
         ],
       ),
     );
