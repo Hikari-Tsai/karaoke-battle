@@ -9,6 +9,7 @@ import '../../services/settings.dart';
 import '../../state/beat_grid.dart';
 import '../../state/i18n.dart';
 import '../../state/sing_session.dart';
+import '../widgets/metronome_icon.dart';
 
 /// Returns the new override, or null when cancelled.
 Future<TempoOverride?> showTempoDialog(
@@ -197,7 +198,7 @@ class _TempoDialogState extends State<_TempoDialog> {
               ]),
               const Divider(height: 28),
               Row(children: [
-                Icon(Icons.av_timer, size: 20, color: theme.colorScheme.primary),
+                MetronomeIcon(size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(tr('tempo.metronome')),
                 const Spacer(),

@@ -25,6 +25,7 @@ import 'lyrics_overlay.dart';
 import 'tempo_dialog.dart';
 import 'video_pane.dart';
 import '../widgets/calibration.dart';
+import '../widgets/metronome_icon.dart';
 
 class SingScreen extends StatefulWidget {
   const SingScreen({super.key, required this.song});
@@ -1118,8 +1119,7 @@ class _TempoChip extends StatelessWidget {
                 : tr('tempo.metronomeOn'),
             child: IconButton(
               onPressed: grid.isEmpty ? null : onToggleMetronome,
-              icon: Icon(
-                Icons.av_timer,
+              icon: MetronomeIcon(
                 color: metronomeOn ? const Color(0xFFFFD60A) : Colors.white,
               ),
             ),
