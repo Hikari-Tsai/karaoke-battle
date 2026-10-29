@@ -41,6 +41,31 @@ class RulesScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          // --- ranks --------------------------------------------------------------
+          Text(tr('rules.ranks'), style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final r in _ranks)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: rankColor(r.$1).withValues(alpha: 0.15),
+                    border: Border.all(color: rankColor(r.$1).withValues(alpha: 0.7)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    RankChip(rank: r.$1),
+                    const SizedBox(width: 8),
+                    Text(r.$2, style: theme.textTheme.titleMedium?.copyWith(color: rankColor(r.$1), fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
           Text(tr('rules.intro'), style: theme.textTheme.bodyLarge),
           const SizedBox(height: 20),
 
@@ -82,31 +107,6 @@ class RulesScreen extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-
-          // --- ranks --------------------------------------------------------------
-          Text(tr('rules.ranks'), style: theme.textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              for (final r in _ranks)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: rankColor(r.$1).withValues(alpha: 0.15),
-                    border: Border.all(color: rankColor(r.$1).withValues(alpha: 0.7)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    RankChip(rank: r.$1),
-                    const SizedBox(width: 8),
-                    Text(r.$2, style: theme.textTheme.titleMedium?.copyWith(color: rankColor(r.$1), fontWeight: FontWeight.w700)),
-                  ]),
-                ),
-            ],
           ),
           const SizedBox(height: 20),
 
