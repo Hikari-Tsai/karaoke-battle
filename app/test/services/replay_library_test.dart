@@ -45,7 +45,7 @@ void main() {
 
   test('import writes take files the replay screen reads and survives reload', () async {
     final src = File(p.join(tmp.path, 'in.json'))..writeAsStringSync(_file().encode());
-    final r = await replays.import(src.path);
+    final r = (await replays.import(src.path)).single;
     expect(r.title, '食虫植物');
     expect(r.player, 'Hikari');
     expect(r.total, 88.5);
@@ -77,10 +77,10 @@ void main() {
     final byTitle = await library.create(title: 'Local Song', sourceType: SourceType.file);
     byTitle.durationSec = 200;
 
-    final a = await replays.import((File(p.join(tmp.path, 'a.json'))..writeAsStringSync(_file().encode())).path);
+    final a = (await replays.import((File(p.join(tmp.path, 'a.json'))..writeAsStringSync(_file().encode())).path)).single;
     expect(ReplayLibrary.findSong(library, a)?.id, yt.id);
 
-    final b = await replays.import((File(p.join(tmp.path, 'b.json'))..writeAsStringSync(_file(yt: null, title: 'local song').encode())).path);
+    final b = (await replays.import((File(p.join(tmp.path, 'b.json'))..writeAsStringSync(_file(yt: null, title: 'local song').encode())).path)).single;
     expect(ReplayLibrary.findSong(library, b), isNull, reason: 'duration differs by more than 2 s');
     byTitle.durationSec = 159;
     expect(ReplayLibrary.findSong(library, b)?.id, byTitle.id);
@@ -114,7 +114,7 @@ void main() {
     expect(parsed.hasVoice, isFalse, reason: 'no take.wav to include');
     expect(text, isNot(contains(tmp.path)), reason: 'no local paths leak into the file');
 
-    final r = await replays.import((File(p.join(tmp.path, 'x.json'))..writeAsStringSync(text)).path);
+    final r = (await replays.import((File(p.join(tmp.path, 'x.json'))..writeAsStringSync(text)).path)).single;
     expect(ReplayLibrary.findSong(library, r)?.id, song.id);
   });
 

@@ -10,12 +10,14 @@
 // replay screen plays an imported replay like one of the user's own takes.
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../state/replay_archive.dart';
 import '../state/replay_file.dart';
 import 'app_paths.dart';
 import 'sidecars.dart';
@@ -159,11 +161,28 @@ class ReplayLibrary extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Imports a replay file; throws [ReplayFormatException] for bad files.
-  Future<ImportedReplay> import(String path) async {
+  /// Imports a replay file: plain JSON, gzip'd JSON, or a zip holding one or
+  /// more replay .json files (all valid ones are imported). Throws
+  /// [ReplayFormatException] when nothing in the file is a valid replay.
+  Future<List<ImportedReplay>> import(String path) async {
     final f = File(path);
     if (await f.length() > ReplayFile.maxTextBytes) throw ReplayFormatException('tooLarge');
-    final text = await f.readAsString();
+    final bytes = await f.readAsBytes();
+    final texts = await Isolate.run(() => replayTextsFromBytes(bytes));
+    final imported = <ImportedReplay>[];
+    Object? firstError;
+    for (final text in texts) {
+      try {
+        imported.add(await _store(text));
+      } catch (e) {
+        firstError ??= e;
+      }
+    }
+    if (imported.isEmpty) throw firstError ?? ReplayFormatException('emptyArchive');
+    return imported;
+  }
+
+  Future<ImportedReplay> _store(String text) async {
     final r = ReplayFile.parse(text);
     final id = const Uuid().v4();
     final dir = p.join(root, id);

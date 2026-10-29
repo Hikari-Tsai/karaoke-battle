@@ -21,6 +21,9 @@ import '../results/replay_screen.dart';
 import '../widgets/brand.dart';
 import '../widgets/rank.dart';
 
+/// File types the import accepts (plain, gzip'd or zipped replay JSON).
+const kReplayExtensions = ['json', 'zip', 'gz'];
+
 /// Localized message for a failed import.
 String replayImportError(Object e) {
   if (e is ReplayFormatException) return tr('replays.err.${e.code}');
@@ -48,8 +51,8 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
     try {
       for (final path in paths) {
         try {
-          final r = await replays.import(path);
-          _snack(tr('replays.imported', {'title': r.title}));
+          final list = await replays.import(path);
+          _snack(list.length == 1 ? tr('replays.imported', {'title': list.first.title}) : tr('replays.importedMany', {'n': list.length}));
         } catch (e) {
           _snack('${tr('replays.importFailed')}: ${replayImportError(e)}');
         }
@@ -61,7 +64,7 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
 
   Future<void> _pick() async {
     try {
-      final files = await FilePicker.pickFiles(dialogTitle: tr('replays.pickTitle'), type: FileType.custom, allowedExtensions: ['json']);
+      final files = await FilePicker.pickFiles(dialogTitle: tr('replays.pickTitle'), type: FileType.custom, allowedExtensions: kReplayExtensions);
       await _importPaths([for (final f in files) ?f.path]);
     } catch (e) {
       _snack('${tr('replays.importFailed')}: $e');
@@ -74,7 +77,7 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
     return DropTarget(
       onDragDone: (d) {
         setState(() => _dragging = false);
-        _importPaths([for (final f in d.files) if (f.path.toLowerCase().endsWith('.json')) f.path]);
+        _importPaths([for (final f in d.files) if (kReplayExtensions.any((e) => f.path.toLowerCase().endsWith('.$e'))) f.path]);
       },
       onDragEntered: (_) => setState(() => _dragging = true),
       onDragExited: (_) => setState(() => _dragging = false),
