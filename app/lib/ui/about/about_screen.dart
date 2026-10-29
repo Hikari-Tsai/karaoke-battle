@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/update_checker.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../widgets/brand.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -117,7 +118,7 @@ class _AboutScreenState extends State<AboutScreen> {
       engineVersion = tr('unknown');
     }
     return Scaffold(
-      appBar: AppBar(title: Text(tr('about.title'))),
+      appBar: AppBar(title: Text(tr('about.title')), actions: const [AppBarBrand()]),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

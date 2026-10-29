@@ -13,6 +13,7 @@ import '../../state/note_edits.dart';
 import '../results/results_screen.dart';
 import '../sing/sing_screen.dart';
 import '../widgets/rank.dart';
+import '../widgets/brand.dart';
 import 'add_song_dialog.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -53,6 +54,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   padding: const EdgeInsets.only(right: 12),
                   child: FilledButton.icon(onPressed: () => AddSongDialog.show(context), icon: const Icon(Icons.add), label: Text(tr('library.add'))),
                 ),
+                const AppBarBrand(),
               ],
             ),
             body: Consumer2<SongLibrary, PrepPipeline>(

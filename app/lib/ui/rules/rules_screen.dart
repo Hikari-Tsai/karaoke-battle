@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/update_checker.dart';
 import '../../state/i18n.dart';
 import '../widgets/rank.dart';
+import '../widgets/brand.dart';
 
 class RulesScreen extends StatelessWidget {
   const RulesScreen({super.key});
@@ -46,7 +47,7 @@ class RulesScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text(tr('rules.title'))),
+      appBar: AppBar(title: Text(tr('rules.title')), actions: const [AppBarBrand()]),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

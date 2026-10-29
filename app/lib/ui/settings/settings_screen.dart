@@ -14,6 +14,7 @@ import '../../state/setup_controller.dart';
 import '../library/add_song_dialog.dart';
 import '../widgets/calibration.dart';
 import '../startup/first_run_dialog.dart';
+import '../widgets/brand.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -132,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('settings.title'))),
+      appBar: AppBar(title: Text(tr('settings.title')), actions: const [AppBarBrand()]),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
