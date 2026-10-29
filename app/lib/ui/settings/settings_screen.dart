@@ -422,7 +422,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     sections: [
                       (tr('settings.livePitch.dsp'), tr('info.livePitch.dsp')),
                       (tr('settings.livePitch.swiftf0'), tr('info.livePitch.swiftf0')),
-                      (tr('settings.livePitch.both'), tr('info.livePitch.both')),
                     ],
                     footer: tr('info.livePitch.footer'),
                   ),
@@ -431,7 +430,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     segments: [
                       ButtonSegment(value: 0, label: Text(tr('settings.livePitch.dsp'))),
                       ButtonSegment(value: 1, label: Text(tr('settings.livePitch.swiftf0'))),
-                      ButtonSegment(value: 2, label: Text(tr('settings.livePitch.both'))),
                     ],
                     selected: {settings.livePitchMode},
                     onSelectionChanged: (v) => settings.setLivePitchMode(v.first),

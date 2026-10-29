@@ -83,8 +83,10 @@ class AppSettings extends ChangeNotifier {
   Future<void> setLatencySeconds(double s) => _set('latency_seconds', s);
 
   /// Live pitch source: 0 = DSP, 1 = SwiftF0, 2 = both.
-  int get livePitchMode => _get('live_pitch_mode', 2);
-  Future<void> setLivePitchMode(int m) => _set('live_pitch_mode', m);
+  /// 0 = DSP, 1 = SwiftF0 (default). The former 2 ("both") displayed SwiftF0
+  /// only, so saved 2s read as 1.
+  int get livePitchMode => _get('live_pitch_mode', 1) == 0 ? 0 : 1;
+  Future<void> setLivePitchMode(int m) => _set('live_pitch_mode', m == 0 ? 0 : 1);
 
   bool get dismissedBackendDialog => _get('dismissed_backend_dialog', false);
   Future<void> setDismissedBackendDialog(bool v) => _set('dismissed_backend_dialog', v);

@@ -424,7 +424,6 @@ const Map<String, (String, String, String)> _table = {
   'settings.livePitch': ('即時音高來源', 'Live pitch source', 'リアルタイムピッチの方式'),
   'settings.livePitch.dsp': ('DSP（低延遲）', 'DSP (low latency)', 'DSP（低遅延）'),
   'settings.livePitch.swiftf0': ('SwiftF0（精準）', 'SwiftF0 (accurate)', 'SwiftF0（高精度）'),
-  'settings.livePitch.both': ('兩者', 'Both', '両方'),
   'info.livePitch.dsp': (
     '用演算法（MPM）即時計算，延遲最低、幾乎不佔 CPU。氣音或環境雜音多時，音高線可能跳八度或抖動。',
     'An algorithm (MPM) computed in real time: lowest latency and almost no CPU. With breathy singing or noise, the line may jump octaves or wobble.',
@@ -434,11 +433,6 @@ const Map<String, (String, String, String)> _table = {
     '用 AI 模型（SwiftF0），音高線較穩定、抗雜音。需要約 0.17 秒的預看，所以線會比歌聲晚一點出現，也較耗 CPU。',
     'An AI model (SwiftF0): steadier and more robust to noise. It needs about 0.17 s of look-ahead, so the line appears slightly after your voice, and it uses more CPU.',
     'AI モデル（SwiftF0）。線が安定し、雑音にも強いです。約 0.17 秒の先読みが必要なため、線が声より少し遅れて表示され、CPU も多く使います。',
-  ),
-  'info.livePitch.both': (
-    '兩種都會計算，但畫面以 SwiftF0 為準，DSP 的結果目前沒有用到，只會多耗一點 CPU。一般不需要選這個。',
-    'Both are computed but the screen follows SwiftF0; the DSP result is currently unused and only costs some CPU. Usually not needed.',
-    '両方を計算しますが、表示は SwiftF0 に従い、DSP の結果は現在使われず CPU を少し多く使うだけです。通常は選ぶ必要はありません。',
   ),
   'info.livePitch.footer': (
     '只影響演唱時的即時顯示。唱完後的評分一律用 SwiftF0 重新分析錄音，不受這個設定影響。',
