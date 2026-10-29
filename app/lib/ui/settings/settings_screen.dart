@@ -84,17 +84,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _calibrating = true;
       _calibError = null;
     });
-    // Let the spinner paint before the ~2 s blocking call.
-    await Future<void>.delayed(const Duration(milliseconds: 150));
-    LiveAudio? live;
     try {
-      live = LiveAudio.create(services.engine, captureDevice: s.captureDeviceId, playbackDevice: s.playbackDeviceId, sampleRate: s.sampleRate);
-      final sec = live.calibrateLatency();
+      final sec = await LiveAudio.calibrateInBackground(
+        services.engine,
+        captureDevice: s.captureDeviceId,
+        playbackDevice: s.playbackDeviceId,
+        sampleRate: s.sampleRate,
+      );
       await s.setLatencySeconds(sec);
     } catch (e) {
       _calibError = '$e';
     } finally {
-      live?.dispose();
       if (mounted) setState(() => _calibrating = false);
     }
   }
@@ -174,6 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 8),
               Text('${tr('settings.backend.active')}: ${backend.active?.name.toUpperCase() ?? '—'}'
                   '${decision != null ? '  (${tr('settings.backend.auto')}: ${decision.recommended.name.toUpperCase()})' : ''}'),
+              const SizedBox(height: 6),
               Text(tr('settings.restartNote'), style: theme.textTheme.bodySmall),
               const SizedBox(height: 8),
               if (decision != null)
@@ -304,6 +305,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(settings.latencySeconds == null ? tr('settings.notCalibrated') : '${(settings.latencySeconds! * 1000).toStringAsFixed(0)} ms'),
                 ],
               ),
+              const SizedBox(height: 6),
               Text(tr('settings.calibrateHint'), style: theme.textTheme.bodySmall),
               if (_calibError != null) Text(_calibError!, style: TextStyle(color: theme.colorScheme.error)),
               const SizedBox(height: 8),

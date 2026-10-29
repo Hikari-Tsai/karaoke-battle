@@ -370,6 +370,44 @@ _JobResult _jobEntry(String libPath, int rtAddr, int cancelAddr, SendPort progre
   }
 }
 
+// ---- latency calibration (worker isolate) ------------------------------------------
+
+class _CalibResult {
+  _CalibResult(this.code, this.message, this.seconds);
+  final int code;
+  final String message;
+  final double seconds;
+}
+
+Future<_CalibResult> _spawnCalibrate(String libPath, String? capture, String? playback, int sampleRate) {
+  return Isolate.run<_CalibResult>(() => _calibrateEntry(libPath, capture, playback, sampleRate));
+}
+
+_CalibResult _calibrateEntry(String libPath, String? capture, String? playback, int sampleRate) {
+  // The engine's last error is thread-local: create, calibrate, read the
+  // error and destroy all on this isolate's thread.
+  final b = EngineBindings(DynamicLibrary.open(libPath));
+  final out = calloc<Pointer<KeAudio>>();
+  final secs = calloc<Double>();
+  final c = capture?.toNativeUtf8() ?? nullptr;
+  final pb = playback?.toNativeUtf8() ?? nullptr;
+  Pointer<KeAudio> dev = nullptr;
+  try {
+    var rc = b.audioCreate(c, pb, sampleRate, out);
+    if (rc != KeError.ok) return _CalibResult(rc, 'ke_audio_create: ${b.lastErrorString()}', 0);
+    dev = out.value;
+    rc = b.audioCalibrateLatency(dev, secs);
+    if (rc != KeError.ok) return _CalibResult(rc, 'ke_audio_calibrate_latency: ${b.lastErrorString()}', 0);
+    return _CalibResult(KeError.ok, '', secs.value);
+  } finally {
+    if (dev != nullptr) b.audioDestroy(dev);
+    if (c != nullptr) calloc.free(c);
+    if (pb != nullptr) calloc.free(pb);
+    calloc.free(out);
+    calloc.free(secs);
+  }
+}
+
 // ---- live audio ------------------------------------------------------------------
 
 class PitchFrame {
@@ -475,8 +513,16 @@ class LiveAudio {
     }
   }
 
-  /// Blocks ~2 s; run via `Isolate.run` is not possible (device object), so call from a
-  /// non-critical moment and show a spinner.
+  /// Opens a temporary duplex device, measures the round-trip latency and
+  /// closes it, all on a worker isolate so the UI keeps running (the native
+  /// call blocks for up to ~3.5 s). Throws [EngineException] on failure.
+  static Future<double> calibrateInBackground(Engine engine, {String? captureDevice, String? playbackDevice, int sampleRate = 48000}) async {
+    final r = await _spawnCalibrate(engine.libraryPath, captureDevice, playbackDevice, sampleRate);
+    if (r.code != KeError.ok) throw EngineException(r.code, r.message);
+    return r.seconds;
+  }
+
+  /// Blocks the calling thread for up to ~3.5 s; prefer [calibrateInBackground].
   double calibrateLatency() {
     final out = calloc<Double>();
     try {

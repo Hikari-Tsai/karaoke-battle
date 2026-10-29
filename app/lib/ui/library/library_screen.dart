@@ -199,9 +199,32 @@ class _SongCardState extends State<_SongCard> {
           children: [
             Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: SizedBox(width: 128, height: 72, child: _thumb(song, services.library.files(song).thumbJpg, cs)),
+                MouseRegion(
+                  cursor: ready ? SystemMouseCursors.click : SystemMouseCursors.basic,
+                  child: GestureDetector(
+                    onTap: ready ? _sing : null,
+                    child: Tooltip(
+                      message: ready ? tr('library.sing') : '',
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          width: 128,
+                          height: 72,
+                          child: Stack(fit: StackFit.expand, children: [
+                            _thumb(song, services.library.files(song).thumbJpg, cs),
+                            if (ready)
+                              Center(
+                                child: Container(
+                                  decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                                  padding: const EdgeInsets.all(4),
+                                  child: const Icon(Icons.play_arrow, color: Colors.white, size: 26),
+                                ),
+                              ),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
