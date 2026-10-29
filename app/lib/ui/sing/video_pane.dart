@@ -10,9 +10,14 @@ import '../../state/i18n.dart';
 import '../../state/sing_session.dart';
 
 class VideoPane extends StatefulWidget {
-  const VideoPane({super.key, required this.session, required this.path});
+  const VideoPane({super.key, required this.session, required this.path, this.fit = BoxFit.contain, this.background = false});
   final SingSession session;
   final String? path;
+  final BoxFit fit;
+
+  /// Used as a stage background: no rounded corners and nothing (instead of
+  /// the visualiser) when the video cannot be shown.
+  final bool background;
 
   @override
   State<VideoPane> createState() => _VideoPaneState();
@@ -77,13 +82,13 @@ class _VideoPaneState extends State<VideoPane> {
   Widget build(BuildContext context) {
     final c = _controller;
     if (widget.path == null || _error != null) {
+      if (widget.background) return const SizedBox.shrink();
       return Visualizer(session: widget.session, message: _error == null ? tr('sing.noVideo') : '${tr('sing.noVideo')} ($_error)');
     }
-    if (c == null) return const Center(child: CircularProgressIndicator());
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Video(controller: c, controls: NoVideoControls, fill: Colors.black, wakelock: false, pauseUponEnteringBackgroundMode: false),
-    );
+    if (c == null) return widget.background ? const ColoredBox(color: Colors.black) : const Center(child: CircularProgressIndicator());
+    final video = Video(controller: c, controls: NoVideoControls, fill: Colors.black, fit: widget.fit, wakelock: false, pauseUponEnteringBackgroundMode: false);
+    if (widget.background) return video;
+    return ClipRRect(borderRadius: BorderRadius.circular(8), child: video);
   }
 }
 

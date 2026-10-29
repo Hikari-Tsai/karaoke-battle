@@ -115,6 +115,10 @@ class AppSettings extends ChangeNotifier {
   double get rollZoom => (_prefs.getDouble('roll_zoom') ?? 0).clamp(0.0, 1.0);
   Future<void> setRollZoom(double z) => _set('roll_zoom', z.clamp(0.0, 1.0).toDouble());
 
+  /// Sing screen: the meter panel is slid in.
+  bool get hudVisible => _get('hud_visible', true);
+  Future<void> setHudVisible(bool v) => _set('hud_visible', v);
+
   int get overlayPort => _get('overlay_port', 0);
   Future<void> setOverlayPort(int port) => _set('overlay_port', port);
 }

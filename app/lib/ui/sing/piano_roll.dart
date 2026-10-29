@@ -54,6 +54,28 @@ class PianoRollColors {
       none: const Color(0xFF9AA0AE),
     );
   }
+
+  /// Translucent variant drawn over a video: the background works as a dim
+  /// scrim, grid and labels stay readable, notes are more opaque.
+  static PianoRollColors overlay(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return PianoRollColors(
+      background: const Color(0x8C0B0D12),
+      rowAlt: const Color(0x26FFFFFF),
+      grid: const Color(0x33FFFFFF),
+      gridOctave: const Color(0x66FFFFFF),
+      label: Colors.white.withValues(alpha: 0.8),
+      noteUpcoming: cs.primary.withValues(alpha: 0.8),
+      noteCurrent: cs.primary,
+      notePast: cs.primary.withValues(alpha: 0.4),
+      refCurve: Colors.white.withValues(alpha: 0.45),
+      playhead: cs.tertiary,
+      good: const Color(0xFF4CD964),
+      near: const Color(0xFFFFCC00),
+      off: const Color(0xFFFF3B30),
+      none: const Color(0xFFC4C8D0),
+    );
+  }
 }
 
 class PianoRollPainter extends CustomPainter {
@@ -357,6 +379,7 @@ class PianoRollView extends StatelessWidget {
     this.windowSeconds = 8,
     this.pitchShift = 0,
     this.totalDuration,
+    this.overlay = false,
   });
 
   final NoteList notes;
@@ -368,6 +391,9 @@ class PianoRollView extends StatelessWidget {
   final double pitchShift;
   final double? totalDuration;
 
+  /// Drawn over a video: translucent background (see [PianoRollColors.overlay]).
+  final bool overlay;
+
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
@@ -378,7 +404,7 @@ class PianoRollView extends StatelessWidget {
             notes: notes,
             refF0: refF0,
             trace: trace,
-            colors: PianoRollColors.of(context),
+            colors: overlay ? PianoRollColors.overlay(context) : PianoRollColors.of(context),
             minMidi: minMidi,
             maxMidi: maxMidi,
             position: position,
