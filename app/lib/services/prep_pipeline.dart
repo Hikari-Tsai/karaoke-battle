@@ -53,6 +53,9 @@ class PrepPipeline extends ChangeNotifier {
   bool _running = false;
 
   PrepStatus? statusOf(String songId) => _status[songId];
+
+  /// A song is being prepared or waiting in the queue.
+  bool get isBusy => _running || _queue.isNotEmpty;
   bool isQueued(String songId) => _queue.contains(songId) || _status[songId] != null;
 
   void _emit(Song s, PrepStage stage, {double fraction = 0, String message = ''}) {

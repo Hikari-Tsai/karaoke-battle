@@ -1,9 +1,11 @@
 // Settings: backend, models, sidecars, audio devices, scoring defaults.
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../services/app_paths.dart';
 import '../../services/backend_manager.dart';
 import '../../services/model_registry.dart';
 import '../../services/settings.dart';
@@ -79,6 +81,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) setState(() => _benchRunning = false);
     }
   }
+
+  /// Changes the data folder: [target] null asks the user for a folder.
+  /// Offers to move the existing data, writes the location pointer and asks
+  /// for a restart (engine, models and services are bound to the old path).
+  Future<void> _changeDataFolder(String? target) async {
+    final services = context.read<AppServices>();
+    final paths = services.paths;
+    if (services.pipeline.isBusy) {
+      _snack(tr('folder.busy'));
+      return;
+    }
+    String? dest = target;
+    if (dest == null) {
+      final picked = await FilePicker.getDirectoryPath(dialogTitle: tr('folder.pickTitle'));
+      if (picked == null || !mounted) return;
+      dest = await DataLocation.resolveTarget(picked);
+    }
+    if (DataLocation.problem(paths.root, dest) != null) {
+      _snack(tr('folder.bad'));
+      return;
+    }
+    if (!mounted) return;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(tr('folder.confirmTitle')),
+        content: Text(tr('folder.confirmBody', {'path': dest})),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('cancel'))),
+          TextButton(onPressed: () => Navigator.pop(c, 'switch'), child: Text(tr('folder.useEmpty'))),
+          FilledButton(onPressed: () => Navigator.pop(c, 'move'), child: Text(tr('folder.move'))),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+    final progress = ValueNotifier<double>(0);
+    if (choice == 'move') {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (c) => AlertDialog(
+          title: Text(tr('folder.moving')),
+          content: ValueListenableBuilder<double>(
+            valueListenable: progress,
+            builder: (_, v, _) => SizedBox(width: 320, child: LinearProgressIndicator(value: v > 0 && v < 1 ? v : null)),
+          ),
+        ),
+      );
+      try {
+        await DataLocation.move(paths.root, dest, onProgress: (v) => progress.value = v);
+      } catch (e) {
+        if (mounted) Navigator.of(context).pop();
+        _snack(e is StateError && '$e'.contains('not empty') ? tr('folder.notEmpty') : '${tr('error')}: $e');
+        return;
+      }
+      if (mounted) Navigator.of(context).pop();
+    } else {
+      await Directory(dest).create(recursive: true);
+    }
+    await DataLocation.write(paths.defaultRoot, dest);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        title: Text(tr('folder.restartTitle')),
+        content: SelectableText(tr('folder.restartBody', {'path': dest})),
+        actions: [FilledButton(onPressed: () => exit(0), child: Text(tr('folder.quit')))],
+      ),
+    );
+  }
+
+  void _snack(String msg) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(msg)));
 
   Future<void> _calibrate() async {
     final services = context.read<AppServices>();
@@ -415,6 +490,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   TextButton.icon(onPressed: () => revealPath(services.paths.root), icon: const Icon(Icons.folder_open), label: Text(tr('open'))),
                 ],
               ),
+              const SizedBox(height: 6),
+              if (services.paths.envOverride)
+                Text(tr('folder.envLocked'), style: theme.textTheme.bodySmall)
+              else ...[
+                Text(tr('folder.hint'), style: theme.textTheme.bodySmall),
+                const SizedBox(height: 6),
+                Wrap(spacing: 8, children: [
+                  OutlinedButton.icon(onPressed: () => _changeDataFolder(null), icon: const Icon(Icons.drive_file_move_outline), label: Text(tr('folder.change'))),
+                  if (!services.paths.isDefault)
+                    TextButton(onPressed: () => _changeDataFolder(services.paths.defaultRoot), child: Text(tr('folder.resetDefault'))),
+                ]),
+              ],
             ],
           ),
         ],

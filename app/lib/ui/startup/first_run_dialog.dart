@@ -166,10 +166,13 @@ class SidecarRow extends StatelessWidget {
               ),
               if (s.installing)
                 const SizedBox(width: 120, child: LinearProgressIndicator())
-              else if (!s.available && s.hasSource)
-                OutlinedButton(onPressed: () => setup.installSidecar(kind), child: Text(tr('install')))
-              else if (kind == SidecarKind.ffmpeg || !s.available)
-                TextButton(onPressed: () => _pickExecutable(context), child: Text(tr('firstRun.pickFfmpeg'))),
+              else ...[
+                if (!s.available && s.hasSource)
+                  OutlinedButton(onPressed: () => setup.installSidecar(kind), child: Text(tr('install'))),
+                // Any tool can point at the user's own copy (e.g. a newer
+                // yt-dlp or a full ffmpeg build).
+                TextButton(onPressed: () => _pickExecutable(context), child: Text(tr('sidecar.pickPath'))),
+              ],
             ],
           ),
           if (noSource && kind == SidecarKind.ffmpeg)
