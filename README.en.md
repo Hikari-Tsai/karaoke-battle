@@ -54,7 +54,7 @@ The GAME weights are licensed for non-commercial use only, so use of the app as 
 
 When you finish singing, the recorded F0 curve is aligned and compared with the original vocals (GAME notes plus a SwiftF0 reference curve), producing six sub-scores:
 **pitch** (Raw Chroma Accuracy), **rhythm** (rhythm-game style PERFECT / GREAT / GOOD / MISS per note, with windows scaled by BPM), **stability**,
-**vibrato**, **expression** (correlation of energy curves) and **long tone**. These are weighted into an overall score from 0 to 100 and a rank from D to SSS.
+**vibrato**, **expression** (correlation of energy curves) and **long tone**. Their weighted total is mapped to a 0–100 score on a scale close to DAM 精密採点 (around 80 is typical, 90 and above is good), with a rank from D to SSS.
 
 Three key design points: **notes an octave apart count as the same note** (singing an octave higher or lower is still correct), **global transposition is allowed**
 (a single semitone offset for the whole song, estimated automatically), and **slides in the original vocals and GAME transcription errors are tolerated**: each frame's

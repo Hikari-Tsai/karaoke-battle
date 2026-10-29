@@ -121,18 +121,42 @@ All sub-scores lie in `[0, 1]`, and all mappings are monotonic. `clamp` means cl
 Default weights: pitch 40, rhythm 20, stability 10, vibrato 10, expression 10, long tone 10.
 
 ```
-total = 100 × Σ(wᵢ · sᵢ) / Σ(wᵢ)      summed only over "evaluable" sub-scores; weights are renormalized automatically
+raw   = 100 × Σ(wᵢ · sᵢ) / Σ(wᵢ)      summed only over "evaluable" sub-scores; weights are renormalized automatically
+total = 2.8 × raw                     (raw < 20)
+        0.55 × raw + 45               (raw ≥ 20)       mapped to a DAM-like scale, see 5.1
 ```
 
 | Total score | Rank |
 | --- | --- |
-| ≥ 97 | SSS |
-| ≥ 92 | SS |
-| ≥ 85 | S |
-| ≥ 75 | A |
-| ≥ 60 | B |
-| ≥ 40 | C |
+| ≥ 98 | SSS |
+| ≥ 95 | SS |
+| ≥ 91 | S |
+| ≥ 86 | A |
+| ≥ 78 | B |
+| ≥ 67 | C |
 | Otherwise | D |
+
+### 5.1 Score scale (aligned with DAM 精密採点)
+
+The weighted average (raw) has no floor: once the pitch drifts the score drops very low, far from the DAM 精密採点 numbers players know. The total therefore goes through one monotonic mapping so that singing of the same level gets a score close to DAM's.
+
+What is publicly known about DAM 精密採点 (no official distribution is published; these are compilations and rules of thumb):
+
+* National averages are about 80–82; 90 and above counts as good, 95 and above as very good, 98–100 as expert.
+* Pitch dominates: a regression over about 3,000 DX-G takes gives a slope of about 0.623 for the total against pitch accuracy, and above 90 % accuracy the total is almost always 90 or more, roughly `total ≈ 34 + 0.623 × pitch accuracy (%)`.
+* Expression and rhythm never go below 50, so as long as someone sings, the total rarely falls below 55–60.
+
+Two anchors set the mapping: raw 65 (a typical take with pitch accuracy in the low 60s in our recordings) maps to DAM's national average of about 80, and raw 90 to about 94.5. Fitting the power curve `100 − c·(100 − raw)^p` through them gives p ≈ 0.96, practically a line, so `0.55 × raw + 45` is used. Below raw 20, `2.8 × raw` keeps a silent or random take near 0; both pieces give 56 at raw 20, so the curve is continuous and monotonic.
+
+| raw | 0 | 10 | 20 | 40 | 50 | 60 | 65 | 75 | 85 | 92 | 97 | 100 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Total | 0 | 28 | 56 | 67 | 72.5 | 78 | 80.8 | 86.3 | 91.8 | 95.6 | 98.4 | 100 |
+
+The rank thresholds are the old ones (raw 97 / 92 / 85 / 75 / 60 / 40) mapped and rounded: 98 / 95 / 91 / 86 / 78 / 67. score.json stores the mapped score in `total`, plus `raw_total` and `scale: 2`; older files without `scale` are converted when read, so old and new takes compare directly and best-score checks are unaffected (the mapping is monotonic).
+
+The raw-65 anchor currently rests on only a few real takes. The most reliable calibration is to sing the same songs on DAM and in this app, collect the paired scores and refit 0.55 and 45 by least squares.
+
+Sources: [精密採点（Wikipedia）](https://ja.wikipedia.org/wiki/%E7%B2%BE%E5%AF%86%E6%8E%A1%E7%82%B9)、[精密採点DX-Gの仕組みを3000回以上の歌唱データから解説](https://trs-ch.blog/post-9960/)、[精密採点Aiをはじめる人へ](https://note.com/for_all_epsilon/n/nbd4bce71125e)、[カラオケの精密採点の全国平均点は何点？](https://chouseisan.com/l/post-53182/)、[精密採点DXのコツ（clubdam.info）](https://clubdam.info/static/advice.html)
 
 ## 6. Calibration results
 
@@ -143,7 +167,7 @@ the fixtures are in [`app/test/scoring/fixtures/`](../app/test/scoring/fixtures/
 | --- | --- | --- |
 | The original singer's own F0 curve | 100.0 | SSS |
 | Original singer transposed down 9 semitones (equivalent to up 3 semitones and down an octave), delayed by 300 ms | 100.0 | SSS (k = 9) |
-| Random pitches | 8.9 | D |
+| Random pitches | 24.9 (raw 8.9) | D |
 
 Scoring a 5-minute song (about 19,000 frames, 650 notes) takes about 150 ms.
 

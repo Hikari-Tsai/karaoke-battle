@@ -33,13 +33,13 @@ class RulesScreen extends StatelessWidget {
   ];
 
   static const _ranks = <(String, String)>[
-    ('SSS', '≥ 97'),
-    ('SS', '≥ 92'),
-    ('S', '≥ 85'),
-    ('A', '≥ 75'),
-    ('B', '≥ 60'),
-    ('C', '≥ 40'),
-    ('D', '< 40'),
+    ('SSS', '≥ 98'),
+    ('SS', '≥ 95'),
+    ('S', '≥ 91'),
+    ('A', '≥ 86'),
+    ('B', '≥ 78'),
+    ('C', '≥ 67'),
+    ('D', '< 67'),
   ];
 
   @override
@@ -74,6 +74,8 @@ class RulesScreen extends StatelessWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 10),
+          Text(tr('rules.scale'), style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
           const SizedBox(height: 20),
 
           Text(tr('rules.intro'), style: theme.textTheme.bodyLarge),

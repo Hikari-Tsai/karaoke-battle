@@ -72,9 +72,11 @@ class ScoreData {
         ));
       }
     }
+    // Older files hold raw totals; readScoreTotal converts them.
+    final t = readScoreTotal(j);
     return ScoreData(
-      total: (j['total'] as num?)?.toDouble() ?? 0,
-      rank: j['rank'] as String? ?? '—',
+      total: t.total,
+      rank: t.rank,
       subScores: subs,
       notes: notes,
       shift: (j['shift'] as num?)?.toInt() ?? 0,

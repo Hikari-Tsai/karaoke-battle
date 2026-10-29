@@ -22,6 +22,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../scoring/models.dart' show upgradeScoreJson;
 import '../state/replay_archive.dart';
 import '../state/replay_file.dart';
 import 'app_paths.dart';
@@ -310,7 +311,7 @@ class ReplayLibrary extends ChangeNotifier {
       timeOffset: start - latency,
       notes: readJson(files.notesJson),
       takeF0: readJson(take.f0Json),
-      score: readJson(take.scoreJson),
+      score: upgradeScoreJson(readJson(take.scoreJson)),
       voiceFile: vocalName,
     );
     final zip = Archive()..addFile(ArchiveFile.string('$baseName.json', file.encode()));

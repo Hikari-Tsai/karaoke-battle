@@ -884,16 +884,48 @@ class SubScores {
 /// Rank letters, best first.
 const List<String> rankLetters = ['SSS', 'SS', 'S', 'A', 'B', 'C', 'D'];
 
-/// Monotonic rank mapping:
-/// `>= 97 SSS, >= 92 SS, >= 85 S, >= 75 A, >= 60 B, >= 40 C, else D`.
+/// Version of the score scale written to score.json (`scale`). 2 is the
+/// DAM-like scale of [damLikeTotal]; files without it hold raw totals.
+const int scoreScaleVersion = 2;
+
+/// Maps the raw weighted total (0..100) onto a scale comparable to DAM
+/// 精密採点 (national averages around 80, 90 = good, 95+ = very good):
+/// `0.55·raw + 45` from raw 20 up, `2.8·raw` below (both 56 at raw 20), so
+/// 0 stays 0 for a take that was not sung and 100 stays 100. See
+/// docs/SCORING.md, "Score scale".
+double damLikeTotal(double raw) {
+  final r = raw.clamp(0.0, 100.0);
+  return r < 20 ? 2.8 * r : 0.55 * r + 45;
+}
+
+/// Monotonic rank mapping on the DAM-like scale:
+/// `>= 98 SSS, >= 95 SS, >= 91 S, >= 86 A, >= 78 B, >= 67 C, else D`.
 String rankForTotal(double total) {
-  if (total >= 97) return 'SSS';
-  if (total >= 92) return 'SS';
-  if (total >= 85) return 'S';
-  if (total >= 75) return 'A';
-  if (total >= 60) return 'B';
-  if (total >= 40) return 'C';
+  if (total >= 98) return 'SSS';
+  if (total >= 95) return 'SS';
+  if (total >= 91) return 'S';
+  if (total >= 86) return 'A';
+  if (total >= 78) return 'B';
+  if (total >= 67) return 'C';
   return 'D';
+}
+
+/// Total, rank and raw total of a score.json map. Files written before the
+/// DAM-like scale (no `scale` field) are converted, so old and new takes
+/// compare fairly.
+({double total, String rank, double raw}) readScoreTotal(Map<String, dynamic> j) {
+  final t = (j['total'] as num?)?.toDouble() ?? 0;
+  if (j['scale'] == scoreScaleVersion) {
+    return (total: t, rank: (j['rank'] as String?) ?? rankForTotal(t), raw: (j['raw_total'] as num?)?.toDouble() ?? t);
+  }
+  final total = damLikeTotal(t);
+  return (total: total, rank: rankForTotal(total), raw: t);
+}
+
+/// [j] with total, rank, raw_total and scale on the current scale.
+Map<String, dynamic> upgradeScoreJson(Map<String, dynamic> j) {
+  final s = readScoreTotal(j);
+  return {...j, 'total': s.total, 'rank': s.rank, 'raw_total': s.raw, 'scale': scoreScaleVersion};
 }
 
 /// The complete result of [Scorer.score].
@@ -902,6 +934,7 @@ class ScoreResult {
     required this.total,
     required this.rank,
     required this.subScores,
+    this.rawTotal,
     required this.shift,
     required this.octaveExactShift,
     required this.frameMetrics,
@@ -917,8 +950,11 @@ class ScoreResult {
   /// read back from an older score.json).
   final RhythmResult? rhythm;
 
-  /// Final score in `[0, 100]`.
+  /// Final score in `[0, 100]` on the DAM-like scale ([damLikeTotal]).
   final double total;
+
+  /// The weighted sub-score total before [damLikeTotal].
+  final double? rawTotal;
 
   /// Rank letter (see [rankForTotal]).
   final String rank;
@@ -938,9 +974,12 @@ class ScoreResult {
   /// Working frame hop in seconds.
   final double hop;
 
-  factory ScoreResult.fromJson(Map<String, dynamic> json) => ScoreResult(
-    total: _d(json['total']),
-    rank: (json['rank'] ?? 'D') as String,
+  factory ScoreResult.fromJson(Map<String, dynamic> json) => _fromJson(json, readScoreTotal(json));
+
+  static ScoreResult _fromJson(Map<String, dynamic> json, ({double total, String rank, double raw}) t) => ScoreResult(
+    total: t.total,
+    rank: t.rank,
+    rawTotal: t.raw,
     subScores: SubScores.fromJson(json['sub_scores'] as Map<String, dynamic>),
     shift: _i(json['shift']),
     octaveExactShift: _i(json['octave_exact_shift']),
@@ -964,6 +1003,8 @@ class ScoreResult {
   Map<String, dynamic> toJson() => {
     'total': total,
     'rank': rank,
+    'raw_total': ?rawTotal,
+    'scale': scoreScaleVersion,
     'sub_scores': subScores.toJson(),
     'sub_scores_flat': subScores.toFlatJson(),
     'shift': shift,

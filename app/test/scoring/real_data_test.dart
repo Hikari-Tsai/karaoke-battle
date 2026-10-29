@@ -65,7 +65,8 @@ void main() {
         ScoringInput(referenceNotes: notes, referenceF0: ref, takeF0: take),
       );
       expect(r.subScores.pitch.value, 0);
-      expect(r.total, lessThan(20));
+      expect(r.rawTotal, lessThan(20));
+      expect(r.total, lessThan(56));
       expect(r.rank, 'D');
     }, skip: skip);
 

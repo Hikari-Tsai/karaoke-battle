@@ -14,8 +14,10 @@ void main() {
     I18n.notifier.value = 'zh';
     final song = Song(id: 'x', title: '【歌ってみた】食虫植物 / covered by 多帕 Topa', sourceType: SourceType.youtube, createdAt: DateTime(2026, 10, 29));
     final score = ScoreData.fromJson({
-      'total': 93.4,
+      'total': 96.2,
       'rank': 'SS',
+      'raw_total': 93.1,
+      'scale': 2,
       'sub_scores': {
         'pitch': {'value': 0.96}, 'rhythm': {'value': 0.91}, 'stability': {'value': 0.88},
         'vibrato': {'value': null}, 'expression': {'value': 0.82}, 'long_tone': {'value': 0.97},
@@ -41,7 +43,7 @@ void main() {
       });
     }
     final text = shareText(song, score);
-    expect(text, contains('93.4'));
+    expect(text, contains('96.2'));
     expect(text, contains('SS'));
     expect(text, contains('/releases/latest'));
     expect(shareText(song, score, newRecord: false), isNot(contains('刷新')));

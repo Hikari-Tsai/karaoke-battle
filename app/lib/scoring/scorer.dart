@@ -284,10 +284,12 @@ class Scorer {
       ),
       longTone: SubScore(value: longTone, weight: w.longTone),
     );
-    final total = subScores.total;
+    final raw = subScores.total;
+    final total = damLikeTotal(raw);
     return ScoreResult(
       total: total,
       rank: rankForTotal(total),
+      rawTotal: raw,
       subScores: subScores,
       shift: k,
       octaveExactShift: octaveExact,

@@ -28,7 +28,7 @@ ReplayFile _file({String? yt = 'trrLxXbRjeM', String title = '食虫植物'}) =>
         'excluded_spans': [],
       },
       takeF0: {'hop': 0.016, 'sample_rate': 16000, 'times': [0.0, 0.016], 'f0': [0.0, 220.0], 'confidence': [0.1, 0.9]},
-      score: {'total': 88.5, 'rank': 'S'},
+      score: {'total': 88.5, 'rank': 'A', 'raw_total': 79.1, 'scale': 2},
     );
 
 void main() {

@@ -21,7 +21,7 @@ ReplayFile sample({String? voice}) => ReplayFile(
         ],
       },
       takeF0: {'hop': 0.016, 'sample_rate': 16000, 'times': [0.0, 0.016], 'f0': [0.0, 220.0], 'confidence': [0.1, 0.9]},
-      score: {'total': 93.4, 'rank': 'SS', 'sub_scores': {}},
+      score: {'total': 93.4, 'rank': 'S', 'raw_total': 88.0, 'scale': 2, 'sub_scores': {}},
       voiceFile: voice,
     );
 
@@ -38,7 +38,7 @@ void main() {
       [3.0, 3.4],
     ]);
     expect(r.total, 93.4);
-    expect(r.rank, 'SS');
+    expect(r.rank, 'S');
     expect(r.hasVoice, isTrue);
     expect(r.voiceFile, '食虫植物 93.4 vocal.mp3');
   });
@@ -94,5 +94,12 @@ void main() {
       final b = sample().toJson()..['voice'] = {'file': bad};
       expect(() => ReplayFile.parse(jsonEncode(b)), throwsA(isA<ReplayFormatException>()), reason: bad);
     }
+  });
+
+  test('a score without the scale field is converted to the DAM-like scale', () {
+    final j = sample().toJson()..['score'] = {'total': 85.0, 'rank': 'S'};
+    final r = ReplayFile.parse(jsonEncode(j));
+    expect(r.total, closeTo(91.75, 1e-9));
+    expect(r.score['raw_total'], 85);
   });
 }

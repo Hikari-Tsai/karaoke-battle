@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import 'app_paths.dart';
+import '../scoring/models.dart' show readScoreTotal;
 
 enum SourceType { youtube, file }
 
@@ -192,8 +193,12 @@ class SongLibrary extends ChangeNotifier {
       if (await score.exists()) {
         try {
           final j = jsonDecode(await score.readAsString()) as Map<String, dynamic>;
-          total = (j['total'] as num?)?.toDouble();
-          rank = j['rank'] as String?;
+          if (j['total'] is num) {
+            // Older files hold raw totals; readScoreTotal converts them.
+            final t = readScoreTotal(j);
+            total = t.total;
+            rank = t.rank;
+          }
           final flat = j['sub_scores_flat'];
           if (flat is Map) {
             subScores = {for (final e in flat.entries) '${e.key}': (e.value as num?)?.toDouble()};

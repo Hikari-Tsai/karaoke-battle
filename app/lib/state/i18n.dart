@@ -561,9 +561,9 @@ const Map<String, (String, String, String)> _table = {
   // rules
   'rules.title': ('計分規則', 'Scoring rules', '採点ルール'),
   'rules.intro': (
-    '唱完後，App 會把你的歌聲和原唱比對，從六個面向給分，加總成 0 到 100 分。下面用最簡單的方式說明每一項怎麼拿分。',
-    'After a take the app compares your singing with the original and scores six aspects, adding up to 0–100. Here is how to earn each one in plain words.',
-    '歌い終わると、アプリがあなたの歌声を原曲と比べて 6 つの観点で採点し、合計 0〜100 点になります。それぞれの点の取り方をやさしく説明します。',
+    '唱完後，App 會把你的歌聲和原唱比對，從六個面向給分，加權後換算成 0 到 100 分。下面用最簡單的方式說明每一項怎麼拿分。',
+    'After a take the app compares your singing with the original, scores six aspects and turns their weighted total into a 0–100 score. Here is how to earn each one in plain words.',
+    '歌い終わると、アプリがあなたの歌声を原曲と比べて 6 つの観点で採点し、その加重合計を 0〜100 点に換算します。それぞれの点の取り方をやさしく説明します。',
   ),
   'rules.howToScore': ('六個項目怎麼拿分', 'How to earn each score', '各項目の点の取り方'),
   'rules.pitch': (
@@ -601,6 +601,11 @@ const Map<String, (String, String, String)> _table = {
   'rules.transpose': ('整首歌移調沒關係，App 會自動對齊；但要整首一致，不要中途換 key。', 'Transposing the whole song is fine, the app aligns it automatically; just keep the same key all the way through.', '曲全体の移調は問題ありません。アプリが自動で合わせます。ただし途中でキーを変えないこと。'),
   'rules.slides': ('原唱的滑音可以跟著滑，也可以把音唱直，兩種都算對。', 'You may follow the original\'s slides and scoops or sing the plain note; both count.', '原曲のしゃくりやポルタメントは、真似しても、まっすぐ歌っても正解です。'),
   'rules.ranks': ('等級', 'Ranks', 'ランク'),
+  'rules.scale': (
+    '分數換算成和 DAM 精密採点相近的尺度：80 分左右是一般水準，90 分以上算唱得好，95 分以上很厲害，98 分以上接近原唱。',
+    'Scores use a scale close to DAM 精密採点: around 80 is typical, 90 and above is good, 95 and above is excellent, and 98 and above is close to the original singer.',
+    '点数は DAM 精密採点に近い尺度に換算しています。80 点前後が一般的、90 点以上で上手、95 点以上でかなり上手、98 点以上は原曲にかなり近い歌唱です。',
+  ),
   'rules.tips': ('小技巧', 'Tips', 'コツ'),
   'rules.tipHeadphones': ('戴耳機，避免伴奏被麥克風收進去影響偵測。', 'Wear headphones so the accompaniment does not leak into the microphone.', 'ヘッドホンを着けて、伴奏がマイクに入らないようにしましょう。'),
   'rules.tipMic': ('麥克風靠近嘴巴，聲音太小的片段會被當成沒唱。', 'Keep the microphone close; passages that are too quiet count as not sung.', 'マイクは口の近くに。声が小さすぎる部分は歌っていないと判定されます。'),

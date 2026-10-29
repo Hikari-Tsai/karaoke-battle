@@ -9,6 +9,8 @@
 // is kept for finding the song.
 import 'dart:convert';
 
+import '../scoring/models.dart' show upgradeScoreJson;
+
 class ReplayFormatException implements Exception {
   ReplayFormatException(this.code, [this.detail = '']);
 
@@ -231,7 +233,7 @@ class ReplayFile {
     _num(j['total'], 'score.total');
     final rank = j['rank'];
     if (rank is! String || rank.length > 4) throw ReplayFormatException('invalid', 'score.rank');
-    // Re-encode so only plain JSON values survive.
-    return jsonDecode(jsonEncode(j)) as Map<String, dynamic>;
+    // Re-encode so only plain JSON values survive, on the current score scale.
+    return upgradeScoreJson(jsonDecode(jsonEncode(j)) as Map<String, dynamic>);
   }
 }

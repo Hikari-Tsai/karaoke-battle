@@ -79,7 +79,8 @@ void main() {
       expect(r.subScores.vibrato.value, 0);
       expect(r.subScores.expression.value, isNull);
       // 40 + 20 + 10 + 0 + 10 out of 90 available points.
-      expect(r.total, closeTo(100 * 80 / 90, 1e-6));
+      expect(r.rawTotal, closeTo(100 * 80 / 90, 1e-6));
+      expect(r.total, closeTo(damLikeTotal(100 * 80 / 90), 1e-6));
     });
   });
 
@@ -475,16 +476,49 @@ void main() {
   });
 
   group('score mapping', () {
+    test('DAM-like scale: anchors, continuity at 20 and monotonic', () {
+      expect(damLikeTotal(0), 0);
+      expect(damLikeTotal(10), closeTo(28, 1e-9));
+      expect(damLikeTotal(20), closeTo(56, 1e-9));
+      expect(damLikeTotal(19.999), closeTo(56, 1e-2));
+      expect(damLikeTotal(65), closeTo(80.75, 1e-9));
+      expect(damLikeTotal(90), closeTo(94.5, 1e-9));
+      expect(damLikeTotal(100), 100);
+      expect(damLikeTotal(-5), 0);
+      expect(damLikeTotal(120), 100);
+      var prev = -1.0;
+      for (var x = 0.0; x <= 100; x += 0.25) {
+        final y = damLikeTotal(x);
+        expect(y, greaterThan(prev));
+        prev = y;
+      }
+    });
+
+    test('score.json written before the scale is converted on read', () {
+      final legacy = readScoreTotal({'total': 85.0, 'rank': 'S'});
+      expect(legacy.raw, 85);
+      expect(legacy.total, closeTo(91.75, 1e-9));
+      expect(legacy.rank, 'S');
+      final current = readScoreTotal({'total': 91.75, 'rank': 'S', 'raw_total': 85.0, 'scale': scoreScaleVersion});
+      expect(current.total, 91.75);
+      expect(current.raw, 85);
+      final up = upgradeScoreJson({'total': 60.0, 'rank': 'B', 'sub_scores': {}});
+      expect(up['total'], closeTo(78, 1e-9));
+      expect(up['raw_total'], 60);
+      expect(up['scale'], scoreScaleVersion);
+      expect(upgradeScoreJson(up)['total'], up['total'], reason: 'upgrading twice changes nothing');
+    });
+
     test('rank thresholds are monotonic', () {
       expect(rankForTotal(100), 'SSS');
-      expect(rankForTotal(97), 'SSS');
-      expect(rankForTotal(96.9), 'SS');
-      expect(rankForTotal(92), 'SS');
-      expect(rankForTotal(85), 'S');
-      expect(rankForTotal(75), 'A');
-      expect(rankForTotal(60), 'B');
-      expect(rankForTotal(40), 'C');
-      expect(rankForTotal(39.9), 'D');
+      expect(rankForTotal(98), 'SSS');
+      expect(rankForTotal(97.9), 'SS');
+      expect(rankForTotal(95), 'SS');
+      expect(rankForTotal(91), 'S');
+      expect(rankForTotal(86), 'A');
+      expect(rankForTotal(78), 'B');
+      expect(rankForTotal(67), 'C');
+      expect(rankForTotal(66.9), 'D');
       var prev = 'D';
       for (var t = 0.0; t <= 100; t += 0.5) {
         final r = rankForTotal(t);
