@@ -2,9 +2,11 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:karaoke_battle/app.dart';
 import 'package:karaoke_battle/ui/widgets/brand.dart';
 
 void main() {
@@ -49,6 +51,20 @@ void main() {
         final data = await img.toByteData(format: ui.ImageByteFormat.png);
         await File(out).writeAsBytes(data!.buffer.asUint8List());
       });
+    }
+  });
+
+  testWidgets('app bar titles start at the left on macOS too', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    try {
+      await tester.pumpWidget(MaterialApp(
+        theme: buildTheme(Brightness.dark),
+        home: Scaffold(appBar: AppBar(title: const BrandedTitle('Library'))),
+      ));
+      final x = tester.getTopLeft(find.byType(BrandLockup)).dx;
+      expect(x, lessThan(40)); // left edge (16 px title spacing), not centred
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
     }
   });
 }

@@ -88,6 +88,9 @@ ThemeData buildTheme(Brightness brightness) {
     visualDensity: VisualDensity.compact,
   );
   return base.copyWith(
+    // Titles (with the brand lockup) sit at the top left on every platform;
+    // Material centres them on macOS by default.
+    appBarTheme: base.appBarTheme.copyWith(centerTitle: false),
     cardTheme: base.cardTheme.copyWith(elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
     sliderTheme: base.sliderTheme.copyWith(trackHeight: 3),
   );
