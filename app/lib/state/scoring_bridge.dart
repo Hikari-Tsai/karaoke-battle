@@ -113,6 +113,8 @@ class ScoringBridge {
     String? takeWavPath,
     String? referenceWavPath,
     double? noiseGateDb,
+    double? tempoBpm,
+    bool calibratedTiming = false,
   }) async {
     final notesText = await File(notesJsonPath).readAsString();
     final refText = await File(refF0JsonPath).exists() ? await File(refF0JsonPath).readAsString() : null;
@@ -158,7 +160,7 @@ class ScoringBridge {
         takeF0: takeF0,
         takeEnergy: takeEnergyJson == null ? null : EnergyCurve.fromJson(takeEnergyJson),
         referenceEnergy: refEnergyJson == null ? null : EnergyCurve.fromJson(refEnergyJson),
-        options: const ScoringOptions(),
+        options: ScoringOptions(tempoBpm: tempoBpm, calibratedTiming: calibratedTiming),
       );
       final r = Scorer.score(input);
       final j = r.toJson();

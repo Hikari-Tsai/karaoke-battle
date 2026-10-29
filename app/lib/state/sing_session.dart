@@ -349,6 +349,9 @@ class SingSession extends ChangeNotifier {
       takeWavPath: take.wav,
       referenceWavPath: files.vocalsWav,
       noiseGateDb: services.settings.noiseGateEnabled ? services.settings.noiseGateDb : null,
+      // Rhythm windows follow the song tempo (manual BPM first, else detected).
+      tempoBpm: (await TempoOverride.load(files.tempoJson)).bpm ?? (await DetectedBeats.load(files.beatsJson))?.bpm,
+      calibratedTiming: services.settings.latencySeconds != null,
     );
     processing.value = null;
     return result;

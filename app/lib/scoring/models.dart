@@ -7,6 +7,7 @@ library;
 import 'dart:math' as math;
 
 import 'alignment.dart';
+import 'rhythm.dart';
 
 // ---------------------------------------------------------------------------
 // Pitch helpers
@@ -237,6 +238,8 @@ class ScoringOptions {
     this.hopSeconds,
     this.longNoteSeconds = 0.4,
     this.vibratoTarget = 0.4,
+    this.tempoBpm,
+    this.calibratedTiming = false,
   });
 
   /// DTW (default) or a single global offset from voicing cross-correlation.
@@ -268,6 +271,16 @@ class ScoringOptions {
   /// taken from the reference F0 curve.
   final double vibratoTarget;
 
+  /// Song tempo; scales the rhythm judgement windows (see rhythm.dart).
+  /// Null = unknown (120 BPM windows).
+  final double? tempoBpm;
+
+  /// The take's timing is already latency-compensated with a measured
+  /// latency: rhythm is judged against the track clock as recorded (so a
+  /// take that is early or late as a whole shows up as rushing / dragging)
+  /// unless the estimated global offset is implausibly large.
+  final bool calibratedTiming;
+
   factory ScoringOptions.fromJson(Map<String, dynamic> json) => ScoringOptions(
     alignmentMode: AlignmentMode.values.firstWhere(
       (m) => m.name == (json['alignment_mode'] ?? 'dtw'),
@@ -284,6 +297,8 @@ class ScoringOptions {
     hopSeconds: _dn(json['hop_seconds']),
     longNoteSeconds: _d(json['long_note_seconds'], 0.4),
     vibratoTarget: _d(json['vibrato_target'], 0.4),
+    tempoBpm: _dn(json['tempo_bpm']),
+    calibratedTiming: json['calibrated_timing'] == true,
   );
 
   Map<String, dynamic> toJson() => {
@@ -296,6 +311,8 @@ class ScoringOptions {
     if (hopSeconds != null) 'hop_seconds': hopSeconds,
     'long_note_seconds': longNoteSeconds,
     'vibrato_target': vibratoTarget,
+    if (tempoBpm != null) 'tempo_bpm': tempoBpm,
+    if (calibratedTiming) 'calibrated_timing': true,
   };
 }
 
@@ -893,7 +910,12 @@ class ScoreResult {
     required this.alignment,
     required this.weights,
     this.hop = 0.016,
+    this.rhythm,
   });
+
+  /// Rhythm-game style judgements behind the rhythm sub-score (null when
+  /// read back from an older score.json).
+  final RhythmResult? rhythm;
 
   /// Final score in `[0, 100]`.
   final double total;
@@ -936,6 +958,7 @@ class ScoreResult {
     ),
     weights: ScoringWeights.fromJson(json['weights'] as Map<String, dynamic>),
     hop: _d(json['hop'], 0.016),
+    rhythm: json['rhythm'] is Map ? RhythmResult.fromJson((json['rhythm'] as Map).cast<String, dynamic>()) : null,
   );
 
   Map<String, dynamic> toJson() => {
@@ -951,5 +974,6 @@ class ScoreResult {
     'alignment': alignment.toJson(),
     'weights': weights.toJson(),
     'hop': hop,
+    if (rhythm != null) 'rhythm': rhythm!.toJson(),
   };
 }

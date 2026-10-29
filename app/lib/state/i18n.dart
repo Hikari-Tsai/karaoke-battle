@@ -330,6 +330,10 @@ const Map<String, (String, String, String)> _table = {
   'results.vibrato': ('顫音', 'Vibrato', 'ビブラート'),
   'results.expression': ('表現力', 'Expression', '抑揚'),
   'results.longTone': ('長音', 'Long tone', 'ロングトーン'),
+  'results.timing': ('節奏判定（起音）', 'Timing (note starts)', 'タイミング判定（歌い出し）'),
+  'results.tendency.rushing': ('整體偏早約 {ms} ms：有搶拍傾向，可以等伴奏的拍點再進。', 'About {ms} ms early overall: you tend to rush; wait for the beat before coming in.', '全体に約 {ms} ms 早め：走り気味です。伴奏の拍を待ってから入りましょう。'),
+  'results.tendency.dragging': ('整體偏晚約 {ms} ms：有拖拍傾向，可以早一點準備進拍。', 'About {ms} ms late overall: you tend to drag; get ready to come in a little earlier.', '全体に約 {ms} ms 遅め：タメ気味です。少し早めに入る準備をしましょう。'),
+  'results.tendency.steady': ('整體時間點穩定（平均偏差約 {ms} ms）。', 'Timing is steady overall (about {ms} ms off on average).', 'タイミングは全体に安定しています（平均のずれ約 {ms} ms）。'),
   'results.singAgain': ('再唱一次', 'Sing again', 'もう一度歌う'),
   'results.backToLibrary': ('回曲庫', 'Back to library', 'ライブラリへ戻る'),
   'results.notes': ('逐音分析', 'Note analysis', '音符ごとの分析'),
@@ -484,9 +488,9 @@ const Map<String, (String, String, String)> _table = {
     '原曲のメロディに合わせて歌いましょう。半音の半分以内なら正解です。配点が最も大きいので、まずここを押さえましょう。',
   ),
   'rules.rhythm': (
-    '每個音要和原唱同時開始、同時結束。不要搶拍、拖拍，也不要提早收音。',
-    'Start and end each note when the original does. Do not rush, drag, or cut notes short.',
-    '各音を原曲と同じタイミングで始め、同じタイミングで終えましょう。走ったり、もたれたり、早く切ったりしないこと。',
+    '每個音的開始和結束都和原唱比對，像音遊一樣判定：差 50 毫秒內 PERFECT、100 毫秒內 GREAT、150 毫秒內 GOOD，再多就是 MISS。快歌判得比較嚴、慢歌比較寬。量過延遲的話，結果頁還會告訴你有沒有搶拍或拖拍的習慣。',
+    'Each note’s start and end are compared with the original like a rhythm game: within 50 ms is PERFECT, 100 ms GREAT, 150 ms GOOD, beyond that MISS. Fast songs are judged more strictly than slow ones. If you measured latency, the results also tell you whether you tend to rush or drag.',
+    '各音の歌い出しと歌い終わりを原曲と比べ、音ゲーのように判定します。50 ミリ秒以内は PERFECT、100 ミリ秒以内は GREAT、150 ミリ秒以内は GOOD、それ以上は MISS。速い曲ほど厳しく、遅い曲ほど緩く判定します。遅延を測定していれば、結果画面で走り・タメの傾向も分かります。',
   ),
   'rules.stability': (
     '長音（0.4 秒以上）要唱得穩，音高不要飄來飄去。',

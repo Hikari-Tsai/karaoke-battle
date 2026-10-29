@@ -30,11 +30,9 @@
 /// ## Final score mapping (all sub-scores in `[0, 1]`, monotonic)
 ///
 /// * pitch       = clamp((RCA − 0.2) / 0.75, 0, 1)
-/// * rhythm      = 0.4·F1(onset) + 0.3·F1(onset+pitch+offset) + 0.3·timing,
-///   timing = 0.5·clamp(1 − max(0, medOn − 20) / 150, 0, 1)
-///          + 0.5·clamp(1 − max(0, medOff − 40) / 200, 0, 1)
-///   with medOn/medOff the median |onset| / |offset| error in ms over
-///   reference notes that have a take note (timing = 0 without any).
+/// * rhythm      = mean per-note credit of rhythm-game style judgements
+///   (PERFECT / GREAT / GOOD / MISS on onset 70 % and offset 30 %, windows
+///   scaled by tempo), measured on the globally offset take; see rhythm.dart.
 /// * stability   = clamp(1 − max(0, std − refStd) / 50, 0, 1), std = mean
 ///   over long reference notes (take voiced >= 50 %) of the std in cents of
 ///   the take pitch after removing the vibrato band, refStd = the same on
@@ -63,6 +61,7 @@ import 'alignment.dart';
 import 'frame_metrics.dart';
 import 'models.dart';
 import 'note_metrics.dart';
+import 'rhythm.dart';
 import 'technique.dart';
 import 'tracks.dart';
 
@@ -172,6 +171,28 @@ class Scorer {
       );
     }
 
+    // --- 5b'. Rhythm judgements --------------------------------------------
+    // Timing is judged on the take aligned by a single global offset (the
+    // latency / late start of the whole take), not on the DTW path, which
+    // would absorb per-note timing errors. The search window covers the
+    // GOOD window.
+    final windows = RhythmWindows.forTempo(opt.tempoBpm);
+    // With a measured latency the recorded timing is trusted (offset 0) so
+    // whole-take rushing / dragging counts; a large estimated offset means
+    // the calibration does not fit (e.g. another device) -> use the estimate.
+    final trustClock = opt.calibratedTiming && (offset * hop).abs() <= rhythmClockToleranceSeconds;
+    final timingAlign = trustClock ? alignFixedOffset(takeSemis, refSemis, hop: hop, offsetFrames: 0) : fixed;
+    final fixedTake = timingAlign.alignTakeToRefGrid(takeSemis);
+    final timingNotes = computeReferenceGuidedNoteMetrics(
+      refNotes,
+      fixedTake,
+      curve,
+      hop: hop,
+      shift: k,
+      extensionSeconds: windows.good + 0.02,
+    );
+    final rhythm = judgeRhythm(refNotes, timingNotes, windows, clockTrusted: trustClock);
+
     // --- 5c. Technique ----------------------------------------------------
     final maxGap = (0.08 / hop).floor();
     final takeLong = analyzeLongNotes(
@@ -237,7 +258,7 @@ class Scorer {
         value: pitchScore(frame.rawChromaAccuracy),
         weight: w.pitch,
       ),
-      rhythm: SubScore(value: rhythmScore(notes), weight: w.rhythm),
+      rhythm: SubScore(value: rhythm.score, weight: w.rhythm),
       stability: SubScore(
         value: longRefNotes == 0
             ? null
@@ -276,14 +297,21 @@ class Scorer {
       alignment: alignment,
       weights: w,
       hop: hop,
+      rhythm: rhythm,
     );
   }
+
+  /// Largest estimated global offset still blamed on the singer when the
+  /// latency is calibrated (beyond it the calibration is assumed stale).
+  static const double rhythmClockToleranceSeconds = 0.15;
 
   /// `clamp((rca − 0.2) / 0.75, 0, 1)`.
   static double pitchScore(double rca) => ((rca - 0.2) / 0.75).clamp(0.0, 1.0);
 
+  /// Former rhythm formula (F1 + median timing), kept for comparison:
   /// `0.4·F1(onset) + 0.3·F1(onset+pitch+offset) + 0.3·timing`.
-  static double rhythmScore(NoteMetrics n) {
+  /// The rhythm sub-score now comes from [judgeRhythm].
+  static double legacyRhythmScore(NoteMetrics n) {
     var timing = 0.0;
     if (n.medianAbsOnsetErrorMs != null) {
       final on = (1 - math.max(0.0, n.medianAbsOnsetErrorMs! - 20) / 150).clamp(

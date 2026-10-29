@@ -182,6 +182,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                               _SubScoreBar(label: tr('results.${_camel(k)}'), value: score.subScores[k]),
                                               const SizedBox(height: 8),
                                             ],
+                                            if (score.raw['rhythm'] is Map) ...[
+                                              const SizedBox(height: 4),
+                                              _RhythmSummary(rhythm: (score.raw['rhythm'] as Map).cast<String, dynamic>()),
+                                            ],
                                           ],
                                         ),
                                 ),
@@ -246,6 +250,72 @@ class _ResultsScreenState extends State<ResultsScreen> {
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
 
   static Color _rankColor(String rank) => rankColor(rank);
+}
+
+/// PERFECT / GREAT / GOOD / MISS counts of the note onsets and, when the
+/// latency was calibrated, whether the singer tends to rush or drag.
+class _RhythmSummary extends StatelessWidget {
+  const _RhythmSummary({required this.rhythm});
+  final Map<String, dynamic> rhythm;
+
+  static const _tiers = <(String, String, Color)>[
+    ('perfect', 'PERFECT', Color(0xFFFFD60A)),
+    ('great', 'GREAT', Color(0xFFFF4FA3)),
+    ('good', 'GOOD', Color(0xFF30D158)),
+    ('miss', 'MISS', Color(0xFF8E8E93)),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final counts = (rhythm['counts'] as Map? ?? const {}).cast<String, dynamic>();
+    final tendency = rhythm['tendency'] as String? ?? 'none';
+    final ms = (rhythm['tendency_ms'] as num?)?.toDouble();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(tr('results.timing'), style: theme.textTheme.labelLarge),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final (key, label, color) in _tiers)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  border: Border.all(color: color.withValues(alpha: 0.7)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('$label  ${counts[key] ?? 0}', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12)),
+              ),
+          ],
+        ),
+        if (tendency != 'none') ...[
+          const SizedBox(height: 6),
+          Row(children: [
+            Icon(
+              switch (tendency) {
+                'rushing' => Icons.fast_forward,
+                'dragging' => Icons.slow_motion_video,
+                _ => Icons.check_circle_outline,
+              },
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                tr('results.tendency.$tendency', {'ms': (ms ?? 0).abs().round()}),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ]),
+        ],
+      ],
+    );
+  }
 }
 
 class _SubScoreBar extends StatelessWidget {

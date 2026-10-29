@@ -41,7 +41,7 @@ This is a deliberate project design decision: singers can sing in whatever key a
    Local cost: 0 when both sides are unvoiced; 1 when one is voiced and the other unvoiced; `chroma distance / 6` when both are voiced.
    Off-diagonal steps incur an additional gap penalty of 0.5, which prevents a random take from "cherry-picking" scattered matching frames by warping time.
 3. After alignment, k is re-estimated once to obtain the final value.
-4. Alignment can be switched to `AlignmentMode.fixedOffset` (global delay only, no DTW), which makes the rhythm score stricter.
+4. Rhythm judgements (4.4) **do not use DTW**: only the global delay is removed, so per-note timing errors are kept and judged. `AlignmentMode` affects pitch and the other items only.
 
 ## 4. Metrics
 
@@ -88,6 +88,23 @@ These are analyzed only on **long tones** (reference notes ≥ 400 ms); the take
   counting only reference-voiced frames.
 * **Expression**: the Pearson correlation coefficient between the take and reference energy curves (dB) over reference-voiced frames, after alignment.
 
+### 4.4 Rhythm judgements (rhythm-game style)
+
+Modelled on rhythm games such as maimai, CHUNITHM and Taiko no Tatsujin: each reference note's onset and offset error falls into a tier with a fixed credit.
+
+| Judgement | Window (120 BPM) | Credit |
+| --- | --- | --- |
+| PERFECT | ±50 ms | 100% |
+| GREAT | ±100 ms | 70% |
+| GOOD | ±150 ms | 40% |
+| MISS | beyond, or the note was not sung | 0% |
+
+* **Tempo scaling**: windows are multiplied by `120 / BPM`, clamped to 0.75–1.5×, so faster songs are stricter and slower songs looser. The BPM is the user's manual setting, else the Beat This! detection; without either the 120 BPM windows apply.
+* **Offsets**: the same tiers, widened for long notes to 20% / 40% / 60% of the note length (whichever is larger). No offset judgement when the onset is a MISS.
+* **Per-note credit** = 0.7 × onset + 0.3 × offset; the rhythm sub-score is the mean over evaluable notes.
+* **Alignment**: a single global offset, no DTW, so per-note deviations are not absorbed. With a measured latency (Settings, "Calibrate latency") the recording clock is trusted, so a take that is early or late as a whole counts too; if the estimated global offset exceeds ±150 ms the calibration is assumed stale (e.g. another device) and the estimate is used. Without a measured latency the estimate is always used.
+* **Rushing / dragging**: the median onset error of hit notes; ≤ −25 ms is rushing, ≥ +25 ms is dragging, otherwise steady. Only shown when the recording clock is trusted (after the 走り / タメ meter of DAM's 精密採点).
+
 ## 5. Sub-scores and total score
 
 All sub-scores lie in `[0, 1]`, and all mappings are monotonic. `clamp` means clamping to `[0, 1]`.
@@ -95,7 +112,7 @@ All sub-scores lie in `[0, 1]`, and all mappings are monotonic. `clamp` means cl
 | Sub-score | Formula | When not evaluable |
 | --- | --- | --- |
 | Pitch | `clamp((RCA − 0.2) / 0.75)` | Always evaluable |
-| Rhythm | `0.4·F1(onset) + 0.3·F1(onset+pitch+offset) + 0.3·timing`, `timing = 0.5·clamp(1 − max(0, medOn − 20) / 150) + 0.5·clamp(1 − max(0, medOff − 40) / 200)`, where medOn / medOff are the median absolute onset / offset errors (ms) | timing = 0 when no notes are matched |
+| Rhythm | Mean over evaluable notes of `0.7·onset judgement + 0.3·offset judgement`, with PERFECT 1, GREAT 0.7, GOOD 0.4, MISS 0 (see 4.4) | No evaluable note → 0 |
 | Stability | `clamp(1 − max(0, std − refStd) / 50)`, where std is the mean standard deviation over the take's long tones and refStd is the same value for the original singer | No long tones in the reference → excluded; no analyzable long tones in the take → 0 |
 | Vibrato | `clamp(amount / target)`, where amount is the mean vibrato amount over the take's long tones, `target = min(original vibrato amount, 0.4)` | No long tones in the reference, or the original singer barely uses vibrato (amount < 0.25) → excluded |
 | Expression | `clamp(r / 0.8)` | Either energy curve missing → excluded |
@@ -134,7 +151,8 @@ Scoring a 5-minute song (about 19,000 frames, 650 notes) takes about 150 ms.
 
 * Without a reference F0 curve, the expected onsets come from GAME's note boundaries and the target is the note's fixed pitch,
   so F0 tracking latency and natural pitch fluctuations cost a few points.
-* DTW with the gap penalty absorbs per-note timing deviations of up to 60 ms, making the rhythm score somewhat lenient; use `fixedOffset` for strict rhythm evaluation.
+* When a note is entered early right after another note, that time belongs to the previous note's span, so the early amount may be underestimated; rushing after a rest is measured.
+* Without a measured latency, a take that is early or late as a whole is treated as latency: it costs no rhythm points and no rushing / dragging verdict is given.
 * Vibrato is scored only for songs in which the original singer uses a lot of vibrato; other songs rely on the other five sub-scores.
 * Lyrics are not scored (speech recognition on Chinese and Japanese lyrics with accompaniment bleed is too error-prone for the resulting score to be meaningful).
 

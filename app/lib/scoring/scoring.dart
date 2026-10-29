@@ -8,6 +8,7 @@ export 'frame_metrics.dart';
 export 'live.dart';
 export 'models.dart';
 export 'note_metrics.dart';
+export 'rhythm.dart';
 export 'scorer.dart';
 export 'technique.dart';
 export 'tracks.dart';
