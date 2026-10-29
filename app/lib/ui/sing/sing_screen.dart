@@ -307,8 +307,6 @@ class _HudPanel extends StatelessWidget {
                 Text(tr('sing.mic'), style: theme.textTheme.labelSmall),
                 const SizedBox(height: 4),
                 _GatedLevelMeter(level: level, levelDb: hud.levelDb),
-                const SizedBox(height: 2),
-                Text('${hud.levelDb.toStringAsFixed(0)} dBFS', style: theme.textTheme.labelSmall),
                 const SizedBox(height: 8),
                 Text('${tr('sing.latency')}: ${(session.latencyCompensation * 1000).toStringAsFixed(0)} ms', style: theme.textTheme.labelSmall),
               ],
@@ -320,7 +318,8 @@ class _HudPanel extends StatelessWidget {
   }
 }
 
-/// Microphone level bar with a draggable noise-gate threshold. The gate is a
+/// Microphone level meter (PPM) whose noise-gate threshold is set by
+/// clicking or dragging on the meter itself (far left = off). The gate is a
 /// global setting: it is saved when changed and used for every song.
 class _GatedLevelMeter extends StatelessWidget {
   const _GatedLevelMeter({required this.level, required this.levelDb});
@@ -328,6 +327,12 @@ class _GatedLevelMeter extends StatelessWidget {
   final double levelDb;
 
   static double _frac(double db) => ((db + 60) / 60).clamp(0.0, 1.0);
+
+  void _setFromX(AppSettings settings, double x, double width) {
+    final frac = (x / width).clamp(0.0, 1.0);
+    final db = (-60 + 60 * frac).roundToDouble().clamp(AppSettings.noiseGateOff, AppSettings.noiseGateMax);
+    if (db != settings.noiseGateDb) settings.setNoiseGateDb(db);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -338,77 +343,106 @@ class _GatedLevelMeter extends StatelessWidget {
     final gateDb = settings.noiseGateDb;
     final gateFrac = _frac(gateDb);
     final open = !gateOn || levelDb >= gateDb;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: 14,
-          child: LayoutBuilder(builder: (context, c) {
-            final w = c.maxWidth;
-            return Stack(children: [
-              Positioned.fill(child: Container(decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(4)))),
-              if (gateOn)
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: w * gateFrac,
-                  child: Container(decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.12), borderRadius: const BorderRadius.horizontal(left: Radius.circular(4)))),
-                ),
-              Positioned(
-                left: 0,
-                top: 3,
-                bottom: 3,
-                width: w * level,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: level > 0.95 ? cs.error : (open ? cs.primary : cs.onSurface.withValues(alpha: 0.35)),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              if (gateOn)
-                Positioned(
-                  left: (w * gateFrac - 1).clamp(0.0, w - 2),
-                  top: 0,
-                  bottom: 0,
-                  width: 2,
-                  child: Container(color: const Color(0xFFFFC107)),
-                ),
-            ]);
-          }),
-        ),
-        Row(children: [
-          Text(tr('sing.gate'), style: theme.textTheme.labelSmall),
-          Expanded(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(trackHeight: 2, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), overlayShape: SliderComponentShape.noOverlay),
-              child: Slider(
-                min: AppSettings.noiseGateOff,
-                max: AppSettings.noiseGateMax,
-                divisions: 40,
-                value: gateDb,
-                activeColor: const Color(0xFFFFC107),
-                onChanged: settings.setNoiseGateDb,
-              ),
-            ),
-          ),
+    const gold = Color(0xFFFFC107);
+    return Tooltip(
+      message: tr('sing.gateHint'),
+      waitDuration: const Duration(milliseconds: 600),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           SizedBox(
-            width: 44,
-            child: Text(gateOn ? '${gateDb.round()} dB' : tr('sing.gateOff'), style: theme.textTheme.labelSmall, textAlign: TextAlign.end),
+            height: 22,
+            child: LayoutBuilder(builder: (context, c) {
+              final w = c.maxWidth;
+              final gx = w * gateFrac;
+              return MouseRegion(
+                cursor: SystemMouseCursors.resizeColumn,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapDown: (d) => _setFromX(settings, d.localPosition.dx, w),
+                  onHorizontalDragStart: (d) => _setFromX(settings, d.localPosition.dx, w),
+                  onHorizontalDragUpdate: (d) => _setFromX(settings, d.localPosition.dx, w),
+                  child: Stack(clipBehavior: Clip.none, children: [
+                    // track
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 4,
+                      bottom: 4,
+                      child: Container(decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(4))),
+                    ),
+                    // gated (ignored) zone
+                    if (gateOn)
+                      Positioned(
+                        left: 0,
+                        top: 4,
+                        bottom: 4,
+                        width: gx,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: cs.onSurface.withValues(alpha: 0.14),
+                            borderRadius: const BorderRadius.horizontal(left: Radius.circular(4)),
+                          ),
+                        ),
+                      ),
+                    // level
+                    Positioned(
+                      left: 0,
+                      top: 7,
+                      bottom: 7,
+                      width: w * level,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: level > 0.95 ? cs.error : (open ? cs.primary : cs.onSurface.withValues(alpha: 0.35)),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                    // threshold handle: line + triangles top and bottom
+                    Positioned(
+                      left: (gx - 6).clamp(-6.0, w - 6),
+                      top: 0,
+                      bottom: 0,
+                      width: 12,
+                      child: CustomPaint(painter: _GateHandlePainter(color: gateOn ? gold : cs.onSurfaceVariant.withValues(alpha: 0.6))),
+                    ),
+                  ]),
+                ),
+              );
+            }),
           ),
-        ]),
-        Tooltip(
-          message: tr('sing.gateHint'),
-          child: Row(children: [
-            Icon(Icons.info_outline, size: 12, color: cs.onSurfaceVariant),
-            const SizedBox(width: 4),
-            Expanded(child: Text(tr('sing.gateHint'), style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(height: 2),
+          Row(children: [
+            Text('${levelDb.toStringAsFixed(0)} dBFS', style: theme.textTheme.labelSmall),
+            const Spacer(),
+            Icon(Icons.filter_alt_outlined, size: 12, color: gateOn ? gold : cs.onSurfaceVariant),
+            const SizedBox(width: 2),
+            Text(
+              '${tr('sing.gate')} ${gateOn ? '${gateDb.round()} dB' : tr('sing.gateOff')}',
+              style: theme.textTheme.labelSmall?.copyWith(color: gateOn ? gold : cs.onSurfaceVariant, fontWeight: FontWeight.w600),
+            ),
           ]),
-        ),
-      ],
+        ],
+      ),
     );
   }
+}
+
+class _GateHandlePainter extends CustomPainter {
+  _GateHandlePainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final paint = Paint()..color = color;
+    canvas.drawRect(Rect.fromLTWH(cx - 1, 3, 2, size.height - 6), paint);
+    canvas.drawPath(Path()..moveTo(cx - 5, 0)..lineTo(cx + 5, 0)..lineTo(cx, 5)..close(), paint);
+    canvas.drawPath(Path()..moveTo(cx - 5, size.height)..lineTo(cx + 5, size.height)..lineTo(cx, size.height - 5)..close(), paint);
+  }
+
+  @override
+  bool shouldRepaint(_GateHandlePainter old) => old.color != color;
 }
 
 class _Stat extends StatelessWidget {

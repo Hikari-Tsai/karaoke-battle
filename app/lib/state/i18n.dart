@@ -224,9 +224,9 @@ const Map<String, (String, String, String)> _table = {
   'sing.noLyrics': ('這首歌沒有可用的字幕', 'No subtitles available for this song', 'この曲には利用できる字幕がありません'),
   'sing.gateOff': ('關閉', 'Off', 'オフ'),
   'sing.gateHint': (
-    '低於門檻（灰色區）的聲音不偵測音高、也不計分。不唱時把門檻拉到環境噪音的音量條之上即可；設定會保存並套用到所有歌曲。',
-    'Sound below the gate (grey zone) is ignored for pitch and scoring. While silent, drag the gate just above the room noise level; it is saved and used for every song.',
-    'ゲート未満（グレーの範囲）の音は音程検出と採点で無視されます。歌っていないときの環境ノイズのレベルより少し上にゲートを合わせてください。設定は保存され、すべての曲に適用されます。',
+    '在麥克風音量表上點擊或拖動即可設定噪音門檻（拖到最左邊為關閉）。低於門檻（灰色區）的聲音不偵測音高、也不計分；不唱時把門檻拉到環境噪音之上即可。設定會保存並套用到所有歌曲。',
+    'Click or drag on the microphone meter to set the noise gate (far left turns it off). Sound below the gate (grey zone) is ignored for pitch and scoring; while silent, set it just above the room noise. It is saved and used for every song.',
+    'マイクのメーター上をクリックまたはドラッグしてノイズゲートを設定します（左端でオフ）。ゲート未満（グレーの範囲）の音は音程検出と採点で無視されます。歌っていないときの環境ノイズより少し上に合わせてください。設定は保存され、すべての曲に適用されます。',
   ),
   'sing.note': ('目前音', 'Note', '現在の音'),
   'sing.refNote': ('參考音', 'Ref', '基準音'),
