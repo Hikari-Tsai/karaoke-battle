@@ -13,6 +13,8 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
 </p>
 
+<p align="center"><b>中文</b> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a></p>
+
 給直播主的卡拉 OK 評分系統。貼上 YouTube 連結或拖入影音檔，App 會在本機完成
 人聲分離、旋律轉譜與參考音高抽取；演唱時以捲簾式鋼琴卷軸顯示參考旋律與即時
 F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音給出量化分數。
