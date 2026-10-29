@@ -61,13 +61,27 @@ class BrandLockup extends StatelessWidget {
   }
 }
 
-/// [BrandLockup] with the spacing used in AppBar actions.
-class AppBarBrand extends StatelessWidget {
-  const AppBarBrand({super.key});
+/// AppBar title with the brand at the top left: logo, a thin divider, then
+/// the page title.
+class BrandedTitle extends StatelessWidget {
+  const BrandedTitle(this.title, {super.key});
+  final String title;
 
   @override
-  Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.only(left: 12, right: 16),
-        child: Center(child: BrandLockup()),
-      );
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const BrandLockup(height: 30),
+        Container(
+          width: 1,
+          height: 22,
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          color: cs.outlineVariant,
+        ),
+        Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+      ],
+    );
+  }
 }

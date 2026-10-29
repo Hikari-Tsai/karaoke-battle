@@ -47,7 +47,7 @@ class RulesScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text(tr('rules.title')), actions: const [AppBarBrand()]),
+      appBar: AppBar(title: BrandedTitle(tr('rules.title'))),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

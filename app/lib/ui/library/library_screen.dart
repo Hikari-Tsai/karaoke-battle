@@ -48,13 +48,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
         children: [
           Scaffold(
             appBar: AppBar(
-              title: Text(tr('library.title')),
+              title: BrandedTitle(tr('library.title')),
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: FilledButton.icon(onPressed: () => AddSongDialog.show(context), icon: const Icon(Icons.add), label: Text(tr('library.add'))),
                 ),
-                const AppBarBrand(),
               ],
             ),
             body: Consumer2<SongLibrary, PrepPipeline>(

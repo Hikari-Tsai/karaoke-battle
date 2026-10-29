@@ -118,7 +118,7 @@ class _AboutScreenState extends State<AboutScreen> {
       engineVersion = tr('unknown');
     }
     return Scaffold(
-      appBar: AppBar(title: Text(tr('about.title')), actions: const [AppBarBrand()]),
+      appBar: AppBar(title: BrandedTitle(tr('about.title'))),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

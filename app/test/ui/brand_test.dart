@@ -22,8 +22,20 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       theme: ThemeData(brightness: Brightness.dark, fontFamily: fontPath == null ? null : 'BrandTest'),
       home: Scaffold(
-        appBar: AppBar(title: const Text('Library'), actions: const [AppBarBrand()]),
-        body: Center(child: RepaintBoundary(key: key, child: const ColoredBox(color: Color(0xFF1B1B22), child: Padding(padding: EdgeInsets.all(12), child: BrandLockup(height: 68))))),
+        appBar: AppBar(title: const BrandedTitle('Library')),
+        body: Center(
+          child: RepaintBoundary(
+            key: key,
+            child: SizedBox(
+              width: 900,
+              height: 64,
+              child: AppBar(
+                title: const BrandedTitle('Library'),
+                actions: [Padding(padding: const EdgeInsets.only(right: 12), child: FilledButton.icon(onPressed: () {}, icon: const Icon(Icons.add), label: const Text('Add song')))],
+              ),
+            ),
+          ),
+        ),
       ),
     ));
     await tester.runAsync(() => precacheImage(const AssetImage('assets/images/app_icon.png'), tester.element(find.byType(BrandLockup).first)));
