@@ -29,11 +29,15 @@ class PianoRollColors {
     required this.near,
     required this.off,
     required this.none,
+    this.noteOutline,
   });
 
   final Color background, rowAlt, grid, gridOctave, label;
   final Color noteUpcoming, noteCurrent, notePast, refCurve, playhead;
   final Color good, near, off, none;
+
+  /// Thin outline around note bars (used over video for contrast).
+  final Color? noteOutline;
 
   static PianoRollColors of(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -43,9 +47,9 @@ class PianoRollColors {
       grid: const Color(0xFF262A35),
       gridOctave: const Color(0xFF3A4050),
       label: cs.onSurface.withValues(alpha: 0.6),
-      noteUpcoming: cs.primary.withValues(alpha: 0.55),
+      noteUpcoming: cs.primary.withValues(alpha: 0.9),
       noteCurrent: cs.primary,
-      notePast: cs.primary.withValues(alpha: 0.28),
+      notePast: cs.primary.withValues(alpha: 0.5),
       refCurve: Colors.white.withValues(alpha: 0.28),
       playhead: cs.tertiary,
       good: const Color(0xFF4CD964),
@@ -65,15 +69,16 @@ class PianoRollColors {
       grid: const Color(0x33FFFFFF),
       gridOctave: const Color(0x66FFFFFF),
       label: Colors.white.withValues(alpha: 0.8),
-      noteUpcoming: cs.primary.withValues(alpha: 0.8),
-      noteCurrent: cs.primary,
-      notePast: cs.primary.withValues(alpha: 0.4),
+      noteUpcoming: cs.primary,
+      noteCurrent: Color.lerp(cs.primary, Colors.white, 0.25)!,
+      notePast: cs.primary.withValues(alpha: 0.65),
       refCurve: Colors.white.withValues(alpha: 0.45),
       playhead: cs.tertiary,
       good: const Color(0xFF4CD964),
       near: const Color(0xFFFFCC00),
       off: const Color(0xFFFF3B30),
       none: const Color(0xFFC4C8D0),
+      noteOutline: Colors.black.withValues(alpha: 0.6),
     );
   }
 }
@@ -192,6 +197,12 @@ class PianoRollPainter extends CustomPainter {
     final current = Paint()..color = colors.noteCurrent;
     final past = Paint()..color = colors.notePast;
     final staticNote = Paint()..color = colors.noteUpcoming;
+    final outline = colors.noteOutline == null
+        ? null
+        : (Paint()
+            ..color = colors.noteOutline!
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1);
     for (var i = notes.firstVisible(t0); i < notes.length; i++) {
       final on = notes.onset[i];
       if (on > t1) break;
@@ -210,6 +221,7 @@ class PianoRollPainter extends CustomPainter {
         paint = upcoming;
       }
       canvas.drawRRect(rect, paint);
+      if (outline != null) canvas.drawRRect(rect, outline);
     }
 
     // Reference F0 (faint).
