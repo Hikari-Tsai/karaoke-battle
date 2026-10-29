@@ -10,6 +10,7 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/note_edits.dart';
+import '../results/replay_screen.dart';
 import '../results/results_screen.dart';
 import '../sing/sing_screen.dart';
 import '../widgets/rank.dart';
@@ -322,6 +323,9 @@ class _SongCardState extends State<_SongCard> {
                     take: t,
                     isBest: identical(t, best),
                     onView: File(t.scoreJson).existsSync() ? () => _openResult(t) : null,
+                    onReplay: File(t.wav).existsSync() && File(t.f0Json).existsSync()
+                        ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: song, take: t)))
+                        : null,
                   ),
             ],
           ],
@@ -355,10 +359,11 @@ class _SongCardState extends State<_SongCard> {
 /// One take: score and rank up front, sub-scores in the subtitle; the best
 /// take of the song is highlighted.
 class _TakeRow extends StatelessWidget {
-  const _TakeRow({required this.take, required this.isBest, required this.onView});
+  const _TakeRow({required this.take, required this.isBest, required this.onView, this.onReplay});
   final TakeInfo take;
   final bool isBest;
   final VoidCallback? onView;
+  final VoidCallback? onReplay;
 
   static const _order = ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'long_tone'];
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
@@ -411,7 +416,11 @@ class _TakeRow extends StatelessWidget {
           ],
         ),
         subtitle: t.total == null ? Text(tr('library.notScored'), style: theme.textTheme.bodySmall) : Text(parts.join(' · '), style: theme.textTheme.bodySmall),
-        trailing: TextButton(onPressed: onView, child: Text(tr('library.viewResult'))),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (onReplay != null)
+            IconButton(tooltip: tr('replay.button'), onPressed: onReplay, icon: const Icon(Icons.play_circle_outline)),
+          TextButton(onPressed: onView, child: Text(tr('library.viewResult'))),
+        ]),
       ),
     );
   }

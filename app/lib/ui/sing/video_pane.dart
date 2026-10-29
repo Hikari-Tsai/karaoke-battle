@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../state/i18n.dart';
+import '../../state/playback_clock.dart';
 import '../../state/sing_session.dart';
 
 class VideoPane extends StatefulWidget {
@@ -18,7 +19,7 @@ class VideoPane extends StatefulWidget {
     this.background = false,
     this.onAspectRatio,
   });
-  final SingSession session;
+  final PlaybackClock session;
   final String? path;
   final BoxFit fit;
 
@@ -100,9 +101,10 @@ class _VideoPaneState extends State<VideoPane> {
   Widget build(BuildContext context) {
     final c = _controller;
     if (widget.path == null || _error != null) {
-      if (widget.background) return const SizedBox.shrink();
+      final s = widget.session;
+      if (widget.background || s is! SingSession) return const SizedBox.shrink();
       return Visualizer(
-        session: widget.session,
+        session: s,
         message: _error == null
             ? tr('sing.noVideo')
             : '${tr('sing.noVideo')} ($_error)',

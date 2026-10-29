@@ -10,6 +10,8 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/rank.dart';
 import 'new_record_dialog.dart';
+import 'replay_screen.dart';
+import '../../state/take_trace.dart';
 import '../../state/live_trace.dart';
 import '../../state/scoring_bridge.dart';
 import '../../state/sing_session.dart';
@@ -87,23 +89,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       final offset = await SingSession.takeTimeOffset(widget.take);
       final takeF0 = await F0Curve.load(widget.take.f0Json, confidenceThreshold: 0.4, timeOffset: offset);
       final shift = (score?.shift ?? 0).toDouble();
-      final trace = LiveTrace(takeF0.length + 1);
-      for (var i = 0; i < takeF0.length; i++) {
-        final m = takeF0.midi[i];
-        if (m.isNaN) continue;
-        final refRaw = notes.pitchAt(takeF0.times[i]);
-        final ref = refRaw.isNaN ? double.nan : refRaw + _pitchShift;
-        var display = m + shift;
-        var cents = double.nan;
-        var cat = PitchCategory.none;
-        if (!ref.isNaN) {
-          display = foldToOctaveOf(m + shift, ref);
-          cents = (display - ref) * 100;
-          final a = cents.abs();
-          cat = a <= 50 ? PitchCategory.good : (a <= 100 ? PitchCategory.near : PitchCategory.off);
-        }
-        trace.add(takeF0.times[i], m, display, cents, cat);
-      }
+      final trace = buildTakeTrace(notes, takeF0, shift: shift, pitchShift: _pitchShift);
       _duration = <double>[widget.song.durationSec ?? 0, notes.endTime + 1, takeF0.isEmpty ? 0.0 : takeF0.times.last].reduce((a, b) => a > b ? a : b);
       if (!mounted) return;
       setState(() {
@@ -127,6 +113,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
       appBar: AppBar(
         title: Text('${tr('results.title')} — ${widget.song.title}'),
         actions: [
+          if (File(widget.take.wav).existsSync())
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: widget.song, take: widget.take))),
+                icon: const Icon(Icons.play_circle_outline),
+                label: Text(tr('replay.button')),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.tonalIcon(

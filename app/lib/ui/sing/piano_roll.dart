@@ -101,6 +101,7 @@ class PianoRollPainter extends CustomPainter {
     this.revision = 0,
     this.beatTimes = const [],
     this.beatAccents = const [],
+    this.traceUntilPlayhead = false,
   }) : super(repaint: position);
 
   final NoteList notes;
@@ -122,6 +123,9 @@ class PianoRollPainter extends CustomPainter {
   /// on the live roll when present.
   final List<double> beatTimes;
   final List<bool> beatAccents;
+
+  /// Replay: draw the sung line only up to the playhead, as it was sung.
+  final bool traceUntilPlayhead;
   final double pitchShift;
   /// When set, the painter is static and shows 0..totalDuration.
   final double? totalDuration;
@@ -315,7 +319,7 @@ class PianoRollPainter extends CustomPainter {
     final tr = trace;
     if (tr != null && !tr.isEmpty) {
       final paths = List.generate(4, (_) => Path());
-      final i0 = tr.lowerBound(t0), i1 = tr.lowerBound(t1);
+      final i0 = tr.lowerBound(t0), i1 = tr.lowerBound(traceUntilPlayhead && !isStatic ? math.min(t1, pos) : t1);
       final stride = math.max(1, ((i1 - i0) / (plotW * 2)).floor());
       var lastT = double.nan;
       var lastCat = -1;
@@ -526,6 +530,7 @@ class PianoRollView extends StatelessWidget {
     this.revision = 0,
     this.beatTimes = const [],
     this.beatAccents = const [],
+    this.traceUntilPlayhead = false,
   });
 
   final NoteList notes;
@@ -544,6 +549,7 @@ class PianoRollView extends StatelessWidget {
   final int revision;
   final List<double> beatTimes;
   final List<bool> beatAccents;
+  final bool traceUntilPlayhead;
 
   @override
   Widget build(BuildContext context) {
@@ -566,6 +572,7 @@ class PianoRollView extends StatelessWidget {
             revision: revision,
             beatTimes: beatTimes,
             beatAccents: beatAccents,
+            traceUntilPlayhead: traceUntilPlayhead,
           ),
           child: const SizedBox.expand(),
         ),

@@ -12,6 +12,7 @@ import '../engine/engine.dart';
 import '../services/song_library.dart';
 import 'app_services.dart';
 import 'beat_grid.dart';
+import 'playback_clock.dart';
 import 'live_trace.dart';
 import 'scoring_bridge.dart';
 import 'song_data.dart';
@@ -33,7 +34,7 @@ class TakeProcessing {
   final double fraction;
 }
 
-class SingSession extends ChangeNotifier {
+class SingSession extends ChangeNotifier implements PlaybackClock {
   SingSession({required this.services, required this.song, required this.notes, required this.refF0})
       : files = services.library.files(song),
         octaveAlign = true,
@@ -74,6 +75,7 @@ class SingSession extends ChangeNotifier {
   LiveAudio? get live => _live;
   String? initError;
 
+  @override
   final ValueNotifier<double> position = ValueNotifier(0);
   final ValueNotifier<SingHud> hud = ValueNotifier(const SingHud());
   final ValueNotifier<TakeProcessing?> processing = ValueNotifier(null);
@@ -85,6 +87,7 @@ class SingSession extends ChangeNotifier {
   bool octaveAlign;
   double windowSeconds = 8;
   bool recording = false;
+  @override
   bool playing = false;
   double duration = 0;
   double latencyCompensation = 0;
