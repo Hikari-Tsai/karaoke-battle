@@ -53,6 +53,8 @@ dependencies:
   uuid: ^4.6.0
   intl: ^0.20.3
   package_info_plus: ^10.2.2
+  pasteboard: ^0.6.0
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:

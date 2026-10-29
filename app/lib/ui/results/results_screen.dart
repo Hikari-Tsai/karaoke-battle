@@ -9,6 +9,7 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/rank.dart';
+import 'new_record_dialog.dart';
 import '../../state/live_trace.dart';
 import '../../state/scoring_bridge.dart';
 import '../../state/sing_session.dart';
@@ -17,10 +18,16 @@ import '../sing/piano_roll.dart';
 import '../sing/sing_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
-  const ResultsScreen({super.key, required this.song, required this.take, this.score});
+  const ResultsScreen({super.key, required this.song, required this.take, this.score, this.newRecord = false, this.previousBest});
   final Song song;
   final TakeInfo take;
   final ScoreData? score;
+
+  /// Show the "new record" celebration once the screen is up.
+  final bool newRecord;
+
+  /// The song's best total before this take (null = first scored take).
+  final double? previousBest;
 
   @override
   State<ResultsScreen> createState() => _ResultsScreenState();
@@ -35,10 +42,35 @@ class _ResultsScreenState extends State<ResultsScreen> {
   double _pitchShift = 0;
   String? _error;
 
+  Future<void> _share() async {
+    final score = _score;
+    if (score == null) return;
+    final services = context.read<AppServices>();
+    var isBest = widget.newRecord;
+    if (!isBest) {
+      try {
+        double? best;
+        for (final t in await services.library.takes(widget.song)) {
+          if (t.total != null && (best == null || t.total! > best)) best = t.total;
+        }
+        isBest = best != null && score.total >= best;
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    await showShareDialog(context, song: widget.song, take: widget.take, score: score, isBest: isBest, thumbPath: services.library.files(widget.song).thumbJpg);
+  }
+
   @override
   void initState() {
     super.initState();
     _load();
+    if (widget.newRecord && widget.score != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final thumb = context.read<AppServices>().library.files(widget.song).thumbJpg;
+        showNewRecordDialog(context, song: widget.song, take: widget.take, score: widget.score!, previousBest: widget.previousBest, thumbPath: thumb);
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -92,7 +124,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
     final score = _score;
     final notes = _notes;
     return Scaffold(
-      appBar: AppBar(title: Text('${tr('results.title')} — ${widget.song.title}')),
+      appBar: AppBar(
+        title: Text('${tr('results.title')} — ${widget.song.title}'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: FilledButton.tonalIcon(
+              onPressed: _score == null ? null : _share,
+              icon: const Icon(Icons.share),
+              label: Text(tr('share.button')),
+            ),
+          ),
+        ],
+      ),
       body: _error != null
           ? Center(child: SelectableText(_error!))
           : notes == null

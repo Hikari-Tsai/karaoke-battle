@@ -96,7 +96,19 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
       }
       final score = await s.processTake(take);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => ResultsScreen(song: widget.song, take: take, score: score)));
+      // New personal best for this song? (compare with the other scored takes)
+      double? previousBest;
+      try {
+        for (final t in await context.read<AppServices>().library.takes(widget.song)) {
+          if (t.id == take.id || t.total == null) continue;
+          if (previousBest == null || t.total! > previousBest) previousBest = t.total;
+        }
+      } catch (_) {}
+      final newRecord = previousBest == null || score.total > previousBest;
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (_) => ResultsScreen(song: widget.song, take: take, score: score, newRecord: newRecord, previousBest: previousBest),
+      ));
     } catch (e) {
       s.processing.value = null;
       if (mounted) {
