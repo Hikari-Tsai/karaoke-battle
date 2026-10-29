@@ -1,14 +1,19 @@
 // Rank colours and the small rank chip shared by the results and library screens.
 import 'package:flutter/material.dart';
 
+/// One colour per rank: gold, violet, pink-red, orange, green, blue, grey.
 Color rankColor(String? rank) => switch (rank) {
-      'SSS' || 'SS' => const Color(0xFFFFD60A),
-      'S' => const Color(0xFFFF9F0A),
-      'A' => const Color(0xFF4CD964),
-      'B' => const Color(0xFF5AC8FA),
-      'C' => const Color(0xFFB0B8C4),
-      _ => const Color(0xFF8E8E93),
+      'SSS' => const Color(0xFFFFD60A),
+      'SS' => const Color(0xFFBF5AF2),
+      'S' => const Color(0xFFFF375F),
+      'A' => const Color(0xFFFF9F0A),
+      'B' => const Color(0xFF30D158),
+      'C' => const Color(0xFF64D2FF),
+      _ => const Color(0xFF9A9FA8),
     };
+
+/// The trophy colour for a song's best take (always gold).
+const Color trophyColor = Color(0xFFFFC107);
 
 class RankChip extends StatelessWidget {
   const RankChip({super.key, required this.rank, this.fontSize = 14});

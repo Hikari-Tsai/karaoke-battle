@@ -234,7 +234,7 @@ class _SongCardState extends State<_SongCard> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.emoji_events, color: rankColor(best.rank), size: 22),
+                        const Icon(Icons.emoji_events, color: trophyColor, size: 22),
                         const SizedBox(width: 4),
                         Text(best.total!.toStringAsFixed(1), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: rankColor(best.rank))),
                         const SizedBox(width: 6),
@@ -370,7 +370,7 @@ class _TakeRow extends StatelessWidget {
             Text(date, style: theme.textTheme.bodyMedium),
             if (isBest) ...[
               const SizedBox(width: 8),
-              Icon(Icons.emoji_events, size: 16, color: color),
+              const Icon(Icons.emoji_events, size: 16, color: trophyColor),
               const SizedBox(width: 2),
               Text(tr('library.bestTake'), style: theme.textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w700)),
             ],

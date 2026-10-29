@@ -58,6 +58,7 @@ const Map<String, (String, String, String)> _table = {
   // navigation
   'app.title': ('Karaoke Battle', 'Karaoke Battle', 'Karaoke Battle'),
   'nav.library': ('曲庫', 'Library', '曲ライブラリ'),
+  'nav.rules': ('計分規則', 'Scoring', '採点ルール'),
   'nav.settings': ('設定', 'Settings', '設定'),
   'nav.about': ('關於', 'About', 'このアプリについて'),
   // generic
@@ -294,6 +295,57 @@ const Map<String, (String, String, String)> _table = {
   'settings.detect': ('重新偵測', 'Re-detect', '再検出'),
   'settings.restartNote': ('變更於下次處理／演唱時生效', 'Applies to the next prep/sing session', '次回の処理／歌唱から適用されます'),
   // about
+  // rules
+  'rules.title': ('計分規則', 'Scoring rules', '採点ルール'),
+  'rules.intro': (
+    '唱完後，App 會把你的歌聲和原唱比對，從六個面向給分，加總成 0 到 100 分。下面用最簡單的方式說明每一項怎麼拿分。',
+    'After a take the app compares your singing with the original and scores six aspects, adding up to 0–100. Here is how to earn each one in plain words.',
+    '歌い終わると、アプリがあなたの歌声を原曲と比べて 6 つの観点で採点し、合計 0〜100 点になります。それぞれの点の取り方をやさしく説明します。',
+  ),
+  'rules.howToScore': ('六個項目怎麼拿分', 'How to earn each score', '各項目の点の取り方'),
+  'rules.pitch': (
+    '跟著原唱的旋律唱，每個音只要在半個半音以內就算準。分數最重，先顧好這一項。',
+    'Follow the original melody; a note counts as in tune within half a semitone. This is the biggest score, so get it right first.',
+    '原曲のメロディに合わせて歌いましょう。半音の半分以内なら正解です。配点が最も大きいので、まずここを押さえましょう。',
+  ),
+  'rules.rhythm': (
+    '每個音要和原唱同時開始、同時結束。不要搶拍、拖拍，也不要提早收音。',
+    'Start and end each note when the original does. Do not rush, drag, or cut notes short.',
+    '各音を原曲と同じタイミングで始め、同じタイミングで終えましょう。走ったり、もたれたり、早く切ったりしないこと。',
+  ),
+  'rules.stability': (
+    '長音（0.4 秒以上）要唱得穩，音高不要飄來飄去。',
+    'Hold long notes (0.4 s or more) steady without the pitch wandering.',
+    'ロングトーン（0.4 秒以上）は音程を揺らさず安定して伸ばしましょう。',
+  ),
+  'rules.vibrato': (
+    '原唱有顫音的歌，長音加上自然的顫音（每秒約 4 到 8 次）會加分；原唱沒用顫音的歌不計這項。',
+    'Where the original uses vibrato, adding a natural vibrato (about 4–8 per second) on long notes earns points; songs without vibrato skip this item.',
+    '原曲にビブラートがある曲では、ロングトーンに自然なビブラート（毎秒 4〜8 回）をかけると加点されます。原曲にビブラートがない曲ではこの項目は採点されません。',
+  ),
+  'rules.expression': (
+    '強弱起伏跟著原唱走：該大聲的地方大聲，該輕的地方輕。',
+    'Follow the original dynamics: sing loud where it is loud and soft where it is soft.',
+    '原曲の強弱に合わせましょう。大きく歌うところは大きく、小さく歌うところは小さく。',
+  ),
+  'rules.longTone': (
+    '長音要唱滿原唱的長度，不要提早斷掉。',
+    'Sustain long notes for their full length; do not stop early.',
+    'ロングトーンは原曲の長さいっぱいまで伸ばし、途中で切らないようにしましょう。',
+  ),
+  'rules.forgivingTitle': ('不會被扣分的事', 'What you are not penalised for', '減点されないこと'),
+  'rules.octave': ('唱高八度或低八度都算對，男女生都能唱同一首。', 'Singing an octave higher or lower counts as correct, so anyone can sing any song.', '1 オクターブ上や下で歌っても正解です。誰でも同じ曲を歌えます。'),
+  'rules.transpose': ('整首歌移調沒關係，App 會自動對齊；但要整首一致，不要中途換 key。', 'Transposing the whole song is fine, the app aligns it automatically; just keep the same key all the way through.', '曲全体の移調は問題ありません。アプリが自動で合わせます。ただし途中でキーを変えないこと。'),
+  'rules.slides': ('原唱的滑音可以跟著滑，也可以把音唱直，兩種都算對。', 'You may follow the original\'s slides and scoops or sing the plain note; both count.', '原曲のしゃくりやポルタメントは、真似しても、まっすぐ歌っても正解です。'),
+  'rules.ranks': ('等級', 'Ranks', 'ランク'),
+  'rules.tips': ('小技巧', 'Tips', 'コツ'),
+  'rules.tipHeadphones': ('戴耳機，避免伴奏被麥克風收進去影響偵測。', 'Wear headphones so the accompaniment does not leak into the microphone.', 'ヘッドホンを着けて、伴奏がマイクに入らないようにしましょう。'),
+  'rules.tipMic': ('麥克風靠近嘴巴，聲音太小的片段會被當成沒唱。', 'Keep the microphone close; passages that are too quiet count as not sung.', 'マイクは口の近くに。声が小さすぎる部分は歌っていないと判定されます。'),
+  'rules.tipPreview': ('先用「預覽」聽幾次、看鋼琴卷軸熟悉旋律，再按「開始錄製」。', 'Use Preview to listen a few times and learn the melody on the piano roll before you press Start recording.', '「プレビュー」で何度か聴き、ピアノロールでメロディを覚えてから「録音開始」を押しましょう。'),
+  'rules.tipSilence': ('該唱的地方不要沒聲音，換氣太長會被算成漏唱。', 'Do not go silent where the original sings; a long breath counts as a missed note.', '原曲が歌っているところで無音にならないように。長い息継ぎは歌い逃しと判定されます。'),
+  'rules.tipKey': ('唱不上去就用「升降 Key」調整，不影響分數。', 'If the key is too high, use the key shift; it does not affect the score.', 'キーが高すぎるときは「キー」で調整しましょう。点数には影響しません。'),
+  'rules.fullDoc': ('完整計分演算法', 'Full scoring algorithm', '採点アルゴリズムの詳細'),
+  'rules.fullDocHint': ('想知道對齊方法、指標定義與公式的人請看這份文件（GitHub）。', 'Alignment, metric definitions and formulas are in this document (GitHub).', 'アライメント手法、指標の定義、計算式はこちらの文書（GitHub）にあります。'),
   'about.title': ('關於', 'About', 'このアプリについて'),
   'about.licenses': ('授權', 'Licenses', 'ライセンス'),
   'about.nonCommercial': ('非商業使用', 'non-commercial', '非商用'),
