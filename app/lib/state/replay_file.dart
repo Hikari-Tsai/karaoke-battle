@@ -1,7 +1,9 @@
-// Shareable replay file (.json): everything needed to re-watch someone's
-// take on another computer: how to find the song, the reference notes the
-// take was judged against, the sung pitch curve, the score and (optionally)
-// the voice recording as base64 AAC.
+// Shareable replay (.json): everything needed to re-watch someone's take on
+// another computer: how to find the song, the reference notes the take was
+// judged against, the sung pitch curve, the score and the voice recording.
+// Exports are a .zip holding this JSON plus the dry vocal as its own audio
+// file (`voice.file` names it, next to the JSON). Version-1 files written
+// before that embed the voice as base64 AAC (`voice.base64`); both import.
 //
 // Imported files are untrusted: every field is type- and size-checked, no
 // path from the file is ever used, and only a YouTube video id (not a URL)
@@ -52,6 +54,7 @@ class ReplayFile {
     required this.takeF0,
     required this.score,
     this.voiceAacBase64,
+    this.voiceFile,
   });
 
   static const formatName = 'karaoke-battle-replay';
@@ -63,6 +66,18 @@ class ReplayFile {
   static const maxNotes = 20000;
   static const maxF0Frames = 400000; // ~107 min at 16 ms
   static const maxString = 300;
+  static const maxVoiceBytes = 40 * 1024 * 1024;
+
+  /// Audio file types a replay's `voice.file` may name.
+  static const voiceExtensions = ['m4a', 'aac', 'mp3', 'wav', 'flac', 'ogg', 'opus'];
+
+  /// A bare file name (no folders) with an allowed audio extension.
+  static bool isVoiceFileName(String name) {
+    if (name.isEmpty || name.length > 200 || name.startsWith('.')) return false;
+    if (RegExp(r'[/\\:\x00-\x1f]').hasMatch(name) || name.contains('..')) return false;
+    final dot = name.lastIndexOf('.');
+    return dot > 0 && voiceExtensions.contains(name.substring(dot + 1).toLowerCase());
+  }
 
   final String player;
   final DateTime exportedAt;
@@ -75,9 +90,10 @@ class ReplayFile {
   final Map<String, dynamic> notes; // notes.json (notes, excluded_spans)
   final Map<String, dynamic> takeF0; // take_f0.json
   final Map<String, dynamic> score; // score.json
-  final String? voiceAacBase64;
+  final String? voiceAacBase64; // legacy: voice embedded in the JSON
+  final String? voiceFile; // voice stored next to the JSON (bare file name)
 
-  bool get hasVoice => voiceAacBase64 != null && voiceAacBase64!.isNotEmpty;
+  bool get hasVoice => (voiceAacBase64 != null && voiceAacBase64!.isNotEmpty) || voiceFile != null;
   double get total => (score['total'] as num).toDouble();
   String get rank => score['rank'] as String;
 
@@ -97,7 +113,9 @@ class ReplayFile {
         'notes': notes,
         'take_f0': takeF0,
         'score': score,
-        'voice': hasVoice ? {'codec': 'aac', 'container': 'm4a', 'base64': voiceAacBase64} : null,
+        'voice': voiceFile != null
+            ? {'codec': 'aac', 'container': 'm4a', 'file': voiceFile}
+            : (hasVoice ? {'codec': 'aac', 'container': 'm4a', 'base64': voiceAacBase64} : null),
       };
 
   String encode() => jsonEncode(toJson());
@@ -124,8 +142,12 @@ class ReplayFile {
     final track = _str(take['track'], 'take.track', fallback: 'inst');
 
     final voiceRaw = root['voice'];
-    String? voice;
-    if (voiceRaw is Map) {
+    String? voice, voiceFile;
+    if (voiceRaw is Map && voiceRaw['file'] != null) {
+      final f = voiceRaw['file'];
+      if (f is! String || !isVoiceFileName(f)) throw ReplayFormatException('invalid', 'voice.file');
+      voiceFile = f;
+    } else if (voiceRaw is Map) {
       final b = voiceRaw['base64'];
       if (b is! String) throw ReplayFormatException('invalid', 'voice');
       if (b.length > maxVoiceBase64) throw ReplayFormatException('tooLarge', 'voice');
@@ -153,6 +175,7 @@ class ReplayFile {
       takeF0: _validF0(_map(root['take_f0'], 'take_f0')),
       score: _validScore(_map(root['score'], 'score')),
       voiceAacBase64: voice,
+      voiceFile: voiceFile,
     );
   }
 

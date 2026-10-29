@@ -80,4 +80,16 @@ void main() {
     expect(r.pitchShift, 24);
     expect(r.timeOffset, -30);
   });
+
+  test('voice as a separate file: round trip and only bare audio names', () {
+    final j = sample().toJson()..['voice'] = {'codec': 'aac', 'container': 'm4a', 'file': '食虫植物 93.4 vocal.m4a'};
+    final r = ReplayFile.parse(jsonEncode(j));
+    expect(r.voiceFile, '食虫植物 93.4 vocal.m4a');
+    expect(r.hasVoice, isTrue);
+    expect((ReplayFile.parse(r.encode()).toJson()['voice'] as Map)['file'], '食虫植物 93.4 vocal.m4a');
+    for (final bad in ['../x.m4a', 'a/b.m4a', r'a\b.m4a', '.hidden.m4a', 'x.exe', 'C:x.m4a', '']) {
+      final b = sample().toJson()..['voice'] = {'file': bad};
+      expect(() => ReplayFile.parse(jsonEncode(b)), throwsA(isA<ReplayFormatException>()), reason: bad);
+    }
+  });
 }

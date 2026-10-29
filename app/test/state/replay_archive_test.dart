@@ -63,4 +63,19 @@ void main() {
     // archive stops inflating at the declared size; either way it is refused.
     expect(() => replayTextsFromBytes(z), throwsA(isA<ReplayFormatException>()));
   });
+
+  test('audio files come along and are matched in the same folder', () {
+    final z = _zip({
+      'r1/a.json': json,
+      'r1/a vocal.m4a': [1, 2, 3],
+      'r2/b.json': json,
+      'r2/a vocal.m4a': [4, 5],
+      'evil.exe': [9],
+    });
+    final b = unpackReplays(z);
+    expect(b.replays.map((e) => e.folder), ['r1/', 'r2/']);
+    expect(b.voiceFor(b.replays[0], 'a vocal.m4a'), [1, 2, 3]);
+    expect(b.voiceFor(b.replays[1], 'a vocal.m4a'), [4, 5]);
+    expect(b.audio.keys, isNot(contains('evil.exe')));
+  });
 }

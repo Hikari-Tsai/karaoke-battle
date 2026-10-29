@@ -1,8 +1,6 @@
-// "Export replay": asks for the player name and whether to include the voice
-// recording, then saves a .json replay file someone else can import.
-import 'dart:convert';
+// "Export replay": asks for the player name, then saves a .zip holding the
+// replay JSON and the dry a cappella vocal, which someone else can import.
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -12,12 +10,13 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 
-/// File name suggested in the save dialog: `<title> <score>.json` without
-/// characters file systems reject.
-String replayFileName(String title, double? total) {
-  final safe = title.replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+/// Base name for the exported files: `<title> <score>` without characters
+/// file systems reject (and no leading or doubled dots).
+String replayBaseName(String title, double? total) {
+  var safe = title.replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), ' ').replaceAll(RegExp(r'\.{2,}'), '.').replaceAll(RegExp(r'\s+'), ' ').trim();
+  safe = safe.replaceFirst(RegExp(r'^[.\s]+'), '');
   final base = safe.isEmpty ? 'replay' : (safe.length > 80 ? safe.substring(0, 80).trim() : safe);
-  return total == null ? '$base.json' : '$base ${total.toStringAsFixed(1)}.json';
+  return total == null ? base : '$base ${total.toStringAsFixed(1)}';
 }
 
 Future<void> showExportReplayDialog(BuildContext context, {required Song song, required TakeInfo take}) {
@@ -35,7 +34,6 @@ class _ExportReplayDialog extends StatefulWidget {
 
 class _ExportReplayDialogState extends State<_ExportReplayDialog> {
   late final TextEditingController _name;
-  bool _voice = true;
   bool _busy = false;
   String? _error;
 
@@ -60,18 +58,19 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
     });
     try {
       await services.settings.setPlayerName(player);
-      final text = await services.replays.export(
+      final base = replayBaseName(widget.song.title, widget.take.total);
+      final zip = await services.replays.export(
         song: widget.song,
         files: services.library.files(widget.song),
         take: widget.take,
         player: player,
-        includeVoice: _voice,
+        baseName: base,
       );
       final uri = await FilePicker.saveFile(
         dialogTitle: tr('export.saveTitle'),
-        fileName: replayFileName(widget.song.title, widget.take.total),
-        bytes: Uint8List.fromList(utf8.encode(text)),
-        mimeType: 'application/json',
+        fileName: '$base.zip',
+        bytes: zip,
+        mimeType: 'application/zip',
       );
       if (!mounted) return;
       if (uri == null) {
@@ -111,13 +110,11 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
               maxLength: 40,
               decoration: InputDecoration(labelText: tr('export.player'), hintText: tr('export.playerHint'), border: const OutlineInputBorder()),
             ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: hasVoice && _voice,
-              onChanged: !hasVoice || _busy ? null : (v) => setState(() => _voice = v ?? true),
-              title: Text(tr('export.includeVoice')),
-              subtitle: Text(tr(hasVoice ? 'export.includeVoiceHint' : 'export.noVoice')),
-            ),
+            Row(children: [
+              Icon(hasVoice ? Icons.folder_zip_outlined : Icons.mic_off, size: 20, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(child: Text(tr(hasVoice ? 'export.contents' : 'export.noVoice'), style: theme.textTheme.bodySmall)),
+            ]),
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: theme.colorScheme.error)),

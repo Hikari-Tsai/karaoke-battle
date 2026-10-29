@@ -1,10 +1,14 @@
 // Exporting takes as replay files and keeping imported replays.
 //
-//   <data>/replays/<id>/replay.json   the imported file (as received)
+//   <data>/replays/<id>/replay.json   the imported replay JSON (as received)
 //                       meta.json     title, player, score, linked song
 //                       notes.json    the reference notes it was judged on
 //                       take_f0.json  score.json  take.json  take.wav.json
-//                       take.wav      decoded voice (when included)
+//                       vocal.<ext>   the vocal file as received (when included)
+//                       take.wav      the vocal decoded for playback
+//
+// Exports are a .zip: "<title> <score>.json" plus "<title> <score> vocal.m4a"
+// (the dry recording, AAC), which the JSON names in voice.file.
 //
 // The take files use the same names as a song's takes/<id>/ folder, so the
 // replay screen plays an imported replay like one of the user's own takes.
@@ -12,6 +16,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
@@ -161,19 +166,27 @@ class ReplayLibrary extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Imports a replay file: plain JSON, gzip'd JSON, or a zip holding one or
-  /// more replay .json files (all valid ones are imported). Throws
+  /// Imports a replay file: the app's .zip export (JSON + vocal), any zip
+  /// holding replay .json files (all valid ones are imported), a gzip'd
+  /// JSON, or a plain JSON (its vocal file is looked up next to it). Throws
   /// [ReplayFormatException] when nothing in the file is a valid replay.
   Future<List<ImportedReplay>> import(String path) async {
     final f = File(path);
-    if (await f.length() > ReplayFile.maxTextBytes) throw ReplayFormatException('tooLarge');
+    if (await f.length() > ReplayFile.maxTextBytes + ReplayFile.maxVoiceBytes) throw ReplayFormatException('tooLarge');
     final bytes = await f.readAsBytes();
-    final texts = await Isolate.run(() => replayTextsFromBytes(bytes));
+    final bundle = await Isolate.run(() => unpackReplays(bytes));
     final imported = <ImportedReplay>[];
     Object? firstError;
-    for (final text in texts) {
+    for (final entry in bundle.replays) {
       try {
-        imported.add(await _store(text));
+        imported.add(await _store(entry.text, (name) async {
+          final inArchive = bundle.voiceFor(entry, name);
+          if (inArchive != null) return inArchive;
+          // A JSON picked on its own (e.g. after unzipping): the vocal sits beside it.
+          final sibling = File(p.join(p.dirname(path), name));
+          if (await sibling.exists() && await sibling.length() <= ReplayFile.maxVoiceBytes) return sibling.readAsBytes();
+          return null;
+        }));
       } catch (e) {
         firstError ??= e;
       }
@@ -182,7 +195,7 @@ class ReplayLibrary extends ChangeNotifier {
     return imported;
   }
 
-  Future<ImportedReplay> _store(String text) async {
+  Future<ImportedReplay> _store(String text, Future<Uint8List?> Function(String name) findVoice) async {
     final r = ReplayFile.parse(text);
     final id = const Uuid().v4();
     final dir = p.join(root, id);
@@ -196,8 +209,16 @@ class ReplayLibrary extends ChangeNotifier {
       // The replay screen maps take time with track_start_offset - latency.
       await File(p.join(dir, 'take.wav.json')).writeAsString(jsonEncode({'track_start_offset': r.timeOffset, 'latency': 0.0}));
       var hasVoice = false;
-      if (r.hasVoice) {
-        hasVoice = await _decodeVoice(r.voiceAacBase64!, dir);
+      if (r.voiceFile != null) {
+        // voiceFile is a validated bare name, so it is only a lookup key here.
+        final data = await findVoice(r.voiceFile!);
+        if (data != null) hasVoice = await _decodeVoice(data, p.extension(r.voiceFile!).toLowerCase(), dir);
+      } else if (r.hasVoice) {
+        try {
+          hasVoice = await _decodeVoice(base64.decode(r.voiceAacBase64!.replaceAll(RegExp(r'\s'), '')), '.m4a', dir);
+        } on FormatException {
+          hasVoice = false;
+        }
       }
       final item = ImportedReplay(
         id: id,
@@ -224,31 +245,32 @@ class ReplayLibrary extends ChangeNotifier {
     }
   }
 
-  Future<bool> _decodeVoice(String base64Aac, String dir) async {
+  /// Keeps the received vocal as vocal + extension and decodes it to take.wav.
+  Future<bool> _decodeVoice(Uint8List data, String ext, String dir) async {
+    final vocal = p.join(dir, 'vocal$ext');
+    await File(vocal).writeAsBytes(data);
     final ff = await sidecars.resolve(SidecarKind.ffmpeg);
     if (ff == null) return false;
-    final m4a = p.join(dir, 'voice.m4a');
     try {
-      await File(m4a).writeAsBytes(base64.decode(base64Aac.replaceAll(RegExp(r'\s'), '')));
-      final code = await sidecars.run(ff, ['-y', '-hide_banner', '-nostdin', '-i', m4a, '-ac', '1', '-ar', '44100', '-c:a', 'pcm_s16le', p.join(dir, 'take.wav')]);
+      final code = await sidecars.run(ff, ['-y', '-hide_banner', '-nostdin', '-i', vocal, '-ac', '1', '-ar', '44100', '-c:a', 'pcm_s16le', p.join(dir, 'take.wav')]);
       return code == 0 && await File(p.join(dir, 'take.wav')).exists();
     } catch (_) {
       return false;
-    } finally {
-      final f = File(m4a);
-      if (await f.exists()) await f.delete();
     }
   }
 
   // ---------------------------------------------------------------- export
 
-  /// Builds the replay file text for one of the user's takes.
-  Future<String> export({
+  /// Builds the export .zip for one of the user's takes:
+  /// `<baseName>.json` and, when the take has a recording,
+  /// `<baseName> vocal.m4a` (the dry a cappella voice, AAC 128 kbps mono).
+  /// [baseName] must already be a safe file name (see replayBaseName).
+  Future<Uint8List> export({
     required Song song,
     required SongFiles files,
     required TakeInfo take,
     required String player,
-    required bool includeVoice,
+    required String baseName,
   }) async {
     Map<String, dynamic> readJson(String path) => jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
     var pitchShift = 0.0, track = 'inst', start = 0.0, latency = 0.0;
@@ -262,16 +284,19 @@ class ReplayLibrary extends ChangeNotifier {
       start = (side['track_start_offset'] as num?)?.toDouble() ?? 0;
       latency = (side['latency'] as num?)?.toDouble() ?? 0;
     } catch (_) {}
-    String? voice;
-    if (includeVoice && await File(take.wav).exists()) {
+    String? vocalName;
+    Uint8List? vocal;
+    if (await File(take.wav).exists()) {
       final ff = await sidecars.resolve(SidecarKind.ffmpeg);
       if (ff == null) throw StateError('ffmpeg not available');
       final tmp = p.join(paths.cache, 'export_${take.id}.m4a');
       await Directory(paths.cache).create(recursive: true);
-      final code = await sidecars.run(ff, ['-y', '-hide_banner', '-nostdin', '-i', take.wav, '-ac', '1', '-c:a', 'aac', '-b:a', '64k', tmp]);
+      final code = await sidecars.run(ff, ['-y', '-hide_banner', '-nostdin', '-i', take.wav, '-ac', '1', '-c:a', 'aac', '-b:a', '128k', tmp]);
       if (code != 0) throw StateError('ffmpeg voice export exited with $code');
-      voice = base64.encode(await File(tmp).readAsBytes());
+      vocal = await File(tmp).readAsBytes();
       await File(tmp).delete();
+      vocalName = '$baseName vocal.m4a';
+      if (!ReplayFile.isVoiceFileName(vocalName)) vocalName = 'vocal.m4a';
     }
     final file = ReplayFile(
       player: player,
@@ -292,8 +317,11 @@ class ReplayLibrary extends ChangeNotifier {
       notes: readJson(files.notesJson),
       takeF0: readJson(take.f0Json),
       score: readJson(take.scoreJson),
-      voiceAacBase64: voice,
+      voiceFile: vocalName,
     );
-    return file.encode();
+    final zip = Archive()..addFile(ArchiveFile.string('$baseName.json', file.encode()));
+    // AAC is already compressed: store it as is.
+    if (vocal != null) zip.addFile(ArchiveFile.noCompress(vocalName!, vocal.length, vocal));
+    return ZipEncoder().encodeBytes(zip);
   }
 }

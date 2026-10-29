@@ -1,8 +1,8 @@
-// Unpacks replay files that arrive compressed: a .zip (e.g. made by
-// "Compress" in Finder / Explorer or by a chat app) holding one or more
-// replay .json files, or a gzip'd .json. Everything is decoded in memory
-// with size caps (the input is untrusted); no entry is written to disk, so
-// paths inside an archive are never used.
+// Unpacks replay files: a .zip (the app's export, or one made by "Compress"
+// in Finder / Explorer or a chat app) holding one or more replay .json files
+// and their vocal audio files, a gzip'd .json, or a plain .json. Everything
+// is decoded in memory with size caps (the input is untrusted); no entry is
+// written to disk, so paths inside an archive are only used as lookup keys.
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -14,14 +14,36 @@ import 'replay_file.dart';
 const maxArchiveEntries = 100;
 const maxArchiveTotalBytes = 4 * ReplayFile.maxTextBytes;
 
-/// The replay texts inside [bytes]: the file itself when it is plain JSON,
-/// the decompressed text of a gzip file, or every `.json` entry of a zip.
-/// Throws [ReplayFormatException] (`notJson`, `tooLarge`, `emptyArchive`).
-List<String> replayTextsFromBytes(Uint8List bytes) {
-  if (_isZip(bytes)) return _fromZip(bytes);
-  if (bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) return [_text(_gunzip(bytes))];
-  return [_text(bytes)];
+/// One replay JSON found in a file, with the folder it sat in inside the
+/// archive ('' at the top level or for a plain file).
+class ReplayEntry {
+  const ReplayEntry(this.text, [this.folder = '']);
+  final String text;
+  final String folder;
 }
+
+/// Replays plus the audio files that came with them (zip path -> bytes).
+class ReplayBundle {
+  const ReplayBundle(this.replays, [this.audio = const {}]);
+  final List<ReplayEntry> replays;
+  final Map<String, Uint8List> audio;
+
+  /// The audio file [name] next to [entry] in the archive, if present.
+  Uint8List? voiceFor(ReplayEntry entry, String name) => audio['${entry.folder}$name'];
+}
+
+/// The replays inside [bytes]: the file itself when it is plain JSON, the
+/// decompressed text of a gzip file, or every `.json` entry of a zip (with
+/// the zip's audio files). Throws [ReplayFormatException] (`notJson`,
+/// `tooLarge`, `emptyArchive`).
+ReplayBundle unpackReplays(Uint8List bytes) {
+  if (_isZip(bytes)) return _fromZip(bytes);
+  if (bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) return ReplayBundle([ReplayEntry(_text(_gunzip(bytes)))]);
+  return ReplayBundle([ReplayEntry(_text(bytes))]);
+}
+
+/// Just the replay texts (see [unpackReplays]).
+List<String> replayTextsFromBytes(Uint8List bytes) => [for (final e in unpackReplays(bytes).replays) e.text];
 
 bool _isZip(Uint8List b) =>
     b.length >= 4 && b[0] == 0x50 && b[1] == 0x4b && ((b[2] == 3 && b[3] == 4) || (b[2] == 5 && b[3] == 6));
@@ -54,25 +76,30 @@ List<int> _gunzip(Uint8List bytes) {
   return out.bytes;
 }
 
-List<String> _fromZip(Uint8List bytes) {
+ReplayBundle _fromZip(Uint8List bytes) {
   final Archive archive;
   try {
     archive = ZipDecoder().decodeBytes(bytes);
   } catch (_) {
     throw ReplayFormatException('notJson', 'zip');
   }
-  final texts = <String>[];
+  final replays = <ReplayEntry>[];
+  final audio = <String, Uint8List>{};
   var total = 0, seen = 0;
   for (final f in archive.files) {
     if (!f.isFile || f.isSymbolicLink) continue;
     final name = f.name.replaceAll('\\', '/');
     final base = name.split('/').last;
-    if (name.startsWith('__MACOSX/') || base.startsWith('.') || !base.toLowerCase().endsWith('.json')) continue;
+    if (name.startsWith('__MACOSX/') || base.startsWith('.')) continue;
+    final isJson = base.toLowerCase().endsWith('.json');
+    final isAudio = !isJson && ReplayFile.isVoiceFileName(base);
+    if (!isJson && !isAudio) continue;
     if (++seen > maxArchiveEntries) throw ReplayFormatException('tooLarge', 'entries');
-    if (f.size > ReplayFile.maxTextBytes) throw ReplayFormatException('tooLarge', base);
+    final cap = isJson ? ReplayFile.maxTextBytes : ReplayFile.maxVoiceBytes;
+    if (f.size > cap) throw ReplayFormatException('tooLarge', base);
     // The declared size can lie. archive stops inflating at the declared
     // size, and the capped output guards against anything it lets through.
-    final out = _CappedOutput(ReplayFile.maxTextBytes);
+    final out = _CappedOutput(cap);
     try {
       f.decompress(out);
     } on ReplayFormatException {
@@ -82,10 +109,15 @@ List<String> _fromZip(Uint8List bytes) {
     }
     total += out.length;
     if (total > maxArchiveTotalBytes) throw ReplayFormatException('tooLarge', 'zip');
-    texts.add(_text(out.getBytes()));
+    final folder = name.substring(0, name.length - base.length);
+    if (isJson) {
+      replays.add(ReplayEntry(_text(out.getBytes()), folder));
+    } else {
+      audio[name] = out.getBytes();
+    }
   }
-  if (texts.isEmpty) throw ReplayFormatException('emptyArchive');
-  return texts;
+  if (replays.isEmpty) throw ReplayFormatException('emptyArchive');
+  return ReplayBundle(replays, audio);
 }
 
 class _CappedSink implements Sink<List<int>> {

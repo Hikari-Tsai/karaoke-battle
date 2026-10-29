@@ -7,6 +7,7 @@ import 'package:karaoke_battle/services/app_paths.dart';
 import 'package:karaoke_battle/services/replay_library.dart';
 import 'package:karaoke_battle/services/sidecars.dart';
 import 'package:karaoke_battle/services/song_library.dart';
+import 'package:karaoke_battle/state/replay_archive.dart';
 import 'package:karaoke_battle/state/replay_file.dart';
 import 'package:karaoke_battle/ui/replays/export_replay_dialog.dart';
 import 'package:path/path.dart' as p;
@@ -104,7 +105,10 @@ void main() {
     File(take.infoJson).writeAsStringSync(jsonEncode({'pitch_shift': 3, 'track': 'mix'}));
     File('${take.wav}.json').writeAsStringSync(jsonEncode({'track_start_offset': 0.5, 'latency': 0.2}));
 
-    final text = await replays.export(song: song, files: files, take: take, player: 'P', includeVoice: true);
+    final zip = await replays.export(song: song, files: files, take: take, player: 'P', baseName: 'Mine 88.5');
+    final bundle = unpackReplays(zip);
+    expect(bundle.audio, isEmpty, reason: 'no take.wav, so no vocal file');
+    final text = bundle.replays.single.text;
     final parsed = ReplayFile.parse(text);
     expect(parsed.appVersion, '9.9.9');
     expect(parsed.song.youtubeId, 'trrLxXbRjeM');
@@ -112,14 +116,57 @@ void main() {
     expect(parsed.track, 'mix');
     expect(parsed.timeOffset, closeTo(0.3, 1e-9));
     expect(parsed.hasVoice, isFalse, reason: 'no take.wav to include');
+    expect(parsed.voiceFile, isNull);
     expect(text, isNot(contains(tmp.path)), reason: 'no local paths leak into the file');
 
-    final r = (await replays.import((File(p.join(tmp.path, 'x.json'))..writeAsStringSync(text)).path)).single;
+    final r = (await replays.import((File(p.join(tmp.path, 'x.zip'))..writeAsBytesSync(zip)).path)).single;
     expect(ReplayLibrary.findSong(library, r)?.id, song.id);
   });
 
   test('suggested file name drops characters file systems reject', () {
-    expect(replayFileName('a/b:c?', 91.25), 'a b c 91.3.json');
-    expect(replayFileName('  ', null), 'replay.json');
+    expect(replayBaseName('a/b:c?', 91.25), 'a b c 91.3');
+    expect(replayBaseName('  ', null), 'replay');
+    expect(replayBaseName('..Wait...', null), 'Wait.');
+    expect(ReplayFile.isVoiceFileName('${replayBaseName('..Wait...', 70)} vocal.m4a'), isTrue);
+  });
+
+  test('with ffmpeg: the zip carries the vocal, and import decodes it (zip or unzipped JSON)', () async {
+    final ff = await Sidecars(paths, SidecarCatalog({})).resolve(SidecarKind.ffmpeg);
+    if (ff == null) {
+      markTestSkipped('ffmpeg not installed');
+      return;
+    }
+    PackageInfo.setMockInitialValues(appName: 'kb', packageName: 'kb', version: '9.9.9', buildNumber: '1', buildSignature: '');
+    final library = SongLibrary(paths);
+    final song = await library.create(title: '食虫植物', sourceType: SourceType.youtube, sourceUrl: 'https://youtu.be/trrLxXbRjeM', language: 'ja');
+    final files = library.files(song);
+    final f = _file();
+    File(files.notesJson).writeAsStringSync(jsonEncode(f.notes));
+    final takeDir = Directory(p.join(files.dir, 'takes', 't1'))..createSync(recursive: true);
+    final take = TakeInfo(id: 't1', dir: takeDir.path, createdAt: DateTime.utc(2026, 10, 28), total: 88.5, rank: 'S');
+    File(take.f0Json).writeAsStringSync(jsonEncode(f.takeF0));
+    File(take.scoreJson).writeAsStringSync(jsonEncode(f.score));
+    // A 2 s sine as the recording.
+    final gen = await Process.run(ff, ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=frequency=220:duration=2', '-ar', '48000', '-ac', '1', take.wav]);
+    expect(gen.exitCode, 0, reason: '${gen.stderr}');
+
+    final zip = await replays.export(song: song, files: files, take: take, player: 'P', baseName: '食虫植物 88.5');
+    final bundle = unpackReplays(zip);
+    expect(bundle.audio.keys, ['食虫植物 88.5 vocal.m4a']);
+    final parsed = ReplayFile.parse(bundle.replays.single.text);
+    expect(parsed.voiceFile, '食虫植物 88.5 vocal.m4a');
+    expect(bundle.replays.single.text, isNot(contains('base64')));
+
+    final fromZip = (await replays.import((File(p.join(tmp.path, 'out.zip'))..writeAsBytesSync(zip)).path)).single;
+    expect(fromZip.hasVoice, isTrue);
+    expect(File(fromZip.take.wav).lengthSync(), greaterThan(100000));
+    expect(File(p.join(fromZip.dir, 'vocal.m4a')).existsSync(), isTrue);
+
+    // Unzipped: pick the JSON alone, the vocal is found next to it.
+    final out = Directory(p.join(tmp.path, 'unzipped'))..createSync();
+    File(p.join(out.path, '食虫植物 88.5.json')).writeAsStringSync(bundle.replays.single.text);
+    File(p.join(out.path, '食虫植物 88.5 vocal.m4a')).writeAsBytesSync(bundle.audio.values.single);
+    final fromJson = (await replays.import(p.join(out.path, '食虫植物 88.5.json'))).single;
+    expect(fromJson.hasVoice, isTrue);
   });
 }
