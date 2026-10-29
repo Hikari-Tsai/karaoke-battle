@@ -215,6 +215,7 @@ const Map<String, (String, String, String)> _table = {
   'sing.recording': ('錄製中', 'Recording', '録音中'),
   'sing.mic': ('麥克風', 'Mic', 'マイク'),
   'sing.gate': ('噪音門檻', 'Noise gate', 'ノイズゲート'),
+  'sing.rollZoom': ('音符高度：往上拉放大音符，只顯示目前附近的音域', 'Note height: drag up for taller notes showing only the nearby range', '音符の高さ：上にドラッグすると音符が大きくなり、近くの音域だけを表示します'),
   'sing.lyrics': ('歌詞', 'Lyrics', '歌詞'),
   'sing.lyricsShow': ('顯示歌詞', 'Show lyrics', '歌詞を表示'),
   'sing.lyricsMain': ('歌詞字幕', 'Lyrics track', '歌詞の字幕'),

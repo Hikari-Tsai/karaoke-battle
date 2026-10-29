@@ -109,6 +109,12 @@ class AppSettings extends ChangeNotifier {
   bool get showLyrics => _get('show_lyrics', true);
   Future<void> setShowLyrics(bool v) => _set('show_lyrics', v);
 
+  /// Piano-roll vertical zoom: 0 = whole song range, 1 = tightest
+  /// ([rollMinSemitones] visible, taller note bars).
+  static const double rollMinSemitones = 8;
+  double get rollZoom => (_prefs.getDouble('roll_zoom') ?? 0).clamp(0.0, 1.0);
+  Future<void> setRollZoom(double z) => _set('roll_zoom', z.clamp(0.0, 1.0).toDouble());
+
   int get overlayPort => _get('overlay_port', 0);
   Future<void> setOverlayPort(int port) => _set('overlay_port', port);
 }

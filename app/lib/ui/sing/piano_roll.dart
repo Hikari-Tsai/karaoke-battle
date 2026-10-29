@@ -317,6 +317,33 @@ class PianoRollPainter extends CustomPainter {
   return (min: lo, max: hi);
 }
 
+/// Visible pitch range when zoomed in to [span] semitones: centred on the
+/// notes inside the time window [t0, t1] (all of them when they fit, else
+/// their median), clamped inside the whole-song range [full]. Returns null
+/// when no note is in the window (the caller keeps the previous centre).
+double? zoomTargetCenter(NoteList notes, double pitchShift, double t0, double t1, double span) {
+  final ps = <double>[];
+  for (var i = 0; i < notes.length; i++) {
+    if (notes.offset[i] < t0) continue;
+    if (notes.onset[i] > t1) break;
+    ps.add(notes.pitch[i] + pitchShift);
+  }
+  if (ps.isEmpty) return null;
+  ps.sort();
+  final lo = ps.first, hi = ps.last;
+  if (hi - lo + 4 <= span) return (lo + hi) / 2;
+  return ps[ps.length ~/ 2];
+}
+
+/// Clamps a window of [span] semitones centred on [center] inside [full].
+({double min, double max}) zoomedRange(({double min, double max}) full, double center, double span) {
+  final fullSpan = full.max - full.min;
+  if (span >= fullSpan) return full;
+  var lo = center - span / 2;
+  lo = lo.clamp(full.min, full.max - span);
+  return (min: lo, max: lo + span);
+}
+
 /// Convenience widget: clips, isolates repaints, and sizes the painter.
 class PianoRollView extends StatelessWidget {
   const PianoRollView({

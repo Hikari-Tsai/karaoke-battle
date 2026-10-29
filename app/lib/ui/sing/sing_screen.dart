@@ -1,5 +1,6 @@
 // The sing screen: video + HUD, scrolling piano roll, transport/record controls.
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/gestures.dart';
@@ -230,39 +231,139 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
   }
 }
 
-class _RollArea extends StatelessWidget {
+/// Scrolling piano roll with a vertical zoom slider on its left. When zoomed
+/// in, the visible pitch range smoothly follows the upcoming notes.
+class _RollArea extends StatefulWidget {
   const _RollArea({required this.session});
   final SingSession session;
 
   @override
+  State<_RollArea> createState() => _RollAreaState();
+}
+
+class _RollAreaState extends State<_RollArea> {
+  final _range = ValueNotifier<({double min, double max})>((min: 48, max: 72));
+  double? _center;
+
+  SingSession get s => widget.session;
+
+  @override
+  void initState() {
+    super.initState();
+    s.position.addListener(_follow);
+    _follow();
+  }
+
+  @override
+  void didUpdateWidget(_RollArea old) {
+    super.didUpdateWidget(old);
+    if (old.session != widget.session) {
+      old.session.position.removeListener(_follow);
+      s.position.addListener(_follow);
+    }
+    _follow();
+  }
+
+  @override
+  void dispose() {
+    s.position.removeListener(_follow);
+    _range.dispose();
+    super.dispose();
+  }
+
+  void _follow() {
+    if (!mounted) return;
+    final full = pitchRangeFor(s.notes, s.pitchShift);
+    final zoom = context.read<AppSettings>().rollZoom;
+    final fullSpan = full.max - full.min;
+    final span = fullSpan - zoom * math.max(0, fullSpan - AppSettings.rollMinSemitones);
+    if (span >= fullSpan - 1e-6) {
+      _center = null;
+      if (_range.value != full) _range.value = full;
+      return;
+    }
+    final pos = s.position.value;
+    final target = zoomTargetCenter(s.notes, s.pitchShift, pos - 0.3 * s.windowSeconds, pos + 0.7 * s.windowSeconds, span) ?? _center ?? (full.min + full.max) / 2;
+    // Smooth towards the target (~0.3 s at 60 Hz); snap when far away (seek).
+    final c = _center;
+    _center = c == null || (target - c).abs() > span ? target : c + (target - c) * 0.08;
+    final r = zoomedRange(full, _center!, span);
+    // Avoid rebuilding for sub-pixel moves.
+    if ((r.min - _range.value.min).abs() > 0.02 || (r.max - _range.value.max).abs() > 0.02) _range.value = r;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final range = pitchRangeFor(session.notes, session.pitchShift);
-    return Listener(
-      onPointerSignal: (e) {
-        if (e is PointerScrollEvent) {
-          session.setWindowSeconds(session.windowSeconds + (e.scrollDelta.dy > 0 ? 1 : -1));
-        }
-      },
-      child: GestureDetector(
-        onTapDown: (d) {
-          // Click on the roll seeks (relative to the playhead at 30 %).
-          final box = context.findRenderObject() as RenderBox?;
-          if (box == null) return;
-          final frac = (d.localPosition.dx - 46) / (box.size.width - 46);
-          final t = session.position.value + (frac - 0.3) * session.windowSeconds;
-          if (!session.recording) session.seek(t);
-        },
-        child: PianoRollView(
-          notes: session.notes,
-          refF0: session.refF0,
-          trace: session.trace,
-          minMidi: range.min,
-          maxMidi: range.max,
-          position: session.position,
-          windowSeconds: session.windowSeconds,
-          pitchShift: session.pitchShift,
+    final settings = context.watch<AppSettings>();
+    final theme = Theme.of(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _follow());
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Vertical zoom slider: up = taller note bars.
+        SizedBox(
+          width: 34,
+          child: Tooltip(
+            message: tr('sing.rollZoom'),
+            waitDuration: const Duration(milliseconds: 500),
+            child: Column(
+              children: [
+                Icon(Icons.zoom_in, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                Expanded(
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7)),
+                      child: Slider(
+                        value: settings.rollZoom,
+                        onChanged: (v) {
+                          settings.setRollZoom(v);
+                          _follow();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                Icon(Icons.zoom_out, size: 16, color: theme.colorScheme.onSurfaceVariant),
+              ],
+            ),
+          ),
         ),
-      ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Listener(
+            onPointerSignal: (e) {
+              if (e is PointerScrollEvent) {
+                s.setWindowSeconds(s.windowSeconds + (e.scrollDelta.dy > 0 ? 1 : -1));
+              }
+            },
+            child: GestureDetector(
+              onTapDown: (d) {
+                // Click on the roll seeks (relative to the playhead at 30 %).
+                final box = context.findRenderObject() as RenderBox?;
+                if (box == null) return;
+                final w = box.size.width - 38;
+                final frac = (d.localPosition.dx - 46) / (w - 46);
+                final t = s.position.value + (frac - 0.3) * s.windowSeconds;
+                if (!s.recording) s.seek(t);
+              },
+              child: ValueListenableBuilder<({double min, double max})>(
+                valueListenable: _range,
+                builder: (context, range, _) => PianoRollView(
+                  notes: s.notes,
+                  refF0: s.refF0,
+                  trace: s.trace,
+                  minMidi: range.min,
+                  maxMidi: range.max,
+                  position: s.position,
+                  windowSeconds: s.windowSeconds,
+                  pitchShift: s.pitchShift,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
