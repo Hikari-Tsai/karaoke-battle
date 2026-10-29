@@ -101,6 +101,10 @@ class AppSettings extends ChangeNotifier {
   Future<void> setNoiseGateDb(double db) => _set('noise_gate_db', db.clamp(noiseGateOff, noiseGateMax).toDouble());
   bool get noiseGateEnabled => noiseGateDb > noiseGateOff;
 
+  /// The user ticked "don't ask again" on the first-use calibration prompt.
+  bool get calibrationPromptDismissed => _get('calib_prompt_dismissed', false);
+  Future<void> setCalibrationPromptDismissed(bool v) => _set('calib_prompt_dismissed', v);
+
   int get overlayPort => _get('overlay_port', 0);
   Future<void> setOverlayPort(int port) => _set('overlay_port', port);
 }

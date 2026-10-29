@@ -13,6 +13,7 @@ import '../../state/song_data.dart';
 import '../results/results_screen.dart';
 import 'piano_roll.dart';
 import 'video_pane.dart';
+import '../widgets/calibration.dart';
 
 class SingScreen extends StatefulWidget {
   const SingScreen({super.key, required this.song});
@@ -37,6 +38,12 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
   Future<void> _load() async {
     try {
       final services = context.read<AppServices>();
+      // First use without a latency measurement: offer it before the session
+      // opens its own audio device (calibration needs the device to itself).
+      await Future<void>.delayed(Duration.zero);
+      if (!mounted) return;
+      await showCalibrationPromptIfNeeded(context, services);
+      if (!mounted) return;
       final files = services.library.files(widget.song);
       final notes = await NoteList.load(files.notesJson);
       final refF0 = await F0Curve.load(files.refF0Json, confidenceThreshold: 0.5);
