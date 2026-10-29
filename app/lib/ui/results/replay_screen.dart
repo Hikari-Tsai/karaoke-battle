@@ -27,6 +27,7 @@ import '../sing/lyrics_overlay.dart';
 import '../sing/piano_roll.dart';
 import '../sing/video_pane.dart';
 import '../widgets/rank.dart';
+import '../widgets/voice_fx.dart';
 
 class ReplayScreen extends StatefulWidget {
   const ReplayScreen({super.key, required this.song, required this.take, this.notesJsonPath, this.player});
@@ -56,6 +57,9 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
   double _pitchShift = 0;
   double _videoAspect = 16 / 9;
   List<(double, String)> _judgements = const []; // (onset s, tier)
+  String _backing = '';
+  double _offset = 0;
+  bool _remixing = false;
   final _keys = FocusNode(debugLabel: 'replay-keys');
 
   @override
@@ -108,14 +112,9 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
         judgements.sort((a, b) => a.$1.compareTo(b.$1));
       }
 
-      final wav = await ensureReplayMix(
-        services.sidecars,
-        takeDir: take.dir,
-        voiceWav: take.wav,
-        backingWav: backing,
-        offsetSeconds: offset,
-        pitchShift: _pitchShift,
-      );
+      _backing = backing;
+      _offset = offset;
+      final wav = await _mix();
       final s = ReplaySession(services.engine, services.settings);
       await s.open(wav);
       if (!mounted) {
@@ -135,6 +134,37 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
       s.togglePlay(); // start right away
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
+    }
+  }
+
+  /// Builds (or reuses) the replay audio with the current reverb setting.
+  Future<String> _mix() {
+    final services = context.read<AppServices>();
+    final st = services.settings;
+    return ensureReplayMix(
+      services.sidecars,
+      takeDir: widget.take.dir,
+      voiceWav: widget.take.wav,
+      backingWav: _backing,
+      offsetSeconds: _offset,
+      pitchShift: _pitchShift,
+      reverbMix: st.reverbOn ? st.reverbMix : 0,
+      renderReverb: (i, o, mix) => services.engine.renderReverb(i, o, mix: mix),
+    );
+  }
+
+  /// Re-renders the mix after the reverb panel closed with a change.
+  Future<void> _applyReverb() async {
+    final s = _session;
+    if (s == null || _remixing) return;
+    setState(() => _remixing = true);
+    try {
+      final wav = await _mix();
+      if (mounted && _session == s) s.reload(wav);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('${tr('error')}: $e')));
+    } finally {
+      if (mounted) setState(() => _remixing = false);
     }
   }
 
@@ -289,6 +319,10 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
             icon: Icon(s.playing ? Icons.pause : Icons.play_arrow),
           ),
           IconButton(tooltip: tr('sing.restart'), onPressed: () => s.seek(0), icon: const Icon(Icons.replay)),
+          if (_remixing)
+            const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+          else
+            ReverbButton(showLiveHint: false, offColor: theme.colorScheme.onSurfaceVariant, onClosed: _applyReverb),
           const SizedBox(width: 8),
           ValueListenableBuilder<double>(
             valueListenable: s.position,

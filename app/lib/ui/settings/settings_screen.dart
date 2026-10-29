@@ -19,6 +19,7 @@ import '../widgets/calibration.dart';
 import '../widgets/info_tip.dart';
 import '../startup/first_run_dialog.dart';
 import '../widgets/brand.dart';
+import '../widgets/voice_fx.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -437,6 +438,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ],
+          ),
+          _Section(
+            title: tr('voiceFx.section'),
+            children: const [VoiceFxSettings()],
           ),
           // ---- prep / scoring defaults ------------------------------------------------
           _Section(

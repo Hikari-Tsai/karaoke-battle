@@ -77,7 +77,7 @@ ke_runtime* make_runtime(const std::map<std::string, std::string>& a) {
 }
 
 int usage() {
-    fprintf(stderr, "ke_cli %s\nusage: ke_cli <gpu|runtime|separate|transcribe|beats|f0|devices|live|calibrate> [--options]\n", ke_version());
+    fprintf(stderr, "ke_cli %s\nusage: ke_cli <gpu|runtime|separate|transcribe|beats|f0|reverb|devices|live|calibrate> [--options]\n", ke_version());
     return 2;
 }
 
@@ -148,6 +148,17 @@ int main(int argc, char** argv) {
         if (rc != KE_OK) { fprintf(stderr, "beats error %d: %s\n", rc, ke_last_error()); ke_runtime_destroy(rt); return 1; }
         printf("beats ok in %.2fs -> %s\n", std::chrono::duration<double>(t1 - t0).count(), a["out"].c_str());
         ke_runtime_destroy(rt);
+        return 0;
+    }
+    if (cmd == "reverb") {
+        // ke_cli reverb --in voice.wav --out wet.wav [--mix 0.3] [--tail 4]
+        const float mix = a.count("mix") ? static_cast<float>(atof(a["mix"].c_str())) : 0.3f;
+        const float tail = a.count("tail") ? static_cast<float>(atof(a["tail"].c_str())) : 4.f;
+        auto t0 = std::chrono::steady_clock::now();
+        int rc = ke_reverb_render_wav(a["in"].c_str(), a["out"].c_str(), mix, tail);
+        auto t1 = std::chrono::steady_clock::now();
+        if (rc != KE_OK) { fprintf(stderr, "reverb error %d: %s\n", rc, ke_last_error()); return 1; }
+        printf("reverb ok in %.3fs -> %s\n", std::chrono::duration<double>(t1 - t0).count(), a["out"].c_str());
         return 0;
     }
     if (cmd == "f0") {

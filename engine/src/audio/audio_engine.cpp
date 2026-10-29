@@ -29,6 +29,7 @@
 //   Capture sample c is stamped on the playback clock through the sync record of the
 //   callback block that delivered it, minus the latency compensation.
 #include "karaoke_engine.h"
+#include "dsp/hall_reverb.h"
 
 #include <algorithm>
 #include <atomic>
@@ -153,6 +154,16 @@ struct ke_audio {
     std::atomic<int64_t> audible_frame{0};        // playback clock (frame at device output)
     std::atomic<Clicks*> clicks{nullptr};         // metronome (owned; swapped by the API)
     std::atomic<float> click_gain{0.f};           // 0 = metronome off
+    // ---- vocal return (mic -> output) + hall reverb ------------------------------
+    std::atomic<bool> vocal_return{false};
+    std::atomic<bool> reverb_on{false};
+    std::atomic<float> reverb_mix{0.25f};
+    std::unique_ptr<ke::HallReverb> reverb;       // null when the rate is above 48 kHz
+    // callback-local
+    float vr_gain = 0.f;                          // smoothed 0..1 (fades the return in/out)
+    float vr_mix = 0.f;                           // smoothed wet mix actually applied
+    int64_t reverb_flush = 0;                     // frames of silent input still to feed after the return stops
+    std::vector<float> vr_dry, vr_wl, vr_wr;
     // callback-local state
     int64_t cursor = 0;                           // next track frame to feed
     float applied_gain = 1.f;
@@ -222,6 +233,7 @@ struct ke_audio {
     void data_callback(float* out, const float* in, ma_uint32 frames);
     void render_block(float* out, ma_uint32 frames);
     void mix_clicks(float* out, ma_uint32 frames, int64_t base);
+    void mix_vocal_return(float* out, const float* in, ma_uint32 frames);
     void set_stretch(bool enable);
     void dsp_worker();
     void model_worker();
@@ -327,6 +339,50 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
     applied_gain = target_gain;
 }
 
+// Vocal return: the microphone mixed into the output (dry, plus the hall
+// reverb when on). The recording and pitch tracking always use the dry input
+// captured above. Gains are ramped per block so toggling never clicks; after
+// the return stops the reverb is fed silence for a few seconds so it starts
+// clean next time.
+void ke_audio::mix_vocal_return(float* out, const float* in, ma_uint32 frames) {
+    const bool on = in && vocal_return.load(std::memory_order_relaxed);
+    const float target_gain = on ? 1.f : 0.f;
+    const float target_mix = reverb && reverb_on.load(std::memory_order_relaxed)
+                                 ? std::clamp(reverb_mix.load(std::memory_order_relaxed), 0.f, 1.f)
+                                 : 0.f;
+    if (target_gain == 0.f && vr_gain == 0.f) {
+        if (reverb && reverb_flush > 0) {
+            for (ma_uint32 i = 0; i < frames; ++i) vr_dry[i] = 0.f;
+            reverb->process_wet(vr_dry.data(), vr_wl.data(), vr_wr.data(), static_cast<int>(frames));
+            reverb_flush -= frames;
+        }
+        vr_mix = target_mix;
+        return;
+    }
+    const float g0 = vr_gain, m0 = vr_mix;
+    const float gs = (target_gain - g0) / static_cast<float>(frames);
+    const float ms = (target_mix - m0) / static_cast<float>(frames);
+    // Clamped so a capture glitch cannot reach the headphones at full scale.
+    for (ma_uint32 i = 0; i < frames; ++i) vr_dry[i] = in ? std::clamp(in[i], -1.f, 1.f) : 0.f;
+    const bool use_reverb = reverb && (target_mix > 0.f || m0 > 0.f);
+    if (reverb) {
+        // Keep the reverb running while the return is on so switching it on is seamless.
+        reverb->process_wet(vr_dry.data(), vr_wl.data(), vr_wr.data(), static_cast<int>(frames));
+        reverb_flush = static_cast<int64_t>((ke::HallReverb::kDecaySeconds * 2.0) * sr);
+    }
+    for (ma_uint32 i = 0; i < frames; ++i) {
+        const float g = g0 + gs * static_cast<float>(i);
+        const float m = use_reverb ? m0 + ms * static_cast<float>(i) : 0.f;
+        const float d = vr_dry[i] * ke::reverb_dry_gain(m) * g;
+        const float wl = use_reverb ? vr_wl[i] * ke::reverb_wet_gain(m) * g : 0.f;
+        const float wr = use_reverb ? vr_wr[i] * ke::reverb_wet_gain(m) * g : 0.f;
+        out[2 * i] += d + wl;
+        out[2 * i + 1] += d + wr;
+    }
+    vr_gain = target_gain;
+    vr_mix = target_mix;
+}
+
 // Adds metronome clicks to an output block whose sample i plays track frame
 // base + i. Stateless (each click is synthesised from its start frame), so
 // seeks and pitch-shift latency need no bookkeeping. Accented clicks (bar
@@ -417,6 +473,7 @@ void ke_audio::data_callback(float* out, const float* in, ma_uint32 total) {
             while (done < total) {
                 const ma_uint32 n = std::min<ma_uint32>(total - done, kMaxBlock);
                 render_block(out + 2 * done, n);
+                mix_vocal_return(out + 2 * done, in ? in + done : nullptr, n);
                 done += n;
             }
         }
@@ -704,6 +761,8 @@ KE_API int ke_audio_create(const char* capture_device_id, const char* playback_d
     a->st_out_l.assign(kMaxBlock, 0.f); a->st_out_r.assign(kMaxBlock, 0.f);
     a->preroll_l.assign(static_cast<size_t>(a->stretch.seekLength()), 0.f);
     a->preroll_r.assign(static_cast<size_t>(a->stretch.seekLength()), 0.f);
+    a->vr_dry.assign(kMaxBlock, 0.f); a->vr_wl.assign(kMaxBlock, 0.f); a->vr_wr.assign(kMaxBlock, 0.f);
+    if (sample_rate <= ke::HallReverb::kMaxSampleRate) a->reverb = std::make_unique<ke::HallReverb>(sample_rate);
     r = ma_pcm_rb_init(ma_format_f32, 1, static_cast<ma_uint32>(kRingSeconds * sample_rate), nullptr, nullptr, &a->rb);
     if (r != MA_SUCCESS) return ke::fail(KE_ERR_AUDIO_DEVICE, "ma_pcm_rb_init: %s", ma_err(r).c_str());
     a->rb_ok = true;
@@ -866,6 +925,20 @@ KE_API int ke_audio_set_click_gain(ke_audio* a, float gain) {
     if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
     if (!(gain >= 0.f) || gain > 4.f) return ke::fail(KE_ERR_INVALID_ARG, "click gain out of range");
     a->click_gain.store(gain, std::memory_order_relaxed);
+    return KE_OK;
+}
+
+KE_API int ke_audio_set_vocal_return(ke_audio* a, int on) {
+    if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
+    a->vocal_return.store(on != 0, std::memory_order_relaxed);
+    return KE_OK;
+}
+
+KE_API int ke_audio_set_reverb(ke_audio* a, int on, float mix) {
+    if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
+    if (!(mix >= 0.f && mix <= 1.f)) return ke::fail(KE_ERR_INVALID_ARG, "reverb mix out of range");
+    a->reverb_mix.store(mix, std::memory_order_relaxed);
+    a->reverb_on.store(on != 0, std::memory_order_relaxed);
     return KE_OK;
 }
 

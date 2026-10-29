@@ -131,6 +131,18 @@ class AppSettings extends ChangeNotifier {
   double get metronomeGain => _get('metronome_gain', 0.6);
   Future<void> setMetronomeGain(double v) => _set('metronome_gain', v.clamp(0.0, 1.5).toDouble());
 
+  /// Vocal return: hear the microphone through the app's output.
+  bool get vocalReturn => _get('vocal_return', false);
+  Future<void> setVocalReturn(bool v) => _set('vocal_return', v);
+  bool get vocalReturnWarned => _get('vocal_return_warned', false);
+  Future<void> setVocalReturnWarned(bool v) => _set('vocal_return_warned', v);
+
+  /// Hall reverb on the voice (vocal return and replays); mix 0..1.
+  bool get reverbOn => _get('reverb_on', false);
+  Future<void> setReverbOn(bool v) => _set('reverb_on', v);
+  double get reverbMix => _get('reverb_mix', 0.25);
+  Future<void> setReverbMix(double v) => _set('reverb_mix', v.clamp(0.0, 1.0).toDouble());
+
   /// Name written into exported replay files.
   String get playerName => _prefs.getString('player_name') ?? '';
   Future<void> setPlayerName(String v) => _set('player_name', v.trim());

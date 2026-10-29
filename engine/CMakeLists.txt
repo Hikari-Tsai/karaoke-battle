@@ -48,6 +48,10 @@ set(KE_SOURCES
   src/core/third_party_impl.c
   src/dsp/stft.cpp
   src/dsp/mpm.cpp
+  src/dsp/hall_reverb.cpp
+  src/dsp/reverb_api.cpp
+  third_party/cloudseed/DSP/Biquad.cpp
+  third_party/cloudseed/DSP/RandomBuffer.cpp
   src/models/swiftf0.cpp
   src/models/mdx.cpp
   src/models/game.cpp
@@ -58,6 +62,11 @@ set(KE_SOURCES
 
 add_library(karaoke_engine SHARED ${KE_SOURCES})
 target_compile_definitions(karaoke_engine PRIVATE KE_BUILD_SHARED=1)
+if(NOT MSVC)
+  # Vendored Cloud Seed sources: upstream warnings only.
+  set_source_files_properties(third_party/cloudseed/DSP/Biquad.cpp third_party/cloudseed/DSP/RandomBuffer.cpp
+    PROPERTIES COMPILE_OPTIONS "-w")
+endif()
 target_include_directories(karaoke_engine
   PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -72,7 +81,7 @@ set_target_properties(karaoke_engine PROPERTIES
 
 if(MSVC)
   target_compile_options(karaoke_engine PRIVATE /W3 /utf-8 /bigobj)
-  target_compile_definitions(karaoke_engine PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX WIN32_LEAN_AND_MEAN)
+  target_compile_definitions(karaoke_engine PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX WIN32_LEAN_AND_MEAN _USE_MATH_DEFINES)
   target_link_libraries(karaoke_engine PRIVATE dxgi ole32)
 else()
   target_compile_options(karaoke_engine PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare)

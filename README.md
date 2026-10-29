@@ -65,7 +65,7 @@ GAME 權重為非商業授權，整個 App 的使用因此受該條款約束。
 
 從上方徽章下載 DMG 或 zip 安裝。macOS 第一次請在 App 上按右鍵「打開」（未公證）；Windows 在 SmartScreen 選「仍要執行」。
 首次啟動會下載模型（約 500 MB）與外部工具，Windows 另可選擇下載 CUDA 執行環境。
-新增歌曲（YouTube 連結或拖入檔案）後等待備歌完成，按「預覽」進入演唱頁，可先聽原曲或伴奏並看鋼琴卷軸，戴上耳機按「開始錄製」才開始評分。
+新增歌曲（YouTube 連結或拖入檔案）後等待備歌完成，按「預覽」進入演唱頁，可先聽原曲或伴奏並看鋼琴卷軸，戴上耳機按「開始錄製」才開始評分。演唱頁右上角的耳機按鈕可開啟人聲返送（Vocal Return），把自己的聲音和音樂一起送到輸出；旁邊的殘響按鈕可開關 Hall 殘響並調整混合比例，回放時也會套用。錄音、計分與匯出的重播檔一律使用乾聲。
 完整步驟、資料位置與常見問題見 [docs/INSTALL.md](docs/INSTALL.md)。
 
 ## 建置
@@ -99,6 +99,7 @@ cd app && flutter pub get && flutter run -d macos
 * 評分指標的定義取自 **mir_eval**（Raffel et al., ISMIR 2014）與旋律抽取評估文獻（Poliner et al. 2007；Salamon et al. 2014）；
   即時音高追蹤用 **MPM**（McLeod & Wyvill, ICMC 2005）；對齊用 Sakoe-Chiba 帶狀 DTW（1978）。
 * 升降 key 使用 [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch)，音訊 I/O 使用 miniaudio，推論使用 ONNX Runtime。
+* 人聲殘響使用 Ghost Note Audio 的 [Cloud Seed](https://github.com/GhostNoteAudio/CloudSeedCore) 演算法（MIT）。本專案與 Ghost Note Audio 無關。
 
 ## 法律聲明
 

@@ -190,6 +190,14 @@ KE_API int  ke_f0_extract(ke_runtime* rt, const char* swiftf0_model_path, const 
                           float fmin, float fmax, const char* f0_out_json,
                           ke_progress_cb progress, void* user);
 
+/*
+ * Renders a voice recording through the hall reverb (offline, for replays).
+ * Input of any channel count is mixed to mono (above 48 kHz it is resampled
+ * to 48 kHz). mix in [0, 1]: 0 = dry, 1 = reverb only. Writes a stereo
+ * 32-bit float WAV, tail_seconds (0..10) longer than the input.
+ */
+KE_API int  ke_reverb_render_wav(const char* input_wav, const char* output_wav, float mix, float tail_seconds);
+
 /* ------------------------------------------------------------------ */
 /* Live audio: capture + pitch tracking + playback with one clock      */
 /* ------------------------------------------------------------------ */
@@ -229,6 +237,13 @@ KE_API int    ke_audio_set_pitch_shift(ke_audio* a, float semitones);
 KE_API int    ke_audio_set_clicks(ke_audio* a, const double* times, const int* accents, int n);
 /* Metronome level (linear, 0 = off). */
 KE_API int    ke_audio_set_click_gain(ke_audio* a, float gain);
+/* Vocal return: mixes the microphone into the output (off by default).
+ * Recording and pitch tracking always use the dry input. Use headphones:
+ * through speakers the return feeds back. */
+KE_API int    ke_audio_set_vocal_return(ke_audio* a, int on);
+/* Hall reverb on the vocal return. mix in [0, 1]: 0 = dry, 1 = reverb only.
+ * Not available above 48 kHz (the return stays dry). */
+KE_API int    ke_audio_set_reverb(ke_audio* a, int on, float mix);
 
 /* ---- capture + real-time F0 ---- */
 

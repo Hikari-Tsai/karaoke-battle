@@ -31,6 +31,21 @@ class ReplaySession extends ChangeNotifier implements PlaybackClock {
     notifyListeners();
   }
 
+  /// Swaps in a re-rendered mix, keeping the position and play state.
+  void reload(String wav) {
+    final l = _live;
+    if (l == null) return;
+    final pos = position.value;
+    final wasPlaying = l.isPlaying;
+    if (wasPlaying) l.pause();
+    l.loadTrack(wav);
+    duration = l.trackDuration;
+    l.seek(pos.clamp(0.0, duration > 0 ? duration : pos));
+    if (wasPlaying) l.play();
+    tick();
+    notifyListeners();
+  }
+
   void tick() {
     final l = _live;
     if (l == null) return;

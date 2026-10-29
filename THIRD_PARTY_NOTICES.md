@@ -10,6 +10,7 @@
 | signalsmith-stretch | main | MIT | https://github.com/Signalsmith-Audio/signalsmith-stretch |
 | signalsmith-linear | main | MIT | https://github.com/Signalsmith-Audio/linear |
 | nlohmann/json | 3.12.0 | MIT | https://github.com/nlohmann/json |
+| Cloud Seed core (Ghost Note Audio) | deb21de (2024-09-22), trimmed, see `engine/third_party/cloudseed/README.md` | MIT, Copyright (c) 2024 Ghost Note Audio | https://github.com/GhostNoteAudio/CloudSeedCore |
 
 ## Fetched at build time (not committed)
 

@@ -147,6 +147,14 @@ class Engine {
 
   String get version => bindings.version().toDartString();
 
+  /// Renders [input] through the hall reverb into a stereo WAV at [output]
+  /// ([mix] 0 = dry, 1 = reverb only; [tailSeconds] of tail appended).
+  /// Runs on a worker isolate.
+  Future<void> renderReverb(String input, String output, {required double mix, double tailSeconds = 4}) async {
+    final r = await _spawnReverb(libraryPath, input, output, mix.clamp(0.0, 1.0), tailSeconds);
+    if (r.code != KeError.ok) throw EngineException(r.code, r.message);
+  }
+
   // Engine threads append log lines to a queue inside the library; we poll it.
   // (A NativeCallable.listener cannot be used: the message pointer is only
   // valid during the synchronous call.)
@@ -381,6 +389,23 @@ _JobResult _jobEntry(String libPath, int rtAddr, int cancelAddr, SendPort progre
   }
 }
 
+// ---- offline reverb (worker isolate) ------------------------------------------------
+
+Future<_CalibResult> _spawnReverb(String libPath, String input, String output, double mix, double tail) {
+  return Isolate.run<_CalibResult>(() {
+    // The last error is thread-local: read it on the isolate that made the call.
+    final b = EngineBindings(DynamicLibrary.open(libPath));
+    final i = input.toNativeUtf8(), o = output.toNativeUtf8();
+    try {
+      final rc = b.reverbRenderWav(i, o, mix, tail);
+      return _CalibResult(rc, rc == KeError.ok ? '' : 'ke_reverb_render_wav: ${b.lastErrorString()}', 0);
+    } finally {
+      calloc.free(i);
+      calloc.free(o);
+    }
+  });
+}
+
 // ---- latency calibration (worker isolate) ------------------------------------------
 
 class _CalibResult {
@@ -509,6 +534,12 @@ class LiveAudio {
 
   /// Metronome level (linear, 0 = off).
   set clickGain(double gain) => _b.audioSetClickGain(ptr, gain.clamp(0.0, 4.0));
+
+  /// Vocal return: the microphone mixed into the output (use headphones).
+  set vocalReturn(bool on) => _check(_b.audioSetVocalReturn(ptr, on ? 1 : 0), 'ke_audio_set_vocal_return');
+
+  /// Hall reverb on the vocal return; [mix] 0 = dry, 1 = reverb only.
+  void setReverb(bool on, double mix) => _check(_b.audioSetReverb(ptr, on ? 1 : 0, mix.clamp(0.0, 1.0)), 'ke_audio_set_reverb');
 
   void startCapture({EngineRuntime? runtime, String? swiftF0ModelPath, int mode = 0}) {
     final s = swiftF0ModelPath?.toNativeUtf8() ?? nullptr;

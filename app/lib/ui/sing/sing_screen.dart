@@ -26,6 +26,7 @@ import 'tempo_dialog.dart';
 import 'video_pane.dart';
 import '../widgets/calibration.dart';
 import '../widgets/metronome_icon.dart';
+import '../widgets/voice_fx.dart';
 
 class SingScreen extends StatefulWidget {
   const SingScreen({super.key, required this.song});
@@ -418,6 +419,7 @@ class _SingScreenState extends State<SingScreen>
     // Keep the engine's metronome level in sync with the settings.
     context.watch<AppSettings>();
     _session?.applyMetronome();
+    _session?.applyVoiceFx();
     // Recording started while editing: leave edit mode.
     if (_editing && (_session?.recording ?? false)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -552,6 +554,18 @@ class _SingScreenState extends State<SingScreen>
                                             .setMetronomeOn(!st.metronomeOn)
                                             .then((_) => s.applyMetronome());
                                       },
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const _StageButton(child: VocalReturnButton()),
+                                    const SizedBox(width: 6),
+                                    _StageButton(
+                                      child: ReverbButton(
+                                        onPreview: (on, mix) {
+                                          try {
+                                            s.live?.setReverb(on, mix);
+                                          } catch (_) {}
+                                        },
+                                      ),
                                     ),
                                     const SizedBox(width: 6),
                                     if (_lyrics != null)

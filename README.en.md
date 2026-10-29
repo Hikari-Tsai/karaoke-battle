@@ -65,7 +65,7 @@ For the full alignment method, metric definitions, formulas and calibration resu
 
 Download the DMG or zip from the badges above and install it. On macOS, the first time you launch it, right-click the app and choose "Open" (it is not notarized); on Windows, choose "Run anyway" in SmartScreen.
 The first launch downloads the models (about 500 MB) and external tools; on Windows you can also choose to download the CUDA runtime.
-After adding a song (a YouTube link or a dropped file), wait for song preparation to finish, then press "Preview" to open the singing screen. You can listen to the original track or the accompaniment and view the piano roll first; put on headphones and press "Start recording" to begin scoring.
+After adding a song (a YouTube link or a dropped file), wait for song preparation to finish, then press "Preview" to open the singing screen. You can listen to the original track or the accompaniment and view the piano roll first; put on headphones and press "Start recording" to begin scoring. The headset button at the top right of the singing screen turns on the vocal return, which sends your voice to the output together with the music. The reverb button next to it switches a hall reverb on or off and sets its mix; replays use it too. Recording, scoring and exported replay files always use the dry voice.
 For the full steps, data locations and FAQ, see [docs/INSTALL.md](docs/INSTALL.md) (Chinese).
 
 ## Building
@@ -99,6 +99,7 @@ For full citation formats (including BibTeX) and each upstream project's require
 * Scoring metric definitions are taken from **mir_eval** (Raffel et al., ISMIR 2014) and the melody extraction evaluation literature (Poliner et al. 2007; Salamon et al. 2014);
   real-time pitch tracking uses **MPM** (McLeod & Wyvill, ICMC 2005); alignment uses Sakoe-Chiba band DTW (1978).
 * Key shifting uses [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch), audio I/O uses miniaudio, and inference uses ONNX Runtime.
+* The vocal reverb uses the [Cloud Seed](https://github.com/GhostNoteAudio/CloudSeedCore) algorithm by Ghost Note Audio (MIT). This project is not affiliated with Ghost Note Audio.
 
 ## Legal notice
 

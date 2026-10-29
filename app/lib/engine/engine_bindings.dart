@@ -101,6 +101,12 @@ class EngineBindings {
             int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Int32>, int)>('ke_audio_set_clicks'),
         audioSetClickGain = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Float), int Function(Pointer<KeAudio>, double)>(
             'ke_audio_set_click_gain'),
+        audioSetVocalReturn = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Int32), int Function(Pointer<KeAudio>, int)>(
+            'ke_audio_set_vocal_return'),
+        audioSetReverb = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Int32, Float), int Function(Pointer<KeAudio>, int, double)>(
+            'ke_audio_set_reverb'),
+        reverbRenderWav = lib.lookupFunction<Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Float, Float),
+            int Function(Pointer<Utf8>, Pointer<Utf8>, double, double)>('ke_reverb_render_wav'),
         audioListDevicesJson = lib.lookupFunction<
             Int32 Function(Pointer<Utf8>, Size, Pointer<Size>),
             int Function(Pointer<Utf8>, int, Pointer<Size>)>('ke_audio_list_devices_json'),
@@ -176,6 +182,9 @@ class EngineBindings {
       Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>) beats;
   final int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Int32>, int) audioSetClicks;
   final int Function(Pointer<KeAudio>, double) audioSetClickGain;
+  final int Function(Pointer<KeAudio>, int) audioSetVocalReturn;
+  final int Function(Pointer<KeAudio>, int, double) audioSetReverb;
+  final int Function(Pointer<Utf8>, Pointer<Utf8>, double, double) reverbRenderWav;
 
   final int Function(Pointer<Utf8>, int, Pointer<Size>) audioListDevicesJson;
   final int Function(Pointer<Utf8>, Pointer<Utf8>, int, Pointer<Pointer<KeAudio>>) audioCreate;

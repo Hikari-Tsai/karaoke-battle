@@ -64,6 +64,15 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     } catch (_) {}
   }
 
+  /// Applies the vocal return and reverb settings to the audio engine.
+  void applyVoiceFx() {
+    final st = services.settings;
+    try {
+      _live?.vocalReturn = st.vocalReturn;
+      _live?.setReverb(st.reverbOn, st.reverbMix);
+    } catch (_) {}
+  }
+
   /// Replaces the reference notes after a user edit (pitch / delete).
   void replaceNotes(NoteList n) {
     notes = n;
@@ -119,6 +128,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       l.loadTrack(_trackPath);
       duration = l.trackDuration;
       l.volume = volume;
+      applyVoiceFx();
       final lat = s.latencySeconds;
       if (lat != null) {
         l.latencyCompensation = lat;

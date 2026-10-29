@@ -63,7 +63,7 @@ GAME の重みは非商用ライセンスのため、アプリ全体の利用も
 
 上部のバッジから DMG または zip をダウンロードしてインストールしてください。macOS では初回、アプリを右クリックして「開く」を選んでください（未公証のため）。Windows では SmartScreen で「実行」を選んでください。
 初回起動時にモデル（約 500 MB）と外部ツールをダウンロードします。Windows では CUDA ランタイムのダウンロードも選択できます。
-曲を追加（YouTube リンクまたはファイルのドラッグ＆ドロップ）したら曲の準備が終わるまで待ち、「プレビュー」を押して歌唱画面に入ります。先に原曲や伴奏を聴きながらピアノロールを確認でき、ヘッドホンを着けて「録音開始」を押すと採点が始まります。
+曲を追加（YouTube リンクまたはファイルのドラッグ＆ドロップ）したら曲の準備が終わるまで待ち、「プレビュー」を押して歌唱画面に入ります。先に原曲や伴奏を聴きながらピアノロールを確認でき、ヘッドホンを着けて「録音開始」を押すと採点が始まります。歌唱画面右上のヘッドセットボタンでボーカルリターンをオンにすると、自分の声が音楽と一緒に出力されます。隣のリバーブボタンでホールリバーブのオン／オフとミックスを調整でき、リプレイにも適用されます。録音・採点・書き出したリプレイファイルは常にドライの声を使います。
 手順の詳細、データの保存場所、よくある質問は [docs/INSTALL.md](docs/INSTALL.md)（中国語）をご覧ください。
 
 ## ビルド
@@ -97,6 +97,7 @@ cd app && flutter pub get && flutter run -d macos
 * 採点指標の定義は **mir_eval**（Raffel et al., ISMIR 2014）とメロディ抽出の評価に関する文献（Poliner et al. 2007；Salamon et al. 2014）に基づいています。
   リアルタイムのピッチ追跡には **MPM**（McLeod & Wyvill, ICMC 2005）を、整列には Sakoe-Chiba バンド付き DTW（1978）を使用しています。
 * キー変更には [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch)、音声 I/O には miniaudio、推論には ONNX Runtime を使用しています。
+* ボーカルのリバーブには Ghost Note Audio の [Cloud Seed](https://github.com/GhostNoteAudio/CloudSeedCore) アルゴリズム（MIT）を使用しています。本プロジェクトは Ghost Note Audio とは無関係です。
 
 ## 法的事項
 
