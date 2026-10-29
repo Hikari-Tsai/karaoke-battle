@@ -322,7 +322,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           if (_remixing)
             const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
           else
-            ReverbButton(showLiveHint: false, offColor: theme.colorScheme.onSurfaceVariant, onClosed: _applyReverb),
+            VoiceFxButton(showReturn: false, offColor: theme.colorScheme.onSurfaceVariant, onClosed: _applyReverb),
           const SizedBox(width: 8),
           ValueListenableBuilder<double>(
             valueListenable: s.position,

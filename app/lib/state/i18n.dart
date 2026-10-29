@@ -388,8 +388,6 @@ const Map<String, (String, String, String)> _table = {
   'replays.deleteBody': ('刪除 {player} 的「{title}」重播，曲庫中的歌曲不受影響。', 'Deletes {player}\'s replay of "{title}". The song in your library is kept.', '{player} の「{title}」のリプレイを削除します。ライブラリの曲は残ります。'),
   'voiceFx.section': ('人聲監聽與殘響', 'Vocal return & reverb', 'ボーカルリターンとリバーブ'),
   'voiceFx.vocalReturn': ('人聲返送（Vocal Return）', 'Vocal return', 'ボーカルリターン'),
-  'voiceFx.vocalReturnOn': ('開啟人聲返送：從輸出聽到自己的聲音', 'Turn on vocal return: hear yourself in the output', 'ボーカルリターンをオン：出力で自分の声を聴く'),
-  'voiceFx.vocalReturnOff': ('關閉人聲返送', 'Turn off vocal return', 'ボーカルリターンをオフ'),
   'voiceFx.vocalReturnHint': (
     '把麥克風混進 App 的輸出，耳機裡會同時聽到自己的聲音和音樂；OBS 擷取 App 音訊時直播也會有人聲。錄音與計分一律使用乾聲。',
     'Mixes the microphone into the app output, so the headphones carry your voice with the music; if OBS captures the app audio, the stream gets your voice too. Recording and scoring always use the dry voice.',
@@ -403,6 +401,8 @@ const Map<String, (String, String, String)> _table = {
   ),
   'voiceFx.warnOk': ('已戴耳機，開啟', 'Headphones on, turn it on', 'ヘッドホン装着済み、オンにする'),
   'voiceFx.reverb': ('Hall 殘響', 'Hall reverb', 'ホールリバーブ'),
+  'voiceFx.button': ('人聲：返送與殘響', 'Voice: return and reverb', 'ボーカル：リターンとリバーブ'),
+  'voiceFx.returnShort': ('從輸出聽到自己的聲音（請戴耳機）', 'Hear yourself in the output (use headphones)', '出力で自分の声を聴く（ヘッドホン推奨）'),
   'voiceFx.mix': ('混合比例', 'Mix', 'ミックス'),
   'voiceFx.reverbHint': (
     '套用在人聲返送與回放；匯出的重播檔只保留乾聲。',

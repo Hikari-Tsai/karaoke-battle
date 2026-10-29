@@ -570,12 +570,8 @@ class _SingScreenState extends State<SingScreen>
                                       },
                                     ),
                                     const SizedBox(width: 6),
-                                    const _StageButton(
-                                      child: VocalReturnButton(),
-                                    ),
-                                    const SizedBox(width: 6),
                                     _StageButton(
-                                      child: ReverbButton(
+                                      child: VoiceFxButton(
                                         onPreview: (on, mix) {
                                           try {
                                             s.live?.setReverb(on, mix);
