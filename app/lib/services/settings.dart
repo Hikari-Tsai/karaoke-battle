@@ -105,6 +105,10 @@ class AppSettings extends ChangeNotifier {
   bool get calibrationPromptDismissed => _get('calib_prompt_dismissed', false);
   Future<void> setCalibrationPromptDismissed(bool v) => _set('calib_prompt_dismissed', v);
 
+  /// Show synced lyrics (YouTube subtitles) on the sing screen.
+  bool get showLyrics => _get('show_lyrics', true);
+  Future<void> setShowLyrics(bool v) => _set('show_lyrics', v);
+
   int get overlayPort => _get('overlay_port', 0);
   Future<void> setOverlayPort(int port) => _set('overlay_port', port);
 }

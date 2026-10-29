@@ -115,8 +115,9 @@ class _SongCardState extends State<_SongCard> {
     super.initState();
     _loadTakes(); // the best score is shown on the card even when collapsed
     if (widget.song.stage == PrepStage.done) {
-      // Songs prepared before thumbnails existed get one lazily.
-      context.read<AppServices>().pipeline.ensureThumbnail(widget.song);
+      // Songs prepared before thumbnails / subtitles existed get them lazily.
+      final pipeline = context.read<AppServices>().pipeline;
+      pipeline.ensureThumbnail(widget.song).then((_) => pipeline.ensureLyrics(widget.song));
     }
   }
 
@@ -241,6 +242,7 @@ class _SongCardState extends State<_SongCard> {
                           Text(formatDuration(song.durationSec), style: theme.textTheme.bodySmall),
                           _Badge(text: tr('source.${song.sourceType.name}'), icon: song.sourceType == SourceType.youtube ? Icons.smart_display : Icons.insert_drive_file),
                           _Badge(text: tr('lang.${song.language}')),
+                          if (_hasLyrics(services.library.files(song).lyricsJson)) _Badge(text: tr('library.lyrics'), icon: Icons.subtitles),
                           _Badge(
                             text: tr('stage.${stage.name}'),
                             color: stage == PrepStage.done ? const Color(0xFF2E7D32) : (stage == PrepStage.failed ? cs.error : cs.secondaryContainer),
@@ -323,6 +325,12 @@ class _SongCardState extends State<_SongCard> {
         ),
       ),
     );
+  }
+
+  static bool _hasLyrics(String path) {
+    final f = File(path);
+    // An empty lyrics.json ("no subtitles") is ~60 bytes.
+    return f.existsSync() && f.lengthSync() > 120;
   }
 
   /// Local thumbnail (YouTube image or a grabbed frame) when the prep made

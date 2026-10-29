@@ -100,6 +100,8 @@ class SongFiles {
   String get instWav => p.join(dir, 'inst.wav');
   String get videoMp4 => p.join(dir, 'video.mp4');
   String get thumbJpg => p.join(dir, 'thumb.jpg');
+  String get lyricsJson => p.join(dir, 'lyrics.json');
+  String get subsDir => p.join(dir, 'subs');
   String get notesJson => p.join(dir, 'notes.json');
   String get refF0Json => p.join(dir, 'ref_f0.json');
   String get takesDir => p.join(dir, 'takes');

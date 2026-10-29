@@ -5,6 +5,7 @@
 // Each stage is skipped when its artifact already exists, so a failed or
 // cancelled prep can be resumed.
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,8 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../engine/engine.dart';
+import '../state/i18n.dart';
+import '../state/lyrics.dart';
 import 'backend_manager.dart';
 import 'model_registry.dart';
 import 'settings.dart';
@@ -166,8 +169,9 @@ class PrepPipeline extends ChangeNotifier {
     }
     checkCancel();
 
-    // 3b. thumbnail (never fatal)
+    // 3b. thumbnail and subtitles (never fatal)
     await ensureThumbnail(song);
+    await ensureLyrics(song);
     checkCancel();
 
     final rt = await backend.runtime();
@@ -234,6 +238,42 @@ class PrepPipeline extends ChangeNotifier {
     song.separationQuality = quality.name;
     await library.save(song);
     _emit(song, PrepStage.done, fraction: 1, message: '');
+  }
+
+  final Set<String> _lyricsInFlight = {};
+
+  /// For YouTube songs, downloads the subtitle tracks once and writes
+  /// lyrics.json (an empty one when the video has none, so it is not retried).
+  /// Network failures leave no file, so a later call retries.
+  Future<void> ensureLyrics(Song song) async {
+    final url = song.sourceUrl;
+    if (song.sourceType != SourceType.youtube || url == null) return;
+    final f = library.files(song);
+    if (await File(f.lyricsJson).exists()) return;
+    if (!_lyricsInFlight.add(song.id)) return;
+    try {
+      final tracks = await sidecars.subtitleTracks(url);
+      final plan = planSubtitles(manual: tracks.manual, auto: tracks.auto, songLanguage: song.language, uiLanguage: I18n.lang);
+      final lyrics = Lyrics(tracks: [], primary: plan.primary, secondary: plan.secondary);
+      if (!plan.isEmpty) {
+        await Directory(f.subsDir).create(recursive: true);
+        if (plan.manual.isNotEmpty) await sidecars.downloadSubtitles(url, f.subsDir, plan.manual, auto: false);
+        if (plan.auto != null) await sidecars.downloadSubtitles(url, f.subsDir, [plan.auto!], auto: true);
+        for (final key in [...plan.manual, ?plan.auto]) {
+          final file = File(p.join(f.subsDir, 'subs.$key.vtt'));
+          if (!await file.exists()) continue;
+          final lines = parseVtt(await file.readAsString());
+          if (lines.isNotEmpty) lyrics.tracks.add(LyricTrack(lang: key, auto: key == plan.auto, lines: lines));
+        }
+        if (lyrics.track(lyrics.primary) == null) lyrics.primary = lyrics.tracks.isEmpty ? null : lyrics.tracks.first.lang;
+        if (lyrics.track(lyrics.secondary) == null) lyrics.secondary = null;
+      }
+      await File(f.lyricsJson).writeAsString(jsonEncode(lyrics.toJson()));
+      notifyListeners();
+    } catch (_) {
+    } finally {
+      _lyricsInFlight.remove(song.id);
+    }
   }
 
   final Set<String> _thumbInFlight = {};

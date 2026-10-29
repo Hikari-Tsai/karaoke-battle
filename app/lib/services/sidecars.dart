@@ -315,6 +315,33 @@ class Sidecars {
     return jsonDecode(r.stdout as String) as Map<String, dynamic>;
   }
 
+  /// Subtitle track keys (uploader-provided and automatic) for a URL.
+  Future<({List<String> manual, List<String> auto})> subtitleTracks(String url) async {
+    final info = await probeUrl(url);
+    List<String> keys(Object? m) => m is Map ? [for (final k in m.keys) '$k'] : <String>[];
+    return (manual: keys(info['subtitles']), auto: keys(info['automatic_captions']));
+  }
+
+  /// Downloads the given subtitle tracks as WebVTT into [outDir] as
+  /// `subs.<key>.vtt`. [auto] selects automatic captions.
+  Future<void> downloadSubtitles(String url, String outDir, List<String> keys, {required bool auto, Future<void>? cancel}) async {
+    if (keys.isEmpty) return;
+    final yt = await resolve(SidecarKind.ytDlp);
+    if (yt == null) throw StateError('yt-dlp not available');
+    final deno = await resolve(SidecarKind.deno);
+    final code = await run(yt, [
+      '--no-playlist',
+      '--skip-download',
+      auto ? '--write-auto-subs' : '--write-subs',
+      '--sub-langs', keys.join(','),
+      '--sub-format', 'vtt',
+      '-o', p.join(outDir, 'subs.%(ext)s'),
+      if (deno != null) ...['--js-runtimes', 'deno:$deno'],
+      url,
+    ], cancel: cancel);
+    if (code != 0) throw StateError('yt-dlp subtitles exited with $code');
+  }
+
   static final _ffTime = RegExp(r'time=(\d+):(\d+):([\d.]+)');
   static final _ffDuration = RegExp(r'Duration: (\d+):(\d+):([\d.]+)');
 

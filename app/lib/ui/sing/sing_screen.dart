@@ -1,4 +1,7 @@
 // The sing screen: video + HUD, scrolling piano roll, transport/record controls.
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -8,10 +11,12 @@ import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../../state/lyrics.dart';
 import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
 import '../results/results_screen.dart';
 import 'piano_roll.dart';
+import 'lyrics_overlay.dart';
 import 'video_pane.dart';
 import '../widgets/calibration.dart';
 
@@ -28,6 +33,16 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
   Ticker? _ticker;
   String? _loadError;
   bool _busy = false;
+  Lyrics? _lyrics;
+
+  Future<void> _loadLyrics(String path) async {
+    try {
+      final f = File(path);
+      if (!await f.exists()) return;
+      final l = Lyrics.fromJson(jsonDecode(await f.readAsString()) as Map<String, dynamic>);
+      if (mounted && !l.isEmpty) setState(() => _lyrics = l);
+    } catch (_) {}
+  }
 
   @override
   void initState() {
@@ -45,6 +60,7 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
       await showCalibrationPromptIfNeeded(context, services);
       if (!mounted) return;
       final files = services.library.files(widget.song);
+      _loadLyrics(files.lyricsJson);
       final notes = await NoteList.load(files.notesJson);
       final refF0 = await F0Curve.load(files.refF0Json, confidenceThreshold: 0.5);
       final s = SingSession(services: services, song: widget.song, notes: notes, refF0: refF0);
@@ -139,7 +155,23 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
                                       alignment: Alignment.centerLeft,
                                       child: AspectRatio(
                                         aspectRatio: 16 / 9,
-                                        child: VideoPane(session: s, path: widget.song.hasVideo ? s.files.videoMp4 : null),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                              VideoPane(session: s, path: widget.song.hasVideo ? s.files.videoMp4 : null),
+                                              if (_lyrics != null && context.watch<AppSettings>().showLyrics)
+                                                Positioned(left: 0, right: 0, bottom: 0, child: LyricsOverlay(lyrics: _lyrics!, position: s.position)),
+                                              if (_lyrics != null)
+                                                Positioned(
+                                                  top: 4,
+                                                  right: 4,
+                                                  child: LyricsMenu(lyrics: _lyrics!, lyricsPath: s.files.lyricsJson, onChanged: () => setState(() {})),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
