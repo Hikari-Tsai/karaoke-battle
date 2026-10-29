@@ -362,6 +362,14 @@ class Sidecars {
     if (code != 0) throw StateError('ffmpeg exited with $code');
   }
 
+  /// Grabs one video frame at [atSeconds] as a JPEG, [width] px wide.
+  Future<void> extractFrame(String input, String outputJpg, {double atSeconds = 5, int width = 640}) async {
+    final ff = await resolve(SidecarKind.ffmpeg);
+    if (ff == null) throw StateError('ffmpeg not available');
+    final code = await run(ff, ['-y', '-hide_banner', '-nostdin', '-ss', atSeconds.toStringAsFixed(2), '-i', input, '-frames:v', '1', '-vf', 'scale=$width:-2', '-q:v', '3', outputJpg]);
+    if (code != 0) throw StateError('ffmpeg frame grab exited with $code');
+  }
+
   /// Produces a video-only mp4 (no audio) for the muted video player, re-muxing
   /// when the codec is already H.264, otherwise transcoding.
   Future<void> toVideoOnlyMp4(String input, String outputMp4, {Future<void>? cancel, void Function(String)? onLine}) async {

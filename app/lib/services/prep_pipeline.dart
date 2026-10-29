@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../engine/engine.dart';
@@ -165,6 +166,10 @@ class PrepPipeline extends ChangeNotifier {
     }
     checkCancel();
 
+    // 3b. thumbnail (never fatal)
+    await ensureThumbnail(song);
+    checkCancel();
+
     final rt = await backend.runtime();
 
     // 4. separate vocals ----------------------------------------------------------
@@ -229,6 +234,42 @@ class PrepPipeline extends ChangeNotifier {
     song.separationQuality = quality.name;
     await library.save(song);
     _emit(song, PrepStage.done, fraction: 1, message: '');
+  }
+
+  final Set<String> _thumbInFlight = {};
+
+  /// Makes `thumb.jpg` for the song when missing: the YouTube thumbnail when
+  /// there is one, else a frame grabbed from the video at 25 %. Safe to call
+  /// from the UI for songs prepared before thumbnails existed.
+  Future<void> ensureThumbnail(Song song) async {
+    final f = library.files(song);
+    if (await File(f.thumbJpg).exists()) return;
+    if (!_thumbInFlight.add(song.id)) return;
+    try {
+      var ok = false;
+      if (song.thumbnailUrl != null) ok = await _downloadThumbnail(song.thumbnailUrl!, f.thumbJpg);
+      final src = song.sourceFile;
+      if (!ok && song.hasVideo && src != null && await File(src).exists()) {
+        final at = ((song.durationSec ?? 0) * 0.25).clamp(1.0, 60.0);
+        await sidecars.extractFrame(src, f.thumbJpg, atSeconds: at);
+        ok = true;
+      }
+      if (ok) notifyListeners();
+    } catch (_) {
+    } finally {
+      _thumbInFlight.remove(song.id);
+    }
+  }
+
+  Future<bool> _downloadThumbnail(String url, String out) async {
+    try {
+      final resp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
+      if (resp.statusCode != 200 || resp.bodyBytes.length < 1024) return false;
+      await File(out).writeAsBytes(resp.bodyBytes, flush: true);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _await(EngineJob job, Future<void> cancel, void Function(JobProgress) onProgress) async {

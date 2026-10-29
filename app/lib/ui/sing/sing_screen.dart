@@ -1,6 +1,4 @@
 // The sing screen: video + HUD, scrolling piano roll, transport/record controls.
-import 'dart:math' as math;
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -121,16 +119,24 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
                                 decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(8)),
                                 child: SelectableText('${tr('sing.audioInitFailed')}: ${s.initError}', style: TextStyle(color: cs.onErrorContainer)),
                               ),
+                            // Video / visualiser at a fixed 16:9 (Full HD) aspect,
+                            // HUD beside it; the roll takes the rest.
                             SizedBox(
-                              height: math.max(180, MediaQuery.sizeOf(context).height * 0.3),
+                              height: (MediaQuery.sizeOf(context).height * 0.36).clamp(200.0, 460.0),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Expanded(
-                                    child: VideoPane(session: s, path: widget.song.hasVideo ? s.files.videoMp4 : null),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: AspectRatio(
+                                        aspectRatio: 16 / 9,
+                                        child: VideoPane(session: s, path: widget.song.hasVideo ? s.files.videoMp4 : null),
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
-                                  SizedBox(width: 260, child: _HudPanel(session: s)),
+                                  SizedBox(width: 280, child: _HudPanel(session: s)),
                                 ],
                               ),
                             ),

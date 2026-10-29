@@ -114,6 +114,10 @@ class _SongCardState extends State<_SongCard> {
   void initState() {
     super.initState();
     _loadTakes(); // the best score is shown on the card even when collapsed
+    if (widget.song.stage == PrepStage.done) {
+      // Songs prepared before thumbnails existed get one lazily.
+      context.read<AppServices>().pipeline.ensureThumbnail(widget.song);
+    }
   }
 
   Future<void> _loadTakes() async {
@@ -197,13 +201,7 @@ class _SongCardState extends State<_SongCard> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: SizedBox(
-                    width: 96,
-                    height: 54,
-                    child: song.thumbnailUrl != null
-                        ? Image.network(song.thumbnailUrl!, fit: BoxFit.cover, errorBuilder: (context, error, stack) => _thumbFallback(cs))
-                        : _thumbFallback(cs),
-                  ),
+                  child: SizedBox(width: 128, height: 72, child: _thumb(song, services.library.files(song).thumbJpg, cs)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -302,6 +300,19 @@ class _SongCardState extends State<_SongCard> {
         ),
       ),
     );
+  }
+
+  /// Local thumbnail (YouTube image or a grabbed frame) when the prep made
+  /// one, else the remote YouTube thumbnail, else a placeholder.
+  Widget _thumb(Song song, String thumbPath, ColorScheme cs) {
+    final file = File(thumbPath);
+    if (file.existsSync()) {
+      return Image.file(file, key: ValueKey(file.lastModifiedSync()), fit: BoxFit.cover, errorBuilder: (context, error, stack) => _thumbFallback(cs));
+    }
+    if (song.thumbnailUrl != null) {
+      return Image.network(song.thumbnailUrl!, fit: BoxFit.cover, errorBuilder: (context, error, stack) => _thumbFallback(cs));
+    }
+    return _thumbFallback(cs);
   }
 
   Widget _thumbFallback(ColorScheme cs) => Container(color: cs.surfaceContainerHighest, child: Icon(Icons.music_note, color: cs.onSurface.withValues(alpha: 0.4)));
