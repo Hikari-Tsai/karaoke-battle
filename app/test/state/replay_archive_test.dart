@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -23,10 +22,6 @@ void main() {
     expect(replayTextsFromBytes(Uint8List.fromList([0xef, 0xbb, 0xbf, ...json])).single, startsWith('{'));
   });
 
-  test('gzip is inflated', () {
-    expect(replayTextsFromBytes(Uint8List.fromList(gzip.encode(json))).single, '{"format":"karaoke-battle-replay"}');
-  });
-
   test('zip yields every .json entry and skips Finder metadata', () {
     final z = _zip({
       'a.json': json,
@@ -46,11 +41,6 @@ void main() {
     expect(() => replayTextsFromBytes(Uint8List.fromList([0xff, 0xfe, 0x00, 0x80])), _code('notJson'));
   });
 
-  test('gzip bombs stop at the size cap', () {
-    final bomb = gzip.encode(Uint8List(ReplayFile.maxTextBytes + 1024));
-    expect(() => replayTextsFromBytes(Uint8List.fromList(bomb)), _code('tooLarge'));
-  });
-
   test('a zip entry that lies about its size is rejected', () {
     final z = _zip({'big.json': Uint8List(ReplayFile.maxTextBytes + 1024)});
     // Patch the declared uncompressed size (local header and central directory) to 100 bytes.
@@ -67,15 +57,16 @@ void main() {
   test('audio files come along and are matched in the same folder', () {
     final z = _zip({
       'r1/a.json': json,
-      'r1/a vocal.m4a': [1, 2, 3],
+      'r1/a vocal.mp3': [1, 2, 3],
       'r2/b.json': json,
-      'r2/a vocal.m4a': [4, 5],
+      'r2/a vocal.mp3': [4, 5],
+      'r2/other.m4a': [7],
       'evil.exe': [9],
     });
     final b = unpackReplays(z);
     expect(b.replays.map((e) => e.folder), ['r1/', 'r2/']);
-    expect(b.voiceFor(b.replays[0], 'a vocal.m4a'), [1, 2, 3]);
-    expect(b.voiceFor(b.replays[1], 'a vocal.m4a'), [4, 5]);
-    expect(b.audio.keys, isNot(contains('evil.exe')));
+    expect(b.voiceFor(b.replays[0], 'a vocal.mp3'), [1, 2, 3]);
+    expect(b.voiceFor(b.replays[1], 'a vocal.mp3'), [4, 5]);
+    expect(b.audio.keys, unorderedEquals(['r1/a vocal.mp3', 'r2/a vocal.mp3']));
   });
 }

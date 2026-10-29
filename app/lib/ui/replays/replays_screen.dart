@@ -21,8 +21,9 @@ import '../results/replay_screen.dart';
 import '../widgets/brand.dart';
 import '../widgets/rank.dart';
 
-/// File types the import accepts (plain, gzip'd or zipped replay JSON).
-const kReplayExtensions = ['json', 'zip', 'gz'];
+/// File types the import accepts: the exported .zip, or an unzipped .json
+/// (its vocal .mp3 is read from beside it).
+const kReplayExtensions = ['zip', 'json'];
 
 /// Localized message for a failed import.
 String replayImportError(Object e) {

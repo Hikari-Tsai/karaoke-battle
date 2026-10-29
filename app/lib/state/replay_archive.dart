@@ -1,10 +1,9 @@
-// Unpacks replay files: a .zip (the app's export, or one made by "Compress"
-// in Finder / Explorer or a chat app) holding one or more replay .json files
-// and their vocal audio files, a gzip'd .json, or a plain .json. Everything
-// is decoded in memory with size caps (the input is untrusted); no entry is
-// written to disk, so paths inside an archive are only used as lookup keys.
+// Unpacks replay files: a .zip (the app's export, or several replays zipped
+// together) holding replay .json files and their vocal .mp3 files, or a
+// plain .json. Everything is decoded in memory with size caps (the input is
+// untrusted); no entry is written to disk, so paths inside an archive are
+// only used as lookup keys.
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -32,13 +31,11 @@ class ReplayBundle {
   Uint8List? voiceFor(ReplayEntry entry, String name) => audio['${entry.folder}$name'];
 }
 
-/// The replays inside [bytes]: the file itself when it is plain JSON, the
-/// decompressed text of a gzip file, or every `.json` entry of a zip (with
-/// the zip's audio files). Throws [ReplayFormatException] (`notJson`,
-/// `tooLarge`, `emptyArchive`).
+/// The replays inside [bytes]: the file itself when it is plain JSON, or
+/// every `.json` entry of a zip (with the zip's .mp3 files). Throws
+/// [ReplayFormatException] (`notJson`, `tooLarge`, `emptyArchive`).
 ReplayBundle unpackReplays(Uint8List bytes) {
   if (_isZip(bytes)) return _fromZip(bytes);
-  if (bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) return ReplayBundle([ReplayEntry(_text(_gunzip(bytes)))]);
   return ReplayBundle([ReplayEntry(_text(bytes))]);
 }
 
@@ -57,23 +54,6 @@ String _text(List<int> bytes) {
   } on FormatException {
     throw ReplayFormatException('notJson');
   }
-}
-
-List<int> _gunzip(Uint8List bytes) {
-  final out = _CappedSink(ReplayFile.maxTextBytes);
-  final conv = gzip.decoder.startChunkedConversion(out);
-  try {
-    const chunk = 64 * 1024;
-    for (var i = 0; i < bytes.length; i += chunk) {
-      conv.add(bytes.sublist(i, i + chunk > bytes.length ? bytes.length : i + chunk));
-    }
-    conv.close();
-  } on ReplayFormatException {
-    rethrow;
-  } catch (_) {
-    throw ReplayFormatException('notJson', 'gzip');
-  }
-  return out.bytes;
 }
 
 ReplayBundle _fromZip(Uint8List bytes) {
@@ -118,22 +98,6 @@ ReplayBundle _fromZip(Uint8List bytes) {
   }
   if (replays.isEmpty) throw ReplayFormatException('emptyArchive');
   return ReplayBundle(replays, audio);
-}
-
-class _CappedSink implements Sink<List<int>> {
-  _CappedSink(this.cap);
-  final int cap;
-  final _b = BytesBuilder(copy: false);
-  List<int> get bytes => _b.takeBytes();
-
-  @override
-  void add(List<int> data) {
-    if (_b.length + data.length > cap) throw ReplayFormatException('tooLarge', 'gzip');
-    _b.add(data);
-  }
-
-  @override
-  void close() {}
 }
 
 /// An in-memory output that refuses to grow past [cap] bytes.

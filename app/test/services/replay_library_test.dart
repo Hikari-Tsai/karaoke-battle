@@ -127,7 +127,7 @@ void main() {
     expect(replayBaseName('a/b:c?', 91.25), 'a b c 91.3');
     expect(replayBaseName('  ', null), 'replay');
     expect(replayBaseName('..Wait...', null), 'Wait.');
-    expect(ReplayFile.isVoiceFileName('${replayBaseName('..Wait...', 70)} vocal.m4a'), isTrue);
+    expect(ReplayFile.isVoiceFileName('${replayBaseName('..Wait...', 70)} vocal.mp3'), isTrue);
   });
 
   test('with ffmpeg: the zip carries the vocal, and import decodes it (zip or unzipped JSON)', () async {
@@ -152,20 +152,20 @@ void main() {
 
     final zip = await replays.export(song: song, files: files, take: take, player: 'P', baseName: '食虫植物 88.5');
     final bundle = unpackReplays(zip);
-    expect(bundle.audio.keys, ['食虫植物 88.5 vocal.m4a']);
+    expect(bundle.audio.keys, ['食虫植物 88.5 vocal.mp3']);
     final parsed = ReplayFile.parse(bundle.replays.single.text);
-    expect(parsed.voiceFile, '食虫植物 88.5 vocal.m4a');
+    expect(parsed.voiceFile, '食虫植物 88.5 vocal.mp3');
     expect(bundle.replays.single.text, isNot(contains('base64')));
 
     final fromZip = (await replays.import((File(p.join(tmp.path, 'out.zip'))..writeAsBytesSync(zip)).path)).single;
     expect(fromZip.hasVoice, isTrue);
     expect(File(fromZip.take.wav).lengthSync(), greaterThan(100000));
-    expect(File(p.join(fromZip.dir, 'vocal.m4a')).existsSync(), isTrue);
+    expect(File(p.join(fromZip.dir, 'vocal.mp3')).existsSync(), isTrue);
 
     // Unzipped: pick the JSON alone, the vocal is found next to it.
     final out = Directory(p.join(tmp.path, 'unzipped'))..createSync();
     File(p.join(out.path, '食虫植物 88.5.json')).writeAsStringSync(bundle.replays.single.text);
-    File(p.join(out.path, '食虫植物 88.5 vocal.m4a')).writeAsBytesSync(bundle.audio.values.single);
+    File(p.join(out.path, '食虫植物 88.5 vocal.mp3')).writeAsBytesSync(bundle.audio.values.single);
     final fromJson = (await replays.import(p.join(out.path, '食虫植物 88.5.json'))).single;
     expect(fromJson.hasVoice, isTrue);
   });

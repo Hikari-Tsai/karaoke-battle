@@ -4,11 +4,11 @@
 //                       meta.json     title, player, score, linked song
 //                       notes.json    the reference notes it was judged on
 //                       take_f0.json  score.json  take.json  take.wav.json
-//                       vocal.<ext>   the vocal file as received (when included)
+//                       vocal.mp3     the vocal as received (when included)
 //                       take.wav      the vocal decoded for playback
 //
-// Exports are a .zip: "<title> <score>.json" plus "<title> <score> vocal.m4a"
-// (the dry recording, AAC), which the JSON names in voice.file.
+// Exports are a .zip: "<title> <score>.json" plus "<title> <score> vocal.mp3"
+// (the dry recording), which the JSON names in voice.file.
 //
 // The take files use the same names as a song's takes/<id>/ folder, so the
 // replay screen plays an imported replay like one of the user's own takes.
@@ -166,9 +166,9 @@ class ReplayLibrary extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Imports a replay file: the app's .zip export (JSON + vocal), any zip
-  /// holding replay .json files (all valid ones are imported), a gzip'd
-  /// JSON, or a plain JSON (its vocal file is looked up next to it). Throws
+  /// Imports a replay file: the app's .zip export (JSON + vocal MP3), any zip
+  /// holding replay .json files with their MP3s (all valid ones are
+  /// imported), or a plain JSON (its MP3 is looked up next to it). Throws
   /// [ReplayFormatException] when nothing in the file is a valid replay.
   Future<List<ImportedReplay>> import(String path) async {
     final f = File(path);
@@ -212,13 +212,7 @@ class ReplayLibrary extends ChangeNotifier {
       if (r.voiceFile != null) {
         // voiceFile is a validated bare name, so it is only a lookup key here.
         final data = await findVoice(r.voiceFile!);
-        if (data != null) hasVoice = await _decodeVoice(data, p.extension(r.voiceFile!).toLowerCase(), dir);
-      } else if (r.hasVoice) {
-        try {
-          hasVoice = await _decodeVoice(base64.decode(r.voiceAacBase64!.replaceAll(RegExp(r'\s'), '')), '.m4a', dir);
-        } on FormatException {
-          hasVoice = false;
-        }
+        if (data != null) hasVoice = await _decodeVoice(data, dir);
       }
       final item = ImportedReplay(
         id: id,
@@ -245,9 +239,9 @@ class ReplayLibrary extends ChangeNotifier {
     }
   }
 
-  /// Keeps the received vocal as vocal + extension and decodes it to take.wav.
-  Future<bool> _decodeVoice(Uint8List data, String ext, String dir) async {
-    final vocal = p.join(dir, 'vocal$ext');
+  /// Keeps the received vocal as vocal.mp3 and decodes it to take.wav.
+  Future<bool> _decodeVoice(Uint8List data, String dir) async {
+    final vocal = p.join(dir, 'vocal.mp3');
     await File(vocal).writeAsBytes(data);
     final ff = await sidecars.resolve(SidecarKind.ffmpeg);
     if (ff == null) return false;
@@ -263,7 +257,7 @@ class ReplayLibrary extends ChangeNotifier {
 
   /// Builds the export .zip for one of the user's takes:
   /// `<baseName>.json` and, when the take has a recording,
-  /// `<baseName> vocal.m4a` (the dry a cappella voice, AAC 128 kbps mono).
+  /// `<baseName> vocal.mp3` (the dry a cappella voice, MP3 128 kbps mono).
   /// [baseName] must already be a safe file name (see replayBaseName).
   Future<Uint8List> export({
     required Song song,
@@ -289,14 +283,14 @@ class ReplayLibrary extends ChangeNotifier {
     if (await File(take.wav).exists()) {
       final ff = await sidecars.resolve(SidecarKind.ffmpeg);
       if (ff == null) throw StateError('ffmpeg not available');
-      final tmp = p.join(paths.cache, 'export_${take.id}.m4a');
+      final tmp = p.join(paths.cache, 'export_${take.id}.mp3');
       await Directory(paths.cache).create(recursive: true);
-      final code = await sidecars.run(ff, ['-y', '-hide_banner', '-nostdin', '-i', take.wav, '-ac', '1', '-c:a', 'aac', '-b:a', '128k', tmp]);
+      final code = await sidecars.run(ff, ['-y', '-hide_banner', '-nostdin', '-i', take.wav, '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '128k', tmp]);
       if (code != 0) throw StateError('ffmpeg voice export exited with $code');
       vocal = await File(tmp).readAsBytes();
       await File(tmp).delete();
-      vocalName = '$baseName vocal.m4a';
-      if (!ReplayFile.isVoiceFileName(vocalName)) vocalName = 'vocal.m4a';
+      vocalName = '$baseName vocal.mp3';
+      if (!ReplayFile.isVoiceFileName(vocalName)) vocalName = 'vocal.mp3';
     }
     final file = ReplayFile(
       player: player,
@@ -320,7 +314,7 @@ class ReplayLibrary extends ChangeNotifier {
       voiceFile: vocalName,
     );
     final zip = Archive()..addFile(ArchiveFile.string('$baseName.json', file.encode()));
-    // AAC is already compressed: store it as is.
+    // MP3 is already compressed: store it as is.
     if (vocal != null) zip.addFile(ArchiveFile.noCompress(vocalName!, vocal.length, vocal));
     return ZipEncoder().encodeBytes(zip);
   }

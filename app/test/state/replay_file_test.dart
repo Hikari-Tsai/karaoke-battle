@@ -22,12 +22,12 @@ ReplayFile sample({String? voice}) => ReplayFile(
       },
       takeF0: {'hop': 0.016, 'sample_rate': 16000, 'times': [0.0, 0.016], 'f0': [0.0, 220.0], 'confidence': [0.1, 0.9]},
       score: {'total': 93.4, 'rank': 'SS', 'sub_scores': {}},
-      voiceAacBase64: voice,
+      voiceFile: voice,
     );
 
 void main() {
   test('round trip keeps every field', () {
-    final r = ReplayFile.parse(sample(voice: 'AAAA').encode());
+    final r = ReplayFile.parse(sample(voice: '食虫植物 93.4 vocal.mp3').encode());
     expect(r.player, 'Hikari');
     expect(r.song.youtubeId, 'trrLxXbRjeM');
     expect(r.song.title, '食虫植物');
@@ -40,6 +40,7 @@ void main() {
     expect(r.total, 93.4);
     expect(r.rank, 'SS');
     expect(r.hasVoice, isTrue);
+    expect(r.voiceFile, '食虫植物 93.4 vocal.mp3');
   });
 
   test('rejects non-JSON, other formats and newer versions', () {
@@ -47,6 +48,8 @@ void main() {
     expect(() => ReplayFile.parse('{"format":"x"}'), throwsA(isA<ReplayFormatException>().having((e) => e.code, 'code', 'wrongFormat')));
     final newer = sample().toJson()..['version'] = 99;
     expect(() => ReplayFile.parse(jsonEncode(newer)), throwsA(isA<ReplayFormatException>().having((e) => e.code, 'code', 'newerVersion')));
+    final older = sample().toJson()..['version'] = 1;
+    expect(() => ReplayFile.parse(jsonEncode(older)), throwsA(isA<ReplayFormatException>().having((e) => e.code, 'code', 'oldVersion')));
   });
 
   test('drops anything that is not a plain YouTube id and ignores paths/urls', () {
@@ -81,13 +84,13 @@ void main() {
     expect(r.timeOffset, -30);
   });
 
-  test('voice as a separate file: round trip and only bare audio names', () {
-    final j = sample().toJson()..['voice'] = {'codec': 'aac', 'container': 'm4a', 'file': '食虫植物 93.4 vocal.m4a'};
+  test('voice file: round trip and only bare .mp3 names', () {
+    final j = sample().toJson()..['voice'] = {'codec': 'mp3', 'file': '食虫植物 93.4 vocal.mp3'};
     final r = ReplayFile.parse(jsonEncode(j));
-    expect(r.voiceFile, '食虫植物 93.4 vocal.m4a');
+    expect(r.voiceFile, '食虫植物 93.4 vocal.mp3');
     expect(r.hasVoice, isTrue);
-    expect((ReplayFile.parse(r.encode()).toJson()['voice'] as Map)['file'], '食虫植物 93.4 vocal.m4a');
-    for (final bad in ['../x.m4a', 'a/b.m4a', r'a\b.m4a', '.hidden.m4a', 'x.exe', 'C:x.m4a', '']) {
+    expect((ReplayFile.parse(r.encode()).toJson()['voice'] as Map)['file'], '食虫植物 93.4 vocal.mp3');
+    for (final bad in ['../x.mp3', 'a/b.mp3', r'a\b.mp3', '.hidden.mp3', 'x.exe', 'C:x.mp3', 'x.m4a', '']) {
       final b = sample().toJson()..['voice'] = {'file': bad};
       expect(() => ReplayFile.parse(jsonEncode(b)), throwsA(isA<ReplayFormatException>()), reason: bad);
     }
