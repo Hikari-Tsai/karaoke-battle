@@ -16,5 +16,8 @@ preset table and the parameter labels are left out. Changes for Karaoke Battle:
   default in `DSP/Utils.h`, plus an `M_PI` fallback for MSVC.
 * `FormatParameter` (MSVC-only `strcpy_s`) and the `ParameterLabel` table
   were removed from `Parameters.h`.
+* `DSP/Utils.h` includes `<cmath>` and `<cstdlib>`, and `std::sinf` /
+  `std::sqrtf` / `std::expf` are written as the standard float overloads
+  `std::sin` / `std::sqrt` / `std::exp`, so the code builds with MSVC.
 
 The "vocal hall" program the app uses lives in `engine/src/dsp/hall_reverb.cpp`.

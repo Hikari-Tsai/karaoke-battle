@@ -62,11 +62,9 @@ set(KE_SOURCES
 
 add_library(karaoke_engine SHARED ${KE_SOURCES})
 target_compile_definitions(karaoke_engine PRIVATE KE_BUILD_SHARED=1)
-if(NOT MSVC)
-  # Vendored Cloud Seed sources: upstream warnings only.
-  set_source_files_properties(third_party/cloudseed/DSP/Biquad.cpp third_party/cloudseed/DSP/RandomBuffer.cpp
-    PROPERTIES COMPILE_OPTIONS "-w")
-endif()
+# Vendored Cloud Seed sources: upstream warnings only.
+set_source_files_properties(third_party/cloudseed/DSP/Biquad.cpp third_party/cloudseed/DSP/RandomBuffer.cpp
+  PROPERTIES COMPILE_OPTIONS "$<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w>")
 target_include_directories(karaoke_engine
   PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src

@@ -25,6 +25,9 @@ THE SOFTWARE.
 #define _USE_MATH_DEFINES 1
 #include <math.h>
 #include <stdint.h>
+// Karaoke Battle: <cmath>/<cstdlib> so std::fmod, std::rand etc. resolve on MSVC.
+#include <cmath>
+#include <cstdlib>
 
 // Karaoke Battle: largest block processed at once (was the BUFFER_SIZE build define).
 #ifndef CLOUDSEED_BUFFER_SIZE

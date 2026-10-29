@@ -164,7 +164,7 @@ namespace Cloudseed
 			if (modPhase > 1)
 				modPhase = std::fmod(modPhase, 1.0);
 
-			auto mod = std::sinf(modPhase * 2 * M_PI);
+			auto mod = std::sin(modPhase * 2 * M_PI);
 
 			if (ModAmount >= SampleDelay) // don't modulate to negative value
 				ModAmount = SampleDelay - 1;
