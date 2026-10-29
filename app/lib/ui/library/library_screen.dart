@@ -207,7 +207,7 @@ class _SongCardState extends State<_SongCard> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                FilledButton.icon(onPressed: ready ? _sing : null, icon: const Icon(Icons.mic), label: Text(tr('library.sing'))),
+                FilledButton.icon(onPressed: ready ? _sing : null, icon: const Icon(Icons.play_circle_outline), label: Text(tr('library.sing'))),
                 const SizedBox(width: 4),
                 if (inProgress)
                   IconButton(tooltip: tr('library.cancelPrep'), onPressed: () => services.pipeline.cancel(song.id), icon: const Icon(Icons.stop_circle_outlined))

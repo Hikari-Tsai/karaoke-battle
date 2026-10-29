@@ -151,7 +151,7 @@ const Map<String, (String, String, String)> _table = {
   ),
   'library.add': ('新增歌曲', 'Add song', '曲を追加'),
   'library.dropHere': ('放開以匯入檔案', 'Drop to import', 'ドロップして読み込む'),
-  'library.sing': ('開始演唱', 'Sing', '歌う'),
+  'library.sing': ('預覽', 'Preview', 'プレビュー'),
   'library.reprocess': ('重新處理', 'Reprocess', '再処理'),
   'library.showFolder': ('顯示資料夾', 'Show folder', 'フォルダを表示'),
   'library.takes': ('演唱紀錄', 'Takes', '歌唱履歴'),
