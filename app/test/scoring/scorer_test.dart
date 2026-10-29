@@ -636,4 +636,34 @@ void main() {
       expect(r.subScores.pitch.value, lessThan(0.6));
     });
   });
+
+  group('(f) noise gate', () {
+    test('frames quieter than the gate become unvoiced', () {
+      final times = List<double>.generate(10, (i) => i * 0.016);
+      final take = F0Track(times: times, f0: List.filled(10, 220.0), confidence: List.filled(10, 1.0));
+      final energy = EnergyCurve(times: times, rmsDb: [for (var i = 0; i < 10; i++) i < 5 ? -55.0 : -20.0]);
+      final gated = applyNoiseGate(take, energy, -40);
+      expect(gated.f0.sublist(0, 5), everyElement(0));
+      expect(gated.f0.sublist(5), everyElement(220.0));
+      expect(gated.confidence.sublist(0, 5), everyElement(0));
+    });
+
+    test('room noise with a pitch is ignored by scoring once gated', () {
+      final notes = makeMelody(seed: 5, duration: 20);
+      final end = songEnd(notes);
+      final ref = synthesizeTrack(end, (t) => midiOfNotes(notes, t));
+      // The take sings correctly, but during rests a quiet hum (-50 dB) at a
+      // fixed pitch is picked up; without the gate those frames are false alarms.
+      final take = synthesizeTrack(end, (t) => midiOfNotes(notes, t) ?? 50.0);
+      final energy = EnergyCurve(
+        times: take.times,
+        rmsDb: [for (final t in take.times) midiOfNotes(notes, t) == null ? -50.0 : -18.0],
+      );
+      final noisy = Scorer.score(ScoringInput(referenceNotes: ReferenceNotes(notes: notes), referenceF0: ref, takeF0: take));
+      final gated = Scorer.score(ScoringInput(referenceNotes: ReferenceNotes(notes: notes), referenceF0: ref, takeF0: applyNoiseGate(take, energy, -40)));
+      expect(noisy.frameMetrics.voicingFalseAlarm, greaterThan(0.5));
+      expect(gated.frameMetrics.voicingFalseAlarm, closeTo(0, 1e-6));
+      expect(gated.total, greaterThanOrEqualTo(noisy.total));
+    });
+  });
 }

@@ -111,6 +111,7 @@ class ScoringBridge {
     double takeTimeOffset = 0,
     String? takeWavPath,
     String? referenceWavPath,
+    double? noiseGateDb,
   }) async {
     final notesText = await File(notesJsonPath).readAsString();
     final refText = await File(refF0JsonPath).exists() ? await File(refF0JsonPath).readAsString() : null;
@@ -123,7 +124,7 @@ class ScoringBridge {
       final notes = ReferenceNotes.fromJson(jsonDecode(notesText) as Map<String, dynamic>);
       final refF0 = refText == null ? null : F0Track.fromJson(jsonDecode(refText) as Map<String, dynamic>);
       final takeRaw = F0Track.fromJson(jsonDecode(takeText) as Map<String, dynamic>);
-      final takeF0 = takeTimeOffset == 0
+      final shifted = takeTimeOffset == 0
           ? takeRaw
           : F0Track(
               times: takeRaw.times.map((t) => t + takeTimeOffset).toList(growable: false),
@@ -132,6 +133,11 @@ class ScoringBridge {
               hop: takeRaw.hop,
               sampleRate: takeRaw.sampleRate,
             );
+      // The energy curve is already in track time (same offset), so the gate
+      // compares each take frame with the loudness recorded at that moment.
+      final takeF0 = (noiseGateDb != null && takeEnergyJson != null)
+          ? applyNoiseGate(shifted, EnergyCurve.fromJson(takeEnergyJson), noiseGateDb)
+          : shifted;
       final input = ScoringInput(
         referenceNotes: notes,
         referenceF0: refF0,
@@ -143,6 +149,7 @@ class ScoringBridge {
       final r = Scorer.score(input);
       final j = r.toJson();
       j['octave_invariant'] = octaveInvariant;
+      if (noiseGateDb != null) j['noise_gate_db'] = noiseGateDb;
       return j;
     });
     await File(scoreJsonPath).writeAsString(jsonEncode(result));

@@ -75,6 +75,31 @@ List<double> f0TrackToGrid(
   return resampleNearest(track.times, semis, length: len, hop: hop);
 }
 
+/// Noise gate: returns [take] with every frame whose loudness in [energy]
+/// (nearest energy frame in time) is below [gateDb] set to unvoiced
+/// (f0 = 0, confidence = 0). Frames outside the energy curve are kept.
+F0Track applyNoiseGate(F0Track take, EnergyCurve energy, double gateDb) {
+  final n = energy.length;
+  if (n == 0) return take;
+  final et = energy.times;
+  final ed = energy.rmsDb;
+  final f0 = List<double>.of(take.f0);
+  final conf = take.confidence.isEmpty ? <double>[] : List<double>.of(take.confidence);
+  var j = 0;
+  for (var i = 0; i < f0.length && i < take.times.length; i++) {
+    final t = take.times[i];
+    if (t < et[0] - 0.05 || t > et[n - 1] + 0.05) continue;
+    while (j + 1 < n && (et[j + 1] - t).abs() <= (et[j] - t).abs()) {
+      j++;
+    }
+    if (ed[j] < gateDb) {
+      f0[i] = 0;
+      if (i < conf.length) conf[i] = 0;
+    }
+  }
+  return F0Track(times: take.times, f0: f0, confidence: conf, hop: take.hop, sampleRate: take.sampleRate);
+}
+
 /// Samples note pitches on the uniform grid (frame `g` is voiced when
 /// `g * hop` lies in `[onset, offset)` of a note).
 List<double> notesToGrid(

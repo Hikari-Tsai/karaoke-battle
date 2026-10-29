@@ -205,9 +205,12 @@ class SingSession extends ChangeNotifier {
   void _drainFrames(LiveAudio l, double pos) {
     final frames = l.readFrames();
     if (frames.isEmpty) return;
+    final settings = services.settings;
+    final gateOn = settings.noiseGateEnabled;
+    final gateDb = settings.noiseGateDb;
     for (final f in frames) {
       if (f.source != _wantedSource) continue;
-      final voiced = f.f0 > 0 && (f.source == 0 || f.confidence >= 0.5);
+      final voiced = f.f0 > 0 && (f.source == 0 || f.confidence >= 0.5) && (!gateOn || f.rmsDb >= gateDb);
       if (!voiced) {
         _pendingHud = SingHud(noteName: '—', cents: double.nan, voiced: false, refNoteName: _pendingHud.refNoteName);
         _hudDirty = true;
@@ -319,6 +322,7 @@ class SingSession extends ChangeNotifier {
       takeTimeOffset: await takeTimeOffset(take),
       takeWavPath: take.wav,
       referenceWavPath: files.vocalsWav,
+      noiseGateDb: services.settings.noiseGateEnabled ? services.settings.noiseGateDb : null,
     );
     processing.value = null;
     return result;

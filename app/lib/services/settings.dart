@@ -93,6 +93,14 @@ class AppSettings extends ChangeNotifier {
   bool get octaveInvariant => _get('octave_invariant', true);
   Future<void> setOctaveInvariant(bool v) => _set('octave_invariant', v);
 
+  /// Microphone noise gate in dBFS: pitch frames quieter than this are treated
+  /// as silence, live and when scoring. [noiseGateOff] (the minimum) disables it.
+  static const double noiseGateOff = -60;
+  static const double noiseGateMax = -20;
+  double get noiseGateDb => (_prefs.getDouble('noise_gate_db') ?? noiseGateOff).clamp(noiseGateOff, noiseGateMax);
+  Future<void> setNoiseGateDb(double db) => _set('noise_gate_db', db.clamp(noiseGateOff, noiseGateMax).toDouble());
+  bool get noiseGateEnabled => noiseGateDb > noiseGateOff;
+
   int get overlayPort => _get('overlay_port', 0);
   Future<void> setOverlayPort(int port) => _set('overlay_port', port);
 }

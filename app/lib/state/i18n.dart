@@ -213,6 +213,13 @@ const Map<String, (String, String, String)> _table = {
   'sing.stop': ('停止並評分', 'Stop and score', '停止して採点'),
   'sing.recording': ('錄製中', 'Recording', '録音中'),
   'sing.mic': ('麥克風', 'Mic', 'マイク'),
+  'sing.gate': ('噪音門檻', 'Noise gate', 'ノイズゲート'),
+  'sing.gateOff': ('關閉', 'Off', 'オフ'),
+  'sing.gateHint': (
+    '低於門檻（灰色區）的聲音不偵測音高、也不計分。不唱時把門檻拉到環境噪音的音量條之上即可；設定會保存並套用到所有歌曲。',
+    'Sound below the gate (grey zone) is ignored for pitch and scoring. While silent, drag the gate just above the room noise level; it is saved and used for every song.',
+    'ゲート未満（グレーの範囲）の音は音程検出と採点で無視されます。歌っていないときの環境ノイズのレベルより少し上にゲートを合わせてください。設定は保存され、すべての曲に適用されます。',
+  ),
   'sing.note': ('目前音', 'Note', '現在の音'),
   'sing.refNote': ('參考音', 'Ref', '基準音'),
   'sing.cents': ('偏差', 'Cents', 'ずれ'),
@@ -311,6 +318,7 @@ const Map<String, (String, String, String)> _table = {
   'settings.separation.fast': ('快速（單模型）', 'Fast (single model)', '高速（1 モデル）'),
   'settings.separation.best': ('最佳（雙模型）', 'Best (two models)', '最高品質（2 モデル）'),
   'settings.defaultLanguage': ('預設歌詞語言', 'Default lyrics language', '既定の歌詞言語'),
+  'settings.noiseGate': ('麥克風噪音門檻', 'Microphone noise gate', 'マイクのノイズゲート'),
   'settings.octaveInvariant': ('允許八度音演唱', 'Allow singing in another octave', 'オクターブ違いの歌唱を許可'),
   'settings.octaveInvariantHint': (
     '唱高八度或低八度都算正確，並自動偵測整首移調',

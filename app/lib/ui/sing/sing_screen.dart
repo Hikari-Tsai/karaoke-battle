@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
+import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
@@ -254,15 +255,7 @@ class _HudPanel extends StatelessWidget {
                 const Spacer(),
                 Text(tr('sing.mic'), style: theme.textTheme.labelSmall),
                 const SizedBox(height: 4),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: level,
-                    minHeight: 10,
-                    color: level > 0.95 ? cs.error : cs.primary,
-                    backgroundColor: cs.surfaceContainerHighest,
-                  ),
-                ),
+                _GatedLevelMeter(level: level, levelDb: hud.levelDb),
                 const SizedBox(height: 2),
                 Text('${hud.levelDb.toStringAsFixed(0)} dBFS', style: theme.textTheme.labelSmall),
                 const SizedBox(height: 8),
@@ -272,6 +265,97 @@ class _HudPanel extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Microphone level bar with a draggable noise-gate threshold. The gate is a
+/// global setting: it is saved when changed and used for every song.
+class _GatedLevelMeter extends StatelessWidget {
+  const _GatedLevelMeter({required this.level, required this.levelDb});
+  final double level; // 0..1 over -60..0 dBFS
+  final double levelDb;
+
+  static double _frac(double db) => ((db + 60) / 60).clamp(0.0, 1.0);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final settings = context.watch<AppSettings>();
+    final gateOn = settings.noiseGateEnabled;
+    final gateDb = settings.noiseGateDb;
+    final gateFrac = _frac(gateDb);
+    final open = !gateOn || levelDb >= gateDb;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 14,
+          child: LayoutBuilder(builder: (context, c) {
+            final w = c.maxWidth;
+            return Stack(children: [
+              Positioned.fill(child: Container(decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(4)))),
+              if (gateOn)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: w * gateFrac,
+                  child: Container(decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.12), borderRadius: const BorderRadius.horizontal(left: Radius.circular(4)))),
+                ),
+              Positioned(
+                left: 0,
+                top: 3,
+                bottom: 3,
+                width: w * level,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: level > 0.95 ? cs.error : (open ? cs.primary : cs.onSurface.withValues(alpha: 0.35)),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              if (gateOn)
+                Positioned(
+                  left: (w * gateFrac - 1).clamp(0.0, w - 2),
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  child: Container(color: const Color(0xFFFFC107)),
+                ),
+            ]);
+          }),
+        ),
+        Row(children: [
+          Text(tr('sing.gate'), style: theme.textTheme.labelSmall),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(trackHeight: 2, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), overlayShape: SliderComponentShape.noOverlay),
+              child: Slider(
+                min: AppSettings.noiseGateOff,
+                max: AppSettings.noiseGateMax,
+                divisions: 40,
+                value: gateDb,
+                activeColor: const Color(0xFFFFC107),
+                onChanged: settings.setNoiseGateDb,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 44,
+            child: Text(gateOn ? '${gateDb.round()} dB' : tr('sing.gateOff'), style: theme.textTheme.labelSmall, textAlign: TextAlign.end),
+          ),
+        ]),
+        Tooltip(
+          message: tr('sing.gateHint'),
+          child: Row(children: [
+            Icon(Icons.info_outline, size: 12, color: cs.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Expanded(child: Text(tr('sing.gateHint'), style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ]),
+        ),
+      ],
     );
   }
 }

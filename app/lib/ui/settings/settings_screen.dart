@@ -401,6 +401,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   LanguageDropdown(value: settings.defaultLanguage, onChanged: settings.setDefaultLanguage),
                 ],
               ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(tr('settings.noiseGate')),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(tr('sing.gateHint')),
+                ),
+                trailing: SizedBox(
+                  width: 300,
+                  child: Row(children: [
+                    Expanded(
+                      child: Slider(
+                        min: AppSettings.noiseGateOff,
+                        max: AppSettings.noiseGateMax,
+                        divisions: 40,
+                        value: settings.noiseGateDb,
+                        onChanged: settings.setNoiseGateDb,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 64,
+                      child: Text(settings.noiseGateEnabled ? '${settings.noiseGateDb.round()} dB' : tr('sing.gateOff'), textAlign: TextAlign.end),
+                    ),
+                  ]),
+                ),
+              ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(tr('settings.octaveInvariant')),
