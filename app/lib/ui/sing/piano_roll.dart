@@ -97,6 +97,8 @@ class PianoRollPainter extends CustomPainter {
     this.pitchShift = 0,
     this.totalDuration,
     this.gutter = 46,
+    this.selectedNote,
+    this.revision = 0,
   }) : super(repaint: position);
 
   final NoteList notes;
@@ -107,6 +109,12 @@ class PianoRollPainter extends CustomPainter {
   final ValueListenable<double>? position;
   final double windowSeconds;
   final double playheadFraction;
+
+  /// Note drawn with a selection highlight (note editing).
+  final int? selectedNote;
+
+  /// Bumped when data changed in place (e.g. the masked reference curve).
+  final int revision;
   final double pitchShift;
   /// When set, the painter is static and shows 0..totalDuration.
   final double? totalDuration;
@@ -222,6 +230,21 @@ class PianoRollPainter extends CustomPainter {
       }
       canvas.drawRRect(rect, paint);
       if (outline != null) canvas.drawRRect(rect, outline);
+      if (i == selectedNote) {
+        canvas.drawRRect(
+          rect.inflate(3),
+          Paint()
+            ..color = const Color(0xFFFFD60A).withValues(alpha: 0.35)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        );
+        canvas.drawRRect(
+          rect.inflate(1.5),
+          Paint()
+            ..color = const Color(0xFFFFD60A)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.5,
+        );
+      }
     }
 
     // Reference F0 (faint).
@@ -335,6 +358,8 @@ class PianoRollPainter extends CustomPainter {
       old.pitchShift != pitchShift ||
       old.totalDuration != totalDuration ||
       old.position != position ||
+      old.selectedNote != selectedNote ||
+      old.revision != revision ||
       old.colors != colors;
 }
 
@@ -407,6 +432,52 @@ double? zoomTargetCenter(NoteList notes, double pitchShift, double t0, double t1
   return (min: lo, max: lo + span);
 }
 
+/// The note under [point] in a live roll of [size] (same geometry as
+/// [PianoRollPainter]), or null. A few pixels of slack make thin notes easy
+/// to hit; when several match, the one whose centre is closest wins.
+int? hitTestNote(
+  NoteList notes,
+  Size size,
+  Offset point, {
+  required double minMidi,
+  required double maxMidi,
+  required double position,
+  required double windowSeconds,
+  double pitchShift = 0,
+  double playheadFraction = 0.3,
+  double gutter = 46,
+}) {
+  final h = size.height, plotW = size.width - gutter;
+  if (point.dx < gutter || plotW <= 0 || h <= 0) return null;
+  final rows = (maxMidi - minMidi) + 1;
+  final rowH = h / rows;
+  final t0 = position - windowSeconds * playheadFraction;
+  final t1 = t0 + windowSeconds;
+  double x(double t) => gutter + (t - t0) / windowSeconds * plotW;
+  double y(double midi) => h - ((midi - minMidi + 0.5) / rows) * h;
+  final noteH = math.max(3.0, rowH * 0.78);
+  int? best;
+  var bestD = double.infinity;
+  for (var i = notes.firstVisible(t0); i < notes.length; i++) {
+    final on = notes.onset[i];
+    if (on > t1) break;
+    final off = notes.offset[i];
+    if (off < t0) continue;
+    final yy = y(notes.pitch[i] + pitchShift);
+    final r = Rect.fromLTRB(x(on) - 2, yy - noteH / 2 - 4, math.max(x(off), x(on) + 2) + 2, yy + noteH / 2 + 4);
+    if (!r.contains(point)) continue;
+    final d = (point - r.center).distanceSquared;
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/// Height of one semitone row in a roll of height [h].
+double rollRowHeight(double h, double minMidi, double maxMidi) => h / ((maxMidi - minMidi) + 1);
+
 /// Convenience widget: clips, isolates repaints, and sizes the painter.
 class PianoRollView extends StatelessWidget {
   const PianoRollView({
@@ -421,6 +492,8 @@ class PianoRollView extends StatelessWidget {
     this.pitchShift = 0,
     this.totalDuration,
     this.overlay = false,
+    this.selectedNote,
+    this.revision = 0,
   });
 
   final NoteList notes;
@@ -434,6 +507,9 @@ class PianoRollView extends StatelessWidget {
 
   /// Drawn over a video: translucent background (see [PianoRollColors.overlay]).
   final bool overlay;
+
+  final int? selectedNote;
+  final int revision;
 
   @override
   Widget build(BuildContext context) {
@@ -452,6 +528,8 @@ class PianoRollView extends StatelessWidget {
             windowSeconds: windowSeconds,
             pitchShift: pitchShift,
             totalDuration: totalDuration,
+            selectedNote: selectedNote,
+            revision: revision,
           ),
           child: const SizedBox.expand(),
         ),

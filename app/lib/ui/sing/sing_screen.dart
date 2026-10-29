@@ -1,11 +1,13 @@
 // The sing screen: video + HUD, scrolling piano roll, transport/record controls.
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/settings.dart';
@@ -13,6 +15,7 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
+import '../../state/note_edits.dart';
 import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
 import '../results/results_screen.dart';
@@ -39,6 +42,191 @@ class _SingScreenState extends State<SingScreen>
 
   /// Width / height of the song's video (16:9 until the player reports it).
   double _videoAspect = 16 / 9;
+
+  // ---- note editing ----
+  bool _editing = false;
+  int? _selected;
+  NoteEditor? _editor;
+  bool _hasEdits = false;
+  int _revision = 0;
+
+  /// The reference curve as loaded, before deleted-note spans are masked.
+  Float64List? _refOrig;
+  NoteList? _dragBase; // notes when a drag started (preview is not undoable)
+
+  final _keys = FocusNode(debugLabel: 'sing-keys');
+
+  NoteEditor _ensureEditor() {
+    final s = _session!;
+    return _editor ??= NoteEditor(s.notes, _loadedSpans);
+  }
+
+  List<TimeSpan> _loadedSpans = const [];
+
+  void _applyMask(List<TimeSpan> spans) {
+    final s = _session!;
+    final orig = _refOrig;
+    if (orig != null) s.refF0.midi.setAll(0, orig);
+    maskCurve(s.refF0, spans);
+    _revision++;
+  }
+
+  Future<void> _commit() async {
+    final s = _session!;
+    final e = _editor!;
+    s.replaceNotes(e.notes);
+    _applyMask(e.excluded);
+    final path = s.files.notesJson;
+    await saveNoteEdits(path, e.notes, e.excluded);
+    _hasEdits = true;
+    if (mounted) setState(() {});
+  }
+
+  void _toggleEdit() {
+    final s = _session;
+    if (s == null || s.recording) return;
+    setState(() {
+      _editing = !_editing;
+      _selected = null;
+      if (_editing) _ensureEditor();
+    });
+  }
+
+  void _nudge(int semis) {
+    final i = _selected;
+    if (i == null) return;
+    final e = _ensureEditor();
+    e.setPitch(i, e.notes.pitch[i] + semis);
+    _commit();
+  }
+
+  void _deleteSelected() {
+    final i = _selected;
+    if (i == null) return;
+    _ensureEditor().delete(i);
+    _selected = null;
+    _commit();
+  }
+
+  void _undo() {
+    final e = _editor;
+    if (e == null || !e.undo()) return;
+    _selected = null;
+    _commit();
+  }
+
+  Future<void> _restoreOriginal() async {
+    final s = _session!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(tr('edit.restoreTitle')),
+        content: Text(tr('edit.restoreBody')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(tr('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(tr('edit.restore')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await restoreOriginalNotes(s.files.notesJson);
+    final notes = await NoteList.load(s.files.notesJson);
+    _editor = NoteEditor(notes);
+    _loadedSpans = const [];
+    _selected = null;
+    _hasEdits = false;
+    s.replaceNotes(notes);
+    _applyMask(const []);
+    if (mounted) setState(() {});
+  }
+
+  void _onSelectNote(int? i) => setState(() => _selected = i);
+
+  /// Live preview while dragging a note vertically; committed on release.
+  void _onDragNote(int i, int semis, bool done) {
+    final s = _session!;
+    final e = _ensureEditor();
+    _dragBase ??= e.notes;
+    final base = _dragBase!;
+    if (i >= base.length) return;
+    final pitch = base.pitch[i] + semis;
+    if (done) {
+      _dragBase = null;
+      s.replaceNotes(e.notes); // drop the preview
+      if (semis != 0) {
+        e.setPitch(i, pitch);
+        _commit();
+      }
+      return;
+    }
+    s.replaceNotes(noteWithPitch(base, i, pitch));
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent ev) {
+    if (ev is! KeyDownEvent && ev is! KeyRepeatEvent)
+      return KeyEventResult.ignored;
+    final s = _session;
+    if (s == null || !s.ready || _busy) return KeyEventResult.ignored;
+    final k = ev.logicalKey;
+    final hw = HardwareKeyboard.instance;
+    final cmd = hw.isMetaPressed || hw.isControlPressed;
+    // Play / pause (space, K like YouTube).
+    if (k == LogicalKeyboardKey.space || k == LogicalKeyboardKey.keyK) {
+      if (ev is KeyDownEvent) s.togglePlay();
+      return KeyEventResult.handled;
+    }
+    // Seek: arrows 5 s, J / L 10 s (not while recording).
+    final seek = switch (k) {
+      LogicalKeyboardKey.arrowLeft => -5.0,
+      LogicalKeyboardKey.arrowRight => 5.0,
+      LogicalKeyboardKey.keyJ => -10.0,
+      LogicalKeyboardKey.keyL => 10.0,
+      _ => 0.0,
+    };
+    if (seek != 0) {
+      if (!s.recording)
+        s.seek(
+          (s.position.value + seek).clamp(
+            0.0,
+            math.max(0.0, s.duration - 0.05),
+          ),
+        );
+      return KeyEventResult.handled;
+    }
+    if (_editing) {
+      if (cmd && k == LogicalKeyboardKey.keyZ) {
+        _undo();
+        return KeyEventResult.handled;
+      }
+      if (k == LogicalKeyboardKey.escape) {
+        if (_selected != null) {
+          setState(() => _selected = null);
+        } else {
+          _toggleEdit();
+        }
+        return KeyEventResult.handled;
+      }
+      if (_selected != null) {
+        if (k == LogicalKeyboardKey.arrowUp ||
+            k == LogicalKeyboardKey.arrowDown) {
+          _nudge(k == LogicalKeyboardKey.arrowUp ? 1 : -1);
+          return KeyEventResult.handled;
+        }
+        if (k == LogicalKeyboardKey.delete ||
+            k == LogicalKeyboardKey.backspace) {
+          _deleteSelected();
+          return KeyEventResult.handled;
+        }
+      }
+    }
+    return KeyEventResult.ignored;
+  }
 
   Future<void> _loadLyrics(String path) async {
     try {
@@ -73,6 +261,17 @@ class _SingScreenState extends State<SingScreen>
         files.refF0Json,
         confidenceThreshold: 0.5,
       );
+      // Deleted (ghost) notes from earlier edits also hide their span of the
+      // reference curve; keep the unmasked curve for undo / restore.
+      try {
+        final nj = jsonDecode(
+          await File(files.notesJson).readAsString(),
+        ) as Map<String, dynamic>;
+        _loadedSpans = excludedSpansFromJson(nj);
+      } catch (_) {}
+      _refOrig = Float64List.fromList(refF0.midi);
+      maskCurve(refF0, _loadedSpans);
+      _hasEdits = await hasNoteEdits(files.notesJson);
       final s = SingSession(
         services: services,
         song: widget.song,
@@ -94,6 +293,7 @@ class _SingScreenState extends State<SingScreen>
 
   @override
   void dispose() {
+    _keys.dispose();
     _ticker?.dispose();
     _session?.dispose();
     super.dispose();
@@ -163,6 +363,33 @@ class _SingScreenState extends State<SingScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Keyboard shortcuts live on this node; after any click (buttons,
+    // sliders) focus comes back here so arrows never move a slider too.
+    return Focus(
+      focusNode: _keys,
+      autofocus: true,
+      onKeyEvent: _onKey,
+      child: Listener(
+        onPointerUp: (_) {
+          if (!_keys.hasPrimaryFocus) _keys.requestFocus();
+        },
+        child: _buildScaffold(context),
+      ),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
+    // Recording started while editing: leave edit mode.
+    if (_editing && (_session?.recording ?? false)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _editing = false;
+            _selected = null;
+          });
+        }
+      });
+    }
     final s = _session;
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
@@ -208,6 +435,11 @@ class _SingScreenState extends State<SingScreen>
                         Expanded(
                           child: _RollArea(
                             session: s,
+                            editing: _editing,
+                            selectedNote: _selected,
+                            revision: _revision,
+                            onSelectNote: _onSelectNote,
+                            onDragNote: _onDragNote,
                             aspectRatio: widget.song.hasVideo
                                 ? _videoAspect
                                 : null,
@@ -248,6 +480,21 @@ class _SingScreenState extends State<SingScreen>
                                   ),
                                 ),
                               _HudDrawer(session: s),
+                              if (_editing)
+                                Positioned(
+                                  top: 8,
+                                  left: 0,
+                                  right: 0,
+                                  child: Center(
+                                    child: _EditBar(
+                                      canUndo: _editor?.canUndo ?? false,
+                                      hasEdits: _hasEdits,
+                                      onUndo: _undo,
+                                      onRestore: _restoreOriginal,
+                                      onDone: _toggleEdit,
+                                    ),
+                                  ),
+                                ),
                               Positioned(
                                 top: 6,
                                 right: 6,
@@ -273,6 +520,8 @@ class _SingScreenState extends State<SingScreen>
                           session: s,
                           busy: _busy,
                           onStop: _stopAndScore,
+                          editing: _editing,
+                          onToggleEdit: _toggleEdit,
                         ),
                       ],
                     ),
@@ -328,8 +577,21 @@ class _RollArea extends StatefulWidget {
     this.below = const [],
     this.above = const [],
     this.aspectRatio,
+    this.editing = false,
+    this.selectedNote,
+    this.revision = 0,
+    this.onSelectNote,
+    this.onDragNote,
   });
   final SingSession session;
+
+  /// Note editing: clicks select notes (instead of seeking) and a vertical
+  /// drag on a note changes its pitch by whole semitones.
+  final bool editing;
+  final int? selectedNote;
+  final int revision;
+  final ValueChanged<int?>? onSelectNote;
+  final void Function(int index, int semitones, bool done)? onDragNote;
 
   /// When set (a video is shown), the stage keeps this width / height so the
   /// whole video fills it without bars; spare space goes around the stage.
@@ -374,6 +636,21 @@ class _RollAreaState extends State<_RollArea> {
   }
 
   double? _span;
+
+  int? _dragIndex;
+  double _dragDy = 0;
+  int _dragSemis = 0;
+
+  int? _hit(BoxConstraints c, Offset p) => hitTestNote(
+    s.notes,
+    Size(c.maxWidth, c.maxHeight),
+    p,
+    minMidi: _range.value.min,
+    maxMidi: _range.value.max,
+    position: s.position.value,
+    windowSeconds: s.windowSeconds,
+    pitchShift: s.pitchShift,
+  );
 
   /// Keeps the notes around the playhead and the pitch just sung on screen.
   /// The slider sets the preferred zoom; when the nearby notes or the voice
@@ -506,34 +783,87 @@ class _RollAreaState extends State<_RollArea> {
                       // Only the roll layer seeks on click; panels and buttons
                       // above it take their own clicks first.
                       LayoutBuilder(
-                        builder: (context, c) => GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTapDown: (d) {
-                            // Click seeks relative to the playhead at 30 % of the plot.
-                            final frac =
-                                (d.localPosition.dx - 46) / (c.maxWidth - 46);
-                            final t =
-                                s.position.value +
-                                (frac - 0.3) * s.windowSeconds;
-                            if (!s.recording) s.seek(t);
-                          },
-                          child:
-                              ValueListenableBuilder<
-                                ({double min, double max})
-                              >(
-                                valueListenable: _range,
-                                builder: (context, range, _) => PianoRollView(
-                                  notes: s.notes,
-                                  refF0: s.refF0,
-                                  trace: s.trace,
-                                  minMidi: range.min,
-                                  maxMidi: range.max,
-                                  position: s.position,
-                                  windowSeconds: s.windowSeconds,
-                                  pitchShift: s.pitchShift,
-                                  overlay: widget.below.isNotEmpty,
+                        builder: (context, c) => MouseRegion(
+                          cursor: widget.editing
+                              ? SystemMouseCursors.click
+                              : MouseCursor.defer,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapDown: (d) {
+                              if (widget.editing) {
+                                widget.onSelectNote?.call(
+                                  _hit(c, d.localPosition),
+                                );
+                                return;
+                              }
+                              // Click seeks relative to the playhead at 30 % of the plot.
+                              final frac =
+                                  (d.localPosition.dx - 46) / (c.maxWidth - 46);
+                              final t =
+                                  s.position.value +
+                                  (frac - 0.3) * s.windowSeconds;
+                              if (!s.recording) s.seek(t);
+                            },
+                            onVerticalDragStart: widget.editing
+                                ? (d) {
+                                    _dragIndex = _hit(c, d.localPosition);
+                                    _dragDy = 0;
+                                    _dragSemis = 0;
+                                    if (_dragIndex != null)
+                                      widget.onSelectNote?.call(_dragIndex);
+                                  }
+                                : null,
+                            onVerticalDragUpdate: widget.editing
+                                ? (d) {
+                                    final i = _dragIndex;
+                                    if (i == null) return;
+                                    _dragDy += d.delta.dy;
+                                    final rowH = rollRowHeight(
+                                      c.maxHeight,
+                                      _range.value.min,
+                                      _range.value.max,
+                                    );
+                                    final semis = (-_dragDy / rowH).round();
+                                    if (semis != _dragSemis) {
+                                      _dragSemis = semis;
+                                      widget.onDragNote?.call(i, semis, false);
+                                    }
+                                  }
+                                : null,
+                            onVerticalDragEnd: widget.editing
+                                ? (_) {
+                                    final i = _dragIndex;
+                                    if (i != null)
+                                      widget.onDragNote?.call(
+                                        i,
+                                        _dragSemis,
+                                        true,
+                                      );
+                                    _dragIndex = null;
+                                  }
+                                : null,
+                            child:
+                                ValueListenableBuilder<
+                                  ({double min, double max})
+                                >(
+                                  valueListenable: _range,
+                                  builder: (context, range, _) => PianoRollView(
+                                    notes: s.notes,
+                                    refF0: s.refF0,
+                                    trace: s.trace,
+                                    minMidi: range.min,
+                                    maxMidi: range.max,
+                                    position: s.position,
+                                    windowSeconds: s.windowSeconds,
+                                    pitchShift: s.pitchShift,
+                                    overlay: widget.below.isNotEmpty,
+                                    selectedNote: widget.editing
+                                        ? widget.selectedNote
+                                        : null,
+                                    revision: widget.revision,
+                                  ),
                                 ),
-                              ),
+                          ),
                         ),
                       ),
                       ...widget.above,
@@ -618,6 +948,64 @@ class _HudDrawer extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Toolbar shown over the stage while editing notes.
+class _EditBar extends StatelessWidget {
+  const _EditBar({
+    required this.canUndo,
+    required this.hasEdits,
+    required this.onUndo,
+    required this.onRestore,
+    required this.onDone,
+  });
+  final bool canUndo;
+  final bool hasEdits;
+  final VoidCallback onUndo;
+  final VoidCallback onRestore;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final undoKey = Platform.isMacOS ? '⌘Z' : 'Ctrl+Z';
+    return Material(
+      color: cs.surface.withValues(alpha: 0.92),
+      elevation: 6,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.edit_note, color: cs.primary),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Text(
+                tr('edit.hint'),
+                style: theme.textTheme.bodySmall,
+                maxLines: 2,
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: '${tr('edit.undo')} ($undoKey)',
+              onPressed: canUndo ? onUndo : null,
+              icon: const Icon(Icons.undo),
+            ),
+            TextButton(
+              onPressed: hasEdits ? onRestore : null,
+              child: Text(tr('edit.restore')),
+            ),
+            const SizedBox(width: 4),
+            FilledButton(onPressed: onDone, child: Text(tr('edit.done'))),
+          ],
+        ),
       ),
     );
   }
@@ -996,7 +1384,11 @@ class _Controls extends StatelessWidget {
     required this.session,
     required this.busy,
     required this.onStop,
+    required this.editing,
+    required this.onToggleEdit,
   });
+  final bool editing;
+  final VoidCallback onToggleEdit;
   final SingSession session;
   final bool busy;
   final Future<void> Function() onStop;
@@ -1050,6 +1442,23 @@ class _Controls extends StatelessWidget {
                   tooltip: tr('sing.restart'),
                   onPressed: enabled && !s.recording ? s.restart : null,
                   icon: const Icon(Icons.replay),
+                ),
+                const SizedBox(width: 4),
+                Tooltip(
+                  message: tr('edit.tooltip'),
+                  child: editing
+                      ? FilledButton.icon(
+                          onPressed: onToggleEdit,
+                          icon: const Icon(Icons.edit_note),
+                          label: Text(tr('edit.button')),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: enabled && !s.recording
+                              ? onToggleEdit
+                              : null,
+                          icon: const Icon(Icons.edit_note),
+                          label: Text(tr('edit.button')),
+                        ),
                 ),
                 const SizedBox(width: 8),
                 SegmentedButton<TrackKind>(

@@ -41,7 +41,13 @@ class SingSession extends ChangeNotifier {
   final AppServices services;
   final Song song;
   final SongFiles files;
-  final NoteList notes;
+  NoteList notes;
+
+  /// Replaces the reference notes after a user edit (pitch / delete).
+  void replaceNotes(NoteList n) {
+    notes = n;
+    notifyListeners();
+  }
   final F0Curve refF0;
 
   LiveAudio? _live;

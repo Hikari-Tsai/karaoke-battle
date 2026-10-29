@@ -13,6 +13,7 @@ import 'dart:isolate';
 import 'package:karaoke_battle/scoring/scoring.dart';
 
 import 'energy_curve.dart';
+import 'note_edits.dart';
 
 class ScoreNoteRow {
   ScoreNoteRow({required this.index, required this.cents, required this.matched, this.onsetErrorMs});
@@ -121,8 +122,21 @@ class ScoringBridge {
     final takeEnergyJson = takeEnergy?.toJson();
     final refEnergyJson = refEnergy?.toJson();
     final result = await Isolate.run(() {
-      final notes = ReferenceNotes.fromJson(jsonDecode(notesText) as Map<String, dynamic>);
-      final refF0 = refText == null ? null : F0Track.fromJson(jsonDecode(refText) as Map<String, dynamic>);
+      final notesMap = jsonDecode(notesText) as Map<String, dynamic>;
+      final notes = ReferenceNotes.fromJson(notesMap);
+      // Spans of notes the user deleted (ghosts) are excluded from the
+      // reference curve too, so they cannot count against the singer.
+      final spans = excludedSpansFromJson(notesMap);
+      final refRaw = refText == null ? null : F0Track.fromJson(jsonDecode(refText) as Map<String, dynamic>);
+      final refF0 = refRaw == null || spans.isEmpty
+          ? refRaw
+          : F0Track(
+              times: refRaw.times,
+              f0: [for (var i = 0; i < refRaw.f0.length; i++) i < refRaw.times.length && inSpans(spans, refRaw.times[i]) ? 0.0 : refRaw.f0[i]],
+              confidence: refRaw.confidence,
+              hop: refRaw.hop,
+              sampleRate: refRaw.sampleRate,
+            );
       final takeRaw = F0Track.fromJson(jsonDecode(takeText) as Map<String, dynamic>);
       final shifted = takeTimeOffset == 0
           ? takeRaw

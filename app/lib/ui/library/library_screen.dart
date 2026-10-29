@@ -9,6 +9,7 @@ import '../../services/prep_pipeline.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../../state/note_edits.dart';
 import '../results/results_screen.dart';
 import '../sing/sing_screen.dart';
 import '../widgets/rank.dart';
@@ -150,7 +151,7 @@ class _SongCardState extends State<_SongCard> {
   Future<void> _reprocess() async {
     final services = context.read<AppServices>();
     final f = services.library.files(widget.song);
-    for (final p in [f.vocalsWav, f.instWav, f.notesJson, f.refF0Json]) {
+    for (final p in [f.vocalsWav, f.instWav, f.notesJson, origNotesPath(f.notesJson), f.refF0Json]) {
       final file = File(p);
       if (await file.exists()) await file.delete();
     }
