@@ -134,9 +134,14 @@ class SidecarRow extends StatelessWidget {
 
   Future<void> _pickExecutable(BuildContext context) async {
     final setup = context.read<SetupController>();
-    final files = await FilePicker.pickFiles();
-    final path = files.isEmpty ? null : files.first.path;
-    if (path != null) await setup.useExecutable(kind, path);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      final files = await FilePicker.pickFiles(dialogTitle: tr('sidecar.pickTitle', {'name': nameOf(kind)}));
+      final path = files.isEmpty ? null : files.first.path;
+      if (path != null) await setup.useExecutable(kind, path);
+    } catch (e) {
+      messenger?.showSnackBar(SnackBar(content: Text('${tr('error')}: $e')));
+    }
   }
 
   @override

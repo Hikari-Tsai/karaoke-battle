@@ -94,7 +94,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     String? dest = target;
     if (dest == null) {
-      final picked = await FilePicker.getDirectoryPath(dialogTitle: tr('folder.pickTitle'));
+      final String? picked;
+      try {
+        picked = await FilePicker.getDirectoryPath(dialogTitle: tr('folder.pickTitle'));
+      } catch (e) {
+        _snack('${tr('error')}: $e');
+        return;
+      }
       if (picked == null || !mounted) return;
       dest = await DataLocation.resolveTarget(picked);
     }

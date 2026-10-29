@@ -83,7 +83,13 @@ class _AddSongDialogState extends State<AddSongDialog> {
   Future<void> _importPath(String path) => _guard(() => context.read<AppServices>().pipeline.importFile(path, language: _language));
 
   Future<void> _pickFile() async {
-    final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: kMediaExtensions);
+    final List<PlatformFile> files;
+    try {
+      files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: kMediaExtensions);
+    } catch (e) {
+      if (mounted) setState(() => _error = '$e');
+      return;
+    }
     final path = files.isEmpty ? null : files.first.path;
     if (path == null || !mounted) return;
     await _importPath(path);

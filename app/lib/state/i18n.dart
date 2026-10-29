@@ -144,6 +144,7 @@ const Map<String, (String, String, String)> _table = {
   ),
   'firstRun.pickFfmpeg': ('指定 ffmpeg 路徑', 'Choose ffmpeg…', 'ffmpeg のパスを指定'),
   'sidecar.pickPath': ('指定路徑…', 'Choose file…', 'パスを指定…'),
+  'sidecar.pickTitle': ('選擇 {name} 執行檔', 'Choose the {name} executable', '{name} の実行ファイルを選択'),
   'folder.change': ('變更位置…', 'Change location…', '場所を変更…'),
   'folder.resetDefault': ('還原預設位置', 'Use default location', '既定の場所に戻す'),
   'folder.envLocked': ('目前由環境變數 KE_APP_SUPPORT 指定，無法在這裡變更。', 'Set by the KE_APP_SUPPORT environment variable; it cannot be changed here.', '環境変数 KE_APP_SUPPORT で指定されているため、ここでは変更できません。'),
