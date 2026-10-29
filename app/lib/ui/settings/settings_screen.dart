@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../engine/engine.dart';
+import '../../engine/engine_bindings.dart' show KeError;
 import '../../services/backend_manager.dart';
 import '../../services/model_registry.dart';
 import '../../services/settings.dart';
@@ -27,6 +28,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _benchRunning = false;
   bool _calibrating = false;
   String? _calibError;
+  String? _calibDetails;
+
+  /// Maps a calibration failure to a localized explanation with a fix.
+  static String _calibAdvice(Object e) {
+    final msg = e is EngineException ? e.message : '$e';
+    final code = e is EngineException ? e.code : 0;
+    if (msg.contains('no click detected')) return tr('settings.calibFail.noClick');
+    if (msg.contains('timed out')) return tr('settings.calibFail.timeout');
+    if (code == KeError.state) return tr('settings.calibFail.busy');
+    if (code == KeError.audioDevice || msg.contains('ke_audio_create') || msg.contains('device id')) return tr('settings.calibFail.device');
+    return tr('settings.calibFail.other');
+  }
   bool _cudaInstalled = false;
   bool _cudaBusy = false;
   double _cudaFraction = 0;
@@ -83,6 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _calibrating = true;
       _calibError = null;
+      _calibDetails = null;
     });
     try {
       final sec = await LiveAudio.calibrateInBackground(
@@ -93,7 +107,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
       await s.setLatencySeconds(sec);
     } catch (e) {
-      _calibError = '$e';
+      _calibError = _calibAdvice(e);
+      _calibDetails = '$e';
     } finally {
       if (mounted) setState(() => _calibrating = false);
     }
@@ -307,7 +322,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 6),
               Text(tr('settings.calibrateHint'), style: theme.textTheme.bodySmall),
-              if (_calibError != null) Text(_calibError!, style: TextStyle(color: theme.colorScheme.error)),
+              if (_calibError != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: theme.colorScheme.errorContainer, borderRadius: BorderRadius.circular(8)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Icon(Icons.error_outline, size: 18, color: theme.colorScheme.onErrorContainer),
+                        const SizedBox(width: 6),
+                        Text(tr('settings.calibFail.title'), style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onErrorContainer)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Text(_calibError!, style: TextStyle(color: theme.colorScheme.onErrorContainer)),
+                      if (_calibDetails != null)
+                        Theme(
+                          data: theme.copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(tr('settings.calibFail.details'), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onErrorContainer)),
+                            children: [
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: SelectableText(_calibDetails!, style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', color: theme.colorScheme.onErrorContainer)),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Row(
                 children: [
