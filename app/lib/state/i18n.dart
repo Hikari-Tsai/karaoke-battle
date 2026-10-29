@@ -268,6 +268,16 @@ const Map<String, (String, String, String)> _table = {
   'settings.benchmarkNeedsModel': ('需先安裝 SwiftF0 模型', 'Install the SwiftF0 model first', '先に SwiftF0 モデルをインストールしてください'),
   'settings.models': ('模型', 'Models', 'モデル'),
   'settings.gameModel': ('轉譜模型', 'Transcription model', '採譜モデル'),
+  'settings.gameLargeInfo': (
+    '約 1 億參數，下載約 394 MB。音符切分與音高最準，建議預設使用。備歌較慢：有 NVIDIA 顯示卡（CUDA）或 Apple Silicon 時一首約十幾秒到一分鐘，只用 CPU 時會更久。',
+    'About 100M parameters, a 394 MB download. The most accurate note splitting and pitch; recommended as the default. Slower to prepare: roughly ten seconds to a minute per song with an NVIDIA GPU (CUDA) or Apple Silicon, longer on CPU only.',
+    '約 1 億パラメータ、ダウンロード約 394 MB。音符の区切りと音程が最も正確で、標準の推奨です。準備に時間がかかり、NVIDIA GPU（CUDA）や Apple Silicon では 1 曲あたり十数秒〜1 分ほど、CPU のみではさらにかかります。',
+  ),
+  'settings.gameSmallInfo': (
+    '約 1200 萬參數，下載約 51 MB。速度約快數倍，適合沒有獨立顯示卡或較舊的電腦。快歌或裝飾音多的段落，音符可能切得較粗，長音判定與節奏分會受一點影響；音準分以原唱音高曲線為主，影響較小。換模型只影響之後新增或重新處理的歌曲。',
+    'About 12M parameters, a 51 MB download. Several times faster; suits computers without a dedicated GPU or older machines. On fast or heavily ornamented passages notes may be split more coarsely, which slightly affects long-tone and rhythm scores; the pitch score follows the original vocal curve and is barely affected. Switching only affects songs added or reprocessed afterwards.',
+    '約 1200 万パラメータ、ダウンロード約 51 MB。数倍速く、専用 GPU のない PC や古い PC に向いています。速い曲や装飾の多い部分では音符の区切りが粗くなることがあり、ロングトーンとリズムの点数に少し影響します。音程の点数は原曲の音高カーブが基準なので影響は小さめです。切り替えはこれ以降に追加・再処理する曲にのみ適用されます。',
+  ),
   'settings.sidecars': ('外部工具', 'External tools', '外部ツール'),
   'settings.updateYtDlp': ('更新 yt-dlp', 'Update yt-dlp', 'yt-dlp を更新'),
   'settings.audio': ('音訊裝置', 'Audio devices', 'オーディオデバイス'),

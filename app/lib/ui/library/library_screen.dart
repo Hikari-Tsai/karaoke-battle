@@ -395,7 +395,7 @@ class _TakeRow extends StatelessWidget {
               const SizedBox(width: 8),
               const Icon(Icons.emoji_events, size: 16, color: trophyColor),
               const SizedBox(width: 2),
-              Text(tr('library.bestTake'), style: theme.textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w700)),
+              Text(tr('library.bestTake'), style: theme.textTheme.labelMedium?.copyWith(color: trophyColor, fontWeight: FontWeight.w700)),
             ],
           ],
         ),

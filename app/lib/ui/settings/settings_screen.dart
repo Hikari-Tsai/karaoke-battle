@@ -251,6 +251,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Row(
                 children: [
                   Text(tr('settings.gameModel')),
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    richMessage: TextSpan(children: [
+                      TextSpan(text: 'GAME Large\n', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      TextSpan(text: '${tr('settings.gameLargeInfo')}\n\n'),
+                      TextSpan(text: 'GAME Small\n', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      TextSpan(text: tr('settings.gameSmallInfo')),
+                    ]),
+                    padding: const EdgeInsets.all(12),
+                    constraints: const BoxConstraints(maxWidth: 380),
+                    waitDuration: const Duration(milliseconds: 200),
+                    showDuration: const Duration(seconds: 20),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.help,
+                      child: Icon(Icons.info_outline, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   SegmentedButton<String>(
                     segments: const [ButtonSegment(value: 'game-large', label: Text('GAME Large')), ButtonSegment(value: 'game-small', label: Text('GAME Small'))],
