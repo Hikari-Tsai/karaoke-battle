@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 // Controller of one sing session: owns the engine's LiveAudio (the master
 // clock), the live pitch trace, recording and take post-processing.
 //
@@ -61,6 +62,18 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     final st = services.settings;
     try {
       _live?.clickGain = st.metronomeOn && !beatGrid.isEmpty ? st.metronomeGain : 0;
+    } catch (_) {}
+  }
+
+  /// Sounds a sine at MIDI pitch [midi] as heard (the key shift is added),
+  /// or stops it when null. Used while a note is held in the editor.
+  void previewTone(double? midi) {
+    try {
+      if (midi == null) {
+        _live?.setTone(0);
+      } else {
+        _live?.setTone(440.0 * math.pow(2, (midi + pitchShift - 69) / 12));
+      }
     } catch (_) {}
   }
 

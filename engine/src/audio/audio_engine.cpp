@@ -164,6 +164,13 @@ struct ke_audio {
     float vr_mix = 0.f;                           // smoothed wet mix actually applied
     int64_t reverb_flush = 0;                     // frames of silent input still to feed after the return stops
     std::vector<float> vr_dry, vr_wl, vr_wr;
+    // ---- preview tone (sine, e.g. while dragging a note in the editor) ------------
+    std::atomic<float> tone_hz{0.f};
+    std::atomic<float> tone_gain{0.f};
+    // callback-local
+    double tone_phase = 0.0;
+    float tone_freq = 0.f;                        // glides toward tone_hz
+    float tone_env = 0.f;                         // fades toward tone_gain
     // callback-local state
     int64_t cursor = 0;                           // next track frame to feed
     float applied_gain = 1.f;
@@ -234,6 +241,7 @@ struct ke_audio {
     void render_block(float* out, ma_uint32 frames);
     void mix_clicks(float* out, ma_uint32 frames, int64_t base);
     void mix_vocal_return(float* out, const float* in, ma_uint32 frames);
+    void mix_tone(float* out, ma_uint32 frames);
     void set_stretch(bool enable);
     void dsp_worker();
     void model_worker();
@@ -383,6 +391,32 @@ void ke_audio::mix_vocal_return(float* out, const float* in, ma_uint32 frames) {
     vr_mix = target_mix;
 }
 
+// Preview tone: a sine at tone_hz, faded in (~5 ms) and out (~30 ms) so
+// starting and stopping never click, gliding (~10 ms) between pitches so a
+// drag sounds continuous. Starting from silence it jumps straight to the pitch.
+void ke_audio::mix_tone(float* out, ma_uint32 frames) {
+    const float hz = tone_hz.load(std::memory_order_relaxed);
+    const float target = hz > 0.f ? tone_gain.load(std::memory_order_relaxed) : 0.f;
+    if (target == 0.f && tone_env < 1e-5f) {
+        tone_env = 0.f;
+        return;
+    }
+    if (hz > 0.f && (tone_env < 1e-5f || tone_freq <= 0.f)) tone_freq = hz;
+    const float attack = 1.f - std::exp(-1.f / (0.005f * static_cast<float>(sr)));
+    const float release = 1.f - std::exp(-1.f / (0.030f * static_cast<float>(sr)));
+    const float glide = 1.f - std::exp(-1.f / (0.010f * static_cast<float>(sr)));
+    const double two_pi_over_sr = 2.0 * kPi / sr;
+    for (ma_uint32 i = 0; i < frames; ++i) {
+        tone_env += (target - tone_env) * (target > tone_env ? attack : release);
+        if (hz > 0.f) tone_freq += (hz - tone_freq) * glide;
+        tone_phase += two_pi_over_sr * tone_freq;
+        if (tone_phase > 2.0 * kPi) tone_phase -= 2.0 * kPi;
+        const float v = tone_env * static_cast<float>(std::sin(tone_phase));
+        out[2 * i] += v;
+        out[2 * i + 1] += v;
+    }
+}
+
 // Adds metronome clicks to an output block whose sample i plays track frame
 // base + i. Stateless (each click is synthesised from its start frame), so
 // seeks and pitch-shift latency need no bookkeeping. Accented clicks (bar
@@ -474,6 +508,7 @@ void ke_audio::data_callback(float* out, const float* in, ma_uint32 total) {
                 const ma_uint32 n = std::min<ma_uint32>(total - done, kMaxBlock);
                 render_block(out + 2 * done, n);
                 mix_vocal_return(out + 2 * done, in ? in + done : nullptr, n);
+                mix_tone(out + 2 * done, n);
                 done += n;
             }
         }
@@ -939,6 +974,15 @@ KE_API int ke_audio_set_reverb(ke_audio* a, int on, float mix) {
     if (!(mix >= 0.f && mix <= 1.f)) return ke::fail(KE_ERR_INVALID_ARG, "reverb mix out of range");
     a->reverb_mix.store(mix, std::memory_order_relaxed);
     a->reverb_on.store(on != 0, std::memory_order_relaxed);
+    return KE_OK;
+}
+
+KE_API int ke_audio_set_tone(ke_audio* a, float hz, float gain) {
+    if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
+    if (!(hz >= 0.f && hz <= 20000.f)) return ke::fail(KE_ERR_INVALID_ARG, "tone frequency out of range");
+    if (!(gain >= 0.f && gain <= 1.f)) return ke::fail(KE_ERR_INVALID_ARG, "tone gain out of range");
+    a->tone_gain.store(gain, std::memory_order_relaxed);
+    a->tone_hz.store(hz, std::memory_order_relaxed);
     return KE_OK;
 }
 

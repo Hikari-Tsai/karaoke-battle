@@ -538,6 +538,10 @@ class LiveAudio {
   /// Vocal return: the microphone mixed into the output (use headphones).
   set vocalReturn(bool on) => _check(_b.audioSetVocalReturn(ptr, on ? 1 : 0), 'ke_audio_set_vocal_return');
 
+  /// Preview sine tone at [hz] (0 fades it out); glides between pitches.
+  void setTone(double hz, {double gain = 0.2}) =>
+      _check(_b.audioSetTone(ptr, hz.clamp(0.0, 20000.0), hz > 0 ? gain.clamp(0.0, 1.0) : 0.0), 'ke_audio_set_tone');
+
   /// Hall reverb on the vocal return; [mix] 0 = dry, 1 = reverb only.
   void setReverb(bool on, double mix) => _check(_b.audioSetReverb(ptr, on ? 1 : 0, mix.clamp(0.0, 1.0)), 'ke_audio_set_reverb');
 

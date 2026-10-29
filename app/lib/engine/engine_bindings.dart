@@ -105,6 +105,8 @@ class EngineBindings {
             'ke_audio_set_vocal_return'),
         audioSetReverb = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Int32, Float), int Function(Pointer<KeAudio>, int, double)>(
             'ke_audio_set_reverb'),
+        audioSetTone = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Float, Float), int Function(Pointer<KeAudio>, double, double)>(
+            'ke_audio_set_tone'),
         reverbRenderWav = lib.lookupFunction<Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Float, Float),
             int Function(Pointer<Utf8>, Pointer<Utf8>, double, double)>('ke_reverb_render_wav'),
         audioListDevicesJson = lib.lookupFunction<
@@ -185,6 +187,7 @@ class EngineBindings {
   final int Function(Pointer<KeAudio>, int) audioSetVocalReturn;
   final int Function(Pointer<KeAudio>, int, double) audioSetReverb;
   final int Function(Pointer<Utf8>, Pointer<Utf8>, double, double) reverbRenderWav;
+  final int Function(Pointer<KeAudio>, double, double) audioSetTone;
 
   final int Function(Pointer<Utf8>, int, Pointer<Size>) audioListDevicesJson;
   final int Function(Pointer<Utf8>, Pointer<Utf8>, int, Pointer<Pointer<KeAudio>>) audioCreate;

@@ -244,6 +244,10 @@ KE_API int    ke_audio_set_vocal_return(ke_audio* a, int on);
 /* Hall reverb on the vocal return. mix in [0, 1]: 0 = dry, 1 = reverb only.
  * Not available above 48 kHz (the return stays dry). */
 KE_API int    ke_audio_set_reverb(ke_audio* a, int on, float mix);
+/* Preview tone: a sine at hz mixed into the output (e.g. while a note is
+ * dragged in the editor); hz = 0 or gain = 0 fades it out. gain is linear
+ * peak amplitude in [0, 1]. Pitch changes glide over ~10 ms. */
+KE_API int    ke_audio_set_tone(ke_audio* a, float hz, float gain);
 
 /* ---- capture + real-time F0 ---- */
 

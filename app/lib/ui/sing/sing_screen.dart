@@ -121,6 +121,7 @@ class _SingScreenState extends State<SingScreen>
   void _toggleEdit() {
     final s = _session;
     if (s == null || s.recording) return;
+    s.previewTone(null);
     setState(() {
       _editing = !_editing;
       _selected = null;
@@ -184,6 +185,15 @@ class _SingScreenState extends State<SingScreen>
 
   void _onSelectNote(int? i) => setState(() => _selected = i);
 
+  /// Editor tone preview: a sine at the held note's pitch until release.
+  void _onNotePress(int i) {
+    final s = _session;
+    if (s == null || i >= s.notes.length) return;
+    s.previewTone(s.notes.pitch[i]);
+  }
+
+  void _onNoteRelease() => _session?.previewTone(null);
+
   /// Live preview while dragging a note vertically; committed on release.
   void _onDragNote(int i, int semis, bool done) {
     final s = _session!;
@@ -192,6 +202,8 @@ class _SingScreenState extends State<SingScreen>
     final base = _dragBase!;
     if (i >= base.length) return;
     final pitch = base.pitch[i] + semis;
+    // The held tone follows the note (it stops on release, not here).
+    if (!done) s.previewTone(pitch);
     if (done) {
       _dragBase = null;
       s.replaceNotes(e.notes); // drop the preview
@@ -481,6 +493,8 @@ class _SingScreenState extends State<SingScreen>
                             revision: _revision,
                             onSelectNote: _onSelectNote,
                             onDragNote: _onDragNote,
+                            onNotePress: _onNotePress,
+                            onNoteRelease: _onNoteRelease,
                             aspectRatio: widget.song.hasVideo
                                 ? _videoAspect
                                 : null,
@@ -556,7 +570,9 @@ class _SingScreenState extends State<SingScreen>
                                       },
                                     ),
                                     const SizedBox(width: 6),
-                                    const _StageButton(child: VocalReturnButton()),
+                                    const _StageButton(
+                                      child: VocalReturnButton(),
+                                    ),
                                     const SizedBox(width: 6),
                                     _StageButton(
                                       child: ReverbButton(
@@ -649,6 +665,8 @@ class _RollArea extends StatefulWidget {
     this.revision = 0,
     this.onSelectNote,
     this.onDragNote,
+    this.onNotePress,
+    this.onNoteRelease,
   });
   final SingSession session;
 
@@ -659,6 +677,10 @@ class _RollArea extends StatefulWidget {
   final int revision;
   final ValueChanged<int?>? onSelectNote;
   final void Function(int index, int semitones, bool done)? onDragNote;
+
+  /// Pointer pressed on note [index] / released anywhere (editor tone preview).
+  final ValueChanged<int>? onNotePress;
+  final VoidCallback? onNoteRelease;
 
   /// When set (a video is shown), the stage keeps this width / height so the
   /// whole video fills it without bars; spare space goes around the stage.
@@ -854,84 +876,102 @@ class _RollAreaState extends State<_RollArea> {
                           cursor: widget.editing
                               ? SystemMouseCursors.click
                               : MouseCursor.defer,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTapDown: (d) {
-                              if (widget.editing) {
-                                widget.onSelectNote?.call(
-                                  _hit(c, d.localPosition),
-                                );
-                                return;
-                              }
-                              // Click seeks relative to the playhead at 30 % of the plot.
-                              final frac =
-                                  (d.localPosition.dx - 46) / (c.maxWidth - 46);
-                              final t =
-                                  s.position.value +
-                                  (frac - 0.3) * s.windowSeconds;
-                              if (!s.recording) s.seek(t);
+                          // Raw pointer events (outside the gesture arena) so
+                          // the tone starts on press, before a tap or drag wins.
+                          child: Listener(
+                            onPointerDown: (e) {
+                              if (!widget.editing) return;
+                              final i = _hit(c, e.localPosition);
+                              if (i != null) widget.onNotePress?.call(i);
                             },
-                            onVerticalDragStart: widget.editing
-                                ? (d) {
-                                    _dragIndex = _hit(c, d.localPosition);
-                                    _dragDy = 0;
-                                    _dragSemis = 0;
-                                    if (_dragIndex != null)
-                                      widget.onSelectNote?.call(_dragIndex);
-                                  }
-                                : null,
-                            onVerticalDragUpdate: widget.editing
-                                ? (d) {
-                                    final i = _dragIndex;
-                                    if (i == null) return;
-                                    _dragDy += d.delta.dy;
-                                    final rowH = rollRowHeight(
-                                      c.maxHeight,
-                                      _range.value.min,
-                                      _range.value.max,
-                                    );
-                                    final semis = (-_dragDy / rowH).round();
-                                    if (semis != _dragSemis) {
-                                      _dragSemis = semis;
-                                      widget.onDragNote?.call(i, semis, false);
+                            onPointerUp: (_) => widget.onNoteRelease?.call(),
+                            onPointerCancel: (_) =>
+                                widget.onNoteRelease?.call(),
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTapDown: (d) {
+                                if (widget.editing) {
+                                  widget.onSelectNote?.call(
+                                    _hit(c, d.localPosition),
+                                  );
+                                  return;
+                                }
+                                // Click seeks relative to the playhead at 30 % of the plot.
+                                final frac =
+                                    (d.localPosition.dx - 46) /
+                                    (c.maxWidth - 46);
+                                final t =
+                                    s.position.value +
+                                    (frac - 0.3) * s.windowSeconds;
+                                if (!s.recording) s.seek(t);
+                              },
+                              onVerticalDragStart: widget.editing
+                                  ? (d) {
+                                      _dragIndex = _hit(c, d.localPosition);
+                                      _dragDy = 0;
+                                      _dragSemis = 0;
+                                      if (_dragIndex != null)
+                                        widget.onSelectNote?.call(_dragIndex);
                                     }
-                                  }
-                                : null,
-                            onVerticalDragEnd: widget.editing
-                                ? (_) {
-                                    final i = _dragIndex;
-                                    if (i != null)
-                                      widget.onDragNote?.call(
-                                        i,
-                                        _dragSemis,
-                                        true,
+                                  : null,
+                              onVerticalDragUpdate: widget.editing
+                                  ? (d) {
+                                      final i = _dragIndex;
+                                      if (i == null) return;
+                                      _dragDy += d.delta.dy;
+                                      final rowH = rollRowHeight(
+                                        c.maxHeight,
+                                        _range.value.min,
+                                        _range.value.max,
                                       );
-                                    _dragIndex = null;
-                                  }
-                                : null,
-                            child:
-                                ValueListenableBuilder<
-                                  ({double min, double max})
-                                >(
-                                  valueListenable: _range,
-                                  builder: (context, range, _) => PianoRollView(
-                                    notes: s.notes,
-                                    refF0: s.refF0,
-                                    trace: s.trace,
-                                    minMidi: range.min,
-                                    maxMidi: range.max,
-                                    position: s.position,
-                                    windowSeconds: s.windowSeconds,
-                                    pitchShift: s.pitchShift,
-                                    overlay: widget.below.isNotEmpty,
-                                    selectedNote: widget.editing
-                                        ? widget.selectedNote
-                                        : null,
-                                    revision: widget.revision,
-                                    beatTimes: s.beatGrid.times,
-                                    beatAccents: s.beatGrid.accents,
+                                      final semis = (-_dragDy / rowH).round();
+                                      if (semis != _dragSemis) {
+                                        _dragSemis = semis;
+                                        widget.onDragNote?.call(
+                                          i,
+                                          semis,
+                                          false,
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              onVerticalDragEnd: widget.editing
+                                  ? (_) {
+                                      final i = _dragIndex;
+                                      if (i != null)
+                                        widget.onDragNote?.call(
+                                          i,
+                                          _dragSemis,
+                                          true,
+                                        );
+                                      _dragIndex = null;
+                                    }
+                                  : null,
+                              child:
+                                  ValueListenableBuilder<
+                                    ({double min, double max})
+                                  >(
+                                    valueListenable: _range,
+                                    builder: (context, range, _) =>
+                                        PianoRollView(
+                                          notes: s.notes,
+                                          refF0: s.refF0,
+                                          trace: s.trace,
+                                          minMidi: range.min,
+                                          maxMidi: range.max,
+                                          position: s.position,
+                                          windowSeconds: s.windowSeconds,
+                                          pitchShift: s.pitchShift,
+                                          overlay: widget.below.isNotEmpty,
+                                          selectedNote: widget.editing
+                                              ? widget.selectedNote
+                                              : null,
+                                          revision: widget.revision,
+                                          beatTimes: s.beatGrid.times,
+                                          beatAccents: s.beatGrid.accents,
+                                        ),
                                   ),
-                                ),
+                            ),
                           ),
                         ),
                       ),
