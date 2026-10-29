@@ -425,7 +425,42 @@ const Map<String, (String, String, String)> _table = {
   'settings.livePitch.dsp': ('DSP（低延遲）', 'DSP (low latency)', 'DSP（低遅延）'),
   'settings.livePitch.swiftf0': ('SwiftF0（精準）', 'SwiftF0 (accurate)', 'SwiftF0（高精度）'),
   'settings.livePitch.both': ('兩者', 'Both', '両方'),
+  'info.livePitch.dsp': (
+    '用演算法（MPM）即時計算，延遲最低、幾乎不佔 CPU。氣音或環境雜音多時，音高線可能跳八度或抖動。',
+    'An algorithm (MPM) computed in real time: lowest latency and almost no CPU. With breathy singing or noise, the line may jump octaves or wobble.',
+    'アルゴリズム（MPM）でリアルタイムに計算します。遅延が最も小さく CPU もほぼ使いません。息っぽい声や雑音が多いと、線がオクターブ跳んだり揺れたりすることがあります。',
+  ),
+  'info.livePitch.swiftf0': (
+    '用 AI 模型（SwiftF0），音高線較穩定、抗雜音。需要約 0.17 秒的預看，所以線會比歌聲晚一點出現，也較耗 CPU。',
+    'An AI model (SwiftF0): steadier and more robust to noise. It needs about 0.17 s of look-ahead, so the line appears slightly after your voice, and it uses more CPU.',
+    'AI モデル（SwiftF0）。線が安定し、雑音にも強いです。約 0.17 秒の先読みが必要なため、線が声より少し遅れて表示され、CPU も多く使います。',
+  ),
+  'info.livePitch.both': (
+    '兩種都會計算，但畫面以 SwiftF0 為準，DSP 的結果目前沒有用到，只會多耗一點 CPU。一般不需要選這個。',
+    'Both are computed but the screen follows SwiftF0; the DSP result is currently unused and only costs some CPU. Usually not needed.',
+    '両方を計算しますが、表示は SwiftF0 に従い、DSP の結果は現在使われず CPU を少し多く使うだけです。通常は選ぶ必要はありません。',
+  ),
+  'info.livePitch.footer': (
+    '只影響演唱時的即時顯示。唱完後的評分一律用 SwiftF0 重新分析錄音，不受這個設定影響。',
+    'This only affects the live display. After a take, scoring always re-analyses the recording with SwiftF0, regardless of this setting.',
+    '歌唱中のリアルタイム表示だけに影響します。歌唱後の採点は、この設定に関係なく常に SwiftF0 で録音を再分析します。',
+  ),
   'settings.separation': ('分離品質', 'Separation quality', '分離品質'),
+  'info.separation.fast': (
+    '只用 Kim_Vocal_2 模型抽出人聲，伴奏用「原曲減去人聲」得到。備歌最快；伴奏裡可能殘留一點人聲或殘響。',
+    'Only the Kim_Vocal_2 model extracts the vocals; the accompaniment is the original minus the vocals. Fastest preparation; faint vocal traces or reverb may remain in the accompaniment.',
+    'Kim_Vocal_2 モデルでボーカルだけを抽出し、伴奏は「原曲 − ボーカル」で作ります。準備が最も速い反面、伴奏にボーカルや残響がわずかに残ることがあります。',
+  ),
+  'info.separation.best': (
+    '再用專門抽伴奏的 Inst_HQ_4 模型（多下載約 59 MB）另外分離一次。伴奏更乾淨，備歌時間約多一次分離。',
+    'Also runs Inst_HQ_4, a model dedicated to the accompaniment (about 59 MB more to download). Cleaner accompaniment, at the cost of one more separation pass.',
+    '伴奏専用の Inst_HQ_4 モデル（追加ダウンロード約 59 MB）でもう一度分離します。伴奏がよりきれいになる代わりに、分離が 1 回分多くかかります。',
+  ),
+  'info.separation.footer': (
+    '兩種設定的人聲相同，評分不受影響，差別只在播放的伴奏。變更只套用到之後新增或重新處理的歌曲。',
+    'Both give the same vocals, so scores are unaffected; only the played accompaniment differs. Applies to songs added or reprocessed afterwards.',
+    'どちらもボーカルは同じなので採点には影響せず、違いは再生される伴奏だけです。変更はこれ以降に追加・再処理した曲に適用されます。',
+  ),
   'settings.separation.fast': ('快速（單模型）', 'Fast (single model)', '高速（1 モデル）'),
   'settings.separation.best': ('最佳（雙模型）', 'Best (two models)', '最高品質（2 モデル）'),
   'settings.defaultLanguage': ('預設歌詞語言', 'Default lyrics language', '既定の歌詞言語'),

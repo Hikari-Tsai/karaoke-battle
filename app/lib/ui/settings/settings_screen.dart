@@ -16,6 +16,7 @@ import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
 import '../library/add_song_dialog.dart';
 import '../widgets/calibration.dart';
+import '../widgets/info_tip.dart';
 import '../startup/first_run_dialog.dart';
 import '../widgets/brand.dart';
 
@@ -417,7 +418,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Row(
                 children: [
                   Text(tr('settings.livePitch')),
-                  const SizedBox(width: 12),
+                  InfoTip(
+                    sections: [
+                      (tr('settings.livePitch.dsp'), tr('info.livePitch.dsp')),
+                      (tr('settings.livePitch.swiftf0'), tr('info.livePitch.swiftf0')),
+                      (tr('settings.livePitch.both'), tr('info.livePitch.both')),
+                    ],
+                    footer: tr('info.livePitch.footer'),
+                  ),
+                  const SizedBox(width: 8),
                   SegmentedButton<int>(
                     segments: [
                       ButtonSegment(value: 0, label: Text(tr('settings.livePitch.dsp'))),
@@ -438,7 +447,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Row(
                 children: [
                   Text(tr('settings.separation')),
-                  const SizedBox(width: 12),
+                  InfoTip(
+                    sections: [
+                      (tr('settings.separation.fast'), tr('info.separation.fast')),
+                      (tr('settings.separation.best'), tr('info.separation.best')),
+                    ],
+                    footer: tr('info.separation.footer'),
+                  ),
+                  const SizedBox(width: 8),
                   SegmentedButton<SeparationQuality>(
                     segments: [
                       ButtonSegment(value: SeparationQuality.fast, label: Text(tr('settings.separation.fast'))),
