@@ -106,12 +106,16 @@ class SongFiles {
 }
 
 class TakeInfo {
-  TakeInfo({required this.id, required this.dir, required this.createdAt, this.total, this.rank});
+  TakeInfo({required this.id, required this.dir, required this.createdAt, this.total, this.rank, this.subScores = const {}});
   final String id;
   final String dir;
   final DateTime createdAt;
   final double? total;
   final String? rank;
+
+  /// Sub-scores in percent keyed as in `score.json` `sub_scores_flat`
+  /// (pitch, rhythm, stability, vibrato, expression, long_tone); null = not evaluable.
+  final Map<String, double?> subScores;
   String get wav => p.join(dir, 'take.wav');
   String get f0Json => p.join(dir, 'take_f0.json');
   String get scoreJson => p.join(dir, 'score.json');
@@ -178,15 +182,20 @@ class SongLibrary extends ChangeNotifier {
       final id = p.basename(e.path);
       double? total;
       String? rank;
+      var subScores = const <String, double?>{};
       final score = File(p.join(e.path, 'score.json'));
       if (await score.exists()) {
         try {
           final j = jsonDecode(await score.readAsString()) as Map<String, dynamic>;
           total = (j['total'] as num?)?.toDouble();
           rank = j['rank'] as String?;
+          final flat = j['sub_scores_flat'];
+          if (flat is Map) {
+            subScores = {for (final e in flat.entries) '${e.key}': (e.value as num?)?.toDouble()};
+          }
         } catch (_) {}
       }
-      out.add(TakeInfo(id: id, dir: e.path, createdAt: DateTime.tryParse(id.replaceAll('_', ':')) ?? e.statSync().modified, total: total, rank: rank));
+      out.add(TakeInfo(id: id, dir: e.path, createdAt: DateTime.tryParse(id.replaceAll('_', ':')) ?? e.statSync().modified, total: total, rank: rank, subScores: subScores));
     }
     out.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return out;

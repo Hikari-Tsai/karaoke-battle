@@ -11,6 +11,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../results/results_screen.dart';
 import '../sing/sing_screen.dart';
+import '../widgets/rank.dart';
 import 'add_song_dialog.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -109,15 +110,36 @@ class _SongCardState extends State<_SongCard> {
   List<TakeInfo>? _takes;
   bool _expanded = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadTakes(); // the best score is shown on the card even when collapsed
+  }
+
   Future<void> _loadTakes() async {
     final library = context.read<SongLibrary>();
     final t = await library.takes(widget.song);
     if (mounted) setState(() => _takes = t);
   }
 
+  /// The scored take with the highest total, if any.
+  TakeInfo? get _best {
+    TakeInfo? best;
+    for (final t in _takes ?? const <TakeInfo>[]) {
+      if (t.total == null) continue;
+      if (best == null || t.total! > best.total!) best = t;
+    }
+    return best;
+  }
+
   Future<void> _sing() async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => SingScreen(song: widget.song)));
-    if (mounted && _expanded) _loadTakes();
+    if (mounted) _loadTakes();
+  }
+
+  Future<void> _openResult(TakeInfo t) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ResultsScreen(song: widget.song, take: t)));
+    if (mounted) _loadTakes();
   }
 
   Future<void> _reprocess() async {
@@ -163,6 +185,7 @@ class _SongCardState extends State<_SongCard> {
     final ready = song.stage == PrepStage.done && !inProgress;
     final services = context.read<AppServices>();
     final dir = services.library.files(song).dir;
+    final best = _best;
 
     return Card(
       child: Padding(
@@ -206,6 +229,22 @@ class _SongCardState extends State<_SongCard> {
                     ],
                   ),
                 ),
+                if (best != null) ...[
+                  const SizedBox(width: 12),
+                  Tooltip(
+                    message: tr('library.bestScore'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.emoji_events, color: rankColor(best.rank), size: 22),
+                        const SizedBox(width: 4),
+                        Text(best.total!.toStringAsFixed(1), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: rankColor(best.rank))),
+                        const SizedBox(width: 6),
+                        RankChip(rank: best.rank),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(width: 12),
                 FilledButton.icon(onPressed: ready ? _sing : null, icon: const Icon(Icons.play_circle_outline), label: Text(tr('library.sing'))),
                 const SizedBox(width: 4),
@@ -253,17 +292,10 @@ class _SongCardState extends State<_SongCard> {
                 Text(tr('library.noTakes'), style: theme.textTheme.bodySmall)
               else
                 for (final t in _takes!)
-                  ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.graphic_eq),
-                    title: Text(t.createdAt.toLocal().toString().split('.').first),
-                    subtitle: t.total == null ? null : Text('${t.total!.toStringAsFixed(1)}  ${t.rank ?? ''}'),
-                    trailing: TextButton(
-                      onPressed: File(t.scoreJson).existsSync()
-                          ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ResultsScreen(song: song, take: t)))
-                          : null,
-                      child: Text(tr('library.viewResult')),
-                    ),
+                  _TakeRow(
+                    take: t,
+                    isBest: identical(t, best),
+                    onView: File(t.scoreJson).existsSync() ? () => _openResult(t) : null,
                   ),
             ],
           ],
@@ -273,6 +305,71 @@ class _SongCardState extends State<_SongCard> {
   }
 
   Widget _thumbFallback(ColorScheme cs) => Container(color: cs.surfaceContainerHighest, child: Icon(Icons.music_note, color: cs.onSurface.withValues(alpha: 0.4)));
+}
+
+/// One take: score and rank up front, sub-scores in the subtitle; the best
+/// take of the song is highlighted.
+class _TakeRow extends StatelessWidget {
+  const _TakeRow({required this.take, required this.isBest, required this.onView});
+  final TakeInfo take;
+  final bool isBest;
+  final VoidCallback? onView;
+
+  static const _order = ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'long_tone'];
+  static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final t = take;
+    final date = t.createdAt.toLocal().toString().split('.').first;
+    final color = rankColor(t.rank);
+    final parts = <String>[
+      for (final k in _order)
+        if (t.subScores.containsKey(k)) '${tr('results.${_camel(k)}')} ${t.subScores[k] == null ? '—' : t.subScores[k]!.round()}',
+    ];
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      decoration: isBest
+          ? BoxDecoration(
+              color: color.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.withValues(alpha: 0.7)),
+            )
+          : null,
+      child: ListTile(
+        dense: true,
+        onTap: onView,
+        leading: t.total == null
+            ? Icon(Icons.graphic_eq, color: cs.onSurfaceVariant)
+            : SizedBox(
+                width: 110,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(t.total!.toStringAsFixed(1), style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: color)),
+                    const SizedBox(width: 6),
+                    RankChip(rank: t.rank, fontSize: 12),
+                  ],
+                ),
+              ),
+        title: Row(
+          children: [
+            Text(date, style: theme.textTheme.bodyMedium),
+            if (isBest) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.emoji_events, size: 16, color: color),
+              const SizedBox(width: 2),
+              Text(tr('library.bestTake'), style: theme.textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w700)),
+            ],
+          ],
+        ),
+        subtitle: t.total == null ? Text(tr('library.notScored'), style: theme.textTheme.bodySmall) : Text(parts.join(' · '), style: theme.textTheme.bodySmall),
+        trailing: TextButton(onPressed: onView, child: Text(tr('library.viewResult'))),
+      ),
+    );
+  }
 }
 
 class _Badge extends StatelessWidget {

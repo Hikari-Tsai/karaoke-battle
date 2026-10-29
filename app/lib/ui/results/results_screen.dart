@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../widgets/rank.dart';
 import '../../state/live_trace.dart';
 import '../../state/scoring_bridge.dart';
 import '../../state/sing_session.dart';
@@ -200,14 +201,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
 
-  static Color _rankColor(String rank) => switch (rank) {
-        'SSS' || 'SS' => const Color(0xFFFFD60A),
-        'S' => const Color(0xFFFF9F0A),
-        'A' => const Color(0xFF4CD964),
-        'B' => const Color(0xFF5AC8FA),
-        'C' => const Color(0xFFB0B8C4),
-        _ => const Color(0xFF8E8E93),
-      };
+  static Color _rankColor(String rank) => rankColor(rank);
 }
 
 class _SubScoreBar extends StatelessWidget {
