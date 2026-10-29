@@ -37,6 +37,9 @@ class _SingScreenState extends State<SingScreen>
   bool _busy = false;
   Lyrics? _lyrics;
 
+  /// Width / height of the song's video (16:9 until the player reports it).
+  double _videoAspect = 16 / 9;
+
   Future<void> _loadLyrics(String path) async {
     try {
       final f = File(path);
@@ -205,14 +208,23 @@ class _SingScreenState extends State<SingScreen>
                         Expanded(
                           child: _RollArea(
                             session: s,
+                            aspectRatio: widget.song.hasVideo
+                                ? _videoAspect
+                                : null,
                             below: [
                               if (widget.song.hasVideo)
                                 Positioned.fill(
                                   child: VideoPane(
                                     session: s,
                                     path: s.files.videoMp4,
-                                    fit: BoxFit.cover,
+                                    fit: BoxFit.contain,
                                     background: true,
+                                    onAspectRatio: (a) {
+                                      if (mounted &&
+                                          (a - _videoAspect).abs() > 0.01) {
+                                        setState(() => _videoAspect = a);
+                                      }
+                                    },
                                   ),
                                 ),
                             ],
@@ -312,8 +324,13 @@ class _RollArea extends StatefulWidget {
     required this.session,
     this.below = const [],
     this.above = const [],
+    this.aspectRatio,
   });
   final SingSession session;
+
+  /// When set (a video is shown), the stage keeps this width / height so the
+  /// whole video fills it without bars; spare space goes around the stage.
+  final double? aspectRatio;
 
   /// Stack layers under the roll (the video) and over it (lyrics, panels).
   final List<Widget> below;
@@ -364,7 +381,8 @@ class _RollAreaState extends State<_RollArea> {
     final full = pitchRangeFor(s.notes, s.pitchShift);
     final zoom = context.read<AppSettings>().rollZoom;
     final fullSpan = full.max - full.min;
-    final preferred = fullSpan - zoom * math.max(0, fullSpan - AppSettings.rollMinSemitones);
+    final preferred =
+        fullSpan - zoom * math.max(0, fullSpan - AppSettings.rollMinSemitones);
     if (preferred >= fullSpan - 1e-6) {
       _center = null;
       _span = null;
@@ -378,11 +396,20 @@ class _RollAreaState extends State<_RollArea> {
     for (var i = tr.length - 1; i >= 0 && tr.timeAt(i) >= pos - 0.6; i--) {
       if (tr.timeAt(i) <= pos + 0.1) recent.add(tr.displayAt(i));
     }
-    final ess = essentialPitchRange(s.notes, s.pitchShift, pos - 0.6, pos + 2.5, recent);
+    final ess = essentialPitchRange(
+      s.notes,
+      s.pitchShift,
+      pos - 0.6,
+      pos + 2.5,
+      recent,
+    );
     // A voice far off the melody may leave the song's range: extend it.
     final bounds = ess == null
         ? full
-        : (min: math.min(full.min, ess.lo - 1.5), max: math.max(full.max, ess.hi + 1.5));
+        : (
+            min: math.min(full.min, ess.lo - 1.5),
+            max: math.max(full.max, ess.hi + 1.5),
+          );
     final target = followTarget(ess, preferred, bounds.max - bounds.min);
     final tSpan = target?.span ?? preferred;
     final tCenter = target?.center ?? _center ?? (full.min + full.max) / 2;
@@ -397,7 +424,8 @@ class _RollAreaState extends State<_RollArea> {
     }
     final r = zoomedRange(bounds, _center!, _span!);
     // Avoid rebuilding for sub-pixel moves.
-    if ((r.min - _range.value.min).abs() > 0.02 || (r.max - _range.value.max).abs() > 0.02) {
+    if ((r.min - _range.value.min).abs() > 0.02 ||
+        (r.max - _range.value.max).abs() > 0.02) {
       _range.value = r;
     }
   }
@@ -454,55 +482,75 @@ class _RollAreaState extends State<_RollArea> {
         ),
         const SizedBox(width: 4),
         Expanded(
-          child: Listener(
-            onPointerSignal: (e) {
-              if (e is PointerScrollEvent) {
-                s.setWindowSeconds(
-                  s.windowSeconds + (e.scrollDelta.dy > 0 ? 1 : -1),
-                );
-              }
-            },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (widget.below.isNotEmpty)
-                    const ColoredBox(color: Colors.black),
-                  ...widget.below,
-                  // Only the roll layer seeks on click; panels and buttons
-                  // above it take their own clicks first.
-                  LayoutBuilder(
-                    builder: (context, c) => GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTapDown: (d) {
-                        // Click seeks relative to the playhead at 30 % of the plot.
-                        final frac =
-                            (d.localPosition.dx - 46) / (c.maxWidth - 46);
-                        final t =
-                            s.position.value + (frac - 0.3) * s.windowSeconds;
-                        if (!s.recording) s.seek(t);
-                      },
-                      child: ValueListenableBuilder<({double min, double max})>(
-                        valueListenable: _range,
-                        builder: (context, range, _) => PianoRollView(
-                          notes: s.notes,
-                          refF0: s.refF0,
-                          trace: s.trace,
-                          minMidi: range.min,
-                          maxMidi: range.max,
-                          position: s.position,
-                          windowSeconds: s.windowSeconds,
-                          pitchShift: s.pitchShift,
-                          overlay: widget.below.isNotEmpty,
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final stage = Listener(
+                onPointerSignal: (e) {
+                  if (e is PointerScrollEvent) {
+                    s.setWindowSeconds(
+                      s.windowSeconds + (e.scrollDelta.dy > 0 ? 1 : -1),
+                    );
+                  }
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (widget.below.isNotEmpty)
+                        const ColoredBox(color: Colors.black),
+                      ...widget.below,
+                      // Only the roll layer seeks on click; panels and buttons
+                      // above it take their own clicks first.
+                      LayoutBuilder(
+                        builder: (context, c) => GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTapDown: (d) {
+                            // Click seeks relative to the playhead at 30 % of the plot.
+                            final frac =
+                                (d.localPosition.dx - 46) / (c.maxWidth - 46);
+                            final t =
+                                s.position.value +
+                                (frac - 0.3) * s.windowSeconds;
+                            if (!s.recording) s.seek(t);
+                          },
+                          child:
+                              ValueListenableBuilder<
+                                ({double min, double max})
+                              >(
+                                valueListenable: _range,
+                                builder: (context, range, _) => PianoRollView(
+                                  notes: s.notes,
+                                  refF0: s.refF0,
+                                  trace: s.trace,
+                                  minMidi: range.min,
+                                  maxMidi: range.max,
+                                  position: s.position,
+                                  windowSeconds: s.windowSeconds,
+                                  pitchShift: s.pitchShift,
+                                  overlay: widget.below.isNotEmpty,
+                                ),
+                              ),
                         ),
                       ),
-                    ),
+                      ...widget.above,
+                    ],
                   ),
-                  ...widget.above,
-                ],
-              ),
-            ),
+                ),
+              );
+              final a = widget.aspectRatio;
+              if (a == null) return stage;
+              // Largest a:1 box inside the available area, top-centred.
+              var w = c.maxWidth, h = w / a;
+              if (h > c.maxHeight) {
+                h = c.maxHeight;
+                w = h * a;
+              }
+              return Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(width: w, height: h, child: stage),
+              );
+            },
           ),
         ),
       ],
