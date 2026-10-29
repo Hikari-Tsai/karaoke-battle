@@ -357,6 +357,35 @@ double? zoomTargetCenter(NoteList notes, double pitchShift, double t0, double t1
   return ps[ps.length ~/ 2];
 }
 
+/// The pitch range that must stay on screen around the playhead: the notes
+/// sounding in [t0, t1] (after [pitchShift]) and the recently sung pitches
+/// [recent]. Null when there is nothing to show.
+({double lo, double hi})? essentialPitchRange(NoteList notes, double pitchShift, double t0, double t1, Iterable<double> recent) {
+  var lo = double.infinity, hi = double.negativeInfinity;
+  for (var i = 0; i < notes.length; i++) {
+    if (notes.offset[i] < t0) continue;
+    if (notes.onset[i] > t1) break;
+    final p = notes.pitch[i] + pitchShift;
+    if (p < lo) lo = p;
+    if (p > hi) hi = p;
+  }
+  for (final p in recent) {
+    if (p.isNaN) continue;
+    if (p < lo) lo = p;
+    if (p > hi) hi = p;
+  }
+  return lo.isFinite ? (lo: lo, hi: hi) : null;
+}
+
+/// Span (semitones) and centre that keep [essential] fully visible with a
+/// [margin] above and below: the preferred [span] when it fits, else just
+/// wide enough, never wider than [fullSpan].
+({double span, double center})? followTarget(({double lo, double hi})? essential, double span, double fullSpan, {double margin = 1.5}) {
+  if (essential == null) return null;
+  final need = essential.hi - essential.lo + 2 * margin;
+  return (span: math.min(fullSpan, math.max(span, need)), center: (essential.lo + essential.hi) / 2);
+}
+
 /// Clamps a window of [span] semitones centred on [center] inside [full].
 ({double min, double max}) zoomedRange(({double min, double max}) full, double center, double span) {
   final fullSpan = full.max - full.min;

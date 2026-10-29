@@ -32,4 +32,20 @@ void main() {
     expect(zoomedRange(full, 78, 8), (min: 71.0, max: 79.0));
     expect(zoomedRange(full, 60, 40), full); // span wider than the song
   });
+
+  test('essential range covers nearby notes and the recent voice', () {
+    expect(essentialPitchRange(notes, 0, 0, 3, const []), (lo: 55.0, hi: 58.0));
+    expect(essentialPitchRange(notes, 0, 0, 3, const [64.0, double.nan]), (lo: 55.0, hi: 64.0));
+    expect(essentialPitchRange(notes, 0, 8.5, 9.5, const []), isNull);
+  });
+
+  test('follow target widens beyond the preferred span only when needed', () {
+    // Fits in 8 semitones with 1.5 margins: keep the preferred span.
+    expect(followTarget((lo: 55, hi: 60), 8, 27), (span: 8.0, center: 57.5));
+    // 70..76 plus a sung 64: needs 12 + 3 = 15 semitones.
+    expect(followTarget((lo: 64, hi: 76), 8, 27), (span: 15.0, center: 70.0));
+    // Never wider than the whole song.
+    expect(followTarget((lo: 40, hi: 90), 8, 27)!.span, 27);
+    expect(followTarget(null, 8, 27), isNull);
+  });
 }

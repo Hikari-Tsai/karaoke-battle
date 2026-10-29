@@ -353,38 +353,51 @@ class _RollAreaState extends State<_RollArea> {
     super.dispose();
   }
 
+  double? _span;
+
+  /// Keeps the notes around the playhead and the pitch just sung on screen.
+  /// The slider sets the preferred zoom; when the nearby notes or the voice
+  /// span more than that, the view widens (quickly) to fit them and narrows
+  /// back (slowly) once it can, while the centre follows them smoothly.
   void _follow() {
     if (!mounted) return;
     final full = pitchRangeFor(s.notes, s.pitchShift);
     final zoom = context.read<AppSettings>().rollZoom;
     final fullSpan = full.max - full.min;
-    final span =
-        fullSpan - zoom * math.max(0, fullSpan - AppSettings.rollMinSemitones);
-    if (span >= fullSpan - 1e-6) {
+    final preferred = fullSpan - zoom * math.max(0, fullSpan - AppSettings.rollMinSemitones);
+    if (preferred >= fullSpan - 1e-6) {
       _center = null;
+      _span = null;
       if (_range.value != full) _range.value = full;
       return;
     }
     final pos = s.position.value;
-    final target =
-        zoomTargetCenter(
-          s.notes,
-          s.pitchShift,
-          pos - 0.3 * s.windowSeconds,
-          pos + 0.7 * s.windowSeconds,
-          span,
-        ) ??
-        _center ??
-        (full.min + full.max) / 2;
-    // Smooth towards the target (~0.3 s at 60 Hz); snap when far away (seek).
-    final c = _center;
-    _center = c == null || (target - c).abs() > span
-        ? target
-        : c + (target - c) * 0.08;
-    final r = zoomedRange(full, _center!, span);
+    // Pitches sung in the last 0.6 s (display values, octave-aligned).
+    final recent = <double>[];
+    final tr = s.trace;
+    for (var i = tr.length - 1; i >= 0 && tr.timeAt(i) >= pos - 0.6; i--) {
+      if (tr.timeAt(i) <= pos + 0.1) recent.add(tr.displayAt(i));
+    }
+    final ess = essentialPitchRange(s.notes, s.pitchShift, pos - 0.6, pos + 2.5, recent);
+    // A voice far off the melody may leave the song's range: extend it.
+    final bounds = ess == null
+        ? full
+        : (min: math.min(full.min, ess.lo - 1.5), max: math.max(full.max, ess.hi + 1.5));
+    final target = followTarget(ess, preferred, bounds.max - bounds.min);
+    final tSpan = target?.span ?? preferred;
+    final tCenter = target?.center ?? _center ?? (full.min + full.max) / 2;
+    final c = _center, sp = _span;
+    if (c == null || sp == null || (tCenter - c).abs() > sp) {
+      // First frame or a seek: jump.
+      _center = tCenter;
+      _span = tSpan;
+    } else {
+      _span = sp + (tSpan - sp) * (tSpan > sp ? 0.35 : 0.04);
+      _center = c + (tCenter - c) * 0.12;
+    }
+    final r = zoomedRange(bounds, _center!, _span!);
     // Avoid rebuilding for sub-pixel moves.
-    if ((r.min - _range.value.min).abs() > 0.02 ||
-        (r.max - _range.value.max).abs() > 0.02) {
+    if ((r.min - _range.value.min).abs() > 0.02 || (r.max - _range.value.max).abs() > 0.02) {
       _range.value = r;
     }
   }
