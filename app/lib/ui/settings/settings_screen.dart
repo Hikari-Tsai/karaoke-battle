@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../../services/app_paths.dart';
@@ -85,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Changes the data folder: [target] null asks the user for a folder.
   /// Offers to move the existing data, writes the location pointer and asks
   /// for a restart (engine, models and services are bound to the old path).
-  Future<void> _changeDataFolder(String? target) async {
+  Future<void> _changeDataFolder(String? target, {bool reset = false}) async {
     final services = context.read<AppServices>();
     final paths = services.paths;
     if (services.pipeline.isBusy) {
@@ -104,7 +105,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (picked == null || !mounted) return;
       dest = await DataLocation.resolveTarget(picked);
     }
-    if (DataLocation.problem(paths.root, dest) != null) {
+    final sameFolder = p.equals(paths.root, dest);
+    if (!(reset && sameFolder) && DataLocation.problem(paths.root, dest) != null) {
       _snack(tr('folder.bad'));
       return;
     }
@@ -123,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (choice == null || !mounted) return;
     final progress = ValueNotifier<double>(0);
-    if (choice == 'move') {
+    if (choice == 'move' && !sameFolder) {
       showDialog<void>(
         context: context,
         barrierDismissible: false,
@@ -146,7 +148,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } else {
       await Directory(dest).create(recursive: true);
     }
-    await DataLocation.write(paths.defaultRoot, dest);
+    if (reset) {
+      await DataLocation.clear(paths.defaultRoot); // back to KE_APP_SUPPORT / platform default
+    } else {
+      await DataLocation.write(paths.defaultRoot, dest);
+    }
     if (!mounted) return;
     await showDialog<void>(
       context: context,
@@ -496,18 +502,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   TextButton.icon(onPressed: () => revealPath(services.paths.root), icon: const Icon(Icons.folder_open), label: Text(tr('open'))),
                 ],
               ),
+              const SizedBox(height: 4),
+              Text(
+                switch (services.paths.source) {
+                  DataRootSource.setting => tr('folder.sourceSetting'),
+                  DataRootSource.environment => tr('folder.sourceEnv'),
+                  DataRootSource.platformDefault => tr('folder.sourceDefault'),
+                },
+                style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary),
+              ),
+              const SizedBox(height: 4),
+              Text(tr('folder.hint'), style: theme.textTheme.bodySmall),
               const SizedBox(height: 6),
-              if (services.paths.envOverride)
-                Text(tr('folder.envLocked'), style: theme.textTheme.bodySmall)
-              else ...[
-                Text(tr('folder.hint'), style: theme.textTheme.bodySmall),
-                const SizedBox(height: 6),
-                Wrap(spacing: 8, children: [
-                  OutlinedButton.icon(onPressed: () => _changeDataFolder(null), icon: const Icon(Icons.drive_file_move_outline), label: Text(tr('folder.change'))),
-                  if (!services.paths.isDefault)
-                    TextButton(onPressed: () => _changeDataFolder(services.paths.defaultRoot), child: Text(tr('folder.resetDefault'))),
-                ]),
-              ],
+              Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                OutlinedButton.icon(onPressed: () => _changeDataFolder(null), icon: const Icon(Icons.drive_file_move_outline), label: Text(tr('folder.change'))),
+                if (services.paths.source == DataRootSource.setting)
+                  TextButton(
+                    onPressed: () => _changeDataFolder(services.paths.fallbackRoot, reset: true),
+                    child: Text(services.paths.envRoot != null ? tr('folder.resetEnv') : tr('folder.resetDefault')),
+                  ),
+              ]),
             ],
           ),
         ],

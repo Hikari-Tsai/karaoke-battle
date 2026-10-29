@@ -11,18 +11,34 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+/// Where the data folder location came from (highest priority first).
+enum DataRootSource { setting, environment, platformDefault }
+
+/// Priority: App setting > KE_APP_SUPPORT > platform default.
+({String root, DataRootSource source}) resolveDataRoot({String? setting, String? env, required String platformDefault}) {
+  if (setting != null && setting.isNotEmpty) return (root: setting, source: DataRootSource.setting);
+  if (env != null && env.isNotEmpty) return (root: env, source: DataRootSource.environment);
+  return (root: platformDefault, source: DataRootSource.platformDefault);
+}
+
 class AppPaths {
-  AppPaths._(this.root, {this.defaultRoot = '', this.envOverride = false});
+  AppPaths._(this.root, {this.defaultRoot = '', this.envRoot, this.source = DataRootSource.platformDefault});
   final String root;
 
-  /// The platform default location (it also holds location.json when the
-  /// user moved the data elsewhere).
+  /// The platform default location; it also holds location.json (the
+  /// App setting), so the setting can be found before anything else.
   final String defaultRoot;
 
-  /// KE_APP_SUPPORT is set (development): the location cannot be changed.
-  final bool envOverride;
+  /// KE_APP_SUPPORT, when set.
+  final String? envRoot;
 
-  bool get isDefault => p.equals(root, defaultRoot);
+  final DataRootSource source;
+
+  /// The location used when the App setting is cleared: KE_APP_SUPPORT if
+  /// set, else the platform default.
+  String get fallbackRoot => envRoot ?? defaultRoot;
+
+  bool get isDefault => source != DataRootSource.setting;
 
   static AppPaths? _instance;
 
@@ -31,12 +47,13 @@ class AppPaths {
   static Future<AppPaths> init() async {
     if (_instance != null) return _instance!;
     final defaultRoot = await platformDefaultRoot();
-    final override = Platform.environment['KE_APP_SUPPORT'];
-    final envOverride = override != null && override.isNotEmpty;
-    final chosen = envOverride ? null : await DataLocation.read(defaultRoot);
-    final dir = Directory(envOverride ? override : (chosen ?? defaultRoot));
+    final env = Platform.environment['KE_APP_SUPPORT'];
+    final envRoot = env != null && env.isNotEmpty ? env : null;
+    final resolved = resolveDataRoot(setting: await DataLocation.read(defaultRoot), env: envRoot, platformDefault: defaultRoot);
+    final source = resolved.source;
+    final dir = Directory(resolved.root);
     await dir.create(recursive: true);
-    final paths = AppPaths._(dir.path, defaultRoot: defaultRoot, envOverride: envOverride);
+    final paths = AppPaths._(dir.path, defaultRoot: defaultRoot, envRoot: envRoot, source: source);
     for (final d in [paths.models, paths.sidecars, paths.songs, paths.cache, paths.cudaPack, paths.logs]) {
       await Directory(d).create(recursive: true);
     }
@@ -79,15 +96,18 @@ class DataLocation {
     }
   }
 
-  /// Points the app at [root] from the next start ([root] == default clears it).
+  /// Points the app at [root] from the next start (the App setting, which
+  /// takes priority over KE_APP_SUPPORT).
   static Future<void> write(String defaultRoot, String root) async {
     await Directory(defaultRoot).create(recursive: true);
+    await File(_file(defaultRoot)).writeAsString(jsonEncode({'root': root}));
+  }
+
+  /// Clears the App setting: the next start uses KE_APP_SUPPORT or the
+  /// platform default again.
+  static Future<void> clear(String defaultRoot) async {
     final f = File(_file(defaultRoot));
-    if (p.equals(root, defaultRoot)) {
-      if (await f.exists()) await f.delete();
-    } else {
-      await f.writeAsString(jsonEncode({'root': root}));
-    }
+    if (await f.exists()) await f.delete();
   }
 
   /// Where data goes for a folder the user picked: the folder itself when it

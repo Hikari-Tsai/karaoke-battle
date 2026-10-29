@@ -147,7 +147,10 @@ const Map<String, (String, String, String)> _table = {
   'sidecar.pickTitle': ('選擇 {name} 執行檔', 'Choose the {name} executable', '{name} の実行ファイルを選択'),
   'folder.change': ('變更位置…', 'Change location…', '場所を変更…'),
   'folder.resetDefault': ('還原預設位置', 'Use default location', '既定の場所に戻す'),
-  'folder.envLocked': ('目前由環境變數 KE_APP_SUPPORT 指定，無法在這裡變更。', 'Set by the KE_APP_SUPPORT environment variable; it cannot be changed here.', '環境変数 KE_APP_SUPPORT で指定されているため、ここでは変更できません。'),
+  'folder.resetEnv': ('還原預設（環境變數 KE_APP_SUPPORT）', 'Use default (KE_APP_SUPPORT)', '既定に戻す（KE_APP_SUPPORT）'),
+  'folder.sourceSetting': ('目前位置：App 設定（優先於環境變數）', 'Location: App setting (takes priority over the environment variable)', '現在の場所：アプリ設定（環境変数より優先）'),
+  'folder.sourceEnv': ('目前位置：環境變數 KE_APP_SUPPORT', 'Location: KE_APP_SUPPORT environment variable', '現在の場所：環境変数 KE_APP_SUPPORT'),
+  'folder.sourceDefault': ('目前位置：系統預設', 'Location: system default', '現在の場所：システム既定'),
   'folder.hint': (
     '存放模型、歌曲、演唱紀錄與外部工具，可能佔用數 GB。可以移到空間較大的硬碟。',
     'Holds models, songs, takes and tools; it can take several GB. You can move it to a larger drive.',

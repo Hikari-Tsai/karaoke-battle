@@ -9,13 +9,24 @@ void main() {
   setUp(() async => tmp = await Directory.systemTemp.createTemp('data_location'));
   tearDown(() async => tmp.delete(recursive: true));
 
-  test('pointer file round trip; pointing back at the default removes it', () async {
+  test('setting file round trip; clear removes it', () async {
     final def = p.join(tmp.path, 'default');
     expect(await DataLocation.read(def), isNull);
     await DataLocation.write(def, p.join(tmp.path, 'elsewhere'));
     expect(await DataLocation.read(def), p.join(tmp.path, 'elsewhere'));
+    // Choosing the platform default explicitly is still a setting (it must
+    // win over KE_APP_SUPPORT).
     await DataLocation.write(def, def);
+    expect(await DataLocation.read(def), def);
+    await DataLocation.clear(def);
     expect(await DataLocation.read(def), isNull);
+  });
+
+  test('priority: App setting > KE_APP_SUPPORT > platform default', () {
+    expect(resolveDataRoot(setting: '/s', env: '/e', platformDefault: '/d'), (root: '/s', source: DataRootSource.setting));
+    expect(resolveDataRoot(env: '/e', platformDefault: '/d'), (root: '/e', source: DataRootSource.environment));
+    expect(resolveDataRoot(env: '', platformDefault: '/d'), (root: '/d', source: DataRootSource.platformDefault));
+    expect(resolveDataRoot(platformDefault: '/d'), (root: '/d', source: DataRootSource.platformDefault));
   });
 
   test('target: empty or existing data folder is used as is, else a subfolder', () async {
