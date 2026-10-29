@@ -86,6 +86,12 @@ struct Track {
     int sample_rate = 0;
 };
 
+// Metronome clicks in track frames (sorted), with an accent flag per click.
+struct Clicks {
+    std::vector<int64_t> frames;
+    std::vector<uint8_t> accent;
+};
+
 std::string ma_err(ma_result r) { return ma_result_description(r); }
 
 // Device ids are backend specific unions; serialise them losslessly as hex so Dart
@@ -145,6 +151,8 @@ struct ke_audio {
     std::atomic<float> volume{1.f};
     std::atomic<float> pitch_semitones{0.f};
     std::atomic<int64_t> audible_frame{0};        // playback clock (frame at device output)
+    std::atomic<Clicks*> clicks{nullptr};         // metronome (owned; swapped by the API)
+    std::atomic<float> click_gain{0.f};           // 0 = metronome off
     // callback-local state
     int64_t cursor = 0;                           // next track frame to feed
     float applied_gain = 1.f;
@@ -204,6 +212,7 @@ struct ke_audio {
         if (dev_ok) ma_device_uninit(&dev);        // joins the callback thread
         dev_ok = false;
         delete track.exchange(nullptr);
+        delete clicks.exchange(nullptr);
         if (rb_ok) ma_pcm_rb_uninit(&rb);
         if (resampler_ok) ma_resampler_uninit(&resampler, nullptr);
         if (ctx_ok) ma_context_uninit(&ctx);
@@ -212,6 +221,7 @@ struct ke_audio {
     void push_frame(double t, float f0, float conf, float rms_db, float source);
     void data_callback(float* out, const float* in, ma_uint32 frames);
     void render_block(float* out, ma_uint32 frames);
+    void mix_clicks(float* out, ma_uint32 frames, int64_t base);
     void set_stretch(bool enable);
     void dsp_worker();
     void model_worker();
@@ -278,6 +288,7 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
     const float gstep = (target_gain - g0) / static_cast<float>(frames);
 
     if (!stretch_active) {
+        const int64_t base = cursor;
         for (ma_uint32 i = 0; i < frames; ++i) {
             const float g = g0 + gstep * static_cast<float>(i);
             if (cursor < t->frames) {
@@ -288,6 +299,7 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
                 out[2 * i] = out[2 * i + 1] = 0.f;
             }
         }
+        mix_clicks(out, frames, base);
         if (cursor >= t->frames) playing.store(false, std::memory_order_release);
         audible_frame.store(cursor, std::memory_order_release);
     } else {
@@ -305,12 +317,43 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
             out[2 * i] = st_out_l[i] * g;
             out[2 * i + 1] = st_out_r[i] * g;
         }
+        // Output sample i plays track frame cursor + i - latency.
+        mix_clicks(out, frames, cursor - stretch_latency);
         cursor += frames;
         const int64_t audible = std::max<int64_t>(0, cursor - stretch_latency);
         if (audible >= t->frames) playing.store(false, std::memory_order_release);
         audible_frame.store(std::min<int64_t>(audible, t->frames), std::memory_order_release);
     }
     applied_gain = target_gain;
+}
+
+// Adds metronome clicks to an output block whose sample i plays track frame
+// base + i. Stateless (each click is synthesised from its start frame), so
+// seeks and pitch-shift latency need no bookkeeping. Accented clicks (bar
+// starts) are higher.
+void ke_audio::mix_clicks(float* out, ma_uint32 frames, int64_t base) {
+    const float gain = click_gain.load(std::memory_order_relaxed);
+    if (!(gain > 0.f)) return;
+    const Clicks* c = clicks.load(std::memory_order_acquire);
+    if (!c || c->frames.empty()) return;
+    const int64_t len = static_cast<int64_t>(0.045 * sr);
+    const double decay = 1.0 / (0.010 * sr);
+    const int64_t end = base + static_cast<int64_t>(frames);
+    auto it = std::lower_bound(c->frames.begin(), c->frames.end(), base - len);
+    for (; it != c->frames.end() && *it < end; ++it) {
+        const int64_t start = *it;
+        const bool accent = c->accent[static_cast<size_t>(it - c->frames.begin())] != 0;
+        const double w = 2.0 * 3.14159265358979323846 * (accent ? 1568.0 : 1046.5) / sr;
+        const float amp = gain * (accent ? 0.9f : 0.6f);
+        const int64_t from = std::max(start, base), to = std::min(start + len, end);
+        for (int64_t f = from; f < to; ++f) {
+            const double k = static_cast<double>(f - start);
+            const float v = amp * static_cast<float>(std::sin(w * k) * std::exp(-k * decay));
+            const size_t i = static_cast<size_t>(f - base);
+            out[2 * i] += v;
+            out[2 * i + 1] += v;
+        }
+    }
 }
 
 void ke_audio::data_callback(float* out, const float* in, ma_uint32 total) {
@@ -787,6 +830,42 @@ KE_API int ke_audio_set_volume(ke_audio* a, float gain) {
     if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
     if (!(gain >= 0.f) || gain > 10.f) return ke::fail(KE_ERR_INVALID_ARG, "gain out of range");
     a->volume.store(gain, std::memory_order_relaxed);
+    return KE_OK;
+}
+
+KE_API int ke_audio_set_clicks(ke_audio* a, const double* times, const int* accents, int n) {
+    if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
+    if (n < 0 || (n > 0 && !times)) return ke::fail(KE_ERR_INVALID_ARG, "bad click list");
+    auto* c = new Clicks();
+    c->frames.reserve(static_cast<size_t>(n));
+    c->accent.reserve(static_cast<size_t>(n));
+    for (int i = 0; i < n; ++i) {
+        if (!(times[i] >= 0.0)) continue;
+        c->frames.push_back(static_cast<int64_t>(std::llround(times[i] * a->sr)));
+        c->accent.push_back(accents && accents[i] ? 1 : 0);
+    }
+    // Keep accents paired with frames while sorting.
+    std::vector<size_t> order(c->frames.size());
+    for (size_t i = 0; i < order.size(); ++i) order[i] = i;
+    std::sort(order.begin(), order.end(), [&](size_t x, size_t y) { return c->frames[x] < c->frames[y]; });
+    Clicks* sorted = new Clicks();
+    for (size_t i : order) {
+        sorted->frames.push_back(c->frames[i]);
+        sorted->accent.push_back(c->accent[i]);
+    }
+    delete c;
+    Clicks* old = a->clicks.exchange(sorted, std::memory_order_acq_rel);
+    if (old) {
+        a->wait_callback_cycles(2);  // the callback may still be reading it
+        delete old;
+    }
+    return KE_OK;
+}
+
+KE_API int ke_audio_set_click_gain(ke_audio* a, float gain) {
+    if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
+    if (!(gain >= 0.f) || gain > 4.f) return ke::fail(KE_ERR_INVALID_ARG, "click gain out of range");
+    a->click_gain.store(gain, std::memory_order_relaxed);
     return KE_OK;
 }
 

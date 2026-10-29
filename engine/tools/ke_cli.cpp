@@ -5,6 +5,7 @@
 //   ke_cli runtime   --ort <lib> [--ep cpu|cuda|directml|coreml] [--device N] [--model <onnx>]
 //   ke_cli separate  --ort <lib> [--ep ..] --model <onnx> --params '<json>' --in a.wav --primary p.wav [--secondary s.wav]
 //   ke_cli transcribe --ort <lib> [--ep ..] --model-dir <dir> --in vocals.wav [--options '<json>'] --out notes.json
+//   ke_cli beats     --ort <lib> [--ep ..] --model <beat-this dir> --in a.wav --out beats.json
 //   ke_cli f0        --ort <lib> [--ep ..] --model <swiftf0.onnx> --in a.wav --out f0.json [--fmin f] [--fmax f]
 //   ke_cli devices
 //   ke_cli live      --ort <lib> --model <swiftf0.onnx> [--track a.wav] [--seconds 10]  (prints F0 frames)
@@ -76,7 +77,7 @@ ke_runtime* make_runtime(const std::map<std::string, std::string>& a) {
 }
 
 int usage() {
-    fprintf(stderr, "ke_cli %s\nusage: ke_cli <gpu|runtime|separate|transcribe|f0|devices|live|calibrate> [--options]\n", ke_version());
+    fprintf(stderr, "ke_cli %s\nusage: ke_cli <gpu|runtime|separate|transcribe|beats|f0|devices|live|calibrate> [--options]\n", ke_version());
     return 2;
 }
 
@@ -134,6 +135,18 @@ int main(int argc, char** argv) {
         fprintf(stderr, "\n");
         if (rc != KE_OK) { fprintf(stderr, "transcribe error %d: %s\n", rc, ke_last_error()); ke_runtime_destroy(rt); return 1; }
         printf("transcribe ok in %.1fs -> %s\n", std::chrono::duration<double>(t1 - t0).count(), a["out"].c_str());
+        ke_runtime_destroy(rt);
+        return 0;
+    }
+    if (cmd == "beats") {
+        ke_runtime* rt = make_runtime(a);
+        if (!rt) return 1;
+        auto t0 = std::chrono::steady_clock::now();
+        int rc = ke_beats(rt, a["model"].c_str(), a["in"].c_str(), a["out"].c_str(), progress_cb, nullptr);
+        auto t1 = std::chrono::steady_clock::now();
+        fprintf(stderr, "\n");
+        if (rc != KE_OK) { fprintf(stderr, "beats error %d: %s\n", rc, ke_last_error()); ke_runtime_destroy(rt); return 1; }
+        printf("beats ok in %.2fs -> %s\n", std::chrono::duration<double>(t1 - t0).count(), a["out"].c_str());
         ke_runtime_destroy(rt);
         return 0;
     }

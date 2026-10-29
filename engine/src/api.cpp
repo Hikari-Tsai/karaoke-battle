@@ -9,6 +9,7 @@
 #include "models/game.h"
 #include "models/mdx.h"
 #include "models/swiftf0.h"
+#include "models/beat_this.h"
 
 extern "C" {
 
@@ -46,6 +47,12 @@ KE_API int ke_transcribe(ke_runtime* rt, const char* model_dir, const char* inpu
                          const char* notes_out_json, ke_progress_cb progress, void* user) {
     if (!rt || !model_dir || !input_wav || !notes_out_json) return ke::fail(KE_ERR_INVALID_ARG, "ke_transcribe: null argument");
     return ke::game::transcribe(rt, model_dir, input_wav, options_json ? options_json : "{}", notes_out_json, progress, user);
+}
+
+KE_API int ke_beats(ke_runtime* rt, const char* model_dir, const char* input_wav, const char* beats_out_json,
+                    ke_progress_cb progress, void* user) {
+    if (!rt || !model_dir || !input_wav || !beats_out_json) return ke::fail(KE_ERR_INVALID_ARG, "ke_beats: null argument");
+    return ke::beat_this::extract_file(rt, model_dir, input_wav, beats_out_json, progress, user);
 }
 
 KE_API int ke_f0_extract(ke_runtime* rt, const char* swiftf0_model_path, const char* input_wav, float fmin, float fmax,

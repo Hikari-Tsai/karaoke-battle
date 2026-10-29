@@ -42,6 +42,7 @@ F0 曲線を表示し、歌い終わると音程、リズム、安定感、ビ�
 | [aaatmy/uvr-mdx-net-onnx](https://huggingface.co/aaatmy/uvr-mdx-net-onnx) | ボーカル分離 Kim_Vocal_2 | KimberleyJensen（UVR 経由で配布） | ライセンスファイルなし；作者による公開の許諾表明 |
 | 同上 | 伴奏分離 UVR-MDX-NET-Inst_HQ_4 | UVR コア開発者 Anjok07、aufr33 | MIT（UVR の表記に準拠） |
 | [aaatmy/swift-f0-onnx](https://huggingface.co/aaatmy/swift-f0-onnx) | リアルタイム・オフライン F0 | Lars Nieradzik | MIT |
+| [aaatmy/beat-this-onnx](https://huggingface.co/aaatmy/beat-this-onnx) | 拍・小節頭・BPM（拍線、メトロノーム） | CPJKU（Foscarin、Schlüter、Widmer） | MIT |
 | [aaatmy/kuromoji-ipadic-pack](https://huggingface.co/aaatmy/kuromoji-ipadic-pack) | 日本語歌詞のローマ字表記（日本語歌詞がある場合のみダウンロード） | kuromoji.js（Takuya Asano）、mecab-ipadic（NAIST） | Apache-2.0、IPADIC 条項 |
 
 三つのミラーはいずれも上流の公式ファイルをそのままコピーしたもので（再学習・量子化・再エクスポートは行っていません）、manifest と SHA-256 を追加しているだけです。

@@ -91,6 +91,16 @@ class EngineBindings {
                 Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>),
             int Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, double, double, Pointer<Utf8>,
                 Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>)>('ke_f0_extract'),
+        beats = lib.lookupFunction<
+            Int32 Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
+                Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>),
+            int Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
+                Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>)>('ke_beats'),
+        audioSetClicks = lib.lookupFunction<
+            Int32 Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Int32>, Int32),
+            int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Int32>, int)>('ke_audio_set_clicks'),
+        audioSetClickGain = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Float), int Function(Pointer<KeAudio>, double)>(
+            'ke_audio_set_click_gain'),
         audioListDevicesJson = lib.lookupFunction<
             Int32 Function(Pointer<Utf8>, Size, Pointer<Size>),
             int Function(Pointer<Utf8>, int, Pointer<Size>)>('ke_audio_list_devices_json'),
@@ -162,6 +172,10 @@ class EngineBindings {
       Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>) transcribe;
   final int Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, double, double, Pointer<Utf8>,
       Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>) f0Extract;
+  final int Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
+      Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>) beats;
+  final int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Int32>, int) audioSetClicks;
+  final int Function(Pointer<KeAudio>, double) audioSetClickGain;
 
   final int Function(Pointer<Utf8>, int, Pointer<Size>) audioListDevicesJson;
   final int Function(Pointer<Utf8>, Pointer<Utf8>, int, Pointer<Pointer<KeAudio>>) audioCreate;

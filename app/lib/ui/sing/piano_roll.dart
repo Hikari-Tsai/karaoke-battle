@@ -99,6 +99,8 @@ class PianoRollPainter extends CustomPainter {
     this.gutter = 46,
     this.selectedNote,
     this.revision = 0,
+    this.beatTimes = const [],
+    this.beatAccents = const [],
   }) : super(repaint: position);
 
   final NoteList notes;
@@ -115,6 +117,11 @@ class PianoRollPainter extends CustomPainter {
 
   /// Bumped when data changed in place (e.g. the masked reference curve).
   final int revision;
+
+  /// Beat grid (sorted seconds) and bar-start flags; replaces the 1 s grid
+  /// on the live roll when present.
+  final List<double> beatTimes;
+  final List<bool> beatAccents;
   final double pitchShift;
   /// When set, the painter is static and shows 0..totalDuration.
   final double? totalDuration;
@@ -177,13 +184,35 @@ class PianoRollPainter extends CustomPainter {
       }
     }
 
-    // Time grid (1 s, labels every 1 s when wide enough).
+    // Time grid: beat / bar lines when a beat grid is known (live roll),
+    // else 1 s lines with labels.
     final secPaint = Paint()
       ..color = colors.grid
       ..strokeWidth = 1;
+    final useBeats = !isStatic && beatTimes.isNotEmpty;
+    if (useBeats) {
+      final barPaint = Paint()
+        ..color = colors.gridOctave
+        ..strokeWidth = 2;
+      var lo = 0, hi = beatTimes.length;
+      while (lo < hi) {
+        final m = (lo + hi) >> 1;
+        if (beatTimes[m] < t0) {
+          lo = m + 1;
+        } else {
+          hi = m;
+        }
+      }
+      for (var i = lo; i < beatTimes.length && beatTimes[i] <= t1; i++) {
+        final xx = x(beatTimes[i]);
+        if (xx < gutter) continue;
+        final bar = i < beatAccents.length && beatAccents[i];
+        canvas.drawLine(Offset(xx, 0), Offset(xx, h), bar ? barPaint : secPaint);
+      }
+    }
     final step = isStatic ? _niceStep(span, plotW) : 1.0;
     final firstSec = (t0 / step).floor() * step;
-    for (var t = firstSec; t <= t1; t += step) {
+    for (var t = firstSec; !useBeats && t <= t1; t += step) {
       if (t < 0) continue;
       final xx = x(t);
       if (xx < gutter) continue;
@@ -360,6 +389,7 @@ class PianoRollPainter extends CustomPainter {
       old.position != position ||
       old.selectedNote != selectedNote ||
       old.revision != revision ||
+      old.beatTimes != beatTimes ||
       old.colors != colors;
 }
 
@@ -494,6 +524,8 @@ class PianoRollView extends StatelessWidget {
     this.overlay = false,
     this.selectedNote,
     this.revision = 0,
+    this.beatTimes = const [],
+    this.beatAccents = const [],
   });
 
   final NoteList notes;
@@ -510,6 +542,8 @@ class PianoRollView extends StatelessWidget {
 
   final int? selectedNote;
   final int revision;
+  final List<double> beatTimes;
+  final List<bool> beatAccents;
 
   @override
   Widget build(BuildContext context) {
@@ -530,6 +564,8 @@ class PianoRollView extends StatelessWidget {
             totalDuration: totalDuration,
             selectedNote: selectedNote,
             revision: revision,
+            beatTimes: beatTimes,
+            beatAccents: beatAccents,
           ),
           child: const SizedBox.expand(),
         ),

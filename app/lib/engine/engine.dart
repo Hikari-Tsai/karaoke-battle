@@ -273,6 +273,11 @@ class EngineRuntime {
     return _runJob(_F0Args(modelPath, inputWav, fmin, fmax, f0Out));
   }
 
+  /// Beat / downbeat tracking (Beat This!) of [inputWav] into [beatsOut].
+  EngineJob beats({required String modelDir, required String inputWav, required String beatsOut}) {
+    return _runJob(_BeatsArgs(modelDir, inputWav, beatsOut));
+  }
+
   EngineJob _runJob(_JobArgs args) {
     final cancel = calloc<Int32>();
     final progressCtrl = StreamController<JobProgress>.broadcast();
@@ -325,6 +330,11 @@ class _F0Args extends _JobArgs {
   final double fmin, fmax;
 }
 
+class _BeatsArgs extends _JobArgs {
+  _BeatsArgs(this.modelDir, this.input, this.out);
+  final String modelDir, input, out;
+}
+
 class _JobResult {
   _JobResult(this.code, this.message);
   final int code;
@@ -360,6 +370,7 @@ _JobResult _jobEntry(String libPath, int rtAddr, int cancelAddr, SendPort progre
         b.separate(rt, s(a.model), s(a.params), s(a.input), s(a.primary), s(a.secondary), cb.nativeFunction, nullptr),
       _TranscribeArgs a => b.transcribe(rt, s(a.modelDir), s(a.input), s(a.options), s(a.out), cb.nativeFunction, nullptr),
       _F0Args a => b.f0Extract(rt, s(a.model), s(a.input), a.fmin, a.fmax, s(a.out), cb.nativeFunction, nullptr),
+      _BeatsArgs a => b.beats(rt, s(a.modelDir), s(a.input), s(a.out), cb.nativeFunction, nullptr),
     };
     return _JobResult(rc, rc == KeError.ok ? '' : b.lastErrorString());
   } finally {
@@ -477,6 +488,27 @@ class LiveAudio {
   double get position => _b.audioPosition(ptr);
   set volume(double gain) => _b.audioSetVolume(ptr, gain);
   set pitchShift(double semitones) => _b.audioSetPitchShift(ptr, semitones);
+
+  /// Metronome clicks (track seconds) with bar-start accents; replaces the
+  /// previous list. The engine mixes them sample-accurately into playback.
+  void setClicks(List<double> times, List<bool> accents) {
+    final n = times.length;
+    final t = calloc<Double>(n == 0 ? 1 : n);
+    final a = calloc<Int32>(n == 0 ? 1 : n);
+    try {
+      for (var i = 0; i < n; i++) {
+        t[i] = times[i];
+        a[i] = i < accents.length && accents[i] ? 1 : 0;
+      }
+      _check(_b.audioSetClicks(ptr, t, a, n), 'ke_audio_set_clicks');
+    } finally {
+      calloc.free(t);
+      calloc.free(a);
+    }
+  }
+
+  /// Metronome level (linear, 0 = off).
+  set clickGain(double gain) => _b.audioSetClickGain(ptr, gain.clamp(0.0, 4.0));
 
   void startCapture({EngineRuntime? runtime, String? swiftF0ModelPath, int mode = 0}) {
     final s = swiftF0ModelPath?.toNativeUtf8() ?? nullptr;

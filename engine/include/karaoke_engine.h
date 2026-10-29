@@ -175,6 +175,17 @@ KE_API int  ke_transcribe(ke_runtime* rt, const char* model_dir, const char* inp
  *               "times":[...],"f0":[...],"confidence":[...]}
  * f0 is in Hz (0 where unvoiced i.e. confidence < 0.5).
  */
+/*
+ * Beat / downbeat tracking with Beat This! (final0 ONNX). model_dir holds
+ * beat-this-final0.onnx and frontend.json. Input is mixed to mono and
+ * resampled to 22.05 kHz inside.
+ * Output JSON: {"fps":50,"model":"beat-this-final0","bpm":120.0|null,
+ *               "signature_beats":4|null,"tempo_mode":"constant|variable|average|unavailable",
+ *               "beats":[s,...],"downbeats":[s,...]}
+ */
+KE_API int  ke_beats(ke_runtime* rt, const char* model_dir, const char* input_wav, const char* beats_out_json,
+                     ke_progress_cb progress, void* user);
+
 KE_API int  ke_f0_extract(ke_runtime* rt, const char* swiftf0_model_path, const char* input_wav,
                           float fmin, float fmax, const char* f0_out_json,
                           ke_progress_cb progress, void* user);
@@ -212,6 +223,12 @@ KE_API double ke_audio_position(ke_audio* a);
 KE_API int    ke_audio_set_volume(ke_audio* a, float gain);            /* linear, 1.0 = unity */
 /* Pitch shift of the playback track in semitones (signalsmith-stretch), 0 = bypass. */
 KE_API int    ke_audio_set_pitch_shift(ke_audio* a, float semitones);
+/* Metronome: click times in track seconds (any order; accents[i] != 0 marks a
+ * bar start, accents may be NULL). Clicks are mixed into the playback output
+ * sample-accurately and follow seeks and pitch shift. Replaces previous clicks. */
+KE_API int    ke_audio_set_clicks(ke_audio* a, const double* times, const int* accents, int n);
+/* Metronome level (linear, 0 = off). */
+KE_API int    ke_audio_set_click_gain(ke_audio* a, float gain);
 
 /* ---- capture + real-time F0 ---- */
 

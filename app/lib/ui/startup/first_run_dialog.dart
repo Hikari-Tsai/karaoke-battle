@@ -134,8 +134,8 @@ class SidecarRow extends StatelessWidget {
 
   Future<void> _pickExecutable(BuildContext context) async {
     final setup = context.read<SetupController>();
-    final r = await FilePicker.platform.pickFiles();
-    final path = r?.files.single.path;
+    final files = await FilePicker.pickFiles();
+    final path = files.isEmpty ? null : files.first.path;
     if (path != null) await setup.useExecutable(kind, path);
   }
 

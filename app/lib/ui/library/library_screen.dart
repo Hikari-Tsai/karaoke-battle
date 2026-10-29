@@ -26,14 +26,11 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   bool _dragging = false;
 
-  Future<void> _onDrop(DropDetails d) async {
+  Future<void> _onDrop(DropDoneDetails d) async {
     final services = context.read<AppServices>();
-    for (final item in d.items) {
-      if (item is DropFileItem && item.localPath != null) {
-        await services.pipeline.importFile(item.localPath!, language: services.settings.defaultLanguage);
-      } else if (item is DropStringItem && item.value.startsWith('http')) {
-        await services.pipeline.addUrl(item.value.trim(), language: services.settings.defaultLanguage);
-      }
+    for (final item in d.files) {
+      if (item.path.isEmpty) continue;
+      await services.pipeline.importFile(item.path, language: services.settings.defaultLanguage);
     }
   }
 
@@ -41,9 +38,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return DropTarget(
-      onDrop: _onDrop,
-      onEnter: (_) => setState(() => _dragging = true),
-      onLeave: () => setState(() => _dragging = false),
+      onDragDone: (d) {
+        setState(() => _dragging = false);
+        _onDrop(d);
+      },
+      onDragEntered: (_) => setState(() => _dragging = true),
+      onDragExited: (_) => setState(() => _dragging = false),
       child: Stack(
         children: [
           Scaffold(
@@ -120,6 +120,7 @@ class _SongCardState extends State<_SongCard> {
       // Songs prepared before thumbnails / subtitles existed get them lazily.
       final pipeline = context.read<AppServices>().pipeline;
       pipeline.ensureThumbnail(widget.song).then((_) => pipeline.ensureLyrics(widget.song)).then((_) => pipeline.ensureRomaji(widget.song));
+      pipeline.ensureBeats(widget.song);
     }
   }
 

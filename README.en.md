@@ -44,6 +44,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BACKENDS.md](docs/BACKEN
 | [aaatmy/uvr-mdx-net-onnx](https://huggingface.co/aaatmy/uvr-mdx-net-onnx) | Vocal separation, Kim_Vocal_2 | KimberleyJensen (distributed via UVR) | No license file; author's public permission statement |
 | Same as above | Accompaniment separation, UVR-MDX-NET-Inst_HQ_4 | UVR core developers Anjok07, aufr33 | MIT (per UVR's statement) |
 | [aaatmy/swift-f0-onnx](https://huggingface.co/aaatmy/swift-f0-onnx) | Real-time and offline F0 | Lars Nieradzik | MIT |
+| [aaatmy/beat-this-onnx](https://huggingface.co/aaatmy/beat-this-onnx) | Beats, downbeats and BPM (beat grid, metronome) | CPJKU (Foscarin, Schlüter, Widmer) | MIT |
 | [aaatmy/kuromoji-ipadic-pack](https://huggingface.co/aaatmy/kuromoji-ipadic-pack) | Romanization of Japanese lyrics (downloaded only when a song has Japanese lyrics) | kuromoji.js (Takuya Asano), mecab-ipadic (NAIST) | Apache-2.0, IPADIC terms |
 
 All three mirrors are verbatim copies of the official upstream files (not retrained, quantized or re-exported), with only a manifest and SHA-256 hashes added.

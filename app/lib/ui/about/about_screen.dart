@@ -28,6 +28,7 @@ class _AboutScreenState extends State<AboutScreen> {
     ('python-audio-separator (MDX pipeline port)', 'MIT', 'https://github.com/nomadkaraoke/python-audio-separator', false),
     ('SwiftF0 — Lars Nieradzik (arXiv:2508.18440)', 'MIT', 'https://github.com/lars76/swift-f0', false),
     ('mir_eval (scoring metric definitions) — Raffel et al., ISMIR 2014', 'MIT', 'https://github.com/mir-evaluation/mir_eval', false),
+    ('Beat This! — Foscarin, Schlüter, Widmer (CPJKU), ISMIR 2024 (beats / tempo)', 'MIT', 'https://github.com/CPJKU/beat_this', false),
     ('kuromoji.js — Takuya Asano / Atilika (Japanese readings for romaji)', 'Apache-2.0', 'https://github.com/takuyaa/kuromoji.js', false),
     ('mecab-ipadic — Nara Institute of Science and Technology (NAIST)', 'NAIST / ICOT terms', 'https://huggingface.co/aaatmy/kuromoji-ipadic-pack', false),
     ('ONNX Runtime', 'MIT', 'https://github.com/microsoft/onnxruntime', false),

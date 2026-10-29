@@ -83,8 +83,8 @@ class _AddSongDialogState extends State<AddSongDialog> {
   Future<void> _importPath(String path) => _guard(() => context.read<AppServices>().pipeline.importFile(path, language: _language));
 
   Future<void> _pickFile() async {
-    final r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: kMediaExtensions);
-    final path = r?.files.single.path;
+    final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: kMediaExtensions);
+    final path = files.isEmpty ? null : files.first.path;
     if (path == null || !mounted) return;
     await _importPath(path);
   }
@@ -113,19 +113,14 @@ class _AddSongDialogState extends State<AddSongDialog> {
             Text(tr('library.fileSection'), style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
             DropTarget(
-              onEnter: (_) => setState(() => _hover = true),
-              onLeave: () => setState(() => _hover = false),
-              onDrop: (d) {
+              onDragEntered: (_) => setState(() => _hover = true),
+              onDragExited: (_) => setState(() => _hover = false),
+              onDragDone: (d) {
                 setState(() => _hover = false);
                 if (_busy) return;
-                for (final item in d.items) {
-                  if (item is DropFileItem && item.localPath != null) {
-                    _importPath(item.localPath!);
-                    return;
-                  }
-                  if (item is DropStringItem && item.value.startsWith('http')) {
-                    _url.text = item.value.trim();
-                    _addUrl();
+                for (final item in d.files) {
+                  if (item.path.isNotEmpty) {
+                    _importPath(item.path);
                     return;
                   }
                 }

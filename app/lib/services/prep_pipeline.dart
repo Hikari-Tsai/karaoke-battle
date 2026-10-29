@@ -111,6 +111,7 @@ class PrepPipeline extends ChangeNotifier {
       ModelRegistry.mdxVocals,
       if (settings.separationQuality == SeparationQuality.best) ModelRegistry.mdxInstrumental,
       ModelRegistry.byId(settings.gameModelId),
+      ModelRegistry.beatThis,
     ];
     for (final m in needed) {
       if (await models.isInstalled(m)) continue;
@@ -237,6 +238,20 @@ class PrepPipeline extends ChangeNotifier {
       await _await(job, cancel, (pr) => _emit(song, PrepStage.referenceF0, fraction: pr.fraction, message: ''));
     }
 
+    // 8. beats / tempo (Beat This!) -- never fatal --------------------------------
+    if (!await File(f.beatsJson).exists()) {
+      song.stage = PrepStage.beats;
+      await library.save(song);
+      try {
+        final job = rt.beats(modelDir: models.dirOf(ModelRegistry.beatThis), inputWav: f.mixWav, beatsOut: f.beatsJson);
+        await _await(job, cancel, (pr) => _emit(song, PrepStage.beats, fraction: pr.fraction, message: pr.stage));
+      } catch (e) {
+        checkCancel();
+        debugPrint('beats: $e');
+      }
+    }
+    checkCancel();
+
     song.stage = PrepStage.done;
     song.error = null;
     song.separationQuality = quality.name;
@@ -278,6 +293,31 @@ class PrepPipeline extends ChangeNotifier {
     } finally {
       _lyricsInFlight.remove(song.id);
     }
+  }
+
+  final Set<String> _beatsQueued = {};
+  Future<void> _beatsChain = Future<void>.value();
+
+  /// Detects beats for a song prepared before beat tracking existed. Jobs run
+  /// one at a time (they share the inference runtime); never fatal.
+  Future<void> ensureBeats(Song song) {
+    if (song.stage != PrepStage.done || !_beatsQueued.add(song.id)) return _beatsChain;
+    _beatsChain = _beatsChain.then((_) async {
+      try {
+        final f = library.files(song);
+        if (await File(f.beatsJson).exists() || !await File(f.mixWav).exists()) return;
+        final m = ModelRegistry.beatThis;
+        if (!await models.isInstalled(m)) await models.install(m);
+        final rt = await backend.runtime();
+        await rt.beats(modelDir: models.dirOf(m), inputWav: f.mixWav, beatsOut: f.beatsJson).done;
+        notifyListeners();
+      } catch (e) {
+        debugPrint('beats: $e');
+      } finally {
+        _beatsQueued.remove(song.id);
+      }
+    });
+    return _beatsChain;
   }
 
   final Set<String> _romajiInFlight = {};

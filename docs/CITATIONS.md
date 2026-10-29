@@ -102,6 +102,23 @@ please honor the MIT license by providing credit to UVR and its developers.」Ki
 }
 ```
 
+### 1.4 Beat This!（節拍、重拍與 BPM）
+
+* 上游：<https://github.com/CPJKU/beat_this>（程式碼與模型權重皆為 MIT，Copyright (c) 2024 Institute of Computational Perception, JKU Linz）。
+* 上游 README 提供下列引用格式。本 App 使用 final0 檢查點的 ONNX 轉換版
+  [aaatmy/beat-this-onnx](https://huggingface.co/aaatmy/beat-this-onnx)，未修改權重。
+
+```bibtex
+@inproceedings{foscarin2024beatthis,
+    author = {Francesco Foscarin and Jan Schl{\"u}ter and Gerhard Widmer},
+    title = {Beat this! Accurate beat tracking without {DBN} postprocessing},
+    year = 2024,
+    month = nov,
+    booktitle = {Proceedings of the 25th International Society for Music Information Retrieval Conference (ISMIR)},
+    address = {San Francisco, CA, United States},
+}
+```
+
 ## 2. 評分演算法
 
 評分模組（[docs/SCORING.md](SCORING.md)）是自行實作的純 Dart 程式，沒有引入任何評分套件，

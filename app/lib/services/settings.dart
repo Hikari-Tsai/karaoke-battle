@@ -123,6 +123,12 @@ class AppSettings extends ChangeNotifier {
   bool get hudVisible => _get('hud_visible', true);
   Future<void> setHudVisible(bool v) => _set('hud_visible', v);
 
+  /// Metronome on the sing screen (clicks mixed into playback).
+  bool get metronomeOn => _get('metronome_on', false);
+  Future<void> setMetronomeOn(bool v) => _set('metronome_on', v);
+  double get metronomeGain => _get('metronome_gain', 0.6);
+  Future<void> setMetronomeGain(double v) => _set('metronome_gain', v.clamp(0.0, 1.5).toDouble());
+
   int get overlayPort => _get('overlay_port', 0);
   Future<void> setOverlayPort(int port) => _set('overlay_port', port);
 }

@@ -121,10 +121,22 @@ class ModelRegistry {
     files: [ModelFile('kuromoji-pack.zip', 17427711, '925ac6d9030adc03b053afada160d25b06cf59f2f152599a70d82f40383ddc26')],
   );
 
-  static const all = [swiftF0, mdxVocals, mdxInstrumental, gameLarge, gameSmall, jaReading];
+  /// Beat This! (CPJKU) beat / downbeat tracker for BPM, beat grid and metronome.
+  static const beatThis = ModelSpec(
+    id: 'beat-this',
+    repo: 'aaatmy/beat-this-onnx',
+    title: 'Beat This! final0 (beats / tempo)',
+    license: 'MIT',
+    files: [
+      ModelFile('beat-this-final0.onnx', 82098846, 'e5e37b7d1802895e42559c5a1ced7619b1601d257a5c8e167c9d45de37c1b078'),
+      ModelFile('frontend.json', 298186, '7b2ba71db92b79cb33f45feb21854161de329b86a7e6ea686c3fec51ce85eb9f'),
+    ],
+  );
+
+  static const all = [swiftF0, mdxVocals, mdxInstrumental, gameLarge, gameSmall, beatThis, jaReading];
 
   /// Models required for the default pipeline.
-  static const required = [swiftF0, mdxVocals, mdxInstrumental, gameLarge];
+  static const required = [swiftF0, mdxVocals, mdxInstrumental, gameLarge, beatThis];
 
   static ModelSpec byId(String id) => all.firstWhere((m) => m.id == id);
 }

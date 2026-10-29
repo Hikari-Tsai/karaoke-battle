@@ -14,6 +14,7 @@ import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../../state/beat_grid.dart';
 import '../../state/lyrics.dart';
 import '../../state/note_edits.dart';
 import '../../state/sing_session.dart';
@@ -21,6 +22,7 @@ import '../../state/song_data.dart';
 import '../results/results_screen.dart';
 import 'piano_roll.dart';
 import 'lyrics_overlay.dart';
+import 'tempo_dialog.dart';
 import 'video_pane.dart';
 import '../widgets/calibration.dart';
 
@@ -42,6 +44,38 @@ class _SingScreenState extends State<SingScreen>
 
   /// Width / height of the song's video (16:9 until the player reports it).
   double _videoAspect = 16 / 9;
+
+  // ---- tempo ----
+  DetectedBeats? _detected;
+  TempoOverride _tempo = const TempoOverride();
+
+  Future<void> _loadBeats(SingSession s) async {
+    _detected = await DetectedBeats.load(s.files.beatsJson);
+    _tempo = await TempoOverride.load(s.files.tempoJson);
+    s.setBeatGrid(BeatGrid.build(_detected, _tempo, duration: s.duration));
+    s.applyMetronome();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openTempo() async {
+    final s = _session;
+    if (s == null) return;
+    // Beats may have been detected meanwhile (older songs are done lazily).
+    _detected ??= await DetectedBeats.load(s.files.beatsJson);
+    if (!mounted) return;
+    final r = await showTempoDialog(
+      context,
+      session: s,
+      detected: _detected,
+      current: _tempo,
+    );
+    if (r == null) return;
+    _tempo = r;
+    await r.save(s.files.tempoJson);
+    s.setBeatGrid(BeatGrid.build(_detected, _tempo, duration: s.duration));
+    s.applyMetronome();
+    if (mounted) setState(() {});
+  }
 
   // ---- note editing ----
   bool _editing = false;
@@ -285,6 +319,7 @@ class _SingScreenState extends State<SingScreen>
       }
       _session = s;
       _ticker = createTicker((_) => s.tick())..start();
+      _loadBeats(s);
       setState(() {});
     } catch (e) {
       if (mounted) setState(() => _loadError = '$e');
@@ -379,6 +414,9 @@ class _SingScreenState extends State<SingScreen>
   }
 
   Widget _buildScaffold(BuildContext context) {
+    // Keep the engine's metronome level in sync with the settings.
+    context.watch<AppSettings>();
+    _session?.applyMetronome();
     // Recording started while editing: leave edit mode.
     if (_editing && (_session?.recording ?? false)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -501,6 +539,20 @@ class _SingScreenState extends State<SingScreen>
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    _TempoChip(
+                                      grid: s.beatGrid,
+                                      metronomeOn: context
+                                          .watch<AppSettings>()
+                                          .metronomeOn,
+                                      onOpen: _openTempo,
+                                      onToggleMetronome: () {
+                                        final st = context.read<AppSettings>();
+                                        st
+                                            .setMetronomeOn(!st.metronomeOn)
+                                            .then((_) => s.applyMetronome());
+                                      },
+                                    ),
+                                    const SizedBox(width: 6),
                                     if (_lyrics != null)
                                       _StageButton(
                                         child: LyricsMenu(
@@ -861,6 +913,8 @@ class _RollAreaState extends State<_RollArea> {
                                         ? widget.selectedNote
                                         : null,
                                     revision: widget.revision,
+                                    beatTimes: s.beatGrid.times,
+                                    beatAccents: s.beatGrid.accents,
                                   ),
                                 ),
                           ),
@@ -1006,6 +1060,71 @@ class _EditBar extends StatelessWidget {
             FilledButton(onPressed: onDone, child: Text(tr('edit.done'))),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "♩ 123 · 4/4" over the stage (opens the tempo dialog) with a metronome
+/// toggle next to it.
+class _TempoChip extends StatelessWidget {
+  const _TempoChip({
+    required this.grid,
+    required this.metronomeOn,
+    required this.onOpen,
+    required this.onToggleMetronome,
+  });
+  final BeatGrid grid;
+  final bool metronomeOn;
+  final VoidCallback onOpen;
+  final VoidCallback onToggleMetronome;
+
+  @override
+  Widget build(BuildContext context) {
+    final bpm = grid.bpm;
+    final label = bpm == null
+        ? tr('tempo.chipNone')
+        : '♩ ${bpm.toStringAsFixed(bpm == bpm.roundToDouble() ? 0 : 1)} · ${grid.beatsPerBar}/4';
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0x66000000),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Tooltip(
+            message: tr('tempo.chipTooltip'),
+            child: InkWell(
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(20),
+              ),
+              onTap: onOpen,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Tooltip(
+            message: metronomeOn
+                ? tr('tempo.metronomeOff')
+                : tr('tempo.metronomeOn'),
+            child: IconButton(
+              onPressed: grid.isEmpty ? null : onToggleMetronome,
+              icon: Icon(
+                Icons.av_timer,
+                color: metronomeOn ? const Color(0xFFFFD60A) : Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

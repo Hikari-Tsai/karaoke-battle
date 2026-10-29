@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import '../engine/engine.dart';
 import '../services/song_library.dart';
 import 'app_services.dart';
+import 'beat_grid.dart';
 import 'live_trace.dart';
 import 'scoring_bridge.dart';
 import 'song_data.dart';
@@ -42,6 +43,25 @@ class SingSession extends ChangeNotifier {
   final Song song;
   final SongFiles files;
   NoteList notes;
+
+  /// Beat grid (detected and/or user tempo) used for the roll and metronome.
+  BeatGrid beatGrid = BeatGrid.empty;
+
+  void setBeatGrid(BeatGrid g) {
+    beatGrid = g;
+    try {
+      _live?.setClicks(g.times, g.accents);
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  /// Applies the metronome on/off and level settings to the audio engine.
+  void applyMetronome() {
+    final st = services.settings;
+    try {
+      _live?.clickGain = st.metronomeOn && !beatGrid.isEmpty ? st.metronomeGain : 0;
+    } catch (_) {}
+  }
 
   /// Replaces the reference notes after a user edit (pitch / delete).
   void replaceNotes(NoteList n) {
