@@ -563,4 +563,77 @@ void main() {
       );
     });
   });
+
+  group('(e) scoops in the original', () {
+    // The original singer slides into every note from 200 cents below over
+    // the first 120 ms (well beyond the 50 cent tolerance) and sags 200 cents
+    // over the last 80 ms. GAME's notes carry the plain pitch.
+    final notes = makeMelody(seed: 11, duration: 40);
+    final end = songEnd(notes);
+    double? ornamented(double t) {
+      for (final n in notes) {
+        if (t >= n.onset && t < n.offset) {
+          final a = t - n.onset;
+          final b = n.offset - t;
+          if (a < 0.12) return n.pitch - 2.0 * (1 - a / 0.12);
+          if (b < 0.08) return n.pitch - 2.0 * (1 - b / 0.08);
+          return n.pitch;
+        }
+      }
+      return null;
+    }
+
+    final curve = synthesizeTrack(end, ornamented);
+    final plain = synthesizeTrack(end, (t) => midiOfNotes(notes, t));
+
+    test('holding the plain note through the scoops is a perfect take', () {
+      final r = Scorer.score(
+        ScoringInput(
+          referenceNotes: ReferenceNotes(notes: notes),
+          referenceF0: curve,
+          takeF0: plain,
+          referenceEnergy: synthesizeEnergy(notes, end),
+          takeEnergy: synthesizeEnergy(notes, end),
+        ),
+      );
+      expect(r.shift, 0);
+      expect(r.frameMetrics.rawChromaAccuracy, closeTo(1, 1e-6));
+      expect(r.subScores.pitch.value, closeTo(1, 1e-6));
+      expect(r.noteMetrics.onsetPitch.f1, closeTo(1, 1e-6));
+      expect(r.total, greaterThanOrEqualTo(97));
+    });
+
+    test('following the scoops is also a perfect take', () {
+      final r = Scorer.score(
+        ScoringInput(
+          referenceNotes: ReferenceNotes(notes: notes),
+          referenceF0: curve,
+          takeF0: curve,
+        ),
+      );
+      expect(r.frameMetrics.rawChromaAccuracy, closeTo(1, 1e-6));
+      expect(r.subScores.pitch.value, closeTo(1, 1e-6));
+    });
+
+    test('alternating +75 / -75 cents off both targets still fails', () {
+      // A constant offset would be absorbed by the chroma shift; alternating
+      // the sign per note cannot be.
+      final off = synthesizeTrack(end, (t) {
+        for (var i = 0; i < notes.length; i++) {
+          final n = notes[i];
+          if (t >= n.onset && t < n.offset) return n.pitch + (i.isEven ? 0.75 : -0.75);
+        }
+        return null;
+      });
+      final r = Scorer.score(
+        ScoringInput(
+          referenceNotes: ReferenceNotes(notes: notes),
+          referenceF0: curve,
+          takeF0: off,
+        ),
+      );
+      expect(r.frameMetrics.rawChromaAccuracy, lessThan(0.6));
+      expect(r.subScores.pitch.value, lessThan(0.6));
+    });
+  });
 }

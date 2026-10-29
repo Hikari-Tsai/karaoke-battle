@@ -4,7 +4,8 @@
 ///
 /// 1. Both F0 tracks are converted to semitone tracks (NaN = unvoiced) on a
 ///    uniform grid with the take's hop (default 16 ms). The reference track
-///    is the reference F0 curve when given, else the note pitches sampled on
+///    is the reference F0 curve when given (with the note pitches accepted as
+///    an alternative target per frame), else the note pitches sampled on
 ///    the grid.
 /// 2. A global offset is found by cross-correlating the voicing indicators
 ///    (±`maxOffsetSeconds`).
@@ -88,6 +89,7 @@ class Scorer {
       refEnd = math.max(refEnd, refF0.times[refF0.length - 1]);
     }
     final refLen = gridLength(refEnd, hop);
+    final noteSemis = notesToGrid(refNotes, hop: hop, length: refLen);
     final refSemis = (refF0 != null && refF0.length > 0)
         ? f0TrackToGrid(
             refF0,
@@ -95,7 +97,7 @@ class Scorer {
             length: refLen,
             confidenceThreshold: opt.confidenceThreshold,
           )
-        : notesToGrid(refNotes, hop: hop, length: refLen);
+        : noteSemis;
 
     // --- 2. Global offset, 3. initial chroma shift ------------------------
     final maxOff = (opt.maxOffsetSeconds / hop).round();
@@ -135,11 +137,14 @@ class Scorer {
     final octaveExact = estimateOctaveExactShift(alignedTake, refSemis);
 
     // --- 5a. Frame metrics -----------------------------------------------
+    // With a reference curve the note grid is a second accepted target, so a
+    // take that holds the plain note through the original's scoops is correct.
     final frame = computeFrameMetrics(
       alignedTake,
       refSemis,
       shift: k,
       octaveExactShift: octaveExact,
+      alt: identical(refSemis, noteSemis) ? null : noteSemis,
     );
 
     // --- 5b. Note metrics -------------------------------------------------

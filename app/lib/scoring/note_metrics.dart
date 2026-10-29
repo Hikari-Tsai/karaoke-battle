@@ -328,11 +328,15 @@ ConformingRun? findConformingRun(
   for (var g = ws; g < we; g++) {
     final v = track[g];
     if (v.isNaN) continue;
+    // Inside the note span the take may follow either the reference curve
+    // (ornaments, scoops) or the plain note pitch; outside the span only the
+    // note pitch continues, so a neighbouring note never counts as this one.
     final inSpan = g >= s && g < e;
-    final target = (inSpan && curve != null && !curve[g].isNaN)
-        ? curve[g]
-        : pitch;
-    conform[g - ws] = chromaDistance(v + shift, target) <= tolerance;
+    var ok = chromaDistance(v + shift, pitch) <= tolerance;
+    if (!ok && inSpan && curve != null && !curve[g].isNaN) {
+      ok = chromaDistance(v + shift, curve[g]) <= tolerance;
+    }
+    conform[g - ws] = ok;
   }
   // Bridge short non-conforming gaps between conforming frames.
   var i = 0;
@@ -381,15 +385,15 @@ ConformingRun? findConformingRun(
 /// Every reference note is evaluated on its own span `[s, e)` of the
 /// reference grid using the aligned take:
 /// * conforming frame = take voiced and within [pitchTolerance] (chroma-wise,
-///   after [shift]) of the target (reference F0 curve where voiced, else the
-///   note pitch);
+///   after [shift]) of the reference F0 curve or of the note pitch (either
+///   is accepted, so holding the plain note through the original's scoop or
+///   slide is correct; without a curve only the note pitch applies);
 /// * `matched` (pitch) = conforming frames cover at least [coverageThreshold]
 ///   of the span;
 /// * the sung onset/offset are the bounds of the conforming run (gaps of up
 ///   to 3 frames bridged) with the largest overlap with the span, searched in
-///   `[onset - extensionSeconds, offset + extensionSeconds]`; the window is
-///   clipped at a neighbouring note whose pitch is within tolerance (the
-///   transition is then invisible to pitch);
+///   `[onset - extensionSeconds, offset + extensionSeconds]` clipped to the
+///   neighbouring notes' spans (the window only extends into rests);
 /// * the expected onset/offset are measured the same way on the reference
 ///   F0 curve when [refCurve] is given (so the original vocal itself scores
 ///   perfectly), else they are the note onset/offset;
@@ -454,16 +458,13 @@ NoteMetrics computeReferenceGuidedNoteMetrics(
     ) {
       covered[g] = true;
     }
+    // The search window extends into rests only, never into a neighbouring
+    // note's span: a slide between two notes belongs to the transition, and
+    // an early entry into note B shows up as a short offset on note A.
     var ws = math.max(0, s - ext);
     var we = math.min(len, e + ext);
-    if (r > 0 &&
-        chromaDistance(refNotes[r - 1].pitch, rn.pitch) <= pitchTolerance) {
-      ws = math.max(ws, frame(refNotes[r - 1].offset));
-    }
-    if (r + 1 < n &&
-        chromaDistance(refNotes[r + 1].pitch, rn.pitch) <= pitchTolerance) {
-      we = math.min(we, frame(refNotes[r + 1].onset));
-    }
+    if (r > 0) ws = math.max(ws, frame(refNotes[r - 1].offset));
+    if (r + 1 < n) we = math.min(we, frame(refNotes[r + 1].onset));
     final takeRun = findConformingRun(
       alignedTake,
       shift,
@@ -499,18 +500,19 @@ NoteMetrics computeReferenceGuidedNoteMetrics(
     var span = 0;
     final cents = <double>[];
     for (var g = s; g < e; g++) {
-      final double target;
-      if (refCurve != null) {
-        if (refCurve[g].isNaN) continue; // only reference-voiced frames
-        target = refCurve[g];
-      } else {
-        target = rn.pitch;
+      if (refCurve != null && refCurve[g].isNaN) {
+        continue; // only reference-voiced frames
       }
       span++;
       final v = alignedTake[g];
       if (v.isNaN) continue;
       voicedCount++;
-      final d = chromaDelta(v + shift, target);
+      // Deviation from the closest accepted target (curve or note pitch).
+      var d = chromaDelta(v + shift, rn.pitch);
+      if (refCurve != null) {
+        final dc = chromaDelta(v + shift, refCurve[g]);
+        if (dc.abs() < d.abs()) d = dc;
+      }
       cents.add(d * 100.0);
       if (d.abs() <= pitchTolerance) conformCount++;
     }

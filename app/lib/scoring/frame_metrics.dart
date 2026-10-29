@@ -18,6 +18,12 @@ import 'models.dart';
 ///   both with a correct chroma / all frames. (mir_eval uses raw pitch here;
 ///   this module is octave-invariant by design, so chroma is used.)
 ///
+/// [alt] is an optional second target on the same grid (the reference notes
+/// sampled on the grid): a reference-voiced frame also counts as correct when
+/// the take is within [tolerance] of `alt[i]`. This lets a singer hold the
+/// plain note where the original scoops or slides through it, while still
+/// accepting a take that follows the original curve.
+///
 /// [octaveExactShift] is only used for [FrameMetrics.rawPitchAccuracyOctaveExact].
 FrameMetrics computeFrameMetrics(
   List<double> take,
@@ -25,6 +31,7 @@ FrameMetrics computeFrameMetrics(
   required int shift,
   int octaveExactShift = 0,
   double tolerance = 0.5,
+  List<double>? alt,
 }) {
   final n = math.min(take.length, ref.length);
   var refVoiced = 0;
@@ -44,9 +51,18 @@ FrameMetrics computeFrameMetrics(
       refVoiced++;
       if (tv) {
         bothVoiced++;
-        if ((t + shift - r).abs() <= tolerance) rpa++;
-        if ((t + octaveExactShift - r).abs() <= tolerance) rpaOct++;
-        if (chromaDistance(t + shift, r) <= tolerance) {
+        final a = (alt != null && i < alt.length) ? alt[i] : double.nan;
+        final hasAlt = !a.isNaN;
+        if ((t + shift - r).abs() <= tolerance ||
+            (hasAlt && (t + shift - a).abs() <= tolerance)) {
+          rpa++;
+        }
+        if ((t + octaveExactShift - r).abs() <= tolerance ||
+            (hasAlt && (t + octaveExactShift - a).abs() <= tolerance)) {
+          rpaOct++;
+        }
+        if (chromaDistance(t + shift, r) <= tolerance ||
+            (hasAlt && chromaDistance(t + shift, a) <= tolerance)) {
           rca++;
           correct++;
         }
