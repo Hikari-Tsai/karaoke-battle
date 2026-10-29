@@ -36,9 +36,9 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _load() async {
-    final services = context.read<AppServices>();
-    final files = services.library.files(widget.song);
     try {
+      final services = context.read<AppServices>();
+      final files = services.library.files(widget.song);
       final notes = await NoteList.load(files.notesJson);
       final refF0 = await F0Curve.load(files.refF0Json, confidenceThreshold: 0.5);
       final s = SingSession(services: services, song: widget.song, notes: notes, refF0: refF0);
@@ -51,7 +51,7 @@ class _SingScreenState extends State<SingScreen> with SingleTickerProviderStateM
       _ticker = createTicker((_) => s.tick())..start();
       setState(() {});
     } catch (e) {
-      setState(() => _loadError = '$e');
+      if (mounted) setState(() => _loadError = '$e');
     }
   }
 

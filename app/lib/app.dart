@@ -34,40 +34,47 @@ class _KaraokeAppState extends State<KaraokeApp> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: I18n.notifier,
-      builder: (context, lang, child) => MaterialApp(
-        title: tr('app.title'),
-        debugShowCheckedModeBanner: false,
-        // Material/Cupertino widget strings follow the UI language too.
-        locale: switch (lang) { 'en' => const Locale('en'), 'ja' => const Locale('ja'), _ => const Locale('zh', 'TW') },
-        supportedLocales: const [Locale('zh', 'TW'), Locale('en'), Locale('ja')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
-        themeMode: ThemeMode.dark,
-        home: FutureBuilder<AppServices>(
-          future: _bootstrap,
-          builder: (context, snap) {
-            if (snap.hasError) return StartupErrorPage(error: snap.error!, onRetry: _retry);
-            final s = snap.data;
-            if (s == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-            return MultiProvider(
-              providers: [
-                Provider<AppServices>.value(value: s),
-                ChangeNotifierProvider<AppSettings>.value(value: s.settings),
-                ChangeNotifierProvider<BackendManager>.value(value: s.backend),
-                ChangeNotifierProvider<SongLibrary>.value(value: s.library),
-                ChangeNotifierProvider<PrepPipeline>.value(value: s.pipeline),
-                ChangeNotifierProvider<SetupController>(create: (_) => SetupController(s.models, s.sidecars)),
-              ],
-              // Keyed on the language so every screen (including const subtrees) is rebuilt.
-              child: AppShell(key: ValueKey('shell-$lang')),
-            );
-          },
-        ),
+      builder: (context, lang, child) => FutureBuilder<AppServices>(
+        future: _bootstrap,
+        builder: (context, snap) {
+          final s = snap.data;
+          return MaterialApp(
+            title: tr('app.title'),
+            debugShowCheckedModeBanner: false,
+            // Material/Cupertino widget strings follow the UI language too.
+            locale: switch (lang) { 'en' => const Locale('en'), 'ja' => const Locale('ja'), _ => const Locale('zh', 'TW') },
+            supportedLocales: const [Locale('zh', 'TW'), Locale('en'), Locale('ja')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            theme: buildTheme(Brightness.light),
+            darkTheme: buildTheme(Brightness.dark),
+            themeMode: ThemeMode.dark,
+            // The providers wrap the Navigator (not just `home`) so that pushed
+            // routes such as SingScreen and ResultsScreen can read them too.
+            builder: (context, child) => s == null
+                ? child!
+                : MultiProvider(
+                    providers: [
+                      Provider<AppServices>.value(value: s),
+                      ChangeNotifierProvider<AppSettings>.value(value: s.settings),
+                      ChangeNotifierProvider<BackendManager>.value(value: s.backend),
+                      ChangeNotifierProvider<SongLibrary>.value(value: s.library),
+                      ChangeNotifierProvider<PrepPipeline>.value(value: s.pipeline),
+                      ChangeNotifierProvider<SetupController>(create: (_) => SetupController(s.models, s.sidecars)),
+                    ],
+                    child: child!,
+                  ),
+            home: snap.hasError
+                ? StartupErrorPage(error: snap.error!, onRetry: _retry)
+                : s == null
+                    ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+                    // Keyed on the language so every screen (including const subtrees) is rebuilt.
+                    : AppShell(key: ValueKey('shell-$lang')),
+          );
+        },
       ),
     );
   }
