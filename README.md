@@ -5,8 +5,7 @@
 <h1 align="center">Karaoke Battle</h1>
 
 <p align="center">
-  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><img src="https://img.shields.io/badge/macOS_Universal-000000?style=for-the-badge&logo=apple&logoColor=white" alt="下載 macOS 版（通用）"></a>
-  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><img src="https://img.shields.io/badge/Windows_x64-0078D4?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" alt="下載 Windows x64 版"></a>
+  <a href="#下載"><img src="https://img.shields.io/badge/%E4%B8%8B%E8%BC%89-macOS%20%7C%20Windows-2EA44F?style=for-the-badge" height="36" alt="下載"></a>
   <br>
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest"><img src="https://img.shields.io/github/v/release/Hikari-Tsai/karaoke-battle?label=latest%20release" alt="最新版本"></a>
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/actions/workflows/build.yml"><img src="https://github.com/Hikari-Tsai/karaoke-battle/actions/workflows/build.yml/badge.svg" alt="CI"></a>
@@ -23,6 +22,18 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 * 所有模型在首次執行時從 Hugging Face `aaatmy/*` 下載並以 SHA-256 驗證，安裝包不含模型。
 * Windows 以 CUDA 為主要加速路徑（自動偵測、缺漏時提示安裝驅動並下載 CUDA 執行環境），
   備援為 DirectML 與 CPU；macOS 使用 CPU（部分模型嘗試 CoreML）。備援不影響評分準確度，只影響備歌速度。
+
+## 下載
+
+<p align="center">
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-000000?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1F1F" height="44" alt="下載 macOS 版（Apple Silicon + Intel）"></a>
+  &nbsp;
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" height="44" alt="下載 Windows 版（10／11 x64）"></a>
+</p>
+
+<p align="center">免費、開源（MIT）· <a href="docs/INSTALL.md">安裝說明</a> · <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases">所有版本與更新紀錄</a></p>
+
+<p align="center"><sub>macOS：打開 DMG 拖到「應用程式」，第一次請在 App 上按右鍵 →「打開」。<br>Windows：解壓縮後執行 <code>karaoke_battle.exe</code>。首次啟動會自動下載模型（約 500 MB）。</sub></p>
 
 ## 給直播主的功能
 

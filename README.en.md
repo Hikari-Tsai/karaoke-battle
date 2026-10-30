@@ -5,8 +5,7 @@
 <h1 align="center">Karaoke Battle</h1>
 
 <p align="center">
-  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><img src="https://img.shields.io/badge/macOS_Universal-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS (Universal)"></a>
-  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><img src="https://img.shields.io/badge/Windows_x64-0078D4?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" alt="Download for Windows x64"></a>
+  <a href="#download"><img src="https://img.shields.io/badge/Download-macOS%20%7C%20Windows-2EA44F?style=for-the-badge" height="36" alt="Download"></a>
   <br>
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest"><img src="https://img.shields.io/github/v/release/Hikari-Tsai/karaoke-battle?label=latest%20release" alt="Latest release"></a>
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/actions/workflows/build.yml"><img src="https://github.com/Hikari-Tsai/karaoke-battle/actions/workflows/build.yml/badge.svg" alt="CI"></a>
@@ -24,6 +23,18 @@ quantitative scores for pitch, rhythm, stability, vibrato, expression and long t
 * All models are downloaded from Hugging Face `aaatmy/*` on first run and verified with SHA-256; the installer does not bundle any models.
 * On Windows, CUDA is the primary acceleration path (detected automatically; if anything is missing, the app prompts you to install the driver and downloads the CUDA runtime),
   with DirectML and CPU as fallbacks. macOS uses the CPU (some models try CoreML). Fallbacks do not affect scoring accuracy, only song preparation speed.
+
+## Download
+
+<p align="center">
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-000000?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1F1F" height="44" alt="Download for macOS (Apple Silicon + Intel)"></a>
+  &nbsp;
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" height="44" alt="Download for Windows (10 / 11 x64)"></a>
+</p>
+
+<p align="center">Free and open source (MIT) · <a href="docs/INSTALL.md">Installation guide</a> · <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases">All versions and release notes</a></p>
+
+<p align="center"><sub>macOS: open the DMG and drag the app to Applications; the first time, right-click the app and choose Open.<br>Windows: unzip and run <code>karaoke_battle.exe</code>. The models (about 500 MB) download on first launch.</sub></p>
 
 ## Features for streamers
 
