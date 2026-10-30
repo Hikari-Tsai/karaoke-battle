@@ -27,7 +27,7 @@ quantitative scores for pitch, rhythm, stability, vibrato, expression and long t
 ## Download
 
 <p align="center">
-  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-000000?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1F1F" height="44" alt="Download for macOS (Apple Silicon + Intel)"></a>
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-F2F2F2?style=for-the-badge&logo=apple&logoColor=black&labelColor=D9D9D9"><img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-000000?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1F1F" height="44" alt="Download for macOS (Apple Silicon + Intel)"></picture></a>
   &nbsp;
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" height="44" alt="Download for Windows (10 / 11 x64)"></a>
 </p>
@@ -114,9 +114,9 @@ For the full alignment method, metric definitions, formulas and calibration resu
 
 ## Installation and usage
 
-Download the DMG or zip from the badges above and install it. On macOS, the first time you launch it, right-click the app and choose "Open" (it is not notarized); on Windows, choose "Run anyway" in SmartScreen.
+Download the DMG or zip from the [Download](#download) section above and install it. On macOS, the first time you launch it, right-click the app and choose "Open" (it is not notarized); on Windows, choose "Run anyway" in SmartScreen.
 The first launch downloads the models (about 500 MB) and external tools; on Windows you can also choose to download the CUDA runtime.
-After adding a song (a YouTube link or a dropped file), wait for song preparation to finish, then press "Preview" to open the singing screen. You can listen to the original track or the accompaniment and view the piano roll first; put on headphones and press "Start recording" to begin scoring. The headset button at the top right of the singing screen turns on the vocal return, which sends your voice to the output together with the music. The reverb button next to it switches a hall reverb on or off and sets its mix; replays use it too. Recording, scoring and exported replay files always use the dry voice.
+After adding a song (a YouTube link or a dropped file), wait for song preparation to finish, then press "Preview" to open the singing screen. You can listen to the original track or the accompaniment and view the piano roll first; put on headphones and press "Start recording" to begin scoring. The microphone button at the top right of the singing screen opens a panel that turns on the vocal return, which sends your voice to the output together with the music; the same panel switches a hall reverb on or off and sets its mix, and replays use it too. Recording, scoring and exported replay files always use the dry voice.
 For the full steps, data locations and FAQ, see [docs/INSTALL.md](docs/INSTALL.md) (Chinese).
 
 ## Building

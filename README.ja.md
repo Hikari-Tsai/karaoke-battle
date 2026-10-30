@@ -25,7 +25,7 @@ F0 曲線を表示し、歌い終わると音程、リズム、安定感、ビ�
 ## ダウンロード
 
 <p align="center">
-  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-000000?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1F1F" height="44" alt="macOS 版をダウンロード（Apple Silicon + Intel）"></a>
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-F2F2F2?style=for-the-badge&logo=apple&logoColor=black&labelColor=D9D9D9"><img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-000000?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1F1F" height="44" alt="macOS 版をダウンロード（Apple Silicon + Intel）"></picture></a>
   &nbsp;
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" height="44" alt="Windows 版をダウンロード（10／11 x64）"></a>
 </p>
@@ -112,9 +112,9 @@ GAME の重みは非商用ライセンスのため、アプリ全体の利用も
 
 ## インストールと使い方
 
-上部のバッジから DMG または zip をダウンロードしてインストールしてください。macOS では初回、アプリを右クリックして「開く」を選んでください（未公証のため）。Windows では SmartScreen で「実行」を選んでください。
+上の「[ダウンロード](#ダウンロード)」から DMG または zip をダウンロードしてインストールしてください。macOS では初回、アプリを右クリックして「開く」を選んでください（未公証のため）。Windows では SmartScreen で「実行」を選んでください。
 初回起動時にモデル（約 500 MB）と外部ツールをダウンロードします。Windows では CUDA ランタイムのダウンロードも選択できます。
-曲を追加（YouTube リンクまたはファイルのドラッグ＆ドロップ）したら曲の準備が終わるまで待ち、「プレビュー」を押して歌唱画面に入ります。先に原曲や伴奏を聴きながらピアノロールを確認でき、ヘッドホンを着けて「録音開始」を押すと採点が始まります。歌唱画面右上のヘッドセットボタンでボーカルリターンをオンにすると、自分の声が音楽と一緒に出力されます。隣のリバーブボタンでホールリバーブのオン／オフとミックスを調整でき、リプレイにも適用されます。録音・採点・書き出したリプレイファイルは常にドライの声を使います。
+曲を追加（YouTube リンクまたはファイルのドラッグ＆ドロップ）したら曲の準備が終わるまで待ち、「プレビュー」を押して歌唱画面に入ります。先に原曲や伴奏を聴きながらピアノロールを確認でき、ヘッドホンを着けて「録音開始」を押すと採点が始まります。歌唱画面右上のマイクボタンを押すとパネルが開き、ボーカルリターンをオンにすると自分の声が音楽と一緒に出力されます。同じパネルでホールリバーブのオン／オフとミックスを調整でき、リプレイにも適用されます。録音・採点・書き出したリプレイファイルは常にドライの声を使います。
 手順の詳細、データの保存場所、よくある質問は [docs/INSTALL.md](docs/INSTALL.md)（中国語）をご覧ください。
 
 ## ビルド

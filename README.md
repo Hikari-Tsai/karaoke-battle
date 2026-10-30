@@ -26,7 +26,7 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 ## 下載
 
 <p align="center">
-  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-000000?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1F1F" height="44" alt="下載 macOS 版（Apple Silicon + Intel）"></a>
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-F2F2F2?style=for-the-badge&logo=apple&logoColor=black&labelColor=D9D9D9"><img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20%2B%20Intel-000000?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1F1F" height="44" alt="下載 macOS 版（Apple Silicon + Intel）"></picture></a>
   &nbsp;
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" height="44" alt="下載 Windows 版（10／11 x64）"></a>
 </p>
@@ -114,9 +114,9 @@ GAME 權重為非商業授權，整個 App 的使用因此受該條款約束。
 
 ## 安裝與使用
 
-從上方徽章下載 DMG 或 zip 安裝。macOS 第一次請在 App 上按右鍵「打開」（未公證）；Windows 在 SmartScreen 選「仍要執行」。
+從上方「[下載](#下載)」區下載 DMG 或 zip 安裝。macOS 第一次請在 App 上按右鍵「打開」（未公證）；Windows 在 SmartScreen 選「仍要執行」。
 首次啟動會下載模型（約 500 MB）與外部工具，Windows 另可選擇下載 CUDA 執行環境。
-新增歌曲（YouTube 連結或拖入檔案）後等待備歌完成，按「預覽」進入演唱頁，可先聽原曲或伴奏並看鋼琴卷軸，戴上耳機按「開始錄製」才開始評分。演唱頁右上角的耳機按鈕可開啟人聲返送（Vocal Return），把自己的聲音和音樂一起送到輸出；旁邊的殘響按鈕可開關 Hall 殘響並調整混合比例，回放時也會套用。錄音、計分與匯出的重播檔一律使用乾聲。
+新增歌曲（YouTube 連結或拖入檔案）後等待備歌完成，按「預覽」進入演唱頁，可先聽原曲或伴奏並看鋼琴卷軸，戴上耳機按「開始錄製」才開始評分。演唱頁右上角的麥克風按鈕可開啟人聲返送（Vocal Return），把自己的聲音和音樂一起送到輸出，同一個面板也能開關 Hall 殘響並調整混合比例，回放時也會套用。錄音、計分與匯出的重播檔一律使用乾聲。
 完整步驟、資料位置與常見問題見 [docs/INSTALL.md](docs/INSTALL.md)。
 
 ## 建置
