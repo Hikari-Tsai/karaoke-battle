@@ -55,7 +55,7 @@ YouTube のリンクを貼るか動画・音声ファイルをドロップする
 
 リプレイでは音ゲーのように再生位置で PERFECT／GREAT／GOOD／MISS の判定が表示されます。リプレイは zip（採点データと歌声の録音）に書き出して友達に送れ、相手は読み込むだけであなたの歌唱を見られます。
 
-<p align="center"><img src="docs/media/replay.gif" width="720" alt="リプレイで PERFECT などの判定が表示される"></p>
+<p align="center"><img src="docs/media/replay.gif" width="720" alt="リプレイで PERFECT・GREAT・GOOD・MISS の判定が表示される"></p>
 
 ### 音符を手で直せる
 

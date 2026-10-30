@@ -57,7 +57,7 @@ Right after you sing you get a 0–100 score on a scale close to DAM's Seimitsu 
 
 The replay pops PERFECT / GREAT / GOOD / MISS judgements at the playhead, rhythm-game style. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take.
 
-<p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT judgements popping up"></p>
+<p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT, GREAT, GOOD and MISS judgements popping up"></p>
 
 ### Fix notes by hand
 

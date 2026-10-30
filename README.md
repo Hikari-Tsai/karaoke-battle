@@ -56,7 +56,7 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 回放時像音遊一樣在播放線上跳出 PERFECT／GREAT／GOOD／MISS 判定。重播檔可以匯出成 zip（評分資料加上演唱錄音）傳給朋友，對方匯入後就能看你的演唱。
 
-<p align="center"><img src="docs/media/replay.gif" width="720" alt="回放時跳出 PERFECT 等節奏判定"></p>
+<p align="center"><img src="docs/media/replay.gif" width="720" alt="回放時在播放線上跳出 PERFECT、GREAT、GOOD、MISS 判定"></p>
 
 ### 手動修正音符
 
