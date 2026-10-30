@@ -101,29 +101,31 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           if (!l.isEmpty) lyrics = l;
         }
       } catch (_) {}
-      // Rhythm judgements of the take, placed at their notes' onsets; the
-      // signed onset error (sung minus expected) gives FAST / LATE.
+      // Judgement pop-ups at the notes' onsets: the onset's rhythm
+      // judgement combined with the note's pitch (see JudgementMark.forNote).
       final judgements = <JudgementMark>[];
       final rj = score?.raw['rhythm'];
       if (rj is Map) {
         final errors = <int, double>{};
+        final cents = <int, double>{};
         final nm = score?.raw['note_metrics'];
         if (nm is Map) {
           for (final e in (nm['per_note'] as List? ?? const [])) {
-            if (e is Map && e['index'] is num && e['onset_error_ms'] is num) {
-              errors[(e['index'] as num).toInt()] = (e['onset_error_ms'] as num).toDouble();
-            }
+            if (e is! Map || e['index'] is! num) continue;
+            final i = (e['index'] as num).toInt();
+            if (e['onset_error_ms'] is num) errors[i] = (e['onset_error_ms'] as num).toDouble();
+            if (e['cents_deviation'] is num) cents[i] = (e['cents_deviation'] as num).toDouble();
           }
         }
         for (final n in (rj['notes'] as List? ?? const [])) {
           final i = (n['index'] as num).toInt();
           if (i < 0 || i >= notes.length) continue;
-          final err = errors[i];
-          judgements.add(JudgementMark(
+          judgements.add(JudgementMark.forNote(
             time: notes.onset[i],
-            tier: n['onset'] as String,
             midi: notes.pitch[i] + _pitchShift,
-            fast: err == null || err == 0 ? null : err < 0,
+            timing: n['onset'] as String,
+            onsetErrorMs: errors[i],
+            cents: cents[i],
           ));
         }
         judgements.sort((a, b) => a.time.compareTo(b.time));

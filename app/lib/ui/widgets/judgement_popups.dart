@@ -4,10 +4,15 @@
 // * Position: on the judgement line (the playhead) just above the judged
 //   note's row, like CHUNITHM's judgements over the lane at the line and
 //   maimai's at the sensor that was hit.
+// * Tier: the worse of the note's timing judgement (onset, from the rhythm
+//   sub-score) and a pitch tier from its median deviation, so an off-key
+//   note cannot show PERFECT. Display only; the scores are unchanged.
 // * Type: heavy italic capitals with a gradient fill, a dark outline and a
 //   glow in the tier colour (maimai: PERFECT yellow-orange, GREAT pink,
-//   GOOD green, MISS grey). GREAT and GOOD carry a small FAST (blue) or
-//   LATE (red) tag underneath, as maimai's FAST/LATE display does.
+//   GOOD green, MISS grey). Small tags underneath say why a note lost
+//   points: FAST (blue) / LATE (red) when the timing was GREAT or GOOD, as
+//   maimai's FAST/LATE display does, and HIGH (orange) / LOW (violet) when
+//   the pitch was off by more than [JudgementMark.pitchTagCents].
 // * Motion: pops in large and settles with a small overshoot (~110 ms),
 //   holds, then drifts up while fading (gone after 0.45 s). MISS does not
 //   pop: it appears flat and sinks while fading.
@@ -19,14 +24,61 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// One judged note: when it starts, its tier, where it sits and whether it
-/// was early (true), late (false) or neither / unknown (null).
+const _tiers = ['perfect', 'great', 'good', 'miss'];
+
+/// Pitch tier of a note from its median deviation in cents.
+String pitchTier(double cents) {
+  final c = cents.abs();
+  if (c <= JudgementMark.pitchPerfectCents) return 'perfect';
+  if (c <= JudgementMark.pitchGreatCents) return 'great';
+  if (c <= JudgementMark.pitchGoodCents) return 'good';
+  return 'miss';
+}
+
+/// The lower of two tiers.
+String worseTier(String a, String b) {
+  final i = _tiers.indexOf(a), j = _tiers.indexOf(b);
+  return _tiers[math.max(i < 0 ? 3 : i, j < 0 ? 3 : j)];
+}
+
+/// One judged note: when it starts, its tier, where it sits and the tags
+/// shown under it (null = no tag).
 class JudgementMark {
-  const JudgementMark({required this.time, required this.tier, required this.midi, this.fast});
+  const JudgementMark({required this.time, required this.tier, required this.midi, this.fast, this.high});
+
+  /// Combines the timing judgement of a note's onset with its pitch:
+  /// [onsetErrorMs] is sung minus expected (negative = early), [cents] the
+  /// note's median deviation (positive = sharp; null = nothing sung).
+  factory JudgementMark.forNote({
+    required double time,
+    required double midi,
+    required String timing,
+    double? onsetErrorMs,
+    double? cents,
+  }) {
+    final timed = (timing == 'great' || timing == 'good') && onsetErrorMs != null && onsetErrorMs != 0;
+    final offKey = cents != null && cents.abs() > pitchTagCents;
+    return JudgementMark(
+      time: time,
+      midi: midi,
+      tier: cents == null ? timing : worseTier(timing, pitchTier(cents)),
+      fast: timed ? onsetErrorMs < 0 : null,
+      high: offKey ? cents > 0 : null,
+    );
+  }
+
+  /// Pitch tiers (median deviation, cents). GOOD ends at the engine's
+  /// in-tune tolerance (half a semitone).
+  static const pitchPerfectCents = 15.0, pitchGreatCents = 30.0, pitchGoodCents = 50.0;
+
+  /// HIGH / LOW is shown beyond this deviation.
+  static const pitchTagCents = 20.0;
+
   final double time;
   final String tier; // perfect | great | good | miss
   final double midi; // as drawn (key shift included)
-  final bool? fast;
+  final bool? fast; // FAST (true) / LATE (false)
+  final bool? high; // HIGH (true) / LOW (false)
 }
 
 class JudgementStyle {
@@ -124,7 +176,7 @@ class JudgementLayer extends StatelessWidget {
                 child: Transform.scale(
                   scale: mo.scale,
                   alignment: Alignment.bottomCenter,
-                  child: JudgementText(tier: mk.tier, fast: mk.fast),
+                  child: JudgementText(tier: mk.tier, fast: mk.fast, high: mk.high),
                 ),
               ),
             ));
@@ -136,11 +188,13 @@ class JudgementLayer extends StatelessWidget {
   }
 }
 
-/// The judgement word (gradient, outline, glow) with its FAST/LATE tag.
+/// The judgement word (gradient, outline, glow) with its FAST/LATE and
+/// HIGH/LOW tags.
 class JudgementText extends StatelessWidget {
-  const JudgementText({super.key, required this.tier, this.fast, this.fontSize = 26});
+  const JudgementText({super.key, required this.tier, this.fast, this.high, this.fontSize = 26});
   final String tier;
   final bool? fast;
+  final bool? high;
   final double fontSize;
 
   static TextStyle _base(double size) => TextStyle(
@@ -178,23 +232,34 @@ class JudgementText extends StatelessWidget {
         child: Text(st.label, style: base.copyWith(color: Colors.white)),
       ),
     ]);
-    final tagColor = fast == null ? null : (fast! ? const Color(0xFF3FA9FF) : const Color(0xFFFF4D4D));
+    final tags = [
+      if (fast != null) (fast! ? 'FAST' : 'LATE', fast! ? const Color(0xFF3FA9FF) : const Color(0xFFFF4D4D)),
+      if (high != null) (high! ? 'HIGH' : 'LOW', high! ? const Color(0xFFFF9F2E) : const Color(0xFFB58CFF)),
+    ];
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         word,
-        if (tagColor != null && (tier == 'great' || tier == 'good'))
-          Text(
-            fast! ? 'FAST' : 'LATE',
-            style: _base(fontSize * 0.42).copyWith(
-              color: tagColor,
-              letterSpacing: fontSize * 0.08,
-              shadows: const [
-                Shadow(color: Color(0xFF1A1033), blurRadius: 2),
-                Shadow(color: Color(0xFF1A1033), offset: Offset(0, 1)),
+        if (tags.isNotEmpty)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var k = 0; k < tags.length; k++) ...[
+                if (k > 0) SizedBox(width: fontSize * 0.3),
+                Text(
+                  tags[k].$1,
+                  style: _base(fontSize * 0.42).copyWith(
+                    color: tags[k].$2,
+                    letterSpacing: fontSize * 0.08,
+                    shadows: const [
+                      Shadow(color: Color(0xFF1A1033), blurRadius: 2),
+                      Shadow(color: Color(0xFF1A1033), offset: Offset(0, 1)),
+                    ],
+                  ),
+                ),
               ],
-            ),
+            ],
           ),
       ],
     );

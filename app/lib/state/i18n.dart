@@ -572,9 +572,9 @@ const Map<String, (String, String, String)> _table = {
     '原曲のメロディに合わせて歌いましょう。半音の半分以内なら正解です。配点が最も大きいので、まずここを押さえましょう。',
   ),
   'rules.rhythm': (
-    '每個音的開始和結束都和原唱比對，像音遊一樣判定：差 50 毫秒內 PERFECT、100 毫秒內 GREAT、150 毫秒內 GOOD，再多就是 MISS。快歌判得比較嚴、慢歌比較寬。量過延遲的話，結果頁還會告訴你有沒有搶拍或拖拍的習慣。',
-    'Each note’s start and end are compared with the original like a rhythm game: within 50 ms is PERFECT, 100 ms GREAT, 150 ms GOOD, beyond that MISS. Fast songs are judged more strictly than slow ones. If you measured latency, the results also tell you whether you tend to rush or drag.',
-    '各音の歌い出しと歌い終わりを原曲と比べ、音ゲーのように判定します。50 ミリ秒以内は PERFECT、100 ミリ秒以内は GREAT、150 ミリ秒以内は GOOD、それ以上は MISS。速い曲ほど厳しく、遅い曲ほど緩く判定します。遅延を測定していれば、結果画面で走り・タメの傾向も分かります。',
+    '每個音的開始和結束都和原唱比對，像音遊一樣判定：差 50 毫秒內 PERFECT、100 毫秒內 GREAT、150 毫秒內 GOOD，再多就是 MISS。快歌判得比較嚴、慢歌比較寬。量過延遲的話，結果頁還會告訴你有沒有搶拍或拖拍的習慣。回放時的字卡同時看時間和音準，取較差的那個，並標出 FAST／LATE（早／晚）和 HIGH／LOW（高／低）；字卡只是顯示，不改變分數。',
+    'Each note’s start and end are compared with the original like a rhythm game: within 50 ms is PERFECT, 100 ms GREAT, 150 ms GOOD, beyond that MISS. Fast songs are judged more strictly than slow ones. If you measured latency, the results also tell you whether you tend to rush or drag. Replay pop-ups look at timing and pitch together, show the lower of the two, and tag notes FAST / LATE and HIGH / LOW; they are display only and do not change the score.',
+    '各音の歌い出しと歌い終わりを原曲と比べ、音ゲーのように判定します。50 ミリ秒以内は PERFECT、100 ミリ秒以内は GREAT、150 ミリ秒以内は GOOD、それ以上は MISS。速い曲ほど厳しく、遅い曲ほど緩く判定します。遅延を測定していれば、結果画面で走り・タメの傾向も分かります。リプレイの判定表示はタイミングと音程の両方を見て低いほうを表示し、FAST／LATE（早い／遅い）と HIGH／LOW（高い／低い）も示します。表示のみで点数は変わりません。',
   ),
   'rules.stability': (
     '長音（0.4 秒以上）要唱得穩，音高不要飄來飄去。',

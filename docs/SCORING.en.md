@@ -105,6 +105,21 @@ Modelled on rhythm games such as maimai, CHUNITHM and Taiko no Tatsujin: each re
 * **Alignment**: a single global offset, no DTW, so per-note deviations are not absorbed. With a measured latency (Settings, "Calibrate latency") the recording clock is trusted, so a take that is early or late as a whole counts too; if the estimated global offset exceeds ±150 ms the calibration is assumed stale (e.g. another device) and the estimate is used. Without a measured latency the estimate is always used.
 * **Rushing / dragging**: the median onset error of hit notes; ≤ −25 ms is rushing, ≥ +25 ms is dragging, otherwise steady. Only shown when the recording clock is trusted (after the 走り / タメ meter of DAM's 精密採点).
 
+#### Replay pop-ups (timing + pitch)
+
+The pop-up shown at each note's onset in the replay looks at timing and pitch together and **shows the lower of the two tiers**, so a note that is on time but off key cannot show PERFECT:
+
+| Pop-up | Timing (onset judgement, table above) | Pitch (median deviation of the note) |
+| --- | --- | --- |
+| PERFECT | PERFECT | within ±15 cents |
+| GREAT | GREAT | within ±30 cents |
+| GOOD | GOOD | within ±50 cents |
+| MISS | MISS | beyond ±50 cents |
+
+* Pitch deviation: for every voiced take frame in the note's span, the chroma deviation from the reference curve or the note pitch, whichever is closer (octaves ignored, global transposition removed, as for the matching frames in 4.2); the pop-up uses the median, so a note that starts in tune and then drifts shows it too. A note that was not sung is judged on timing alone.
+* Tags under the word say where the points went: **FAST** (early) or **LATE** (late) when the timing was GREAT / GOOD, and **HIGH** (sharp) or **LOW** (flat) when the pitch was off by more than ±20 cents.
+* **Display only, scores are unchanged**: the rhythm sub-score still uses the timing judgements in the table above, and pitch is scored by the pitch sub-score (weight 40%).
+
 ## 5. Sub-scores and total score
 
 All sub-scores lie in `[0, 1]`, and all mappings are monotonic. `clamp` means clamping to `[0, 1]`.
