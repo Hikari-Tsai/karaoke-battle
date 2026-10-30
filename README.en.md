@@ -25,6 +25,52 @@ quantitative scores for pitch, rhythm, stability, vibrato, expression and long t
 * On Windows, CUDA is the primary acceleration path (detected automatically; if anything is missing, the app prompts you to install the driver and downloads the CUDA runtime),
   with DirectML and CPU as fallbacks. macOS uses the CPU (some models try CoreML). Fallbacks do not affect scoring accuracy, only song preparation speed.
 
+## Features for streamers
+
+Every clip below was recorded from the running app (demo song: "Swansong" by Josh Woodward, CC BY). The GIFs have no sound.
+
+### Viewers request songs that have no karaoke track
+
+**Problem**: most songs you want to sing have no backing track, let alone one that can be scored.<br>
+**Solution**: paste a YouTube link or drop in a media file. In the background the app separates the vocals, builds the accompaniment, and transcribes the melody notes and reference pitch; when it is done you can sing. You can queue several songs at once.
+
+<p align="center"><img src="docs/media/add-song.gif" width="720" alt="Pasting a YouTube link prepares the song in the background"></p>
+
+### You know it sounded off, but not which notes
+
+**Problem**: on stream there is no time to listen back, and you can't tell where you went flat.<br>
+**Solution**: a scrolling piano roll shows every note of the original singer, and your pitch is drawn live on top of it: green is on pitch, yellow is close, red is off. Viewers get it at a glance.
+
+<p align="center"><img src="docs/media/sing.gif" width="720" alt="Singing screen: scrolling piano roll with a live pitch line"></p>
+
+### The key doesn't suit you, and you can't hear yourself in the headphones
+
+**Problem**: the original key is too high or too low, and with headphones on you can't hear your own voice, so you drift.<br>
+**Solution**: Key moves the accompaniment and the reference notes together. The vocal return at the top right sends your voice to the headphones along with the music (and to the stream when OBS captures the app's audio), with an optional hall reverb.
+
+<p align="center"><img src="docs/media/key-voice.gif" width="720" alt="Key shift, vocal return and hall reverb"></p>
+
+### You want to show your score on stream
+
+**Problem**: only you know how well you sang; there's no moment for the audience.<br>
+**Solution**: right after you sing you get a 0–100 score on a scale close to DAM's Seimitsu Saiten, a rank from D to SSS and six sub-scores, and one click turns it into a share card for X, Instagram or Threads. Every take stays in the library, with your best score on top.
+
+<p align="center"><img src="docs/media/results.gif" width="720" alt="Results: total score, rank, sub-scores and the share card"></p>
+
+### You want to look back at that run with your viewers
+
+**Problem**: a single total doesn't show which lines were great and which fell off the beat.<br>
+**Solution**: the replay pops PERFECT / GREAT / GOOD / MISS judgements at the playhead, rhythm-game style. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take.
+
+<p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT judgements popping up"></p>
+
+### The automatic transcription sometimes gets a note wrong
+
+**Problem**: a note transcribed a semitone off makes the score unfair.<br>
+**Solution**: press "Edit notes" and drag a note up or down to fix it. While you drag, a sine tone plays the new pitch (not audible in the GIF). You can restore the original transcription at any time.
+
+<p align="center"><img src="docs/media/edit-notes.gif" width="720" alt="Dragging a note to fix its pitch"></p>
+
 ## Architecture
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BACKENDS.md](docs/BACKENDS.md) and [docs/BUILD.md](docs/BUILD.md) for details.
