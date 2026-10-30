@@ -28,7 +28,6 @@
 1. **曲庫 → 新增歌曲**：貼 YouTube 連結，或拖入影音檔，選歌詞語言。App 在背景完成轉檔、人聲分離、轉 MIDI 與參考音高。
 2. **預覽與演唱**：按「預覽」進入演唱頁，可先播放熟悉旋律；要計分時戴上耳機，按「開始錄製」再播放。捲簾鋼琴卷軸上藍色是原唱音符，你的音高曲線綠色 = 準、黃色 = 接近、紅色 = 偏離。可切原曲 / 伴奏、升降 Key（±6 半音）。
 3. **停止**後自動評分：總分、等級（D 到 SSS）與音準、節奏、安定度、顫音、抑揚、長音六項。八度音視為同一個音，整體移調也不扣分。
-4. 直播可在設定開啟 OBS Overlay 伺服器，把網址加進 OBS 的瀏覽器來源。
 
 完整說明：[docs/INSTALL.md](https://github.com/Hikari-Tsai/karaoke-battle/blob/{{TAG}}/docs/INSTALL.md) ·
 評分方式：[docs/SCORING.md](https://github.com/Hikari-Tsai/karaoke-battle/blob/{{TAG}}/docs/SCORING.md)
