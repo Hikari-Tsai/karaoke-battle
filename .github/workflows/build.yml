@@ -7,7 +7,8 @@
 #   windows  windows-latest runner: ORT DirectML 1.24.4 + DirectML 1.15.4 -> engine (VS2022 x64)
 #            -> flutter build windows --release -> karaoke_engine.dll + onnxruntime.dll + DirectML.dll
 #            next to the exe -> .zip artifact
-#   release  on v* tags only: attaches both artifacts to a GitHub Release.
+#   release  on v* tags only: attaches the DMG, the Windows zip and SHA256SUMS.txt
+#            to a GitHub Release.
 #
 # Secrets (all optional; without them the macOS app is ad-hoc signed and not notarized):
 #   MACOS_CERT_P12        base64 of a "Developer ID Application" .p12
@@ -408,21 +409,18 @@ jobs:
         with:
           path: artifacts
 
-      - name: Package engine artifacts
+      - name: Prepare release files
         shell: bash
         run: |
           set -euo pipefail
-          cd artifacts
-          ls -R
-          V="${{ needs.macos.outputs.version }}"
-          tar -C engine-macos-universal -czf "engine-${V}-macos-universal.tar.gz" .
-          (cd engine-windows-x64 && zip -r "../engine-${V}-windows-x64.zip" .)
-          # Stable file names so README download badges can point at
-          # releases/latest/download/<name> regardless of the version.
-          cp KaraokeBattle-macos-universal/*.dmg "KaraokeBattle-macos-universal.dmg"
-          cp KaraokeBattle-windows-x64/*.zip "KaraokeBattle-windows-x64.zip"
-          sha256sum ./*.tar.gz ./*.zip ./*.dmg */*.dmg */*.zip > "SHA256SUMS-${V}.txt" || true
-          cat "SHA256SUMS-${V}.txt"
+          mkdir dist
+          # One file per platform under a stable name, so README badges can
+          # point at releases/latest/download/<name>; the version is on the
+          # release itself. The bare engine stays a workflow artifact only.
+          cp artifacts/KaraokeBattle-macos-universal/*.dmg dist/KaraokeBattle-macos-universal.dmg
+          cp artifacts/KaraokeBattle-windows-x64/*.zip dist/KaraokeBattle-windows-x64.zip
+          (cd dist && sha256sum KaraokeBattle-* > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          sed "s|{{TAG}}|${GITHUB_REF_NAME}|g" .github/release-body.md > release-body.md
 
       - name: Create release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
@@ -430,14 +428,10 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
           # Installation + usage guide (zh-TW) followed by the auto-generated change list.
-          body_path: .github/release-body.md
+          body_path: release-body.md
           generate_release_notes: true
           files: |
-            artifacts/KaraokeBattle-macos-universal/*.dmg
-            artifacts/KaraokeBattle-windows-x64/*.zip
-            artifacts/KaraokeBattle-macos-universal.dmg
-            artifacts/KaraokeBattle-windows-x64.zip
-            artifacts/engine-*.tar.gz
-            artifacts/engine-*.zip
-            artifacts/SHA256SUMS-*.txt
-          fail_on_unmatched_files: false
+            dist/KaraokeBattle-macos-universal.dmg
+            dist/KaraokeBattle-windows-x64.zip
+            dist/SHA256SUMS.txt
+          fail_on_unmatched_files: true

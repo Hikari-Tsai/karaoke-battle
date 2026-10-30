@@ -13,7 +13,7 @@
 
 ### macOS
 
-1. 下載 `KaraokeBattle-macos-universal.dmg`，打開後把 **Karaoke Battle** 拖到「應用程式」。
+1. 下載 [`KaraokeBattle-macos-universal.dmg`](https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg)，打開後把 **Karaoke Battle** 拖到「應用程式」。
 2. 目前的版本沒有 Apple 公證。第一次開啟時，請在應用程式上**按右鍵 → 打開**，再按一次「打開」；
    之後就能正常雙擊。若出現「已損毀，無法打開」，在終端機執行：
    ```bash
@@ -23,7 +23,7 @@
 
 ### Windows
 
-1. 下載 `KaraokeBattle-windows-x64.zip`，解壓縮到任意資料夾（例如 `C:\KaraokeBattle`）。
+1. 下載 [`KaraokeBattle-windows-x64.zip`](https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip)，解壓縮到任意資料夾（例如 `C:\KaraokeBattle`）。
 2. 執行 `karaoke_battle.exe`。SmartScreen 若出現「Windows 已保護您的電腦」，按「其他資訊 → 仍要執行」。
 3. 若啟動時提示缺少 `VCRUNTIME140.dll`，安裝
    [Visual C++ 2015-2022 x64 可轉散發套件](https://aka.ms/vs/17/release/vc_redist.x64.exe)。

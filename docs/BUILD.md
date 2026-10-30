@@ -209,10 +209,12 @@ downloads all of these into `<app support>/sidecars/` and `<app support>/models/
   `flutter build windows --release` -> copy `karaoke_engine.dll`, `onnxruntime.dll`,
   `onnxruntime_providers_shared.dll`, `DirectML.dll` next to the exe -> artifact
   `KaraokeBattle-windows-x64` (`KaraokeBattle-<version>-windows-x64.zip`).
-* Both jobs also upload the bare engine (`engine-macos-universal`, `engine-windows-x64`)
-  and skip the Flutter steps with a warning while `app/pubspec.yaml` does not exist.
-* `release` (tags only): downloads both artifacts, writes `SHA256SUMS-<version>.txt` and
-  creates the GitHub Release with `softprops/action-gh-release`. A tag containing `-`
+* Both jobs also upload the bare engine (`engine-macos-universal`, `engine-windows-x64`) as
+  workflow artifacts (not attached to releases) and skip the Flutter steps with a warning while `app/pubspec.yaml` does not exist.
+* `release` (tags only): attaches `KaraokeBattle-macos-universal.dmg`,
+  `KaraokeBattle-windows-x64.zip` (stable names for `releases/latest/download/...`) and
+  `SHA256SUMS.txt`, with `.github/release-body.md` as the description (`{{TAG}}` is replaced
+  by the tag), via `softprops/action-gh-release`. A tag containing `-`
   (e.g. `v1.2.0-beta.1`) is marked as a pre-release.
 * The version comes from the tag (`v1.2.3` -> `--build-name 1.2.3`), `--build-number` is the
   run number; non-tag builds use `0.0.0`.
