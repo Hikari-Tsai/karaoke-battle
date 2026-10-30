@@ -10,6 +10,8 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/note_edits.dart';
+import '../../state/scoring_bridge.dart';
+import '../results/new_record_dialog.dart';
 import '../results/replay_screen.dart';
 import '../results/results_screen.dart';
 import '../sing/sing_screen.dart';
@@ -151,6 +153,13 @@ class _SongCardState extends State<_SongCard> {
     if (mounted) _loadTakes();
   }
 
+  Future<void> _share(TakeInfo t) async {
+    final services = context.read<AppServices>();
+    final score = await ScoringBridge.load(t.scoreJson);
+    if (score == null || !mounted) return;
+    await showShareDialog(context, song: widget.song, take: t, score: score, isBest: identical(t, _best), thumbPath: services.library.files(widget.song).thumbJpg);
+  }
+
   Future<void> _reprocess() async {
     final services = context.read<AppServices>();
     final f = services.library.files(widget.song);
@@ -173,7 +182,11 @@ class _SongCardState extends State<_SongCard> {
         content: Text(tr('library.deleteConfirm', {'title': widget.song.title})),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('cancel'))),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('delete'))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(c).colorScheme.error, foregroundColor: Theme.of(c).colorScheme.onError),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(tr('delete')),
+          ),
         ],
       ),
     );
@@ -277,20 +290,20 @@ class _SongCardState extends State<_SongCard> {
                 const SizedBox(width: 4),
                 if (inProgress)
                   IconButton(tooltip: tr('library.cancelPrep'), onPressed: () => services.pipeline.cancel(song.id), icon: const Icon(Icons.stop_circle_outlined))
-                else
+                else ...[
+                  IconButton(tooltip: tr('delete'), onPressed: _delete, icon: const Icon(Icons.delete_outline)),
                   PopupMenuButton<String>(
                     onSelected: (v) => switch (v) {
                       'reprocess' => _reprocess(),
                       'folder' => revealPath(dir),
-                      'delete' => _delete(),
                       _ => null,
                     },
                     itemBuilder: (_) => [
                       PopupMenuItem(value: 'reprocess', child: ListTile(leading: const Icon(Icons.refresh), title: Text(tr('library.reprocess')))),
                       PopupMenuItem(value: 'folder', child: ListTile(leading: const Icon(Icons.folder_open), title: Text(tr('library.showFolder')))),
-                      PopupMenuItem(value: 'delete', child: ListTile(leading: const Icon(Icons.delete_outline), title: Text(tr('delete')))),
                     ],
                   ),
+                ],
                 IconButton(
                   tooltip: tr('library.takes'),
                   icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
@@ -323,6 +336,7 @@ class _SongCardState extends State<_SongCard> {
                     take: t,
                     isBest: identical(t, best),
                     onView: File(t.scoreJson).existsSync() ? () => _openResult(t) : null,
+                    onShare: t.total != null ? () => _share(t) : null,
                     onReplay: File(t.wav).existsSync() && File(t.f0Json).existsSync()
                         ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: song, take: t)))
                         : null,
@@ -359,11 +373,12 @@ class _SongCardState extends State<_SongCard> {
 /// One take: score and rank up front, sub-scores in the subtitle; the best
 /// take of the song is highlighted.
 class _TakeRow extends StatelessWidget {
-  const _TakeRow({required this.take, required this.isBest, required this.onView, this.onReplay});
+  const _TakeRow({required this.take, required this.isBest, required this.onView, this.onReplay, this.onShare});
   final TakeInfo take;
   final bool isBest;
   final VoidCallback? onView;
   final VoidCallback? onReplay;
+  final VoidCallback? onShare;
 
   static const _order = ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'long_tone'];
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
@@ -419,6 +434,8 @@ class _TakeRow extends StatelessWidget {
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           if (onReplay != null)
             IconButton(tooltip: tr('replay.button'), onPressed: onReplay, icon: const Icon(Icons.play_circle_outline)),
+          if (onShare != null)
+            IconButton(tooltip: tr('share.button'), onPressed: onShare, icon: const Icon(Icons.share)),
           TextButton(onPressed: onView, child: Text(tr('library.viewResult'))),
         ]),
       ),
