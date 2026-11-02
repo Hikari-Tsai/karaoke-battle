@@ -10,10 +10,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../engine/engine.dart';
+import '../scoring/rhythm.dart';
 import '../services/song_library.dart';
 import 'app_services.dart';
 import 'beat_grid.dart';
 import 'playback_clock.dart';
+import 'live_judge.dart';
 import 'live_trace.dart';
 import 'scoring_bridge.dart';
 import 'song_data.dart';
@@ -102,6 +104,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   final ValueNotifier<SingHud> hud = ValueNotifier(const SingHud());
   final ValueNotifier<TakeProcessing?> processing = ValueNotifier(null);
   final LiveTrace trace = LiveTrace();
+
+  /// Real-time judgement pop-ups of the current recording (null before the
+  /// first one); shown when the live judgements setting is on.
+  LiveJudge? judge;
 
   TrackKind track = TrackKind.inst;
   double pitchShift = 0;
@@ -209,6 +215,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   void setPitchShift(double semitones) {
     pitchShift = semitones.clamp(-6, 6).roundToDouble();
     _live?.pitchShift = pitchShift;
+    judge?.pitchShift = pitchShift;
     notifyListeners();
   }
 
@@ -235,7 +242,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     if (l == null) return;
     final pos = l.position;
     playing = l.isPlaying;
-    if (recording) _drainFrames(l, pos);
+    if (recording) {
+      _drainFrames(l, pos);
+      judge?.update(pos);
+    }
     position.value = pos;
     // Throttled HUD update (~15 Hz).
     final now = DateTime.now();
@@ -263,6 +273,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     for (final f in frames) {
       if (f.source != _wantedSource) continue;
       final voiced = f.f0 > 0 && (f.source == 0 || f.confidence >= 0.5) && (!gateOn || f.rmsDb >= gateDb);
+      judge?.addFrame(f.time, voiced ? hzToMidi(f.f0) : double.nan);
       if (!voiced) {
         _pendingHud = SingHud(noteName: '—', cents: double.nan, voiced: false, refNoteName: _pendingHud.refNoteName);
         _hudDirty = true;
@@ -315,6 +326,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       if (l.isPlaying) l.pause();
       l.seek(0);
       trace.clear();
+      judge = LiveJudge(notes: notes, windows: RhythmWindows.forTempo(beatGrid.bpm), pitchShift: pitchShift);
       l.startCapture(runtime: rt, swiftF0ModelPath: model, mode: mode);
       recording = true;
       recordStartedAt = DateTime.now();

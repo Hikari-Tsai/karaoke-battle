@@ -120,6 +120,15 @@ The pop-up shown at each note's onset in the replay looks at timing and pitch to
 * Tags under the word say where the points went: **FAST** (early) or **LATE** (late) when the timing was GREAT / GOOD, and **HIGH** (sharp) or **LOW** (flat) when the pitch was off by more than ±20 cents.
 * **Display only, scores are unchanged**: the rhythm sub-score still uses the timing judgements in the table above, and pitch is scored by the pitch sub-score (weight 40%).
 
+#### Live pop-ups while singing
+
+The same pop-ups also appear live while recording (the star button at the top right of the singing screen turns them on or off; on by default). Tiers and tags follow the replay rules, estimated from the microphone pitch received so far:
+
+* **Onset**: within the note's GOOD window (not before the previous note ends), the first run of at least 40 ms within half a semitone of the note pitch; its start minus the note onset is the timing error. No such run is a MISS.
+* **Pitch**: the median deviation of the voiced frames from the note onset to the judgement time, against the note pitch only (not the original's pitch curve).
+* **Judgement time**: 0.3 s after the onset (the note's end if it is shorter, but not before the GOOD window closes), so each pop-up comes up shortly after its note starts.
+* They are live feedback for the singer; **the score still comes from the whole recording after the take**. They see less of each note than the replay, so they tend to be slightly stricter. On three real takes they matched the post-take tier for about 72–83% of notes and were within one tier for about 95%.
+
 ## 5. Sub-scores and total score
 
 All sub-scores lie in `[0, 1]`, and all mappings are monotonic. `clamp` means clamping to `[0, 1]`.

@@ -143,6 +143,10 @@ class AppSettings extends ChangeNotifier {
   double get reverbMix => _get('reverb_mix', 0.25);
   Future<void> setReverbMix(double v) => _set('reverb_mix', v.clamp(0.0, 1.0).toDouble());
 
+  /// Rhythm-game judgement pop-ups while recording.
+  bool get liveJudgements => _get('live_judgements', true);
+  Future<void> setLiveJudgements(bool v) => _set('live_judgements', v);
+
   /// Name written into exported replay files.
   String get playerName => _prefs.getString('player_name') ?? '';
   Future<void> setPlayerName(String v) => _set('player_name', v.trim());

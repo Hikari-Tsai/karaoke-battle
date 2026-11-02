@@ -48,7 +48,7 @@ Paste a YouTube link or drop in a media file. In the background the app separate
 
 ### See exactly which notes went off
 
-A scrolling piano roll shows every note of the original singer, and your pitch is drawn live on top of it: green is on pitch, yellow is close, red is off. Viewers get it at a glance.
+A scrolling piano roll shows every note of the original singer, and your pitch is drawn live on top of it: green is on pitch, yellow is close, red is off. Viewers get it at a glance. Each note also pops a rhythm-game PERFECT / GREAT / GOOD / MISS judgement as you sing it (the star button at the top right turns them off).
 
 <p align="center"><img src="docs/media/sing.gif" width="720" alt="Singing screen: scrolling piano roll with a live pitch line"></p>
 

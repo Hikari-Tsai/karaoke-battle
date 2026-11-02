@@ -26,6 +26,7 @@ import 'tempo_dialog.dart';
 import 'video_pane.dart';
 import '../widgets/calibration.dart';
 import '../widgets/metronome_icon.dart';
+import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
 
 class SingScreen extends StatefulWidget {
@@ -580,6 +581,10 @@ class _SingScreenState extends State<SingScreen>
                                       ),
                                     ),
                                     const SizedBox(width: 6),
+                                    const _StageButton(
+                                      child: _LiveJudgementsButton(),
+                                    ),
+                                    const SizedBox(width: 6),
                                     if (_lyrics != null)
                                       _StageButton(
                                         child: LyricsMenu(
@@ -948,24 +953,50 @@ class _RollAreaState extends State<_RollArea> {
                                     ({double min, double max})
                                   >(
                                     valueListenable: _range,
-                                    builder: (context, range, _) =>
-                                        PianoRollView(
-                                          notes: s.notes,
-                                          refF0: s.refF0,
-                                          trace: s.trace,
-                                          minMidi: range.min,
-                                          maxMidi: range.max,
-                                          position: s.position,
-                                          windowSeconds: s.windowSeconds,
-                                          pitchShift: s.pitchShift,
-                                          overlay: widget.below.isNotEmpty,
-                                          selectedNote: widget.editing
-                                              ? widget.selectedNote
-                                              : null,
-                                          revision: widget.revision,
-                                          beatTimes: s.beatGrid.times,
-                                          beatAccents: s.beatGrid.accents,
-                                        ),
+                                    builder: (context, range, _) {
+                                      final roll = PianoRollView(
+                                        notes: s.notes,
+                                        refF0: s.refF0,
+                                        trace: s.trace,
+                                        minMidi: range.min,
+                                        maxMidi: range.max,
+                                        position: s.position,
+                                        windowSeconds: s.windowSeconds,
+                                        pitchShift: s.pitchShift,
+                                        overlay: widget.below.isNotEmpty,
+                                        selectedNote: widget.editing
+                                            ? widget.selectedNote
+                                            : null,
+                                        revision: widget.revision,
+                                        beatTimes: s.beatGrid.times,
+                                        beatAccents: s.beatGrid.accents,
+                                      );
+                                      final judge = s.judge;
+                                      if (judge == null ||
+                                          !s.recording ||
+                                          !context
+                                              .watch<AppSettings>()
+                                              .liveJudgements) {
+                                        return roll;
+                                      }
+                                      // Live judgement pop-ups, drawn with
+                                      // the roll's own geometry.
+                                      return Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          roll,
+                                          IgnorePointer(
+                                            child: JudgementLayer(
+                                              position: s.position,
+                                              marks: judge.marks,
+                                              minMidi: range.min,
+                                              maxMidi: range.max,
+                                              windowSeconds: s.windowSeconds,
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
                                   ),
                             ),
                           ),
@@ -1175,6 +1206,25 @@ class _TempoChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Turns the live judgement pop-ups on or off (on by default).
+class _LiveJudgementsButton extends StatelessWidget {
+  const _LiveJudgementsButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<AppSettings>();
+    final on = st.liveJudgements;
+    return IconButton(
+      tooltip: tr(on ? 'sing.liveJudgementsOn' : 'sing.liveJudgementsOff'),
+      onPressed: () => st.setLiveJudgements(!on),
+      icon: Icon(
+        on ? Icons.stars : Icons.stars_outlined,
+        color: on ? const Color(0xFFFFD60A) : Colors.white70,
       ),
     );
   }
