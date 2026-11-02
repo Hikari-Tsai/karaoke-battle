@@ -20,7 +20,7 @@ sing, a scrolling piano roll shows the reference melody alongside your live F0 c
 quantitative scores for pitch, rhythm, stability, vibrato, expression and long tone.
 
 * macOS (Universal, Apple Silicon + Intel) and Windows x64; a Flutter desktop app with a native C++ engine.
-* All models are downloaded from Hugging Face `aaatmy/*` on first run and verified with SHA-256; the installer does not bundle any models.
+* All models are downloaded from Hugging Face `aaatmy/*` on first run and verified with SHA-256; the installer does not bundle any models. If a model file goes missing later, it is downloaded again when it is needed.
 * On Windows, CUDA is the primary acceleration path (detected automatically; if anything is missing, the app prompts you to install the driver and downloads the CUDA runtime),
   with DirectML and CPU as fallbacks. macOS uses the CPU (some models try CoreML). Fallbacks do not affect scoring accuracy, only song preparation speed.
 
@@ -64,9 +64,9 @@ Right after you sing you get a 0–100 score on a scale close to DAM's Seimitsu 
 
 <p align="center"><img src="docs/media/results.gif" width="720" alt="Results: total score, rank, sub-scores and the share card"></p>
 
-### Rhythm-game style replays
+### Rhythm-game style judgements
 
-The replay pops PERFECT / GREAT / GOOD / MISS judgements at the playhead, rhythm-game style. Each one weighs timing and pitch together and is tagged FAST / LATE and HIGH / LOW, so you can see at a glance whether a note was early, late, sharp or flat. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take.
+While you sing and in the replay, PERFECT / GREAT / GOOD / MISS judgements pop up at the playhead, rhythm-game style. Each one weighs timing and pitch together and is tagged FAST / LATE and HIGH / LOW, so you can see at a glance whether a note was early, late, sharp or flat. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take.
 
 <p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT, GREAT, GOOD and MISS judgements popping up"></p>
 
@@ -107,6 +107,8 @@ When you finish singing, the recorded F0 curve is aligned and compared with the 
 **pitch** (Raw Chroma Accuracy), **rhythm** (rhythm-game style PERFECT / GREAT / GOOD / MISS per note, with windows scaled by BPM), **stability**,
 **vibrato**, **expression** (correlation of energy curves) and **long tone**. Their weighted total is mapped to a 0–100 score on a scale close to DAM 精密採点 (around 80 is typical, 90 and above is good), with a rank from D to SSS.
 
+The judgement pop-ups shown while singing and in the replay weigh timing and pitch together and carry FAST / LATE and HIGH / LOW tags; they are display only, and the score comes from the whole recording after the take.
+
 Three key design points: **notes an octave apart count as the same note** (singing an octave higher or lower is still correct), **global transposition is allowed**
 (a single semitone offset for the whole song, estimated automatically), and **slides in the original vocals and GAME transcription errors are tolerated**: each frame's
 target includes both the original singer's F0 curve and the GAME note pitch, and matching either one counts as correct, so you can follow the original's slides or sing the notes straight.
@@ -116,7 +118,7 @@ For the full alignment method, metric definitions, formulas and calibration resu
 
 Download the DMG or zip from the [Download](#download) section above and install it. On macOS, the first time you launch it, right-click the app and choose "Open" (it is not notarized); on Windows, choose "Run anyway" in SmartScreen.
 The first launch downloads the models (about 500 MB) and external tools; on Windows you can also choose to download the CUDA runtime.
-After adding a song (a YouTube link or a dropped file), wait for song preparation to finish, then press "Preview" to open the singing screen. You can listen to the original track or the accompaniment and view the piano roll first; put on headphones and press "Start recording" to begin scoring. The microphone button at the top right of the singing screen opens a panel that turns on the vocal return, which sends your voice to the output together with the music; the same panel switches a hall reverb on or off and sets its mix, and replays use it too. Recording, scoring and exported replay files always use the dry voice.
+After adding a song (a YouTube link or a dropped file), wait for song preparation to finish, then press "Preview" to open the singing screen. You can listen to the original track or the accompaniment and view the piano roll first; put on headphones and press "Start recording" to begin scoring. The microphone button at the top right of the singing screen opens a panel that turns on the vocal return, which sends your voice to the output together with the music; the same panel switches a hall reverb on or off and sets its mix, and replays use it too. The star button next to it turns the live judgement pop-ups on or off (on by default). Recording, scoring and exported replay files always use the dry voice. If scoring did not finish, expand the song in the library and press "Score" next to the take to score it again.
 For the full steps, data locations and FAQ, see [docs/INSTALL.md](docs/INSTALL.md) (Chinese).
 
 ## Building
