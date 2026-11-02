@@ -11,6 +11,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/note_edits.dart';
 import '../../state/scoring_bridge.dart';
+import '../../state/sing_session.dart';
 import '../results/new_record_dialog.dart';
 import '../results/replay_screen.dart';
 import '../results/results_screen.dart';
@@ -158,6 +159,58 @@ class _SongCardState extends State<_SongCard> {
     final score = await ScoringBridge.load(t.scoreJson);
     if (score == null || !mounted) return;
     await showShareDialog(context, song: widget.song, take: t, score: score, isBest: identical(t, _best), thumbPath: services.library.files(widget.song).thumbJpg);
+  }
+
+  /// Scores a take whose scoring did not finish (e.g. a model was missing).
+  Future<void> _scoreTake(TakeInfo t) async {
+    final services = context.read<AppServices>();
+    final progress = ValueNotifier(const TakeProcessing('sing.extractingF0', 0));
+    final nav = Navigator.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        content: ValueListenableBuilder<TakeProcessing>(
+          valueListenable: progress,
+          builder: (_, p, _) => Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(tr(p.stage)),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(value: p.fraction > 0 ? p.fraction : null),
+          ]),
+        ),
+      ),
+    );
+    Object? error;
+    try {
+      await SingSession.scoreTake(
+        services: services,
+        files: services.library.files(widget.song),
+        take: t,
+        octaveInvariant: services.settings.octaveInvariant,
+        onProgress: (p) => progress.value = p,
+      );
+    } catch (e) {
+      error = e;
+    } finally {
+      nav.pop();
+      progress.dispose();
+    }
+    if (!mounted) return;
+    if (error != null) {
+      await showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(tr('error')),
+          content: SelectableText('$error'),
+          actions: [TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('close')))],
+        ),
+      );
+      return;
+    }
+    await _loadTakes();
+    if (!mounted) return;
+    final scored = _takes?.where((x) => x.id == t.id).firstOrNull;
+    if (scored != null) await _openResult(scored);
   }
 
   Future<void> _reprocess() async {
@@ -337,6 +390,7 @@ class _SongCardState extends State<_SongCard> {
                     isBest: identical(t, best),
                     onView: File(t.scoreJson).existsSync() ? () => _openResult(t) : null,
                     onShare: t.total != null ? () => _share(t) : null,
+                    onScore: t.total == null && File(t.wav).existsSync() ? () => _scoreTake(t) : null,
                     onReplay: File(t.wav).existsSync() && File(t.f0Json).existsSync()
                         ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: song, take: t)))
                         : null,
@@ -373,12 +427,13 @@ class _SongCardState extends State<_SongCard> {
 /// One take: score and rank up front, sub-scores in the subtitle; the best
 /// take of the song is highlighted.
 class _TakeRow extends StatelessWidget {
-  const _TakeRow({required this.take, required this.isBest, required this.onView, this.onReplay, this.onShare});
+  const _TakeRow({required this.take, required this.isBest, required this.onView, this.onReplay, this.onShare, this.onScore});
   final TakeInfo take;
   final bool isBest;
   final VoidCallback? onView;
   final VoidCallback? onReplay;
   final VoidCallback? onShare;
+  final VoidCallback? onScore;
 
   static const _order = ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'long_tone'];
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
@@ -436,7 +491,10 @@ class _TakeRow extends StatelessWidget {
             IconButton(tooltip: tr('replay.button'), onPressed: onReplay, icon: const Icon(Icons.play_circle_outline)),
           if (onShare != null)
             IconButton(tooltip: tr('share.button'), onPressed: onShare, icon: const Icon(Icons.share)),
-          TextButton(onPressed: onView, child: Text(tr('library.viewResult'))),
+          if (onScore != null)
+            TextButton(onPressed: onScore, child: Text(tr('library.scoreTake')))
+          else
+            TextButton(onPressed: onView, child: Text(tr('library.viewResult'))),
         ]),
       ),
     );

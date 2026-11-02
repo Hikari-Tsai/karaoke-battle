@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 
 import '../engine/engine.dart';
 import '../scoring/rhythm.dart';
+import '../services/model_registry.dart';
 import '../services/song_library.dart';
 import 'app_services.dart';
 import 'beat_grid.dart';
@@ -367,32 +368,62 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   /// Extracts F0 from the take and scores it. Throws on failure.
   Future<ScoreData> processTake(TakeInfo take) async {
-    processing.value = const TakeProcessing('sing.extractingF0', 0);
+    try {
+      return await scoreTake(
+        services: services,
+        files: files,
+        take: take,
+        octaveInvariant: _octaveInvariant,
+        onProgress: (p) => processing.value = p,
+      );
+    } finally {
+      processing.value = null;
+    }
+  }
+
+  /// Scores a saved take: extracts its F0 with SwiftF0 (downloading the
+  /// model first when it is missing) and writes score.json. Also used to
+  /// score a take whose scoring failed earlier.
+  static Future<ScoreData> scoreTake({
+    required AppServices services,
+    required SongFiles files,
+    required TakeInfo take,
+    required bool octaveInvariant,
+    void Function(TakeProcessing)? onProgress,
+  }) async {
+    final model = ModelRegistry.swiftF0;
+    if (!await services.models.isInstalled(model)) {
+      onProgress?.call(const TakeProcessing('sing.downloadingModel', 0));
+      await services.models.install(
+        model,
+        onProgress: (_, _, done, total) => onProgress?.call(TakeProcessing('sing.downloadingModel', total > 0 ? done / total : 0)),
+      );
+    }
+    onProgress?.call(const TakeProcessing('sing.extractingF0', 0));
     final rt = await services.backend.runtime();
     final job = rt.f0Extract(modelPath: services.swiftF0ModelPath, inputWav: take.wav, f0Out: take.f0Json);
-    final sub = job.progress.listen((p) => processing.value = TakeProcessing('sing.extractingF0', p.fraction));
+    final sub = job.progress.listen((p) => onProgress?.call(TakeProcessing('sing.extractingF0', p.fraction)));
     try {
       await job.done;
     } finally {
       await sub.cancel();
     }
-    processing.value = const TakeProcessing('sing.scoring', 0);
-    final result = await ScoringBridge.scoreAndSave(
+    onProgress?.call(const TakeProcessing('sing.scoring', 0));
+    final settings = services.settings;
+    return ScoringBridge.scoreAndSave(
       notesJsonPath: files.notesJson,
       refF0JsonPath: files.refF0Json,
       takeF0JsonPath: take.f0Json,
       scoreJsonPath: take.scoreJson,
-      octaveInvariant: _octaveInvariant,
+      octaveInvariant: octaveInvariant,
       takeTimeOffset: await takeTimeOffset(take),
       takeWavPath: take.wav,
       referenceWavPath: files.vocalsWav,
-      noiseGateDb: services.settings.noiseGateEnabled ? services.settings.noiseGateDb : null,
+      noiseGateDb: settings.noiseGateEnabled ? settings.noiseGateDb : null,
       // Rhythm windows follow the song tempo (manual BPM first, else detected).
       tempoBpm: (await TempoOverride.load(files.tempoJson)).bpm ?? (await DetectedBeats.load(files.beatsJson))?.bpm,
-      calibratedTiming: services.settings.latencySeconds != null,
+      calibratedTiming: settings.latencySeconds != null,
     );
-    processing.value = null;
-    return result;
   }
 
   /// Offset to add to take-file time to get track time (from the capture sidecar).
