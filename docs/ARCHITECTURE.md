@@ -113,7 +113,8 @@ Reference: `inference/me_infer.py`, `inference/data.py`, `inference/callbacks.py
    Additionally split slices longer than `max_chunk_seconds` at the quietest frame.
 2. Per slice (batch 1):
    * `encoder(waveform[1,L], duration[1]=L/sr)` → `x_seg[1,T,C]`, `x_est`, `maskT[1,T]`
-   * `known_boundaries = dur2bd(durations=[[duration]], maskT)`
+   * `known_boundaries = dur2bd(durations=[[duration]], maskT)`, which is all false for a single duration,
+     so the engine fills zeros instead of running dur2bd (its graph reduces over an empty axis, which the CUDA EP rejects)
    * `boundaries = known_boundaries`; for `t in t0 + i*(1-t0)/nsteps, i=0..nsteps-1` (default 0, 0.125, …, 0.875):
      `boundaries = segmenter(x_seg, language[1], known_boundaries, prev_boundaries=boundaries, t[1], maskT, threshold=0.2, radius=round(0.02/0.01)=2)`
    * `durations, maskN = bd2dur(boundaries, maskT)`

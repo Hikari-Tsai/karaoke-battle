@@ -44,7 +44,7 @@ struct Model {
     double timestep = 0.01;
     std::map<std::string, int> languages;   // name -> id (0 = unknown / universal)
     bool loop = true;
-    std::unique_ptr<OrtSession> encoder, segmenter, estimator, dur2bd, bd2dur;
+    std::unique_ptr<OrtSession> encoder, segmenter, estimator, bd2dur;
 
     Model();
     ~Model();

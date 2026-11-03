@@ -108,7 +108,8 @@ std::unique_ptr<Model> Model::load(ke_runtime* rt, const std::string& model_dir,
     struct Entry { const char* file; std::unique_ptr<OrtSession>* slot; };
     const Entry entries[] = {
         {"encoder.onnx", &m->encoder}, {"segmenter.onnx", &m->segmenter}, {"estimator.onnx", &m->estimator},
-        {"dur2bd.onnx", &m->dur2bd}, {"bd2dur.onnx", &m->bd2dur},
+        {"bd2dur.onnx", &m->bd2dur},
+        // dur2bd.onnx is not loaded: see the known boundaries in run_chunk.
     };
     for (const Entry& e : entries) {
         std::string err;
@@ -162,16 +163,12 @@ int Model::run_chunk(const float* wav, size_t n, double offset_seconds, const Op
     if ((rc = prog(0.1f, "encoder")) != KE_OK) return rc;
 
     // --- known boundaries from the single known duration -----------------
-    std::vector<uint8_t> known_boundaries;
-    {
-        const float known_durations[1] = {length};
-        rc = dur2bd->run({tensor_f32("durations", {1, 1}, known_durations),
-                          tensor_bool("maskT", {1, T}, as_bool(maskT))},
-                         {"boundaries"}, outs);
-        if (rc != KE_OK) return rc;
-        if ((rc = check_output(outs[0], "boundaries", ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL, 2)) != KE_OK) return rc;
-        known_boundaries.assign(outs[0].data.begin(), outs[0].data.end());
-    }
+    // The reference runs dur2bd on [length]: boundaries sit at the cumulative
+    // durations except the last, so a single duration has none and the result
+    // is all false. It is filled here instead of running dur2bd, whose graph
+    // then reduces over an empty (N - 1 = 0) axis; the CPU EP returns zeros
+    // but the CUDA EP rejects it ("Can't reduce on dim with value of 0").
+    std::vector<uint8_t> known_boundaries(static_cast<size_t>(T), 0);
 
     // --- segmenter: D3PM sampling loop -----------------------------------
     std::vector<uint8_t> boundaries = known_boundaries;
