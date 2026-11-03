@@ -1,22 +1,24 @@
 // Real-time rhythm-game judgements while recording: the same tiers and the
 // same timing + pitch combination as the replay pop-ups
-// (JudgementMark.forNote), estimated from the live pitch frames.
+// (JudgementMark.forNote), estimated from the live pitch frames. The live
+// session feeds it the low-latency MPM frames (~0.07 s behind the sound), not
+// SwiftF0's (~0.3 s); the replay keeps judging from the scored recording.
 //
-// For each reference note, once the frames up to its judgement time have
-// arrived:
+// For each reference note:
 // * onset: the start of the first in-tune run (chroma within half a
 //   semitone of the note, at least [minRunSeconds] long) that begins within
 //   the note's GOOD window (not before the previous note ends); its error
-//   gives PERFECT / GREAT / GOOD, no such run is a MISS;
-// * pitch: the median chroma deviation of the voiced frames from the onset
-//   to the judgement time.
-// The judgement time is [pitchSeconds] after the onset (the GOOD window if
-// that is longer, the note's end if it is shorter), so the pop-up comes up
-// shortly after each note starts. When the pitch frames arrive late (a
-// larger audio latency, e.g. on Windows), the pop-up is timed from the
-// playback position it was judged at, so it still plays its whole
-// animation instead of appearing near its end. It is an estimate for the
-// singer: the score is computed after the take from the whole recording.
+//   gives PERFECT / GREAT / GOOD;
+// * pitch: the median chroma deviation of the voiced frames over the
+//   [pitchSeconds] after that onset (up to the note's end);
+// * it is judged as soon as the frames up to the end of that pitch window
+//   have arrived, so the pop-up comes up about 0.2 s after the singer comes
+//   in. With no in-tune run by the end of the window it is a MISS, judged
+//   when the search window closes.
+// A pop-up is timed from the playback position it was judged at, so it plays
+// its whole animation even when the frames arrive late. It is an estimate
+// for the singer: the score is computed after the take from the whole
+// recording.
 import 'dart:math' as math;
 
 import '../scoring/models.dart' show chromaDelta;
@@ -38,7 +40,7 @@ class LiveJudge {
 
   static const minRunSeconds = 0.04;
   static const maxGapSeconds = 0.05;
-  static const pitchSeconds = 0.3;
+  static const pitchSeconds = 0.12;
 
   /// How long to wait for late frames (pitch tracking lags the playback by
   /// the audio latency plus the tracker's own delay) before judging with
@@ -58,21 +60,19 @@ class LiveJudge {
     _midi.add(midi);
   }
 
-  double judgeTime(int i) {
-    final dur = notes.offset[i] - notes.onset[i];
-    return notes.onset[i] + math.max(windows.good, math.min(dur, pitchSeconds));
-  }
-
-  /// Judges every note whose judgement time has been reached at playback
-  /// position [pos]; returns true when a pop-up was added.
+  /// Judges every note whose frames have arrived (or whose wait for late
+  /// frames has run out) at playback position [pos]; returns true when a
+  /// pop-up was added.
   bool update(double pos) {
     var added = false;
     while (_next < notes.length) {
-      final at = judgeTime(_next);
+      final i = _next;
+      final found = _findOnset(i);
+      // Judged at the end of the pitch window after the onset, or when the
+      // onset search closes without one.
+      final at = found != null ? _pitchEnd(i, found) : _searchEnd(i);
       if (_lastFrame < at && pos < at + maxLagSeconds) break;
-      // Shown from now, not from [at]: a mark added after its judgement
-      // time would otherwise start partway through its animation.
-      _insert(_judge(_next, at, math.max(at, pos)));
+      _insert(_judge(i, found, at, math.max(at, pos)));
       _next++;
       added = true;
     }
@@ -80,15 +80,26 @@ class LiveJudge {
     return added;
   }
 
-  JudgementMark _judge(int i, double at, double shownAt) {
-    final onset = notes.onset[i], offset = notes.offset[i];
+  double _searchFrom(int i) {
+    final onset = notes.onset[i];
+    return math.max(onset - windows.good, i > 0 ? math.min(notes.offset[i - 1], onset) : double.negativeInfinity);
+  }
+
+  /// Latest start of an in-tune run that still counts as the onset.
+  double _searchTo(int i) => math.min(notes.onset[i] + windows.good, notes.offset[i]);
+
+  /// Frame time after which no onset run can be found any more.
+  double _searchEnd(int i) => _searchTo(i) + minRunSeconds + maxGapSeconds;
+
+  double _pitchEnd(int i, double found) => math.max(found + minRunSeconds, math.min(found + pitchSeconds, notes.offset[i]));
+
+  /// Start of the first in-tune run of note [i] among the frames so far.
+  double? _findOnset(int i) {
     final ref = notes.pitch[i] + pitchShift;
-    final from = math.max(onset - windows.good, i > 0 ? math.min(notes.offset[i - 1], onset) : double.negativeInfinity);
-    final to = math.min(onset + windows.good, offset);
+    final to = _searchTo(i);
     double? runStart;
-    double? found;
     double lastIn = double.negativeInfinity;
-    for (var k = _lowerBound(from); k < _time.length; k++) {
+    for (var k = _lowerBound(_searchFrom(i)); k < _time.length; k++) {
       final t = _time[k];
       if (t > to + minRunSeconds + maxGapSeconds) break;
       if (chromaDelta(_midi[k], ref).abs() <= 0.5) {
@@ -97,20 +108,23 @@ class LiveJudge {
           runStart = t;
         }
         lastIn = t;
-        if (lastIn - runStart >= minRunSeconds - 1e-9) {
-          found = runStart;
-          break;
-        }
+        if (lastIn - runStart >= minRunSeconds - 1e-9) return runStart;
       } else {
         runStart = null;
       }
     }
-    final errMs = found == null ? null : (found - onset) * 1000;
+    return null;
+  }
+
+  JudgementMark _judge(int i, double? found, double at, double shownAt) {
+    final ref = notes.pitch[i] + pitchShift;
+    final errMs = found == null ? null : (found - notes.onset[i]) * 1000;
     final timing = errMs == null ? 'miss' : windows.classify(errMs.abs() / 1000).name;
     final cents = <double>[];
-    final end = math.min(at, offset);
-    for (var k = _lowerBound(onset); k < _time.length && _time[k] <= end; k++) {
-      cents.add(chromaDelta(_midi[k], ref) * 100);
+    if (found != null) {
+      for (var k = _lowerBound(found); k < _time.length && _time[k] <= at; k++) {
+        cents.add(chromaDelta(_midi[k], ref) * 100);
+      }
     }
     return JudgementMark.forNote(
       time: shownAt,

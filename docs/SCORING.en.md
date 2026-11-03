@@ -122,12 +122,13 @@ The pop-up shown at each note's onset in the replay looks at timing and pitch to
 
 #### Live pop-ups while singing
 
-The same pop-ups also appear live while recording (the star button at the top right of the singing screen turns them on or off; on by default). Tiers and tags follow the replay rules, estimated from the microphone pitch received so far:
+The same pop-ups also appear live while recording (the star button at the top right of the singing screen turns them on or off; on by default). Tiers and tags follow the replay rules, estimated from the microphone pitch received so far. The replay pop-ups are unchanged: they still come from the score of the whole recording.
 
-* **Onset**: within the note's GOOD window (not before the previous note ends), the first run of at least 40 ms within half a semitone of the note pitch; its start minus the note onset is the timing error. No such run is a MISS.
-* **Pitch**: the median deviation of the voiced frames from the note onset to the judgement time, against the note pitch only (not the original's pitch curve).
-* **Judgement time**: 0.3 s after the onset (the note's end if it is shorter, but not before the GOOD window closes), so each pop-up comes up shortly after its note starts. When the pitch frames arrive late (a larger audio latency, e.g. on Windows) it waits up to 0.6 s, and the pop-up plays its whole animation from the moment it is judged rather than vanishing as soon as it appears.
-* They are live feedback for the singer; **the score still comes from the whole recording after the take**. They see less of each note than the replay, so they tend to be slightly stricter. On three real takes they matched the post-take tier for about 72–83% of notes and were within one tier for about 95%.
+* **Pitch source**: the live pop-ups use the traditional MPM pitch tracker (about 0.07 s behind), not SwiftF0 (about 0.3 s). With SwiftF0 selected both run; the pitch line on screen and the post-take score still use SwiftF0.
+* **Onset**: within the note's GOOD window (not before the previous note ends), the first run of at least 40 ms within half a semitone of the note pitch; its start minus the note onset is the timing error.
+* **Pitch**: the median deviation of the voiced frames over the 0.12 s after that onset (to the note's end if it is shorter), against the note pitch only (not the original's pitch curve).
+* **Judgement time**: as soon as the pitch for the 0.12 s after the onset has arrived, so a pop-up comes up about 0.2 s after the singer comes in. With no onset in the window it is a MISS, judged when the window closes. When the pitch frames arrive late it waits up to 0.6 s, and the pop-up plays its whole animation from the moment it is judged.
+* They are live feedback for the singer; **the score still comes from the whole recording after the take**. On 11 real takes (1694 notes) they matched the post-take tier for about 78% of notes and were within one tier for about 90%, about the same as with SwiftF0 pitch.
 
 ## 5. Sub-scores and total score
 

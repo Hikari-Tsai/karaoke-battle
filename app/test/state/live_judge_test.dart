@@ -36,7 +36,7 @@ void main() {
     final j = run((t) => sung(t));
     expect(j.marks.map((m) => m.tier), ['perfect', 'perfect']);
     expect(j.marks.every((m) => m.fast == null && m.high == null), isTrue);
-    expect(j.marks.first.time, closeTo(1.3, 1e-9), reason: 'pops up 0.3 s after the onset');
+    expect(j.marks.first.time, closeTo(1.0 + LiveJudge.pitchSeconds, 0.011), reason: 'pops up 0.12 s after the sung onset');
   });
 
   test('early entry: GREAT with FAST', () {
@@ -59,6 +59,16 @@ void main() {
     expect(octave.marks.map((m) => m.tier), ['perfect', 'perfect']);
   });
 
+  test('a late entry is judged later; a MISS when the window closes', () {
+    final late = run((t) => t >= 1.12 && t < 1.6 ? 60.0 : double.nan, until: 1.8);
+    expect(late.marks.single.tier, 'good');
+    expect(late.marks.single.fast, isFalse);
+    expect(late.marks.single.time, closeTo(1.12 + LiveJudge.pitchSeconds, 0.011));
+    final silent = run((t) => double.nan, until: 1.8);
+    final w = RhythmWindows.forTempo(120).good;
+    expect(silent.marks.single.time, closeTo(1.0 + w + LiveJudge.minRunSeconds + LiveJudge.maxGapSeconds, 0.011));
+  });
+
   test('the key shift moves the target', () {
     final j = run((t) => sung(t) + 2, shift: 2);
     expect(j.marks.map((m) => m.tier), ['perfect', 'perfect']);
@@ -66,14 +76,14 @@ void main() {
 
   test('waits for late frames, then judges anyway', () {
     final j = LiveJudge(notes: notes(), windows: RhythmWindows.forTempo(120));
-    for (var t = 1.0; t < 1.2; t += hop) {
+    for (var t = 1.0; t < 1.08; t += hop) {
       j.addFrame(t, 60);
     }
-    expect(j.update(1.35), isFalse, reason: 'frames only reach 1.2 s; judgement time is 1.3 s');
+    expect(j.update(1.2), isFalse, reason: 'frames only reach 1.08 s; judgement time is 1.12 s');
     expect(j.update(1.5), isFalse, reason: 'still waiting');
-    expect(j.update(1.91), isTrue, reason: 'gives up waiting after 0.6 s');
+    expect(j.update(1.73), isTrue, reason: 'gives up waiting after 0.6 s');
     expect(j.marks.single.tier, 'perfect');
-    expect(j.marks.single.time, 1.91, reason: 'shown from when it was judged');
+    expect(j.marks.single.time, 1.73, reason: 'shown from when it was judged');
   });
 
   test('frames arriving late: the pop-up starts when it is shown', () {
@@ -87,6 +97,6 @@ void main() {
     }
     expect(j.marks.map((m) => m.tier), ['perfect', 'perfect'], reason: 'judged on complete frames');
     expect(j.marks.map((m) => m.time), shownAt);
-    expect(j.marks.first.time, closeTo(1.3 + lag, 0.011));
+    expect(j.marks.first.time, closeTo(1.0 + LiveJudge.pitchSeconds + lag, 0.011));
   });
 }
