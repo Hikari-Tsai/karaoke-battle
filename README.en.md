@@ -139,6 +139,10 @@ cd app && flutter pub get && flutter run -d macos
 
 In development mode, the app automatically looks for the engine in `engine/build/` and for ORT in `engine/third_party/onnxruntime/`.
 
+## Reporting problems and contributing
+
+The main way to test is to use the app live on stream. If something goes wrong, press "Report a problem" at the bottom of the app's navigation bar or open an [issue](https://github.com/Hikari-Tsai/karaoke-battle/issues). See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for what to include and how to contribute code.
+
 ## Acknowledgments
 
 For full citation formats (including BibTeX) and each upstream project's requirements, see [docs/CITATIONS.md](docs/CITATIONS.md) (Chinese).

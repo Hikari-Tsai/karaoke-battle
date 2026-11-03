@@ -1,0 +1,15 @@
+name: 功能建議 / Feature request / 機能の提案
+description: 想在直播中做到的事 / Something you want to do on stream / 配信でやりたいこと
+labels: [enhancement]
+body:
+  - type: textarea
+    id: want
+    attributes:
+      label: 想做到什麼 / What you want to do / やりたいこと
+      description: 在直播中想做到什麼，現在卡在哪裡 / What you want to do on stream and what stops you today / 配信で何をしたいか、今どこで困っているか
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你想像的做法（選填）/ How you imagine it (optional) / 想像している形（任意）

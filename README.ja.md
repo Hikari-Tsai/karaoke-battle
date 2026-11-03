@@ -137,6 +137,10 @@ cd app && flutter pub get && flutter run -d macos
 
 開発モードでは、アプリが自動的に `engine/build/` からエンジンを、`engine/third_party/onnxruntime/` から ORT を探します。
 
+## 問題の報告と協力
+
+いちばん大事なテストは配信で実際に使うことです。問題があればアプリ左側のナビゲーションの一番下にある「問題を報告」を押すか、[Issues](https://github.com/Hikari-Tsai/karaoke-battle/issues) に報告してください。報告に書く内容やコードでの貢献については [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md) を参照してください。
+
 ## 謝辞
 
 引用形式の全文（BibTeX を含む）と各上流の要件は [docs/CITATIONS.md](docs/CITATIONS.md)（中国語）をご覧ください。

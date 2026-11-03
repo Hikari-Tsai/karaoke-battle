@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../services/problem_report.dart';
 import '../../services/update_checker.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
@@ -147,6 +148,11 @@ class _AboutScreenState extends State<AboutScreen> {
               onPressed: () => launchUrl(Uri.parse(UpdateChecker.repoUrl)),
               icon: const Icon(Icons.code),
               label: Text(tr('about.repo')),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => openProblemReport(context),
+              icon: const Icon(Icons.bug_report_outlined),
+              label: Text(tr('nav.report')),
             ),
             OutlinedButton.icon(
               onPressed: _state == _UpdateState.checking ? null : _check,

@@ -1,0 +1,56 @@
+name: 回報問題 / Report a problem / 問題を報告
+description: 直播或使用中遇到的問題 / Something went wrong on stream or in use / 配信中や使用中の問題
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        謝謝回報！Issue 是公開的，請不要貼帳號、密碼或其他個人資料。說明見 [CONTRIBUTING](https://github.com/Hikari-Tsai/karaoke-battle/blob/main/CONTRIBUTING.md)。
+        Thanks for reporting! Issues are public: never post accounts, passwords or other personal details.
+        ご報告ありがとうございます。Issue は公開されます。アカウントやパスワードなどの個人情報は書かないでください。
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / Version / バージョン
+      description: 「關於」頁的版本 / The version on the About page / 「このアプリについて」のバージョン
+      placeholder: "0.6.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 作業系統 / OS
+      placeholder: "macOS 15.1 / Windows 11"
+    validations:
+      required: true
+  - type: input
+    id: backend
+    attributes:
+      label: 運算後端 / Compute backend / 演算バックエンド
+      placeholder: "CPU / CUDA / DirectML / CoreML"
+  - type: textarea
+    id: what
+    attributes:
+      label: 發生什麼事 / What happened / 何が起きたか
+      description: 你做了什麼、預期看到什麼、實際看到什麼 / What you did, expected and saw / 何をして、何を期待し、実際にどうなったか
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 重現步驟 / Steps to reproduce / 再現手順
+      description: 只發生一次也沒關係 / Fine if it happened only once / 一度だけでも構いません
+      placeholder: |
+        1.
+        2.
+        3.
+  - type: input
+    id: song
+    attributes:
+      label: 歌曲 / Song / 曲
+      description: YouTube 連結或本機檔案類型 / YouTube link or local file type / YouTube のリンクまたはファイルの種類
+  - type: textarea
+    id: media
+    attributes:
+      label: 截圖、影片或直播時間點 / Screenshots, clips or VOD timestamp / スクリーンショット、録画、アーカイブの時刻
+      description: 可直接拖曳檔案進來；評分有疑問可附重播檔 zip（含演唱錄音，請自行決定）/ Drag files in; a replay zip helps with score questions (it contains your singing) / ファイルはドラッグで添付できます。採点の疑問にはリプレイ zip が役立ちます（歌声を含みます）

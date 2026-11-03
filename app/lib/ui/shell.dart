@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/problem_report.dart';
 import '../state/app_services.dart';
 import '../state/i18n.dart';
 import '../state/setup_controller.dart';
@@ -75,6 +76,30 @@ class _AppShellState extends State<AppShell> {
             onDestinationSelected: (i) => setState(() => _index = _lastIndex = i),
             labelType: NavigationRailLabelType.all,
             leading: const SizedBox(height: 8),
+            // Always in reach, so a streamer can report a problem mid-stream.
+            trailing: Expanded(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Tooltip(
+                    message: tr('nav.report'),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => openProblemReport(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.bug_report_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          const SizedBox(height: 4),
+                          Text(tr('nav.report'), style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             destinations: [
               NavigationRailDestination(icon: const Icon(Icons.library_music_outlined), selectedIcon: const Icon(Icons.library_music), label: Text(tr('nav.library'))),
               NavigationRailDestination(icon: const Icon(Icons.ondemand_video_outlined), selectedIcon: const Icon(Icons.ondemand_video), label: Text(tr('nav.replays'))),

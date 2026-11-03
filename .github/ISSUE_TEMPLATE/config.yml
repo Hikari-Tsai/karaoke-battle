@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 參與方式 / How to contribute / 協力の方法
+    url: https://github.com/Hikari-Tsai/karaoke-battle/blob/main/CONTRIBUTING.md
+    about: 測試方式與回報需要的資訊 / How to test and what to include / テスト方法と報告に必要な情報
