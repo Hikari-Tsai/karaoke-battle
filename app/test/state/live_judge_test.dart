@@ -70,7 +70,23 @@ void main() {
       j.addFrame(t, 60);
     }
     expect(j.update(1.35), isFalse, reason: 'frames only reach 1.2 s; judgement time is 1.3 s');
-    expect(j.update(1.61), isTrue, reason: 'gives up waiting after 0.3 s');
+    expect(j.update(1.5), isFalse, reason: 'still waiting');
+    expect(j.update(1.91), isTrue, reason: 'gives up waiting after 0.6 s');
     expect(j.marks.single.tier, 'perfect');
+    expect(j.marks.single.time, 1.91, reason: 'shown from when it was judged');
+  });
+
+  test('frames arriving late: the pop-up starts when it is shown', () {
+    const lag = 0.25;
+    final j = LiveJudge(notes: notes(), windows: RhythmWindows.forTempo(120));
+    final shownAt = <double>[];
+    for (var t = 0.0; t <= 3.0; t += hop) {
+      final ft = t - lag; // the frame for track time ft arrives at playback t
+      if (ft >= 0) j.addFrame(ft, sung(ft));
+      if (j.update(t)) shownAt.add(t);
+    }
+    expect(j.marks.map((m) => m.tier), ['perfect', 'perfect'], reason: 'judged on complete frames');
+    expect(j.marks.map((m) => m.time), shownAt);
+    expect(j.marks.first.time, closeTo(1.3 + lag, 0.011));
   });
 }

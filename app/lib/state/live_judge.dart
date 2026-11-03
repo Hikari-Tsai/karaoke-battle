@@ -12,8 +12,11 @@
 //   to the judgement time.
 // The judgement time is [pitchSeconds] after the onset (the GOOD window if
 // that is longer, the note's end if it is shorter), so the pop-up comes up
-// shortly after each note starts. It is an estimate for the singer: the
-// score is computed after the take from the whole recording.
+// shortly after each note starts. When the pitch frames arrive late (a
+// larger audio latency, e.g. on Windows), the pop-up is timed from the
+// playback position it was judged at, so it still plays its whole
+// animation instead of appearing near its end. It is an estimate for the
+// singer: the score is computed after the take from the whole recording.
 import 'dart:math' as math;
 
 import '../scoring/models.dart' show chromaDelta;
@@ -37,9 +40,10 @@ class LiveJudge {
   static const maxGapSeconds = 0.05;
   static const pitchSeconds = 0.3;
 
-  /// How long to wait for late frames (pitch tracking lags the playback)
-  /// before judging with what has arrived.
-  static const maxLagSeconds = 0.3;
+  /// How long to wait for late frames (pitch tracking lags the playback by
+  /// the audio latency plus the tracker's own delay) before judging with
+  /// what has arrived.
+  static const maxLagSeconds = 0.6;
 
   final _time = <double>[];
   final _midi = <double>[];
@@ -66,7 +70,9 @@ class LiveJudge {
     while (_next < notes.length) {
       final at = judgeTime(_next);
       if (_lastFrame < at && pos < at + maxLagSeconds) break;
-      _insert(_judge(_next, at));
+      // Shown from now, not from [at]: a mark added after its judgement
+      // time would otherwise start partway through its animation.
+      _insert(_judge(_next, at, math.max(at, pos)));
       _next++;
       added = true;
     }
@@ -74,7 +80,7 @@ class LiveJudge {
     return added;
   }
 
-  JudgementMark _judge(int i, double at) {
+  JudgementMark _judge(int i, double at, double shownAt) {
     final onset = notes.onset[i], offset = notes.offset[i];
     final ref = notes.pitch[i] + pitchShift;
     final from = math.max(onset - windows.good, i > 0 ? math.min(notes.offset[i - 1], onset) : double.negativeInfinity);
@@ -107,7 +113,7 @@ class LiveJudge {
       cents.add(chromaDelta(_midi[k], ref) * 100);
     }
     return JudgementMark.forNote(
-      time: at,
+      time: shownAt,
       midi: ref,
       timing: timing,
       onsetErrorMs: errMs,

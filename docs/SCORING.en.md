@@ -126,7 +126,7 @@ The same pop-ups also appear live while recording (the star button at the top ri
 
 * **Onset**: within the note's GOOD window (not before the previous note ends), the first run of at least 40 ms within half a semitone of the note pitch; its start minus the note onset is the timing error. No such run is a MISS.
 * **Pitch**: the median deviation of the voiced frames from the note onset to the judgement time, against the note pitch only (not the original's pitch curve).
-* **Judgement time**: 0.3 s after the onset (the note's end if it is shorter, but not before the GOOD window closes), so each pop-up comes up shortly after its note starts.
+* **Judgement time**: 0.3 s after the onset (the note's end if it is shorter, but not before the GOOD window closes), so each pop-up comes up shortly after its note starts. When the pitch frames arrive late (a larger audio latency, e.g. on Windows) it waits up to 0.6 s, and the pop-up plays its whole animation from the moment it is judged rather than vanishing as soon as it appears.
 * They are live feedback for the singer; **the score still comes from the whole recording after the take**. They see less of each note than the replay, so they tend to be slightly stricter. On three real takes they matched the post-take tier for about 72–83% of notes and were within one tier for about 95%.
 
 ## 5. Sub-scores and total score
