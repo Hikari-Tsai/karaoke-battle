@@ -1,0 +1,48 @@
+[
+  {
+    "DataList": [
+      {
+        "thisweek": "1",
+        "lastweek": "1",
+        "weeks": "%E2%86%92",
+        "id": "02657",
+        "songname": "%E7%94%B2%E4%B9%99%E4%B8%99%E4%B8%81",
+        "singer": "%E6%9D%8E%E4%BD%B3%E8%96%87",
+        "iconurl": "https%3A%2F%2Fi.kfs.io%2Falbum%2Fglobal%2F295320632%2C0v2%2Ffit%2F160x160.jpg",
+        "songurl": "https%3A%2F%2Fwidget.kkbox.com%2Fv1%2F%3Fid%3DGptIJ2y--IKc1ewMvC%26type%3Dsong%26terr%3Dtw%26lang%3Dtc%26autoplay%3Dtrue"
+      },
+      {
+        "thisweek": "2",
+        "lastweek": "2",
+        "weeks": "%E2%86%92",
+        "id": "02516",
+        "songname": "All%20For%20You",
+        "singer": "%E5%91%A8%E8%88%88%E5%93%B2",
+        "iconurl": "https%3A%2F%2Fi.kfs.io%2Falbum%2Fglobal%2F295641763%2C0v3%2Ffit%2F160x160.jpg",
+        "songurl": "https%3A%2F%2Fwidget.kkbox.com%2Fv1%2F%3Fid%3DXZSwAUqZIDECoTG_at%26type%3Dsong%26terr%3Dtw%26lang%3Dtc%26autoplay%3Dtrue"
+      },
+      {
+        "thisweek": "3",
+        "lastweek": "3",
+        "weeks": "%E2%86%92",
+        "id": "03038",
+        "songname": "%E5%83%8F%E7%85%99%E7%81%AB%E6%84%9B%E9%81%8E",
+        "singer": "%E5%96%AE%E4%BE%9D%E7%B4%94",
+        "iconurl": "https%3A%2F%2Fi.kfs.io%2Falbum%2Ftw%2F262562578%2C0v1%2Ffit%2F160x160.jpg",
+        "songurl": "https%3A%2F%2Fwidget.kkbox.com%2Fv1%2F%3Fid%3DOn0OO8m7o9axPN2nGG%26type%3Dsong%26terr%3Dtw%26lang%3Dtc%26autoplay%3Dtrue"
+      }
+    ],
+    "Page": [
+      {
+        "MaxPage": 2,
+        "ThisPage": 1,
+        "PreviousPage": 1,
+        "NextPage": 2
+      }
+    ],
+    "Ok": "1",
+    "Msg": "",
+    "sdate": "2026%2F10%2F27",
+    "edate": "2026%2F11%2F02"
+  }
+]

@@ -8,6 +8,7 @@ import '../state/app_services.dart';
 import '../state/i18n.dart';
 import '../state/setup_controller.dart';
 import 'about/about_screen.dart';
+import 'charts/charts_screen.dart';
 import 'rules/rules_screen.dart';
 import 'library/library_screen.dart';
 import 'replays/replays_screen.dart';
@@ -28,6 +29,7 @@ class _AppShellState extends State<AppShell> {
   static int _lastIndex = 0;
   static bool _startupDoneGlobal = false;
   static bool _readyGlobal = false;
+  static const _chartsIndex = 2;
   int _index = _lastIndex;
   bool _checking = !_readyGlobal;
 
@@ -76,6 +78,7 @@ class _AppShellState extends State<AppShell> {
             destinations: [
               NavigationRailDestination(icon: const Icon(Icons.library_music_outlined), selectedIcon: const Icon(Icons.library_music), label: Text(tr('nav.library'))),
               NavigationRailDestination(icon: const Icon(Icons.ondemand_video_outlined), selectedIcon: const Icon(Icons.ondemand_video), label: Text(tr('nav.replays'))),
+              NavigationRailDestination(icon: const Icon(Icons.leaderboard_outlined), selectedIcon: const Icon(Icons.leaderboard), label: Text(tr('nav.charts'))),
               NavigationRailDestination(icon: const Icon(Icons.emoji_events_outlined), selectedIcon: const Icon(Icons.emoji_events), label: Text(tr('nav.rules'))),
               NavigationRailDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings), label: Text(tr('nav.settings'))),
               NavigationRailDestination(icon: const Icon(Icons.info_outline), selectedIcon: const Icon(Icons.info), label: Text(tr('nav.about'))),
@@ -85,7 +88,14 @@ class _AppShellState extends State<AppShell> {
           Expanded(
             child: IndexedStack(
               index: _index,
-              children: const [LibraryScreen(), ReplaysScreen(), RulesScreen(), SettingsScreen(), AboutScreen()],
+              children: [
+                const LibraryScreen(),
+                const ReplaysScreen(),
+                ChartsScreen(active: _index == _chartsIndex),
+                const RulesScreen(),
+                const SettingsScreen(),
+                const AboutScreen(),
+              ],
             ),
           ),
         ],

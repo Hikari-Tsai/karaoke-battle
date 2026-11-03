@@ -76,6 +76,10 @@ Press "Edit notes" and drag a note up or down to fix it. While you drag, a sine 
 
 <p align="center"><img src="docs/media/edit-notes.gif" width="720" alt="Dragging a note to fix its pitch"></p>
 
+### KTV request charts
+
+The "KTV charts" tab reads the weekly request charts straight from the Holiday KTV, Cashbox Party, JOYSOUND and DAM websites. Switch between languages or genres (Mandarin, Taiwanese, Cantonese, anime, VOCALOID…) and see the rank, song, artist, the number to enter on the karaoke machine and the counting period; the two Taiwanese charts also show the movement since last week. Handy when you can't decide what to sing. Results are kept for 6 hours and can be refreshed by hand, and each section ends with a link to the chart on the operator's website.
+
 ## Architecture
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BACKENDS.md](docs/BACKENDS.md) and [docs/BUILD.md](docs/BUILD.md) for details.
@@ -158,6 +162,8 @@ For full citation formats (including BibTeX) and each upstream project's require
 
 The app's built-in use of yt-dlp to download audio and video is solely for the user's personal, local use. Downloading YouTube content may violate
 YouTube's Terms of Service, and users do so at their own risk. The app does not upload or distribute any song data.
+
+The KTV chart data comes from each operator's website (Holiday KTV, Cashbox Party, JOYSOUND, DAM); the data and trademarks belong to those operators, and this project is not affiliated with any of them. The data is read through the websites' own non-public endpoints and may stop working whenever they change.
 
 ## License
 

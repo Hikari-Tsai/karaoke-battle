@@ -75,6 +75,10 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 <p align="center"><img src="docs/media/edit-notes.gif" width="720" alt="拖曳音符修正音高"></p>
 
+### KTV 點歌排行榜
+
+左側的「點歌排行榜」分頁直接抓取好樂迪、錢櫃、JOYSOUND、DAM 官網的每週點歌排行，可切換語言或分類（國語、台語、粵語、動畫、VOCALOID…），顯示名次、歌名、歌手、點歌機曲號與統計期間，台灣兩家另有上週名次的升降。想不到要唱什麼時可以直接挑熱門歌。結果會保留 6 小時，也可以手動重新整理；每家區塊最下方有前往該業者官網排行榜的連結。
+
 ## 架構
 
 詳見 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、[docs/BACKENDS.md](docs/BACKENDS.md)、[docs/BUILD.md](docs/BUILD.md)。
@@ -158,6 +162,8 @@ cd app && flutter pub get && flutter run -d macos
 
 本 App 內建呼叫 yt-dlp 下載影音僅供使用者在本機個人使用；下載 YouTube 內容可能違反
 YouTube 服務條款，使用者須自行承擔。App 不會上傳或散布任何歌曲資料。
+
+點歌排行榜的資料來自各 KTV 業者官網（好樂迪、錢櫃、JOYSOUND、DAM），版權與商標屬於各業者；本專案與這些業者無關。這些資料取自官網前端使用的非公開介面，格式可能隨時改變。
 
 ## 授權
 
