@@ -299,9 +299,16 @@ class BackendManager extends ChangeNotifier {
     throw StateError('no usable backend: $lastErr');
   }
 
-  /// Drops the current runtime (after the user changes the backend setting).
+  /// Runtimes replaced by [resetRuntime]; kept alive until the app exits.
+  final List<EngineRuntime> _retired = [];
+
+  /// Drops the current runtime (after the user changes the backend setting)
+  /// so the next job creates one for the new backend. The old one is not
+  /// disposed: a prep job, the beat detection or a live capture may still be
+  /// running on it, and freeing it under them crashed the app.
   void resetRuntime() {
-    _runtime?.dispose();
+    final rt = _runtime;
+    if (rt != null) _retired.add(rt);
     _runtime = null;
     active = null;
     notifyListeners();

@@ -83,6 +83,10 @@ Notes for `services/backend.dart`:
   GPU but may take 10-30 s the first time on an older GPU (PTX JIT) - show a spinner.
 * After W4 the pack is marked `broken` so the self-test is not repeated on every launch;
   re-download clears the mark. The user can also pick a backend manually in Settings.
+* Changing the backend (Settings or a dialog) only makes the next job create a new runtime;
+  the previous runtime is kept until the app exits, and the engine never unloads an
+  onnxruntime library once loaded. Jobs may still be running on the old runtime, and the
+  CUDA provider DLLs are not safe to unload, so freeing either crashed the app.
 * W1 and W5 have "don't show again". W2, W3 and W4 (no working CUDA on a Windows NVIDIA
   machine) come up on every launch until CUDA works, with no "don't show again"; "Later" or
   "Use DirectML" closes them for that launch only.

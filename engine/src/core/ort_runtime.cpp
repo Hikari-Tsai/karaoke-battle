@@ -199,13 +199,11 @@ int runtime_create(const char* ort_library_path, int ep, int device_id, int num_
 void runtime_destroy(ke_runtime* rt) {
     if (!rt) return;
     if (rt->env && rt->api) rt->api->ReleaseEnv(rt->env);
-    if (rt->lib_handle) {
-#if defined(_WIN32)
-        FreeLibrary(static_cast<HMODULE>(rt->lib_handle));
-#else
-        dlclose(rt->lib_handle);
-#endif
-    }
+    // The onnxruntime library is deliberately never unloaded: with the CUDA EP
+    // it has pulled in the CUDA / cuDNN / cuBLAS provider DLLs, which are not
+    // safe to unload while the process runs (switching backends crashed the
+    // app on Windows). The handle stays loaded until the process exits; a
+    // later runtime for the same path reuses the loaded module.
     delete rt;
 }
 
