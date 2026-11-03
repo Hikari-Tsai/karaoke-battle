@@ -1,7 +1,10 @@
 // Synced lyrics over the video / visualiser: the current line fills from left
 // to right as it is sung, its translation below, and the next line dimmed.
+// On each new line the next line flips up into the current slot while the
+// sung line slides up and fades out.
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +28,13 @@ class LyricsOverlay extends StatelessWidget {
   final List<double>? noteOffsets;
 
   static const _shadow = [Shadow(color: Colors.black, blurRadius: 6), Shadow(color: Colors.black, blurRadius: 2)];
+
+  /// Seconds a line takes to flip up from the small next-line slot to the
+  /// current one, while the line before it slides up and fades out. Driven
+  /// by the playback position, so it follows seeks and pauses.
+  static const flipSeconds = 0.35;
+
+  static double _ease(double x) => Curves.easeOutCubic.transform(x.clamp(0.0, 1.0));
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +60,81 @@ class LyricsOverlay extends StatelessWidget {
               : (noteOnsets != null && noteOffsets != null
                   ? noteWipeFraction(cur, noteOnsets!, noteOffsets!, t)
                   : ((t - cur.start) / (cur.end - cur.start).clamp(0.2, 1e9)).clamp(0.0, 1.0));
+
+          // The line that was current before this one.
+          final prevIdx = i >= 0 ? i - 1 : (nextIdx >= 0 ? nextIdx - 1 : main.lines.length - 1);
+          final prev = prevIdx >= 0 ? main.lines[prevIdx] : null;
+          bool romaji(LyricLine? l) => showRomaji && l?.romaji != null && l!.romaji!.isNotEmpty;
+
+          // Main slot: the current line, or the upcoming one dimmed.
+          final shown = cur ?? upcoming;
+          Widget slot;
+          if (cur != null) {
+            slot = Column(mainAxisSize: MainAxisSize.min, children: [
+              _WipeText(text: cur.text, fraction: frac, fontSize: big),
+              if (romaji(cur)) _WipeText(text: cur.romaji!, fraction: frac, fontSize: small * 0.95, weight: FontWeight.w600),
+            ]);
+          } else if (upcoming != null) {
+            slot = Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(upcoming.text, textAlign: TextAlign.center, style: TextStyle(fontSize: big, color: Colors.white54, fontWeight: FontWeight.w700, shadows: _shadow)),
+              if (romaji(upcoming))
+                Text(upcoming.romaji!, textAlign: TextAlign.center, style: TextStyle(fontSize: small * 0.95, color: Colors.white38, shadows: _shadow)),
+            ]);
+          } else {
+            slot = SizedBox(height: big * 1.3);
+          }
+
+          // In: a line straight after the previous one was the small next
+          // line, so it grows and rises from there; otherwise it was shown
+          // dimmed from when the previous line ended (or 4 s ahead) and
+          // fades in there.
+          if (shown != null) {
+            final flipped = cur != null && prev != null && cur.start - prev.end < flipSeconds;
+            final inAt = flipped ? cur.start : math.max(prev?.end ?? double.negativeInfinity, shown.start - 4);
+            final fromNext = flipped || (prev != null && prev.end > shown.start - 4);
+            final p = _ease((t - inAt) / flipSeconds);
+            if (p < 1) {
+              // Distance from the next-line slot up to the main slot.
+              final rise = big * 1.25 + (romaji(shown) ? small * 1.2 : 0) + (tr2 != null ? small * 1.2 + 2 : 0) + 4;
+              slot = Opacity(
+                opacity: fromNext ? 0.4 + 0.6 * p : p,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - p) * (fromNext ? rise : big * 0.5)),
+                  child: Transform.scale(scale: fromNext ? small / big + (1 - small / big) * p : 1, child: slot),
+                ),
+              );
+            }
+          }
+
+          // Out: the previous line, fully sung, slides up and fades.
+          if (prev != null) {
+            final outAt = math.min(prev.end, cur?.start ?? double.infinity);
+            final p = (t - outAt) / flipSeconds;
+            if (p >= 0 && p < 1) {
+              final e = _ease(p);
+              slot = SizedBox(
+                width: double.infinity,
+                child: Stack(clipBehavior: Clip.none, alignment: Alignment.topCenter, children: [
+                  slot,
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    child: Opacity(
+                      opacity: 1 - e,
+                      child: Transform.translate(
+                        offset: Offset(0, -e * big * 0.9),
+                        child: Transform.scale(scale: 1 - 0.15 * e, child: Center(child: _WipeText(text: prev.text, fraction: 1, fontSize: big))),
+                      ),
+                    ),
+                  ),
+                ]),
+              );
+            }
+          }
+
+          // The translation and the next line come in with the current line.
+          final pNext = cur == null ? 1.0 : _ease((t - cur.start) / flipSeconds);
           return Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(16, big * 1.2, 16, big * 0.5),
@@ -59,27 +144,25 @@ class LyricsOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (cur != null) ...[
-                  _WipeText(text: cur.text, fraction: frac, fontSize: big),
-                  if (showRomaji && cur.romaji != null && cur.romaji!.isNotEmpty)
-                    _WipeText(text: cur.romaji!, fraction: frac, fontSize: small * 0.95, weight: FontWeight.w600),
-                ]
-                else if (upcoming != null) ...[
-                  Text(upcoming.text, textAlign: TextAlign.center, style: TextStyle(fontSize: big, color: Colors.white54, fontWeight: FontWeight.w700, shadows: _shadow)),
-                  if (showRomaji && upcoming.romaji != null && upcoming.romaji!.isNotEmpty)
-                    Text(upcoming.romaji!, textAlign: TextAlign.center, style: TextStyle(fontSize: small * 0.95, color: Colors.white38, shadows: _shadow)),
-                ]
-                else
-                  SizedBox(height: big * 1.3),
+                slot,
                 if (tr2 != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(tr2.text, textAlign: TextAlign.center, style: TextStyle(fontSize: small, color: Colors.white.withValues(alpha: 0.85), shadows: _shadow)),
+                  Opacity(
+                    opacity: pNext,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(tr2.text, textAlign: TextAlign.center, style: TextStyle(fontSize: small, color: Colors.white.withValues(alpha: 0.85), shadows: _shadow)),
+                    ),
                   ),
                 if (cur != null && next != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(next.text, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: small, color: Colors.white38, shadows: _shadow)),
+                  Opacity(
+                    opacity: pNext,
+                    child: Transform.translate(
+                      offset: Offset(0, (1 - pNext) * small),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(next.text, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: small, color: Colors.white38, shadows: _shadow)),
+                      ),
+                    ),
                   ),
               ],
             ),
