@@ -103,7 +103,7 @@ class RulesScreen extends StatelessWidget {
             ),
           const SizedBox(height: 12),
 
-          // --- the three forgiving rules ------------------------------------------
+          // --- what is not penalised ---------------------------------------------
           Card(
             color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
             child: Padding(
@@ -116,6 +116,7 @@ class RulesScreen extends StatelessWidget {
                   _Bullet(text: tr('rules.octave')),
                   _Bullet(text: tr('rules.transpose')),
                   _Bullet(text: tr('rules.slides')),
+                  _Bullet(text: tr('rules.lyrics')),
                 ],
               ),
             ),
