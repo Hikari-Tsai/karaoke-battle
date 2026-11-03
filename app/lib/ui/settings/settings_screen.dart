@@ -17,7 +17,7 @@ import '../../state/setup_controller.dart';
 import '../library/add_song_dialog.dart';
 import '../widgets/calibration.dart';
 import '../widgets/info_tip.dart';
-import '../startup/first_run_dialog.dart';
+import '../startup/setup_rows.dart';
 import '../widgets/brand.dart';
 import '../widgets/voice_fx.dart';
 

@@ -7,10 +7,15 @@ import '../../services/settings.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 
+/// Dialogs about a missing CUDA path (pack not downloaded, driver too old or
+/// a failed self-test) come up on every launch; the others can be turned off.
+bool backendDialogAlwaysShown(BackendDialog d) =>
+    d == BackendDialog.cudaPackMissing || d == BackendDialog.driverTooOld || d == BackendDialog.cudaSelftestFailed;
+
 /// Shows the dialog matching [decision.dialog]; returns when dismissed.
 Future<void> showBackendDialog(BuildContext context, AppServices services, BackendDecision decision) async {
   if (decision.dialog == BackendDialog.none) return;
-  if (services.settings.dismissedBackendDialog && decision.dialog != BackendDialog.cudaSelftestFailed) return;
+  if (services.settings.dismissedBackendDialog && !backendDialogAlwaysShown(decision.dialog)) return;
   await showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -151,14 +156,15 @@ class _BackendDialogState extends State<_BackendDialog> {
               Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
             ],
             const SizedBox(height: 8),
-            CheckboxListTile(
-              value: _dontShow,
-              onChanged: (v) => setState(() => _dontShow = v ?? false),
-              title: Text(tr('backend.dontShowAgain')),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-            ),
+            if (!backendDialogAlwaysShown(d.dialog))
+              CheckboxListTile(
+                value: _dontShow,
+                onChanged: (v) => setState(() => _dontShow = v ?? false),
+                title: Text(tr('backend.dontShowAgain')),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              ),
           ],
         ),
       ),

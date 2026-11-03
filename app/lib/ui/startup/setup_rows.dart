@@ -1,4 +1,4 @@
-// First-run check: required models + sidecars with download buttons.
+// Model and tool rows with download controls (setup gate and Settings).
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,66 +8,6 @@ import '../../services/sidecars.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
-
-Future<void> showFirstRunDialogIfNeeded(BuildContext context) async {
-  final setup = context.read<SetupController>();
-  await setup.refresh();
-  final missingSidecar = [SidecarKind.ytDlp, SidecarKind.ffmpeg].any((k) => !setup.sidecarStates[k]!.available);
-  if (setup.requiredInstalled && !missingSidecar) return;
-  if (!context.mounted) return;
-  await showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => ChangeNotifierProvider.value(value: setup, child: const FirstRunDialog()),
-  );
-}
-
-class FirstRunDialog extends StatelessWidget {
-  const FirstRunDialog({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final setup = context.watch<SetupController>();
-    final theme = Theme.of(context);
-    return AlertDialog(
-      title: Text(tr('firstRun.title')),
-      content: SizedBox(
-        width: 620,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(tr('firstRun.body')),
-              const SizedBox(height: 12),
-              for (final m in ModelRegistry.required) ModelRow(spec: m),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text('${tr('firstRun.total')}: ${formatBytes(ModelRegistry.required.fold(0, (a, m) => a + m.totalBytes))}', style: theme.textTheme.bodySmall),
-                  const Spacer(),
-                  FilledButton.icon(
-                    onPressed: setup.requiredInstalled || setup.anyDownloading ? null : () => setup.installAll(ModelRegistry.required),
-                    icon: const Icon(Icons.download),
-                    label: Text('${tr('firstRun.downloadAll')} (${formatBytes(setup.requiredMissingBytes)})'),
-                  ),
-                ],
-              ),
-              const Divider(height: 24),
-              Text(tr('firstRun.sidecars'), style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              for (final k in [SidecarKind.ytDlp, SidecarKind.ffmpeg, SidecarKind.deno]) SidecarRow(kind: k),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: setup.anyDownloading ? null : () => Navigator.of(context).pop(), child: Text(tr('later'))),
-        FilledButton(onPressed: setup.anyDownloading ? null : () => Navigator.of(context).pop(), child: Text(tr('ok'))),
-      ],
-    );
-  }
-}
 
 /// One model with state + install/remove controls (shared with Settings).
 class ModelRow extends StatelessWidget {

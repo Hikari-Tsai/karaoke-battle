@@ -130,6 +130,15 @@ const Map<String, (String, String, String)> _table = {
   'backend.dontShowAgain': ('不再顯示', "Don't show again", '今後表示しない'),
   'backend.installing': ('正在下載 CUDA 套件…', 'Downloading CUDA pack…', 'CUDA パックをダウンロード中…'),
   // first run
+  'gate.title': ('準備中', 'Getting ready', '準備中'),
+  'gate.checking': ('正在檢查模型…', 'Checking the models…', 'モデルを確認しています…'),
+  'gate.body': (
+    '使用前需要下列模型與工具都完整。每次啟動都會檢查，缺少或損壞的檔案請在這裡下載，完成後才能進入曲庫。',
+    'The models and tools below must all be complete before the app can be used. They are checked on every launch; download anything missing or damaged here, then continue to the library.',
+    '使用する前に、以下のモデルとツールがすべてそろっている必要があります。起動のたびに確認します。足りない・壊れているファイルはここでダウンロードしてから、ライブラリへ進んでください。',
+  ),
+  'gate.continue': ('進入曲庫', 'Continue to the library', 'ライブラリへ進む'),
+  'gate.notReady': ('請先完成下載', 'Download everything first', '先にダウンロードを完了してください'),
   'firstRun.title': ('首次設定：下載模型', 'First run: download models', '初期設定：モデルのダウンロード'),
   'firstRun.body': (
     '以下模型為曲目準備與評分所需，將從 Hugging Face 下載並驗證 sha256。',

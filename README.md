@@ -19,7 +19,7 @@
 F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音給出量化分數。
 
 * macOS（Universal, Apple Silicon + Intel）與 Windows x64，Flutter 桌面 App + C++ 原生引擎。
-* 所有模型在首次執行時從 Hugging Face `aaatmy/*` 下載並以 SHA-256 驗證，安裝包不含模型；之後若模型檔不見，會在需要時自動補下載。
+* 所有模型在首次執行時從 Hugging Face `aaatmy/*` 下載並以 SHA-256 驗證，安裝包不含模型。每次啟動都會檢查模型是否完整，缺少或損壞時要先補下載才能進入曲庫。
 * Windows 以 CUDA 為主要加速路徑（自動偵測、缺漏時提示安裝驅動並下載 CUDA 執行環境），
   備援為 DirectML 與 CPU；macOS 使用 CPU（部分模型嘗試 CoreML）。備援不影響評分準確度，只影響備歌速度。
 

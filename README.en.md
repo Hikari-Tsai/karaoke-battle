@@ -20,7 +20,7 @@ sing, a scrolling piano roll shows the reference melody alongside your live F0 c
 quantitative scores for pitch, rhythm, stability, vibrato, expression and long tone.
 
 * macOS (Universal, Apple Silicon + Intel) and Windows x64; a Flutter desktop app with a native C++ engine.
-* All models are downloaded from Hugging Face `aaatmy/*` on first run and verified with SHA-256; the installer does not bundle any models. If a model file goes missing later, it is downloaded again when it is needed.
+* All models are downloaded from Hugging Face `aaatmy/*` on first run and verified with SHA-256; the installer does not bundle any models. Every launch checks that the models are complete; anything missing or damaged has to be downloaded again before the library opens.
 * On Windows, CUDA is the primary acceleration path (detected automatically; if anything is missing, the app prompts you to install the driver and downloads the CUDA runtime),
   with DirectML and CPU as fallbacks. macOS uses the CPU (some models try CoreML). Fallbacks do not affect scoring accuracy, only song preparation speed.
 

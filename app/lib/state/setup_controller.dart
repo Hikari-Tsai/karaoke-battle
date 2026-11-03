@@ -62,6 +62,28 @@ class SetupController extends ChangeNotifier {
     }
   }
 
+  /// File being checked by [verifyRequired] (null when not checking).
+  String? verifying;
+
+  /// Every launch: checks the required models in full (sha256, cached per
+  /// file) and the required tools. [ready] tells whether the app may open.
+  Future<void> verifyRequired() async {
+    for (final m in ModelRegistry.required) {
+      stateOf(m).installed = await models.verifyCached(m, onFile: (f) {
+        verifying = '${m.title} · $f';
+        notifyListeners();
+      });
+    }
+    verifying = null;
+    await refresh();
+  }
+
+  /// Tools without which songs cannot be prepared.
+  static const requiredSidecars = [SidecarKind.ytDlp, SidecarKind.ffmpeg];
+
+  /// Everything the app needs to be used is present.
+  bool get ready => requiredInstalled && requiredSidecars.every((k) => sidecarStates[k]!.available);
+
   Future<void> install(ModelSpec m) async {
     final s = stateOf(m);
     if (s.downloading) return;

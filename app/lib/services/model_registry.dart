@@ -2,7 +2,9 @@
 // https://huggingface.co/aaatmy/*. Files are verified with the sha256 values
 // recorded in each repo's manifest.json (pinned here so a download is only
 // accepted when it matches a known-good file).
+import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:path/path.dart' as p;
 
@@ -167,6 +169,52 @@ class ModelStore {
       if (await Downloader.sha256OfFile(path) != f.sha256) return false;
     }
     return true;
+  }
+
+  /// Full check (sha256) that skips files unchanged since they last passed.
+  /// Files that fail are deleted so [install] downloads them again.
+  Future<bool> verifyCached(ModelSpec m, {void Function(String file)? onFile}) =>
+      verifyDir(dirOf(m), m.files, onFile: onFile);
+
+  /// [verifyCached] for the files of one model directory. Passing files are
+  /// remembered in `.verified.json` by size and modification time; only new
+  /// or changed files are hashed (in an isolate).
+  static Future<bool> verifyDir(String dir, List<ModelFile> files, {void Function(String file)? onFile}) async {
+    final stampFile = File(p.join(dir, '.verified.json'));
+    var stamp = <String, dynamic>{};
+    try {
+      stamp = (jsonDecode(await stampFile.readAsString()) as Map).cast<String, dynamic>();
+    } catch (_) {}
+    final next = <String, dynamic>{};
+    var ok = true;
+    for (final f in files) {
+      final file = File(p.join(dir, f.name));
+      if (!await file.exists() || await file.length() != f.bytes) {
+        ok = false;
+        continue;
+      }
+      final mtime = (await file.lastModified()).millisecondsSinceEpoch;
+      final prev = stamp[f.name];
+      if (prev is Map && prev['bytes'] == f.bytes && prev['mtime'] == mtime && prev['sha256'] == f.sha256) {
+        next[f.name] = prev;
+        continue;
+      }
+      onFile?.call(f.name);
+      final path = file.path;
+      final sha = await Isolate.run(() => Downloader.sha256OfFile(path));
+      if (sha == f.sha256) {
+        next[f.name] = {'bytes': f.bytes, 'mtime': mtime, 'sha256': f.sha256};
+      } else {
+        ok = false;
+        try {
+          await file.delete();
+        } catch (_) {}
+      }
+    }
+    try {
+      if (await Directory(dir).exists()) await stampFile.writeAsString(jsonEncode(next));
+    } catch (_) {}
+    return ok;
   }
 
   /// Downloads missing/invalid files. Progress is cumulative bytes over the model.

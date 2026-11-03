@@ -83,8 +83,9 @@ Notes for `services/backend.dart`:
   GPU but may take 10-30 s the first time on an older GPU (PTX JIT) - show a spinner.
 * After W4 the pack is marked `broken` so the self-test is not repeated on every launch;
   re-download clears the mark. The user can also pick a backend manually in Settings.
-* Remember "don't ask again" per dialog (W1, W3, W5). W2 re-appears whenever the driver is
-  still too old and no pack is installed.
+* W1 and W5 have "don't show again". W2, W3 and W4 (no working CUDA on a Windows NVIDIA
+  machine) come up on every launch until CUDA works, with no "don't show again"; "Later" or
+  "Use DirectML" closes them for that launch only.
 
 ## Dialog texts
 

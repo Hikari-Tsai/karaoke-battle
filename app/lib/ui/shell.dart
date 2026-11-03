@@ -1,16 +1,19 @@
-// Main shell: NavigationRail + pages, runs the startup flow once.
+// Main shell: NavigationRail + pages, runs the startup flow once. Until the
+// launch check finds every required model and tool, the setup gate is shown
+// instead of the app.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../state/app_services.dart';
 import '../state/i18n.dart';
+import '../state/setup_controller.dart';
 import 'about/about_screen.dart';
 import 'rules/rules_screen.dart';
 import 'library/library_screen.dart';
 import 'replays/replays_screen.dart';
 import 'settings/settings_screen.dart';
 import 'startup/backend_dialog.dart';
-import 'startup/first_run_dialog.dart';
+import 'startup/setup_gate.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -24,7 +27,9 @@ class _AppShellState extends State<AppShell> {
   // tab and does not show the startup dialogs again.
   static int _lastIndex = 0;
   static bool _startupDoneGlobal = false;
+  static bool _readyGlobal = false;
   int _index = _lastIndex;
+  bool _checking = !_readyGlobal;
 
   @override
   void initState() {
@@ -44,11 +49,22 @@ class _AppShellState extends State<AppShell> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tr('settings.backend')}: $e')));
     }
     if (!mounted) return;
-    await showFirstRunDialogIfNeeded(context);
+    final setup = context.read<SetupController>();
+    try {
+      await setup.verifyRequired();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _checking = false;
+      if (setup.ready) _readyGlobal = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_readyGlobal) {
+      return SetupGate(checking: _checking, onContinue: () => setState(() => _readyGlobal = true));
+    }
     return Scaffold(
       body: Row(
         children: [
