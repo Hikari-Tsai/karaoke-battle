@@ -22,6 +22,7 @@ KtvChartService fakeService({bool cashboxDown = false}) => KtvChartService(
       'www.cashboxparty.com' => cashboxDown ? null : fixture('cashbox_bl.json'),
       'www.joysound.com' => fixture('joysound_weekly.html'),
       'www.clubdam.com' => fixture('dam_ranking.html'),
+      'kma.kkbox.com' => fixture('kkbox_weekly.json'),
       _ => null,
     };
     if (body == null) return http.Response('', 503);
@@ -88,7 +89,7 @@ void main() {
     await tester.pump();
     await settle(tester);
     expect(tester.takeException(), isNull);
-    for (final v in ['好樂迪', '錢櫃', 'JOYSOUND', 'DAM']) {
+    for (final v in ['好樂迪', '錢櫃', 'JOYSOUND', 'DAM', 'KKBOX']) {
       expect(find.descendant(of: find.byType(TabBar), matching: find.text(v)), findsOneWidget);
     }
     expect(find.text('在 好樂迪 官網查看'), findsOneWidget);
@@ -108,6 +109,15 @@ void main() {
     expect(find.textContaining('2026/10/25 – 2026/10/31'), findsOneWidget, reason: 'DAM weekly period');
     expect(find.text('5277-09'), findsOneWidget);
     expect(find.text('在 DAM 官網查看'), findsOneWidget);
+
+    await openTab(tester, 'KKBOX');
+    expect(find.text('海嶼你'), findsOneWidget);
+    expect(find.text('馬也Crabbit'), findsOneWidget);
+    expect(find.text('新進'), findsOneWidget, reason: 'KKBOX rank 7');
+    expect(find.text('曲號'), findsNothing, reason: 'KKBOX has no song numbers');
+    expect(find.textContaining('2026/10/23 – 2026/10/29'), findsOneWidget);
+    expect(find.text('在 KKBOX 官網查看'), findsOneWidget);
+    expect(find.byTooltip('在 YouTube 搜尋'), findsWidgets);
   });
 
   testWidgets('one failing operator shows its own error only', (tester) async {

@@ -606,9 +606,9 @@ const Map<String, (String, String, String)> _table = {
   // KTV charts
   'charts.title': ('點歌排行榜', 'KTV charts', 'カラオケランキング'),
   'charts.intro': (
-    '台灣與日本 KTV 的每週點歌排行，直接取自各業者官網。結果會保留 6 小時，按右上角可重新整理。',
-    'Weekly request charts from karaoke operators in Taiwan and Japan, read from their own websites. Results are kept for 6 hours; use the button at the top right to refresh.',
-    '台湾と日本のカラオケ事業者の公式サイトから取得した週間ランキングです。結果は 6 時間保持され、右上のボタンで再読み込みできます。',
+    '台灣與日本 KTV 的每週點歌排行，以及 KKBOX 的單曲週榜，直接取自各業者官網。結果會保留 6 小時，按右上角可重新整理。',
+    'Weekly request charts from karaoke operators in Taiwan and Japan, plus the KKBOX weekly single charts, read from their own websites. Results are kept for 6 hours; use the button at the top right to refresh.',
+    '台湾と日本のカラオケ事業者の週間ランキングと KKBOX の週間シングルランキングを、各社の公式サイトから取得しています。結果は 6 時間保持され、右上のボタンで再読み込みできます。',
   ),
   'charts.refresh': ('重新整理', 'Refresh', '再読み込み'),
   'charts.region.tw': ('台灣', 'Taiwan', '台湾'),
@@ -617,7 +617,9 @@ const Map<String, (String, String, String)> _table = {
   'charts.vendor.cashbox': ('錢櫃', 'Cashbox Party', '銭櫃（キャッシュボックス）'),
   'charts.vendor.joysound': ('JOYSOUND', 'JOYSOUND', 'JOYSOUND'),
   'charts.vendor.dam': ('DAM', 'DAM', 'DAM'),
+  'charts.vendor.kkbox': ('KKBOX', 'KKBOX', 'KKBOX'),
   'charts.lang.mandarin': ('國語', 'Mandarin', '北京語'),
+  'charts.lang.chinese': ('華語', 'Chinese', '中国語'),
   'charts.lang.taiwanese': ('台語', 'Taiwanese', '台湾語'),
   'charts.lang.cantonese': ('粵語', 'Cantonese', '広東語'),
   'charts.lang.english': ('英語', 'English', '英語'),

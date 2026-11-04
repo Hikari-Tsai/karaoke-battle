@@ -132,6 +132,34 @@ void main() {
     });
   });
 
+  group('KKBOX', () {
+    test('weekly single chart with movement, new entries and the Friday–Thursday period', () {
+      final r = parseKkboxChart(fixture('kkbox_weekly.json'));
+      expect(r.period, '2026/10/23 – 2026/10/29');
+      expect(r.entries.map((e) => e.rank), [1, 2, 4, 5, 7, 15]);
+      final first = r.entries.first;
+      expect(first.title, '甲乙丙丁Strangers - 你我怎麼兩清');
+      expect(first.artist, '李佳薇 (Jess Lee)');
+      expect(first.songNo, isEmpty);
+      expect(first.movement, 0);
+      final n = r.entries.singleWhere((e) => e.isNew);
+      expect(n.rank, 7);
+      expect(n.movement, isNull);
+      expect(r.entries.last.movement, 15);
+    });
+
+    test('artists are the performers, not the album artist', () {
+      final r = parseKkboxChart(fixture('kkbox_weekly.json'));
+      expect(r.entries.singleWhere((e) => e.rank == 7).artist, startsWith('五月天 阿信 (Ashin)'), reason: 'artist_name is Various Artists');
+      expect(r.entries.singleWhere((e) => e.rank == 2).artist, '馬也Crabbit');
+    });
+
+    test('an error code is rejected; non-JSON is a format error', () {
+      expect(() => parseKkboxChart(fixture('kkbox_error.json')), throwsA(isA<ChartException>().having((e) => e.kind, 'kind', ChartErrorKind.rejected).having((e) => e.detail, 'detail', 'code=104')));
+      expect(() => parseKkboxChart('<html>'), throwsA(isA<ChartException>().having((e) => e.kind, 'kind', ChartErrorKind.format)));
+    });
+  });
+
   group('service', () {
     late Directory tmp;
     setUp(() => tmp = Directory.systemTemp.createTempSync('ktv_charts_test'));
@@ -154,6 +182,9 @@ void main() {
           return http.Response.bytes(utf8.encode(fixture('joysound_weekly.html')), 200, headers: utf8Headers);
         case 'www.clubdam.com':
           return http.Response.bytes(utf8.encode(fixture('dam_ranking.html')), 200, headers: utf8Headers);
+        case 'kma.kkbox.com':
+          final ok = req.url.path == '/charts/api/v1/weekly' && req.url.queryParameters['type'] == 'song' && req.url.queryParameters['terr'] == 'tw';
+          return http.Response.bytes(utf8.encode(fixture(ok ? 'kkbox_weekly.json' : 'kkbox_error.json')), ok ? 200 : 400);
       }
       return http.Response('', 404);
     });
@@ -171,6 +202,23 @@ void main() {
       final dam = await s.load(board(KtvVendor.dam));
       expect(dam.updated, '2026/11/01');
       expect(dam.entries, hasLength(3));
+      final kkbox = await s.load(board(KtvVendor.kkbox));
+      expect(kkbox.entries, hasLength(6));
+      expect(kkbox.period, '2026/10/23 – 2026/10/29');
+    });
+
+    test('KKBOX boards ask for their category', () async {
+      final categories = <String?>[];
+      final s = KtvChartService(
+        client: MockClient((req) async {
+          categories.add(req.url.queryParameters['category']);
+          return http.Response.bytes(utf8.encode(fixture('kkbox_weekly.json')), 200);
+        }),
+      );
+      for (final b in KtvCharts.boards[KtvVendor.kkbox]!) {
+        await s.load(b);
+      }
+      expect(categories, ['297', '390', '308', '314', '304', '320']);
     });
 
     test('memory cache within the TTL, refetch when forced or expired', () async {
@@ -225,7 +273,7 @@ void main() {
         for (final v in KtvVendor.values) s.load(board(v)).then<Object>((c) => c, onError: (Object e) => e),
       ]);
       expect(results[KtvVendor.cashbox.index], isA<ChartException>().having((e) => e.kind, 'kind', ChartErrorKind.http).having((e) => e.detail, 'detail', '500'));
-      for (final v in [KtvVendor.holiday, KtvVendor.joysound, KtvVendor.dam]) {
+      for (final v in [KtvVendor.holiday, KtvVendor.joysound, KtvVendor.dam, KtvVendor.kkbox]) {
         expect(results[v.index], isA<KtvChart>(), reason: v.name);
       }
     });
@@ -261,5 +309,6 @@ void main() {
     expect(board(KtvVendor.joysound, 1).officialUrl, 'https://www.joysound.com/web/karaoke/ranking/anime/weekly');
     expect(board(KtvVendor.dam).officialUrl, 'https://www.clubdam.com/ranking/#ranking-weekly');
     expect(board(KtvVendor.dam, 1).officialUrl, 'https://www.clubdam.com/genre/anison/#ranking-weekly');
+    expect(board(KtvVendor.kkbox).officialUrl, 'https://kma.kkbox.com/charts/weekly/song?terr=tw&lang=tc&cate=297');
   });
 }

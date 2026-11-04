@@ -1,6 +1,7 @@
 // KTV song request charts from the operators' own websites: Holiday and
 // Cashbox (Taiwan, internal AJAX endpoints), JOYSOUND (JSON-LD in the ranking
-// page) and DAM (static ranking HTML). None of these are public APIs, so the
+// page) and DAM (static ranking HTML), plus the KKBOX streaming charts (the
+// JSON behind its public chart pages). None of these are public APIs, so the
 // parsers are kept pure and tested against saved responses.
 //
 // Charts change once a week (DAM daily/weekly), so results are cached in
@@ -12,11 +13,13 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
-enum KtvVendor { holiday, cashbox, joysound, dam }
+/// The chart sources. KKBOX is a streaming service rather than a KTV
+/// operator, but its charts sit beside theirs.
+enum KtvVendor { holiday, cashbox, joysound, dam, kkbox }
 
 /// One chart a vendor publishes. [id] is the vendor's own code: the Holiday
-/// `ltype`, `t<type>-<lang>` for Cashbox, the JOYSOUND genre, or the DAM
-/// genre (`all` for the overall chart).
+/// `ltype`, `t<type>-<lang>` for Cashbox, the JOYSOUND genre, the DAM genre
+/// (`all` for the overall chart), or the KKBOX category number.
 class ChartBoard {
   const ChartBoard(this.vendor, this.id, this.labelKey);
   final KtvVendor vendor;
@@ -33,6 +36,7 @@ class ChartBoard {
     KtvVendor.cashbox => 'https://www.cashboxparty.com/Music/KTVMusic.aspx',
     KtvVendor.joysound => 'https://www.joysound.com/web/karaoke/ranking/$id/weekly',
     KtvVendor.dam => 'https://www.clubdam.com${_damPath(id)}#ranking-weekly',
+    KtvVendor.kkbox => 'https://kma.kkbox.com/charts/weekly/song?terr=tw&lang=tc&cate=$id',
   };
 
   @override
@@ -83,10 +87,25 @@ class KtvCharts {
       ChartBoard(KtvVendor.dam, 'enka', 'charts.genre.enka'),
       ChartBoard(KtvVendor.dam, 'foreign', 'charts.genre.foreign'),
     ],
+    // The weekly single charts of KKBOX Taiwan.
+    KtvVendor.kkbox: [
+      ChartBoard(KtvVendor.kkbox, '297', 'charts.lang.chinese'),
+      ChartBoard(KtvVendor.kkbox, '390', 'charts.genre.foreign'),
+      ChartBoard(KtvVendor.kkbox, '308', 'charts.lang.japanese'),
+      ChartBoard(KtvVendor.kkbox, '314', 'charts.lang.korean'),
+      ChartBoard(KtvVendor.kkbox, '304', 'charts.lang.taiwanese'),
+      ChartBoard(KtvVendor.kkbox, '320', 'charts.lang.cantonese'),
+    ],
   };
 
   /// Whether the vendor publishes last week's rank.
-  static bool hasMovement(KtvVendor v) => v == KtvVendor.holiday || v == KtvVendor.cashbox;
+  static bool hasMovement(KtvVendor v) => v == KtvVendor.holiday || v == KtvVendor.cashbox || v == KtvVendor.kkbox;
+
+  /// Whether the chart has a number to enter on a karaoke machine.
+  static bool hasSongNo(KtvVendor v) => v != KtvVendor.kkbox;
+
+  /// `tw` or `jp`.
+  static String region(KtvVendor v) => v == KtvVendor.joysound || v == KtvVendor.dam ? 'jp' : 'tw';
 }
 
 class ChartEntry {
@@ -337,6 +356,46 @@ final _damDate = RegExp(r'p-section-header__date">\s*(\d{4}/\d{2}/\d{2})');
   return (entries: entries, period: period, updated: updated);
 }
 
+/// `charts/api/v1/weekly?type=song`. KKBOX weeks run Friday to Thursday and
+/// the chart is dated by its last day.
+({List<ChartEntry> entries, String period}) parseKkboxChart(String body) {
+  final Object? root;
+  try {
+    root = jsonDecode(body);
+  } on FormatException catch (e) {
+    throw ChartException(ChartErrorKind.format, e.message);
+  }
+  if (root is! Map) throw const ChartException(ChartErrorKind.format, 'not a JSON object');
+  if ('${root['code']}' != '0') throw ChartException(ChartErrorKind.rejected, 'code=${root['code']} ${root['message'] ?? ''}'.trim());
+  final data = root['data'];
+  final charts = data is Map ? data['charts'] : null;
+  final songs = charts is Map ? charts['song'] : null;
+  if (songs is! List) throw const ChartException(ChartErrorKind.format, 'no song chart');
+  final entries = <ChartEntry>[];
+  for (final r in songs) {
+    if (r is! Map || r['rankings'] is! Map) continue;
+    final rankings = r['rankings'] as Map;
+    final rank = (rankings['this_period'] as num?)?.toInt();
+    if (rank == null) continue;
+    final last = (rankings['last_period'] as num?)?.toInt();
+    // artist_roles names the performers; artist_name is the album artist
+    // ("Various Artists" on soundtracks).
+    final roles = '${r['artist_roles'] ?? ''}'.trim();
+    entries.add(ChartEntry(
+      rank: rank,
+      title: '${r['song_name'] ?? ''}'.trim(),
+      artist: roles.isNotEmpty ? roles : '${r['artist_name'] ?? ''}'.trim(),
+      songNo: '',
+      lastRank: last,
+      isNew: last == null,
+    ));
+  }
+  entries.sort((a, b) => a.rank.compareTo(b.rank));
+  final end = DateTime.tryParse('${data is Map ? data['date'] : ''}');
+  final period = end == null ? '' : _period(_slashDate(end.subtract(const Duration(days: 6))), _slashDate(end));
+  return (entries: entries, period: period);
+}
+
 DateTime? _parseSlashDate(String s) {
   final m = RegExp(r'^(\d{4})/(\d{2})/(\d{2})$').firstMatch(s);
   return m == null ? null : DateTime.utc(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!));
@@ -439,6 +498,10 @@ class KtvChartService {
       case KtvVendor.dam:
         final r = parseDamPage(await _send(http.Request('GET', Uri.parse('https://www.clubdam.com${_damPath(board.id)}'))));
         return KtvChart(board: board, entries: r.entries, period: r.period, updated: r.updated, fetchedAt: now);
+      case KtvVendor.kkbox:
+        final url = Uri.https('kma.kkbox.com', '/charts/api/v1/weekly', {'category': board.id, 'lang': 'tc', 'limit': '50', 'terr': 'tw', 'type': 'song'});
+        final r = parseKkboxChart(await _send(http.Request('GET', url)));
+        return KtvChart(board: board, entries: r.entries, period: r.period, fetchedAt: now);
     }
   }
 

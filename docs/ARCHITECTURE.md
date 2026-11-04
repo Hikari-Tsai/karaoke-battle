@@ -170,7 +170,8 @@ Validate against `pip install swift-f0` on the same WAV: median |cents| < 5 on v
 * `services/backend.dart` — GPU detection, CUDA pack management, backend selection UI logic.
 * `services/library.dart` — song store (JSON index + per-song folder).
 * `services/ktv_charts.dart` — weekly request charts of Holiday / Cashbox (their internal
-  AJAX endpoints), JOYSOUND (JSON-LD in the ranking page) and DAM (ranking HTML); pure
+  AJAX endpoints), JOYSOUND (JSON-LD in the ranking page), DAM (ranking HTML) and the
+  KKBOX weekly single charts (the JSON behind kma.kkbox.com); pure
   parsers plus a memory + disk cache (`<support>/cache/ktv_charts/`, 6 h) shown by
   `ui/charts/charts_screen.dart`.
 * `scoring/` — alignment (global semitone shift, DTW), chroma/pitch metrics, note metrics,

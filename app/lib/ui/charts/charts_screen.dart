@@ -1,5 +1,5 @@
 // "KTV charts" tab: the weekly request charts of Holiday, Cashbox, JOYSOUND
-// and DAM, one tab per operator with its own boards, errors and a link to the
+// and DAM and the KKBOX streaming charts, one tab per operator with its own boards, errors and a link to the
 // chart on the operator's website. An operator is fetched the first time its
 // tab is shown, and nothing before the "KTV charts" page itself is.
 import 'package:flutter/material.dart';
@@ -169,7 +169,7 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
 
 String _vendorName(KtvVendor v) => tr('charts.vendor.${v.name}');
 
-String _region(KtvVendor v) => tr('charts.region.${v == KtvVendor.holiday || v == KtvVendor.cashbox ? 'tw' : 'jp'}');
+String _region(KtvVendor v) => tr('charts.region.${KtvCharts.region(v)}');
 
 /// Operator name and region; an error mark while its chart failed to load.
 class _VendorTab extends StatelessWidget {
@@ -342,7 +342,7 @@ class _HeaderRow extends StatelessWidget {
           if (KtvCharts.hasMovement(vendor)) const SizedBox(width: _moveW),
           Expanded(flex: 5, child: Text(tr('charts.song'), style: style)),
           Expanded(flex: 4, child: Text(tr('charts.artist'), style: style)),
-          SizedBox(width: _noW, child: Text(_songNoLabel(vendor), style: style, textAlign: TextAlign.end)),
+          if (KtvCharts.hasSongNo(vendor)) SizedBox(width: _noW, child: Text(_songNoLabel(vendor), style: style, textAlign: TextAlign.end)),
           const SizedBox(width: _ytW),
         ],
       ),
@@ -383,10 +383,11 @@ class _EntryRow extends StatelessWidget {
             flex: 4,
             child: Text(entry.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
           ),
-          SizedBox(
-            width: _noW,
-            child: Text(entry.songNo, textAlign: TextAlign.end, style: theme.textTheme.bodyMedium?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
-          ),
+          if (KtvCharts.hasSongNo(vendor))
+            SizedBox(
+              width: _noW,
+              child: Text(entry.songNo, textAlign: TextAlign.end, style: theme.textTheme.bodyMedium?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
+            ),
           SizedBox(
             width: _ytW,
             child: IconButton(

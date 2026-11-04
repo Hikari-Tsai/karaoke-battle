@@ -1,0 +1,152 @@
+{
+ "code": "0",
+ "message": "",
+ "data": {
+  "date": "2026-10-29",
+  "charts": {
+   "song": [
+    {
+     "rankings": {
+      "this_period": 1,
+      "last_period": 1
+     },
+     "type": "song",
+     "song_id": "GptIJ2y--IKc1ewMvC",
+     "is_auth": true,
+     "song_name": "甲乙丙丁Strangers - 你我怎麼兩清",
+     "artist_name": "李佳薇 (Jess Lee)",
+     "artist_roles": "李佳薇 (Jess Lee)",
+     "album_name": "甲乙丙丁Strangers",
+     "cover_image": {
+      "normal": "https://i.kfs.io/album/global/295320632,0v2/fit/500x500.jpg",
+      "small": "https://i.kfs.io/album/global/295320632,0v2/fit/160x160.jpg"
+     },
+     "song_url": "https://www.kkbox.com/tw/tc/song/GptIJ2y--IKc1ewMvC",
+     "artist_url": "https://www.kkbox.com/tw/tc/artist/Sr05tTDYLFcrm7ZrG5",
+     "album_url": "https://www.kkbox.com/tw/tc/album/9Y2ZAXwXpTG8JCn0J5",
+     "is_artist_va": false,
+     "release_date": 1783440000,
+     "status": 0
+    },
+    {
+     "rankings": {
+      "this_period": 2,
+      "last_period": 2
+     },
+     "type": "song",
+     "song_id": "9XjRo9xi3wYrBpOzqC",
+     "is_auth": true,
+     "song_name": "海嶼你",
+     "artist_name": "马也Crabbit, Cole先生",
+     "artist_roles": "馬也Crabbit",
+     "album_name": "海嶼你",
+     "cover_image": {
+      "normal": "https://i.kfs.io/album/global/223493591,0v1/fit/500x500.jpg",
+      "small": "https://i.kfs.io/album/global/223493591,0v1/fit/160x160.jpg"
+     },
+     "song_url": "https://www.kkbox.com/tw/tc/song/9XjRo9xi3wYrBpOzqC",
+     "artist_url": "https://www.kkbox.com/tw/tc/artist/8t3CAdpnItW_gz8DsB",
+     "album_url": "https://www.kkbox.com/tw/tc/album/Kr8u0Tx0QPhDA_o7ga",
+     "is_artist_va": false,
+     "release_date": 1660924800,
+     "status": 0
+    },
+    {
+     "rankings": {
+      "this_period": 4,
+      "last_period": 4
+     },
+     "type": "song",
+     "song_id": "9ZH06Yn-s_ZpFJYVjQ",
+     "is_auth": true,
+     "song_name": "離開我的依賴",
+     "artist_name": "王艷薇 (Evangeline)",
+     "artist_roles": "王艷薇",
+     "album_name": "離開我的依賴",
+     "cover_image": {
+      "normal": "https://i.kfs.io/album/tw/69206709,0v1/fit/500x500.jpg",
+      "small": "https://i.kfs.io/album/tw/69206709,0v1/fit/160x160.jpg"
+     },
+     "song_url": "https://www.kkbox.com/tw/tc/song/9ZH06Yn-s_ZpFJYVjQ",
+     "artist_url": "https://www.kkbox.com/tw/tc/artist/KrQ8nDYDyXr4nVUMe_",
+     "album_url": "https://www.kkbox.com/tw/tc/album/L_vAwc5eYWLlQInikR",
+     "is_artist_va": false,
+     "release_date": 1581868800,
+     "status": 0
+    },
+    {
+     "rankings": {
+      "this_period": 5,
+      "last_period": 5
+     },
+     "type": "song",
+     "song_id": "GoiHhDGwV7_OegDFh_",
+     "is_auth": true,
+     "song_name": "看著我的眼睛說",
+     "artist_name": "張遠",
+     "artist_roles": "張遠",
+     "album_name": "看著我的眼睛說",
+     "cover_image": {
+      "normal": "https://i.kfs.io/album/global/280657750,0v1/fit/500x500.jpg",
+      "small": "https://i.kfs.io/album/global/280657750,0v1/fit/160x160.jpg"
+     },
+     "song_url": "https://www.kkbox.com/tw/tc/song/GoiHhDGwV7_OegDFh_",
+     "artist_url": "https://www.kkbox.com/tw/tc/artist/WrzBKxdmI7VXetTMJ5",
+     "album_url": "https://www.kkbox.com/tw/tc/album/5Yodo5tHsLpPwizqk3",
+     "is_artist_va": false,
+     "release_date": 1747324800,
+     "status": 0
+    },
+    {
+     "rankings": {
+      "this_period": 7,
+      "last_period": null
+     },
+     "type": "song",
+     "song_id": "PXpcRUCL8IwsBYpXIt",
+     "is_auth": true,
+     "song_name": "今夜讓我帶你高飛遠走",
+     "artist_name": "Various Artists",
+     "artist_roles": "五月天 阿信 (Ashin), 言承旭 (Jerry Yan), 吳建豪 (Van Ness Wu), 周渝民 (Vic Chou), 劉宇寧",
+     "album_name": "今夜讓我帶你高飛遠走",
+     "cover_image": {
+      "normal": "https://i.kfs.io/album/global/300388191,0v1/fit/500x500.jpg",
+      "small": "https://i.kfs.io/album/global/300388191,0v1/fit/160x160.jpg"
+     },
+     "song_url": "https://www.kkbox.com/tw/tc/song/PXpcRUCL8IwsBYpXIt",
+     "artist_url": "#",
+     "album_url": "https://www.kkbox.com/tw/tc/album/Ot0p1wcREqbM91PxJS",
+     "is_artist_va": true,
+     "release_date": 1792598400,
+     "status": 0
+    },
+    {
+     "rankings": {
+      "this_period": 15,
+      "last_period": 30
+     },
+     "type": "song",
+     "song_id": "TXDCehp3AIGG2fXOTl",
+     "is_auth": true,
+     "song_name": "一遍兩遍",
+     "artist_name": "8lak",
+     "artist_roles": "8lak, 胤宏 (INHON)",
+     "album_name": "一遍兩遍",
+     "cover_image": {
+      "normal": "https://i.kfs.io/album/global/298885527,0v3/fit/500x500.jpg",
+      "small": "https://i.kfs.io/album/global/298885527,0v3/fit/160x160.jpg"
+     },
+     "song_url": "https://www.kkbox.com/tw/tc/song/TXDCehp3AIGG2fXOTl",
+     "artist_url": "https://www.kkbox.com/tw/tc/artist/LYffksi2qDphGiTgUv",
+     "album_url": "https://www.kkbox.com/tw/tc/album/-oGSnkxc2jy1xOgmfS",
+     "is_artist_va": false,
+     "release_date": 1790870400,
+     "status": 0
+    }
+   ]
+  },
+  "playlist_id": {
+   "song": "DXG3rz-EHhl4sstuXh"
+  }
+ }
+}
