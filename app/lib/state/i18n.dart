@@ -732,6 +732,7 @@ const Map<String, (String, String, String)> _table = {
   'about.author': ('作者', 'Author', '作者'),
   'about.download': ('下載（GitHub Releases）', 'Download (GitHub Releases)', 'ダウンロード（GitHub Releases）'),
   'about.repo': ('原始碼', 'Source code', 'ソースコード'),
+  'about.star': ('在 GitHub 給我星星', 'Star on GitHub', 'GitHub でスターをつける'),
   'about.checkUpdate': ('檢查更新', 'Check for updates', 'アップデートを確認'),
   'about.checking': ('檢查中…', 'Checking…', '確認中…'),
   'about.upToDate': ('已是最新版本（{version}）', 'Up to date ({version})', '最新バージョンです（{version}）'),

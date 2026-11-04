@@ -144,6 +144,12 @@ class _AboutScreenState extends State<AboutScreen> {
               icon: const Icon(Icons.download),
               label: Text(tr('about.download')),
             ),
+            // Starring happens on the repo page; GitHub has no direct star link.
+            FilledButton.tonalIcon(
+              onPressed: () => launchUrl(Uri.parse(UpdateChecker.repoUrl)),
+              icon: const Icon(Icons.star_outline),
+              label: Text(tr('about.star')),
+            ),
             OutlinedButton.icon(
               onPressed: () => launchUrl(Uri.parse(UpdateChecker.repoUrl)),
               icon: const Icon(Icons.code),
