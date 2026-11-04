@@ -285,6 +285,7 @@ class _ErrorRow extends StatelessWidget {
 const _rankW = 44.0;
 const _moveW = 64.0;
 const _noW = 96.0;
+const _ytW = 44.0;
 
 String _songNoLabel(KtvVendor v) => switch (v) {
   KtvVendor.dam => tr('charts.songNo.dam'),
@@ -309,6 +310,7 @@ class _HeaderRow extends StatelessWidget {
           Expanded(flex: 5, child: Text(tr('charts.song'), style: style)),
           Expanded(flex: 4, child: Text(tr('charts.artist'), style: style)),
           SizedBox(width: _noW, child: Text(_songNoLabel(vendor), style: style, textAlign: TextAlign.end)),
+          const SizedBox(width: _ytW),
         ],
       ),
     );
@@ -351,6 +353,16 @@ class _EntryRow extends StatelessWidget {
           SizedBox(
             width: _noW,
             child: Text(entry.songNo, textAlign: TextAlign.end, style: theme.textTheme.bodyMedium?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
+          ),
+          SizedBox(
+            width: _ytW,
+            child: IconButton(
+              tooltip: tr('charts.youtube'),
+              icon: const Icon(Icons.smart_display_outlined, size: 20),
+              visualDensity: VisualDensity.compact,
+              color: cs.onSurfaceVariant,
+              onPressed: () => launchUrl(entry.youtubeSearchUrl),
+            ),
           ),
         ],
       ),

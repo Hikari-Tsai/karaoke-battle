@@ -247,6 +247,14 @@ void main() {
     expect(const ChartEntry(rank: 7, title: '', artist: '', songNo: '').movement, isNull);
   });
 
+  test('YouTube search links carry the song and artist, encoded', () {
+    const e = ChartEntry(rank: 1, title: '怪獣の花唄', artist: 'Vaundy', songNo: '');
+    expect(e.youtubeSearchUrl.toString(), startsWith('https://www.youtube.com/results?search_query='));
+    expect(e.youtubeSearchUrl.queryParameters['search_query'], '怪獣の花唄 Vaundy');
+    const amp = ChartEntry(rank: 1, title: 'A&B #1', artist: '', songNo: '');
+    expect(amp.youtubeSearchUrl.queryParameters['search_query'], 'A&B #1');
+  });
+
   test('official links point at each chart', () {
     expect(board(KtvVendor.holiday, 1).officialUrl, 'https://www.holiday.com.tw/SongInfo/SongList.aspx?st=top&lt=tt');
     expect(board(KtvVendor.cashbox).officialUrl, 'https://www.cashboxparty.com/Music/KTVMusic.aspx');

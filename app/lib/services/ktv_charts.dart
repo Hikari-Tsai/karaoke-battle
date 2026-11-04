@@ -106,6 +106,9 @@ class ChartEntry {
   /// Places moved up (negative: down), or null when unknown or new.
   int? get movement => isNew || lastRank == null ? null : lastRank! - rank;
 
+  /// A YouTube search for this song: a plain results page, no API key.
+  Uri get youtubeSearchUrl => Uri.https('www.youtube.com', '/results', {'search_query': '$title $artist'.trim()});
+
   Map<String, dynamic> toJson() => {
     'rank': rank,
     'title': title,

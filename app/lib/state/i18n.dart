@@ -627,6 +627,7 @@ const Map<String, (String, String, String)> _table = {
   'charts.err.rejected': ('官網拒絕了請求', 'The website rejected the request', 'サイトがリクエストを拒否しました'),
   'charts.source': ('資料來源：{vendor} 官網', 'Source: {vendor} website', 'データ提供：{vendor} 公式サイト'),
   'charts.openSite': ('在 {vendor} 官網查看', 'View on the {vendor} website', '{vendor} 公式サイトで見る'),
+  'charts.youtube': ('在 YouTube 搜尋', 'Search on YouTube', 'YouTube で検索'),
   // about
   // rules
   'rules.title': ('計分規則', 'Scoring rules', '採点ルール'),

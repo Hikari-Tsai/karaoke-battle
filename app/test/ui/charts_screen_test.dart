@@ -75,6 +75,7 @@ void main() {
     expect(find.text('新進'), findsOneWidget, reason: 'Holiday rank 8');
     expect(find.textContaining('2026/10/25 – 2026/10/31'), findsOneWidget, reason: 'DAM weekly period');
     expect(find.text('5277-09'), findsOneWidget);
+    expect(find.byTooltip('在 YouTube 搜尋'), findsWidgets);
   });
 
   testWidgets('one failing vendor shows its own error only', (tester) async {
