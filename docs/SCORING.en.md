@@ -16,7 +16,7 @@ This document explains how Karaoke Battle compares a take against the reference 
 | Take F0 curve `take_f0.json` | SwiftF0 on the recorded microphone audio | Same as above |
 | Energy curves (optional) | RMS of take.wav and vocals.wav | One dB value every 16 ms, used for expression |
 
-Scoring uses only the pitch and energy above and **does not recognise the lyrics**: wrong words, or humming through a forgotten line, cost nothing as long as the pitch and timing are right.
+Scoring uses only the pitch and energy above and **does not recognise the lyrics**: wrong words, or humming through a forgotten line, cost nothing as long as the pitch and timing are right (the song's language only affects how accurately the GAME model detects the notes).
 
 F0 is first converted to semitones (MIDI float): `midi = 69 + 12·log2(f0 / 440)`. Frames with confidence below 0.4 are treated as unvoiced.
 Both curves are resampled onto the same 16 ms grid. When a reference F0 curve is available, each frame has two targets:

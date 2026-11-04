@@ -670,7 +670,7 @@ const Map<String, (String, String, String)> _table = {
   'rules.octave': ('唱高八度或低八度都算對，男女生都能唱同一首。', 'Singing an octave higher or lower counts as correct, so anyone can sing any song.', '1 オクターブ上や下で歌っても正解です。誰でも同じ曲を歌えます。'),
   'rules.transpose': ('整首歌移調沒關係，App 會自動對齊；但要整首一致，不要中途換 key。', 'Transposing the whole song is fine, the app aligns it automatically; just keep the same key all the way through.', '曲全体の移調は問題ありません。アプリが自動で合わせます。ただし途中でキーを変えないこと。'),
   'rules.slides': ('原唱的滑音可以跟著滑，也可以把音唱直，兩種都算對。', 'You may follow the original\'s slides and scoops or sing the plain note; both count.', '原曲のしゃくりやポルタメントは、真似しても、まっすぐ歌っても正解です。'),
-  'rules.lyrics': ('評分只聽音高和節奏，不辨識歌詞：唱錯字、忘詞用哼的帶過，都不會扣分。', 'Scoring listens only to pitch and rhythm, not the words: wrong lyrics, or humming through a line you forgot, cost you nothing.', '採点は音程とリズムだけを聞き、歌詞は判定しません。歌詞の間違いや、忘れた部分をハミングでごまかしても減点されません。'),
+  'rules.lyrics': ('評分只聽音高和節奏，不辨識歌詞：唱錯字、忘詞用哼的帶過，都不會扣分（歌曲的語言只影響 GAME 模型偵測樂譜的準確度）。', 'Scoring listens only to pitch and rhythm, not the words: wrong lyrics, or humming through a line you forgot, cost you nothing (the song\'s language only affects how accurately the GAME model detects the notes).', '採点は音程とリズムだけを聞き、歌詞は判定しません。歌詞の間違いや、忘れた部分をハミングでごまかしても減点されません（曲の言語が影響するのは、GAME モデルが楽譜を検出する精度だけです）。'),
   'rules.ranks': ('等級', 'Ranks', 'ランク'),
   'rules.scale': (
     '分數換算成和 DAM 精密採点相近的尺度：80 分左右是一般水準，90 分以上算唱得好，95 分以上很厲害，98 分以上接近原唱。',
