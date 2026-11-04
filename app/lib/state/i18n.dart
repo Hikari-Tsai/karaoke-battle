@@ -62,6 +62,8 @@ const Map<String, (String, String, String)> _table = {
   'nav.charts': ('點歌排行榜', 'KTV charts', 'カラオケランキング'),
   'nav.rules': ('計分規則', 'Scoring', '採点ルール'),
   'nav.settings': ('設定', 'Settings', '設定'),
+  'nav.star': ('賞我星星', 'Star on GitHub', 'スターをください'),
+  'nav.update': ('有更新', 'Update', '更新あり'),
   'nav.report': ('回報問題', 'Report a problem', '問題を報告'),
   'nav.about': ('關於', 'About', 'このアプリについて'),
   // generic

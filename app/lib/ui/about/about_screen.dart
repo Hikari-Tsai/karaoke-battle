@@ -64,9 +64,11 @@ class _AboutScreenState extends State<AboutScreen> {
     try {
       final latest = await UpdateChecker.fetchLatest();
       if (!mounted) return;
+      final newer = UpdateChecker.isNewer(latest.version, _appVersion);
+      UpdateChecker.available.value = newer ? latest : null;
       setState(() {
         _latest = latest;
-        _state = UpdateChecker.isNewer(latest.version, _appVersion) ? _UpdateState.available : _UpdateState.upToDate;
+        _state = newer ? _UpdateState.available : _UpdateState.upToDate;
       });
     } catch (e) {
       if (!mounted) return;

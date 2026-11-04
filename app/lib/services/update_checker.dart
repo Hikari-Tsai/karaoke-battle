@@ -1,6 +1,7 @@
 // Update check against the GitHub Releases of this project.
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ReleaseInfo {
@@ -18,6 +19,11 @@ class UpdateChecker {
   static const repoUrl = 'https://github.com/$repo';
   static const releasesUrl = 'https://github.com/$repo/releases';
   static const latestApi = 'https://api.github.com/repos/$repo/releases/latest';
+
+  /// A release newer than this app, from the last check (null when none).
+  /// The About screen checks at launch, since the shell builds every tab;
+  /// the rail and the settings screen show the result.
+  static final available = ValueNotifier<ReleaseInfo?>(null);
 
   /// Parses `v1.2.3`, `1.2.3+45` or `1.2.3-beta.1` into numeric components
   /// (`+build` and `-pre` suffixes are ignored; missing parts are 0).

@@ -5,12 +5,14 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/app_paths.dart';
 import '../../services/backend_manager.dart';
 import '../../services/model_registry.dart';
 import '../../services/settings.dart';
 import '../../services/sidecars.dart';
+import '../../services/update_checker.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
@@ -227,6 +229,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ---- new version (the rail's Settings icon shows a bubble meanwhile) ----
+          ValueListenableBuilder(
+            valueListenable: UpdateChecker.available,
+            builder: (context, release, _) => release == null
+                ? const SizedBox.shrink()
+                : Card(
+                    color: theme.colorScheme.tertiaryContainer,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(children: [
+                        Icon(Icons.new_releases, color: theme.colorScheme.onTertiaryContainer),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            tr('about.newVersion', {'version': release.tag}),
+                            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onTertiaryContainer, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => launchUrl(Uri.parse(release.url)),
+                          icon: const Icon(Icons.download),
+                          label: Text(tr('about.downloadVersion', {'version': release.tag})),
+                        ),
+                      ]),
+                    ),
+                  ),
+          ),
           // ---- UI language -------------------------------------------------------
           _Section(
             title: tr('settings.uiLanguage'),
