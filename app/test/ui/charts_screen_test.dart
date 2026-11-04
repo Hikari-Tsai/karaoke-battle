@@ -60,53 +60,91 @@ void main() {
     expect(hits, 0);
   });
 
-  testWidgets('every vendor section, with movement, new entries and links', (tester) async {
+  Future<void> openTab(WidgetTester tester, String name) async {
+    await tester.tap(find.descendant(of: find.byType(TabBar), matching: find.text(name)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settle(tester);
+  }
+
+  testWidgets('each operator is fetched when its tab is first shown', (tester) async {
+    final hosts = <String>[];
+    final s = KtvChartService(
+      client: MockClient((req) async {
+        hosts.add(req.url.host);
+        return http.Response('', 503);
+      }),
+    );
+    await pump(tester, s);
+    await tester.pump();
+    await settle(tester);
+    expect(hosts.toSet(), {'www.holiday.com.tw'});
+    await openTab(tester, 'DAM');
+    expect(hosts.toSet(), {'www.holiday.com.tw', 'www.clubdam.com'});
+  });
+
+  testWidgets('every operator tab, with movement, new entries and links', (tester) async {
     await pump(tester, fakeService());
     await tester.pump();
     await settle(tester);
     expect(tester.takeException(), isNull);
     for (final v in ['好樂迪', '錢櫃', 'JOYSOUND', 'DAM']) {
-      expect(find.text(v), findsOneWidget);
-      expect(find.text('在 $v 官網查看'), findsOneWidget);
+      expect(find.descendant(of: find.byType(TabBar), matching: find.text(v)), findsOneWidget);
     }
-    expect(find.text('甲乙丙丁'), findsNWidgets(2), reason: 'Holiday and Cashbox');
-    expect(find.text('伯方の塩'), findsOneWidget);
-    expect(find.text('怪獣の花唄'), findsOneWidget);
+    expect(find.text('在 好樂迪 官網查看'), findsOneWidget);
+    expect(find.text('甲乙丙丁'), findsOneWidget);
     expect(find.text('新進'), findsOneWidget, reason: 'Holiday rank 8');
+    expect(find.byTooltip('在 YouTube 搜尋'), findsWidgets);
+
+    await openTab(tester, '錢櫃');
+    expect(find.text('在 錢櫃 官網查看'), findsOneWidget);
+    expect(find.text('甲乙丙丁'), findsOneWidget);
+
+    await openTab(tester, 'JOYSOUND');
+    expect(find.text('伯方の塩'), findsOneWidget);
+
+    await openTab(tester, 'DAM');
+    expect(find.text('怪獣の花唄'), findsOneWidget);
     expect(find.textContaining('2026/10/25 – 2026/10/31'), findsOneWidget, reason: 'DAM weekly period');
     expect(find.text('5277-09'), findsOneWidget);
-    expect(find.byTooltip('在 YouTube 搜尋'), findsWidgets);
+    expect(find.text('在 DAM 官網查看'), findsOneWidget);
   });
 
-  testWidgets('one failing vendor shows its own error only', (tester) async {
+  testWidgets('one failing operator shows its own error only', (tester) async {
     await pump(tester, fakeService(cashboxDown: true));
     await tester.pump();
     await settle(tester);
+    await openTab(tester, '錢櫃');
     expect(find.textContaining('無法取得錢櫃的排行榜'), findsOneWidget);
     expect(find.textContaining('HTTP 503'), findsOneWidget);
-    expect(find.text('伯方の塩'), findsOneWidget);
     expect(find.text('重試'), findsOneWidget);
+    expect(find.descendant(of: find.byType(TabBar), matching: find.byIcon(Icons.error_outline)), findsOneWidget);
+    await openTab(tester, 'JOYSOUND');
+    expect(find.text('伯方の塩'), findsOneWidget);
+    expect(find.text('重試'), findsNothing);
   });
 
   testWidgets('switching a board loads that chart', (tester) async {
-    final hosts = <String>[];
+    final paths = <String>[];
     final s = KtvChartService(
       client: MockClient((req) async {
-        hosts.add(req.url.path);
+        paths.add(req.url.path);
         return http.Response.bytes(utf8.encode(fixture('joysound_weekly.html')), 200);
       }),
     );
     await pump(tester, s);
     await tester.pump();
     await settle(tester);
-    await tester.tap(find.widgetWithText(ChoiceChip, '動畫').first);
+    await openTab(tester, 'JOYSOUND');
+    await tester.tap(find.widgetWithText(ChoiceChip, '動畫'));
     await tester.pump();
     await settle(tester);
-    expect(hosts, contains('/web/karaoke/ranking/anime/weekly'));
+    expect(paths, contains('/web/karaoke/ranking/anime/weekly'));
   });
 
   // KE_TEST_CHARTS_OUT=<file.png> (with KE_TEST_CHARTS_FONT=<CJK font>) saves
-  // the page for a visual check; KE_TEST_CHARTS_LANG picks the UI language.
+  // the page for a visual check; KE_TEST_CHARTS_LANG picks the UI language and
+  // KE_TEST_CHARTS_TAB the operator tab (by its shown name).
   testWidgets('screenshot', (tester) async {
     final out = Platform.environment['KE_TEST_CHARTS_OUT'];
     if (out == null) return;
@@ -119,7 +157,7 @@ void main() {
     }
     I18n.notifier.value = Platform.environment['KE_TEST_CHARTS_LANG'] ?? 'zh';
     final key = GlobalKey();
-    tester.view.physicalSize = const Size(1000, 2600);
+    tester.view.physicalSize = const Size(1000, 1300);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(RepaintBoundary(
@@ -132,6 +170,8 @@ void main() {
     ));
     await tester.pump();
     await settle(tester);
+    final tab = Platform.environment['KE_TEST_CHARTS_TAB'];
+    if (tab != null) await openTab(tester, tab);
     await tester.runAsync(() async {
       final b = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
       final img = await b.toImage();

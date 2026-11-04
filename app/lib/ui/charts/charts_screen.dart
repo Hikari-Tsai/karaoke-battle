@@ -1,7 +1,7 @@
 // "KTV charts" tab: the weekly request charts of Holiday, Cashbox, JOYSOUND
-// and DAM, one section per operator with its own boards, errors and a link to
-// the chart on the operator's website. Nothing is fetched until the tab is
-// first shown.
+// and DAM, one tab per operator with its own boards, errors and a link to the
+// chart on the operator's website. An operator is fetched the first time its
+// tab is shown, and nothing before the "KTV charts" page itself is.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -40,10 +40,13 @@ class _VendorState {
   bool expanded = false;
 }
 
-class _ChartsScreenState extends State<ChartsScreen> {
+class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderStateMixin {
   KtvChartService? _service;
   bool _ownsService = false;
   final _vendors = {for (final e in KtvCharts.boards.entries) e.key: _VendorState(e.value.first)};
+  late final _tabs = TabController(length: _vendors.length, vsync: this)..addListener(_onTab);
+
+  KtvVendor get _current => _vendors.keys.elementAt(_tabs.index);
 
   @override
   void initState() {
@@ -59,6 +62,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
 
   @override
   void dispose() {
+    _tabs.dispose();
     if (_ownsService) _service?.dispose();
     super.dispose();
   }
@@ -70,9 +74,19 @@ class _ChartsScreenState extends State<ChartsScreen> {
       _service = KtvChartService(cacheDir: context.read<AppServices>().paths.cache);
       _ownsService = true;
     }
-    for (final v in _vendors.keys) {
-      _load(v);
-    }
+    _loadFirst(_current);
+  }
+
+  void _onTab() {
+    if (_tabs.indexIsChanging) return;
+    setState(() {});
+    if (_service != null) _loadFirst(_current);
+  }
+
+  /// Each operator is fetched the first time its tab is shown.
+  void _loadFirst(KtvVendor vendor) {
+    final s = _vendors[vendor]!;
+    if (s.chart == null && s.error == null && !s.loading) _load(vendor);
   }
 
   Future<void> _load(KtvVendor vendor, {bool force = false}) async {
@@ -105,26 +119,32 @@ class _ChartsScreenState extends State<ChartsScreen> {
     _load(vendor);
   }
 
-  void _refreshAll() {
+  void _refresh() {
     if (_service == null) return _start();
-    for (final v in _vendors.keys) {
-      _load(v, force: true);
-    }
+    _load(_current, force: true);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final busy = _vendors.values.any((s) => s.loading);
+    final vendor = _current;
+    final state = _vendors[vendor]!;
     return Scaffold(
       appBar: AppBar(
         title: BrandedTitle(tr('charts.title')),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: IconButton(tooltip: tr('charts.refresh'), onPressed: busy ? null : _refreshAll, icon: const Icon(Icons.refresh)),
+            child: IconButton(tooltip: tr('charts.refresh'), onPressed: state.loading ? null : _refresh, icon: const Icon(Icons.refresh)),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabs,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          tabs: [for (final e in _vendors.entries) _VendorTab(vendor: e.key, failed: e.value.error != null)],
+        ),
       ),
       body: SelectionArea(
         child: ListView(
@@ -132,16 +152,14 @@ class _ChartsScreenState extends State<ChartsScreen> {
           children: [
             Text(tr('charts.intro'), style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 16),
-            for (final e in _vendors.entries) ...[
-              _VendorSection(
-                vendor: e.key,
-                state: e.value,
-                onSelect: (b) => _select(e.key, b),
-                onRetry: () => _load(e.key, force: true),
-                onToggle: () => setState(() => e.value.expanded = !e.value.expanded),
-              ),
-              const SizedBox(height: 16),
-            ],
+            _VendorSection(
+              key: ValueKey(vendor),
+              vendor: vendor,
+              state: state,
+              onSelect: (b) => _select(vendor, b),
+              onRetry: () => _load(vendor, force: true),
+              onToggle: () => setState(() => state.expanded = !state.expanded),
+            ),
           ],
         ),
       ),
@@ -149,8 +167,43 @@ class _ChartsScreenState extends State<ChartsScreen> {
   }
 }
 
+String _vendorName(KtvVendor v) => tr('charts.vendor.${v.name}');
+
+String _region(KtvVendor v) => tr('charts.region.${v == KtvVendor.holiday || v == KtvVendor.cashbox ? 'tw' : 'jp'}');
+
+/// Operator name and region; an error mark while its chart failed to load.
+class _VendorTab extends StatelessWidget {
+  const _VendorTab({required this.vendor, required this.failed});
+  final KtvVendor vendor;
+  final bool failed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(_vendorName(vendor), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(border: Border.all(color: cs.outlineVariant), borderRadius: BorderRadius.circular(6)),
+            child: Text(_region(vendor), style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+          ),
+          if (failed) ...[
+            const SizedBox(width: 6),
+            Icon(Icons.error_outline, size: 16, color: cs.error),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _VendorSection extends StatelessWidget {
-  const _VendorSection({required this.vendor, required this.state, required this.onSelect, required this.onRetry, required this.onToggle});
+  const _VendorSection({super.key, required this.vendor, required this.state, required this.onSelect, required this.onRetry, required this.onToggle});
   final KtvVendor vendor;
   final _VendorState state;
   final ValueChanged<ChartBoard> onSelect;
@@ -163,8 +216,7 @@ class _VendorSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final name = tr('charts.vendor.${vendor.name}');
-    final region = vendor == KtvVendor.holiday || vendor == KtvVendor.cashbox ? 'tw' : 'jp';
+    final name = _vendorName(vendor);
     final chart = state.chart;
     final meta = <String>[
       if (chart?.period?.isNotEmpty ?? false) tr('charts.period', {'period': chart!.period}),
@@ -182,27 +234,6 @@ class _VendorSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text(name, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(border: Border.all(color: cs.outlineVariant), borderRadius: BorderRadius.circular(6)),
-                  child: Text(tr('charts.region.$region'), style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    meta.join('  ·  '),
-                    textAlign: TextAlign.end,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -211,7 +242,9 @@ class _VendorSection extends StatelessWidget {
                   ChoiceChip(label: Text(tr(b.labelKey)), selected: b == state.board, onSelected: (_) => onSelect(b)),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+            Text(meta.join('  ·  '), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            const SizedBox(height: 10),
             SizedBox(height: 2, child: state.loading ? const LinearProgressIndicator() : null),
             if (state.error != null)
               _ErrorRow(message: '${tr('charts.failed', {'vendor': name})}: ${chartErrorText(state.error!)}', onRetry: onRetry)

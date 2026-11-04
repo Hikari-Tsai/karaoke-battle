@@ -78,7 +78,7 @@ Press "Edit notes" and drag a note up or down to fix it. While you drag, a sine 
 
 ### KTV request charts
 
-The "KTV charts" tab reads the weekly request charts straight from the Holiday KTV, Cashbox Party, JOYSOUND and DAM websites. Switch between languages or genres (Mandarin, Taiwanese, Cantonese, anime, VOCALOID…) and see the rank, song, artist, the number to enter on the karaoke machine and the counting period; the two Taiwanese charts also show the movement since last week. Handy when you can't decide what to sing. Results are kept for 6 hours and can be refreshed by hand, and each section ends with a link to the chart on the operator's website.
+The "KTV charts" tab reads the weekly request charts straight from the Holiday KTV, Cashbox Party, JOYSOUND and DAM websites. Switch between languages or genres (Mandarin, Taiwanese, Cantonese, anime, VOCALOID…) and see the rank, song, artist, the number to enter on the karaoke machine and the counting period; the two Taiwanese charts also show the movement since last week. Handy when you can't decide what to sing. Results are kept for 6 hours and can be refreshed by hand, The four operators each have a tab at the top; each tab ends with a link to the chart on the operator's website, and every song has a "Search on YouTube" button.
 
 ## Architecture
 
