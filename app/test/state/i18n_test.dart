@@ -5,11 +5,11 @@ void main() {
   tearDown(() => I18n.notifier.value = 'zh');
 
   test('every key resolves in all three languages and differs from the key', () {
-    final keys = ['nav.library', 'sing.record', 'results.total', 'settings.uiLanguage', 'backend.cudaMissing.body', 'library.deleteConfirm'];
+    final keys = ['nav.library', 'sing.record', 'results.total', 'settings.uiLanguage', 'backend.cudaMissing.body', 'library.deleteConfirm', 'settings.ytDlpInstalled', 'settings.ytDlpInstallFailed', 'settings.ytDlpUpdateFailed', 'sidecars.ytDlpInstalling', 'sidecars.ytDlpInstalled'];
     for (final lang in I18n.supported) {
       I18n.notifier.value = lang;
       for (final k in keys) {
-        final s = tr(k, {'gpu': 'X', 'size': '1 GB', 'title': 'T'});
+        final s = tr(k, {'gpu': 'X', 'size': '1 GB', 'title': 'T', 'error': 'E'});
         expect(s, isNot(equals(k)), reason: '$k missing in $lang');
         expect(s, isNot(contains('{')), reason: '$k has unreplaced args in $lang');
       }

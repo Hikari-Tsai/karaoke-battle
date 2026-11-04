@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import '../services/model_registry.dart';
 import '../services/sidecars.dart';
+import 'i18n.dart';
 
 class ModelState {
   ModelState({this.installed = false, this.downloading = false, this.file = '', this.fraction = 0, this.doneBytes = 0, this.error});
@@ -183,9 +184,24 @@ class SetupController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The settings screen's 「更新 yt-dlp」. When the app has no copy of its own
+  /// (only one on PATH, or none) it installs one first, with the usual
+  /// progress on the yt-dlp row, then updates that copy.
   Future<String> updateYtDlp() async {
-    final r = await sidecars.updateYtDlp();
-    await refresh();
-    return r;
+    const k = SidecarKind.ytDlp;
+    final missing = !await File(sidecars.managedPath(k)).exists();
+    if (missing) {
+      await installSidecar(k);
+      final err = sidecarStates[k]!.error;
+      if (err != null) return tr('settings.ytDlpInstallFailed', {'error': err});
+    }
+    try {
+      final r = await sidecars.updateYtDlp();
+      return missing ? '${tr('settings.ytDlpInstalled')}\n${r.output}' : r.output;
+    } catch (e) {
+      return tr('settings.ytDlpUpdateFailed', {'error': e});
+    } finally {
+      await refresh();
+    }
   }
 }
