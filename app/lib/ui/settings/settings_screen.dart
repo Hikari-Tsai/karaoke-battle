@@ -18,6 +18,7 @@ import '../library/add_song_dialog.dart';
 import '../widgets/calibration.dart';
 import '../widgets/info_tip.dart';
 import '../startup/setup_rows.dart';
+import '../startup/ytdlp_dialog.dart';
 import '../widgets/brand.dart';
 import '../widgets/voice_fx.dart';
 
@@ -361,10 +362,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Row(
                 children: [
                   OutlinedButton.icon(
-                    onPressed: () async {
-                      final r = await context.read<SetupController>().updateYtDlp();
-                      if (mounted) setState(() => _ytUpdateResult = r);
-                    },
+                    onPressed: context.watch<SetupController>().ytDlpBusy
+                        ? null
+                        : () async {
+                            final r = await context.read<SetupController>().updateYtDlp();
+                            if (!context.mounted) return;
+                            setState(() => _ytUpdateResult = r.message);
+                            if (!r.ok) await showYtDlpDialog(context, YtDlpIssue.failed, r.message);
+                          },
                     icon: const Icon(Icons.system_update_alt),
                     label: Text(tr('settings.updateYtDlp')),
                   ),

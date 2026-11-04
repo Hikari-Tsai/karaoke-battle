@@ -70,8 +70,17 @@ class Downloader {
         await part.delete();
         throw DownloadException('sha256 mismatch for ${p.basename(destPath)}: expected $sha256, got $got');
       }
-      if (await dest.exists()) await dest.delete();
-      await part.rename(destPath);
+      // rename replaces an existing file on macOS and Windows alike. Deleting
+      // it first could remove a copy another download of the same file had
+      // just put there, which is how a sidecar install once vanished.
+      try {
+        await part.rename(destPath);
+      } on FileSystemException {
+        // Another download of the same file got there first (it renamed the
+        // shared .part): accept its result when it is the file we wanted.
+        if (sha256 != null && await dest.exists() && await sha256OfFile(destPath) == sha256.toLowerCase()) return;
+        rethrow;
+      }
     } catch (e) {
       try {
         await sink.close();

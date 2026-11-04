@@ -69,6 +69,8 @@ class SetupController extends ChangeNotifier {
   /// Every launch: checks the required models in full (sha256, cached per
   /// file) and the required tools. [ready] tells whether the app may open.
   Future<void> verifyRequired() async {
+    // yt-dlp's own check (it runs the binary) overlaps the model hashing.
+    final yt = checkYtDlp();
     for (final m in ModelRegistry.required) {
       stateOf(m).installed = await models.verifyCached(m, onFile: (f) {
         verifying = '${m.title} · $f';
@@ -76,7 +78,26 @@ class SetupController extends ChangeNotifier {
       });
     }
     verifying = null;
+    await yt;
     await refresh();
+  }
+
+  /// Result of the last yt-dlp launch check (null before it ran).
+  YtDlpHealth? ytDlpHealth;
+
+  /// The PATH yt-dlp for [YtDlpHealth.pathOnly], the error for [YtDlpHealth.broken].
+  String ytDlpDetail = '';
+
+  Future<void> checkYtDlp() async {
+    try {
+      final r = await sidecars.checkYtDlp();
+      ytDlpHealth = r.health;
+      ytDlpDetail = r.detail;
+    } catch (e) {
+      ytDlpHealth = YtDlpHealth.broken;
+      ytDlpDetail = '$e';
+    }
+    notifyListeners();
   }
 
   /// Tools without which songs cannot be prepared.
@@ -133,9 +154,20 @@ class SetupController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> installSidecar(SidecarKind k) async {
+  final Map<SidecarKind, Future<void>> _sidecarJobs = {};
+
+  /// Installs the app's copy of [k]. A second call while it runs waits for
+  /// the first instead of returning early, so callers can trust [SidecarState.error].
+  Future<void> installSidecar(SidecarKind k) {
+    final running = _sidecarJobs[k];
+    if (running != null) return running;
+    final job = _installSidecar(k);
+    _sidecarJobs[k] = job;
+    return job.whenComplete(() => _sidecarJobs.remove(k));
+  }
+
+  Future<void> _installSidecar(SidecarKind k) async {
     final s = sidecarStates[k]!;
-    if (s.installing) return;
     s
       ..installing = true
       ..error = null
@@ -184,22 +216,48 @@ class SetupController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The settings screen's 「更新 yt-dlp」. When the app has no copy of its own
-  /// (only one on PATH, or none) it installs one first, with the usual
-  /// progress on the yt-dlp row, then updates that copy.
-  Future<String> updateYtDlp() async {
+  Future<({bool ok, String message})>? _ytJob;
+
+  /// An update or repair of yt-dlp is running.
+  bool get ytDlpBusy => _ytJob != null || sidecarStates[SidecarKind.ytDlp]!.installing;
+
+  /// The settings screen's 「更新 yt-dlp」 and the yt-dlp dialog. When the app
+  /// has no copy of its own (only one on PATH, or none) it installs one
+  /// first, with the usual progress on the yt-dlp row, then updates that
+  /// copy. [reinstall] throws the current copy away first (repair). A call
+  /// while one runs gets that one's result.
+  Future<({bool ok, String message})> updateYtDlp({bool reinstall = false}) {
+    final running = _ytJob;
+    if (running != null) return running;
+    final job = _updateYtDlp(reinstall);
+    _ytJob = job;
+    notifyListeners();
+    return job.whenComplete(() {
+      _ytJob = null;
+      notifyListeners();
+    });
+  }
+
+  Future<({bool ok, String message})> _updateYtDlp(bool reinstall) async {
     const k = SidecarKind.ytDlp;
-    final missing = !await File(sidecars.managedPath(k)).exists();
-    if (missing) {
-      await installSidecar(k);
-      final err = sidecarStates[k]!.error;
-      if (err != null) return tr('settings.ytDlpInstallFailed', {'error': err});
-    }
+    final managed = File(sidecars.managedPath(k));
     try {
+      if (reinstall) {
+        await _sidecarJobs[k];
+        if (await managed.exists()) await managed.delete();
+      }
+      final missing = !await managed.exists();
+      if (missing) {
+        await installSidecar(k);
+        final err = sidecarStates[k]!.error;
+        if (err != null) return (ok: false, message: tr('settings.ytDlpInstallFailed', {'error': err}));
+      }
       final r = await sidecars.updateYtDlp();
-      return missing ? '${tr('settings.ytDlpInstalled')}\n${r.output}' : r.output;
+      if (!r.ok) return (ok: false, message: tr('settings.ytDlpUpdateFailed', {'error': r.output}));
+      ytDlpHealth = YtDlpHealth.ok;
+      return (ok: true, message: missing ? '${tr('settings.ytDlpInstalled')}\n${r.output}' : r.output);
     } catch (e) {
-      return tr('settings.ytDlpUpdateFailed', {'error': e});
+      return (ok: false, message: tr('settings.ytDlpUpdateFailed', {'error': e}));
     } finally {
       await refresh();
     }

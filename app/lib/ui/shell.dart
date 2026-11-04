@@ -16,6 +16,7 @@ import 'replays/replays_screen.dart';
 import 'settings/settings_screen.dart';
 import 'startup/backend_dialog.dart';
 import 'startup/setup_gate.dart';
+import 'startup/ytdlp_dialog.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -61,6 +62,8 @@ class _AppShellState extends State<AppShell> {
       _checking = false;
       if (setup.ready) _readyGlobal = true;
     });
+    // A broken app copy of yt-dlp, or only one from PATH: offer to fix it now.
+    await showYtDlpLaunchDialog(context);
   }
 
   @override
