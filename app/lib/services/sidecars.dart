@@ -275,7 +275,26 @@ class Sidecars {
 
   /// Downloads a YouTube (or any yt-dlp supported) URL as an mp4 with the best
   /// audio, into [outDir]. Returns the output file path. Progress 0..1.
+  ///
+  /// YouTube changes often break an old yt-dlp, and the app's copy is only
+  /// updated on request, so a failed download updates the managed copy and,
+  /// when a newer version was installed, tries once more.
   Future<String> downloadVideo(String url, String outDir, {void Function(double, String)? onProgress, Future<void>? cancel}) async {
+    var cancelled = false;
+    cancel?.then((_) => cancelled = true);
+    try {
+      return await _downloadVideo(url, outDir, onProgress: onProgress, cancel: cancel);
+    } on StateError {
+      if (cancelled) rethrow;
+      onProgress?.call(0, 'yt-dlp -U');
+      final update = await updateYtDlp();
+      if (!update.contains('Updated yt-dlp to')) rethrow;
+      onProgress?.call(0, update.split('\n').last.trim());
+      return _downloadVideo(url, outDir, onProgress: onProgress, cancel: cancel);
+    }
+  }
+
+  Future<String> _downloadVideo(String url, String outDir, {void Function(double, String)? onProgress, Future<void>? cancel}) async {
     final yt = await resolve(SidecarKind.ytDlp);
     if (yt == null) throw StateError('yt-dlp not available');
     final ffmpeg = await resolve(SidecarKind.ffmpeg);
@@ -293,13 +312,17 @@ class Sidecars {
       url,
     ];
     String? outPath;
+    String? error;
     final code = await run(yt, args, cancel: cancel, onLine: (l) {
       final m = _ytProgress.firstMatch(l);
       if (m != null) onProgress?.call(double.parse(m.group(1)!) / 100.0, l.trim());
       if (l.startsWith(outDir) && (l.endsWith('.mp4') || l.endsWith('.mkv') || l.endsWith('.webm'))) outPath = l.trim();
-      if (l.contains('ERROR')) onProgress?.call(-1, l.trim());
+      if (l.contains('ERROR')) {
+        error = l.trim();
+        onProgress?.call(-1, error!);
+      }
     });
-    if (code != 0) throw StateError('yt-dlp exited with $code');
+    if (code != 0) throw StateError(error == null ? 'yt-dlp exited with $code' : 'yt-dlp exited with $code: $error');
     outPath ??= await _find(Directory(outDir), 'source.mp4');
     if (outPath == null) throw StateError('yt-dlp produced no file');
     return outPath!;
