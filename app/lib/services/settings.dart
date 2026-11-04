@@ -91,6 +91,10 @@ class AppSettings extends ChangeNotifier {
   bool get dismissedBackendDialog => _get('dismissed_backend_dialog', false);
   Future<void> setDismissedBackendDialog(bool v) => _set('dismissed_backend_dialog', v);
 
+  /// "Don't remind me" on the dialog about using a yt-dlp from PATH.
+  bool get dismissedYtDlpPathOnly => _get('dismissed_ytdlp_path_only', false);
+  Future<void> setDismissedYtDlpPathOnly(bool v) => _set('dismissed_ytdlp_path_only', v);
+
   /// Octave-invariant + transposition-tolerant scoring (project default).
   bool get octaveInvariant => _get('octave_invariant', true);
   Future<void> setOctaveInvariant(bool v) => _set('octave_invariant', v);

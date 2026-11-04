@@ -15,6 +15,21 @@ import 'downloader.dart';
 
 enum SidecarKind { ytDlp, ffmpeg, ffprobe, deno }
 
+/// What the launch check found about yt-dlp.
+enum YtDlpHealth {
+  /// The app's own copy runs.
+  ok,
+
+  /// No yt-dlp at all.
+  missing,
+
+  /// Only one from PATH (winget, scoop, pip, Homebrew), which the app can't update.
+  pathOnly,
+
+  /// The app's own copy is there but does not run.
+  broken,
+}
+
 class SidecarSource {
   const SidecarSource({required this.url, this.sha256, this.archiveMember, this.license = ''});
   final String url;
@@ -144,6 +159,10 @@ class Sidecars {
   final SidecarCatalog catalog;
   final Downloader _dl;
 
+  /// Installs in flight, so the settings button, the setup rows and the
+  /// download retry share one download instead of racing on the same file.
+  final Map<SidecarKind, Future<String>> _installs = {};
+
   String _exeName(SidecarKind k) {
     final base = switch (k) {
       SidecarKind.ytDlp => 'yt-dlp',
@@ -192,8 +211,18 @@ class Sidecars {
 
   Future<bool> isAvailable(SidecarKind k) async => (await resolve(k)) != null;
 
-  /// Downloads the managed copy of [k] (no-op if already present).
-  Future<String> install(SidecarKind k, {void Function(DownloadProgress)? onProgress}) async {
+  /// Downloads the managed copy of [k] (no-op if already present). A call
+  /// while one is already downloading waits for that one; only the first
+  /// caller's [onProgress] is called.
+  Future<String> install(SidecarKind k, {void Function(DownloadProgress)? onProgress}) {
+    final running = _installs[k];
+    if (running != null) return running;
+    final job = _install(k, onProgress: onProgress);
+    _installs[k] = job;
+    return job.whenComplete(() => _installs.remove(k));
+  }
+
+  Future<String> _install(SidecarKind k, {void Function(DownloadProgress)? onProgress}) async {
     final dest = managedPath(k);
     if (await File(dest).exists()) return dest;
     final src = catalog.sourceFor(k);
@@ -249,13 +278,39 @@ class Sidecars {
   /// Runs `yt-dlp -U` on the app's own copy. A yt-dlp found on PATH (winget,
   /// scoop, pip, Homebrew) belongs to its package manager and is left alone;
   /// when the managed copy is missing it is installed from the catalog first,
-  /// and [resolve] prefers it from then on. [installed] says that happened.
-  Future<({bool installed, String output})> updateYtDlp({void Function(DownloadProgress)? onProgress}) async {
+  /// and [resolve] prefers it from then on. [installed] says that happened;
+  /// [ok] is false when `-U` itself failed.
+  Future<({bool installed, bool ok, String output})> updateYtDlp({void Function(DownloadProgress)? onProgress}) async {
     final exe = managedPath(SidecarKind.ytDlp);
     final installed = !await File(exe).exists();
     if (installed) await install(SidecarKind.ytDlp, onProgress: onProgress);
     final r = await Process.run(exe, ['-U'], environment: _env());
-    return (installed: installed, output: '${r.stdout}${r.stderr}'.trim());
+    return (installed: installed, ok: r.exitCode == 0, output: '${r.stdout}${r.stderr}'.trim());
+  }
+
+  /// Launch check: does the app's own yt-dlp run, and if there is none, is
+  /// there one on PATH? Also clears a `.part` left by an interrupted install.
+  Future<({YtDlpHealth health, String detail})> checkYtDlp() async {
+    const k = SidecarKind.ytDlp;
+    final managed = managedPath(k);
+    if (!_installs.containsKey(k)) {
+      final part = File('$managed.part');
+      try {
+        if (await part.exists()) await part.delete();
+      } catch (_) {}
+    }
+    if (await File(managed).exists()) {
+      try {
+        final r = await Process.run(managed, ['--version'], environment: _env()).timeout(const Duration(minutes: 1));
+        if (r.exitCode == 0) return (health: YtDlpHealth.ok, detail: '${r.stdout}'.trim());
+        final out = '${r.stdout}${r.stderr}'.trim();
+        return (health: YtDlpHealth.broken, detail: out.isEmpty ? 'exit code ${r.exitCode}' : out);
+      } catch (e) {
+        return (health: YtDlpHealth.broken, detail: '$e');
+      }
+    }
+    final other = await resolve(k);
+    return other == null ? (health: YtDlpHealth.missing, detail: '') : (health: YtDlpHealth.pathOnly, detail: other);
   }
 
   // ---- running --------------------------------------------------------------
@@ -294,7 +349,7 @@ class Sidecars {
       if (cancelled) rethrow;
       final hasManaged = await File(managedPath(SidecarKind.ytDlp)).exists();
       onProgress?.call(0, hasManaged ? 'yt-dlp -U' : tr('sidecars.ytDlpInstalling'));
-      final ({bool installed, String output}) update;
+      final ({bool installed, bool ok, String output}) update;
       try {
         update = await updateYtDlp(onProgress: (dp) => onProgress?.call(dp.fraction, tr('sidecars.ytDlpInstalling')));
       } catch (_) {

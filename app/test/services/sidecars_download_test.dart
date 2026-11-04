@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:karaoke_battle/services/app_paths.dart';
 import 'package:karaoke_battle/services/downloader.dart';
+import 'package:karaoke_battle/services/model_registry.dart';
 import 'package:karaoke_battle/services/sidecars.dart';
 import 'package:karaoke_battle/state/i18n.dart';
+import 'package:karaoke_battle/state/setup_controller.dart';
 import 'package:path/path.dart' as p;
 
 /// A stand-in yt-dlp: `-U` prints [update]; a download fails with a 403
@@ -32,15 +35,18 @@ f="\$(dirname "\$tmpl")/source.mp4"; touch "\$f"; echo "\$f"
 
 /// "Downloads" yt-dlp from the catalog by writing a fake one.
 class _FakeDownloader extends Downloader {
-  _FakeDownloader(this.marker, this.update);
+  _FakeDownloader(this.marker, this.update, {this.gate});
   final String marker;
   final String update;
+  /// When set, downloads wait for it (to overlap calls).
+  final Future<void>? gate;
   final urls = <Uri>[];
 
   @override
   Future<void> download(Uri url, String destPath,
       {String? sha256, void Function(DownloadProgress)? onProgress, Future<void>? cancel, Map<String, String>? headers}) async {
     urls.add(url);
+    await gate;
     await _writeFakeYtDlp(destPath, marker, update: update);
   }
 }
@@ -139,6 +145,84 @@ void main() {
         s.downloadVideo('https://youtu.be/x', out.path),
         throwsA(isA<StateError>().having((e) => e.message, 'message', contains('HTTP Error 403'))),
       );
+    });
+  });
+
+  group('installs that overlap', () {
+    late String marker;
+    setUp(() => marker = p.join(tmp.path, 'managed-updated'));
+
+    test('share one download', skip: skip, () async {
+      final gate = Completer<void>();
+      final dl = _FakeDownloader(marker, 'yt-dlp is up to date', gate: gate.future);
+      final s = Sidecars(paths, _catalog, downloader: dl);
+      final a = s.install(SidecarKind.ytDlp);
+      final b = s.install(SidecarKind.ytDlp);
+      gate.complete();
+      expect(await Future.wait([a, b]), [s.managedPath(SidecarKind.ytDlp), s.managedPath(SidecarKind.ytDlp)]);
+      expect(dl.urls, hasLength(1));
+    });
+
+    test('pressing Update yt-dlp while the row installs it downloads once and succeeds', skip: skip, () async {
+      final gate = Completer<void>();
+      final dl = _FakeDownloader(marker, 'Updated yt-dlp to stable@2026.10.26', gate: gate.future);
+      final s = _PathSidecars(paths, _catalog, null, downloader: dl);
+      final setup = SetupController(ModelStore(paths), s);
+      final row = setup.installSidecar(SidecarKind.ytDlp);
+      final update = setup.updateYtDlp();
+      expect(setup.ytDlpBusy, isTrue);
+      gate.complete();
+      await row;
+      final r = await update;
+      expect(r.ok, isTrue, reason: r.message);
+      expect(r.message, contains('Updated yt-dlp to stable@2026.10.26'));
+      expect(dl.urls, hasLength(1));
+      expect(await File(s.managedPath(SidecarKind.ytDlp)).exists(), isTrue);
+      expect(setup.ytDlpBusy, isFalse);
+    });
+
+    test('a failed -U is reported as a failure', skip: skip, () async {
+      await Directory(paths.sidecars).create(recursive: true);
+      final exe = File(p.join(paths.sidecars, 'yt-dlp'));
+      await exe.writeAsString('#!/bin/sh\necho "ERROR: Unable to write to yt-dlp" >&2; exit 1\n');
+      await Process.run('chmod', ['+x', exe.path]);
+      final setup = SetupController(ModelStore(paths), _PathSidecars(paths, _catalog, null));
+      final r = await setup.updateYtDlp();
+      expect(r.ok, isFalse);
+      expect(r.message, contains('Unable to write'));
+    });
+  });
+
+  group('launch check', () {
+    Future<void> script(String body) async {
+      await Directory(paths.sidecars).create(recursive: true);
+      final exe = File(p.join(paths.sidecars, 'yt-dlp'));
+      await exe.writeAsString('#!/bin/sh\n$body\n');
+      await Process.run('chmod', ['+x', exe.path]);
+    }
+
+    test('the app\'s copy runs', skip: skip, () async {
+      await script('echo 2026.10.26');
+      final r = await sidecars.checkYtDlp();
+      expect(r.health, YtDlpHealth.ok);
+      expect(r.detail, '2026.10.26');
+    });
+
+    test('the app\'s copy does not run', skip: skip, () async {
+      await script('echo "Bad CPU type in executable" >&2; exit 126');
+      final r = await sidecars.checkYtDlp();
+      expect(r.health, YtDlpHealth.broken);
+      expect(r.detail, contains('Bad CPU type'));
+    });
+
+    test('only a PATH copy, or none; a stale .part is cleared', skip: skip, () async {
+      await Directory(paths.sidecars).create(recursive: true);
+      final part = File('${sidecars.managedPath(SidecarKind.ytDlp)}.part');
+      await part.writeAsString('half');
+      final onPath = await _PathSidecars(paths, _catalog, '/opt/homebrew/bin/yt-dlp').checkYtDlp();
+      expect(onPath, (health: YtDlpHealth.pathOnly, detail: '/opt/homebrew/bin/yt-dlp'));
+      expect(await part.exists(), isFalse);
+      expect((await _PathSidecars(paths, _catalog, null).checkYtDlp()).health, YtDlpHealth.missing);
     });
   });
 }

@@ -8,6 +8,7 @@ import '../../services/sidecars.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
+import 'ytdlp_dialog.dart';
 
 /// One model with state + install/remove controls (shared with Settings).
 class ModelRow extends StatelessWidget {
@@ -113,7 +114,14 @@ class SidecarRow extends StatelessWidget {
                 const SizedBox(width: 120, child: LinearProgressIndicator())
               else ...[
                 if (!s.available && s.hasSource)
-                  OutlinedButton(onPressed: () => setup.installSidecar(kind), child: Text(tr('install'))),
+                  OutlinedButton(
+                    onPressed: () async {
+                      await setup.installSidecar(kind);
+                      final err = setup.sidecarStates[kind]!.error;
+                      if (kind == SidecarKind.ytDlp && err != null && context.mounted) await showYtDlpDialog(context, YtDlpIssue.failed, err);
+                    },
+                    child: Text(tr('install')),
+                  ),
                 // Any tool can point at the user's own copy (e.g. a newer
                 // yt-dlp or a full ffmpeg build).
                 TextButton(onPressed: () => _pickExecutable(context), child: Text(tr('sidecar.pickPath'))),
