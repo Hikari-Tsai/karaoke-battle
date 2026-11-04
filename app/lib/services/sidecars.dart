@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../state/i18n.dart';
 import 'app_paths.dart';
 import 'downloader.dart';
 
@@ -245,12 +246,16 @@ class Sidecars {
     if (Platform.isMacOS) await Process.run('xattr', ['-d', 'com.apple.quarantine', path]);
   }
 
-  /// `yt-dlp -U` (only the managed copy can update itself).
-  Future<String> updateYtDlp() async {
+  /// Runs `yt-dlp -U` on the app's own copy. A yt-dlp found on PATH (winget,
+  /// scoop, pip, Homebrew) belongs to its package manager and is left alone;
+  /// when the managed copy is missing it is installed from the catalog first,
+  /// and [resolve] prefers it from then on. [installed] says that happened.
+  Future<({bool installed, String output})> updateYtDlp({void Function(DownloadProgress)? onProgress}) async {
     final exe = managedPath(SidecarKind.ytDlp);
-    if (!await File(exe).exists()) return 'yt-dlp is not managed by the app';
+    final installed = !await File(exe).exists();
+    if (installed) await install(SidecarKind.ytDlp, onProgress: onProgress);
     final r = await Process.run(exe, ['-U'], environment: _env());
-    return '${r.stdout}${r.stderr}'.trim();
+    return (installed: installed, output: '${r.stdout}${r.stderr}'.trim());
   }
 
   // ---- running --------------------------------------------------------------
@@ -277,19 +282,29 @@ class Sidecars {
   /// audio, into [outDir]. Returns the output file path. Progress 0..1.
   ///
   /// YouTube changes often break an old yt-dlp, and the app's copy is only
-  /// updated on request, so a failed download updates the managed copy and,
-  /// when a newer version was installed, tries once more.
+  /// updated on request, so a failed download updates the managed copy
+  /// (installing it first when only a PATH yt-dlp or none was there) and,
+  /// when that changed the yt-dlp in use, tries once more.
   Future<String> downloadVideo(String url, String outDir, {void Function(double, String)? onProgress, Future<void>? cancel}) async {
     var cancelled = false;
     cancel?.then((_) => cancelled = true);
     try {
       return await _downloadVideo(url, outDir, onProgress: onProgress, cancel: cancel);
-    } on StateError {
+    } on StateError catch (e, st) {
       if (cancelled) rethrow;
-      onProgress?.call(0, 'yt-dlp -U');
-      final update = await updateYtDlp();
-      if (!update.contains('Updated yt-dlp to')) rethrow;
-      onProgress?.call(0, update.split('\n').last.trim());
+      final hasManaged = await File(managedPath(SidecarKind.ytDlp)).exists();
+      onProgress?.call(0, hasManaged ? 'yt-dlp -U' : tr('sidecars.ytDlpInstalling'));
+      final ({bool installed, String output}) update;
+      try {
+        update = await updateYtDlp(onProgress: (dp) => onProgress?.call(dp.fraction, tr('sidecars.ytDlpInstalling')));
+      } catch (_) {
+        // No catalog entry or no network: the download's own error says more.
+        Error.throwWithStackTrace(e, st);
+      }
+      final updated = update.output.contains('Updated yt-dlp to');
+      // A fresh managed copy replaces a PATH yt-dlp of unknown age (or none).
+      if (!updated && !update.installed) rethrow;
+      onProgress?.call(0, updated ? update.output.split('\n').last.trim() : tr('sidecars.ytDlpInstalled'));
       return _downloadVideo(url, outDir, onProgress: onProgress, cancel: cancel);
     }
   }
