@@ -35,7 +35,7 @@ class _AppShellState extends State<AppShell> {
   static bool _startupDoneGlobal = false;
   static bool _readyGlobal = false;
   static const _chartsIndex = 2;
-  static const _aboutIndex = 5; // at the bottom of the rail, with the links
+  static const _aboutIndex = 6; // at the bottom of the rail, with the links
   int _index = _lastIndex;
   bool _checking = !_readyGlobal;
 
@@ -109,6 +109,12 @@ class _AppShellState extends State<AppShell> {
               NavigationRailDestination(icon: const Icon(Icons.library_music_outlined), selectedIcon: const Icon(Icons.library_music), label: Text(tr('nav.library'))),
               NavigationRailDestination(icon: const Icon(Icons.ondemand_video_outlined), selectedIcon: const Icon(Icons.ondemand_video), label: Text(tr('nav.replays'))),
               NavigationRailDestination(icon: const Icon(Icons.leaderboard_outlined), selectedIcon: const Icon(Icons.leaderboard), label: Text(tr('nav.charts'))),
+              // A teaser for a feature still to come: greyed out and does nothing.
+              NavigationRailDestination(
+                icon: const Icon(Icons.military_tech_outlined),
+                label: Text(tr('nav.ladder'), textAlign: TextAlign.center),
+                disabled: true,
+              ),
               NavigationRailDestination(icon: const Icon(Icons.emoji_events_outlined), selectedIcon: const Icon(Icons.emoji_events), label: Text(tr('nav.rules'))),
               NavigationRailDestination(
                 icon: _UpdateBubble(child: const Icon(Icons.settings_outlined)),
@@ -125,6 +131,7 @@ class _AppShellState extends State<AppShell> {
                 const LibraryScreen(),
                 const ReplaysScreen(),
                 ChartsScreen(active: _index == _chartsIndex),
+                const SizedBox.shrink(), // the ladder teaser has no page yet
                 const RulesScreen(),
                 const SettingsScreen(),
                 const AboutScreen(),

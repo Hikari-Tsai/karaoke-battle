@@ -1,7 +1,7 @@
-// "KTV charts" tab: the weekly request charts of Holiday, Cashbox, JOYSOUND
+// "Hot songs" tab (熱門歌單): the weekly request charts of Holiday, Cashbox, JOYSOUND
 // and DAM and the KKBOX streaming charts, one tab per operator with its own boards, errors and a link to the
 // chart on the operator's website. An operator is fetched the first time its
-// tab is shown, and nothing before the "KTV charts" page itself is.
+// tab is shown, and nothing before the "Hot songs" page itself is.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';

@@ -59,7 +59,8 @@ const Map<String, (String, String, String)> _table = {
   'app.title': ('Karaoke Battle', 'Karaoke Battle', 'Karaoke Battle'),
   'nav.library': ('曲庫', 'Library', '曲ライブラリ'),
   'nav.replays': ('重播', 'Replays', 'リプレイ'),
-  'nav.charts': ('點歌排行榜', 'KTV charts', 'カラオケランキング'),
+  'nav.charts': ('熱門歌單', 'Hot songs', '人気曲'),
+  'nav.ladder': ('天梯系統\n(尚未開放)', 'Ladder\n(coming soon)', 'ランク戦\n(準備中)'),
   'nav.rules': ('計分規則', 'Scoring', '採点ルール'),
   'nav.settings': ('設定', 'Settings', '設定'),
   'nav.star': ('賞我星星', 'Star on GitHub', 'スターをください'),
@@ -604,7 +605,7 @@ const Map<String, (String, String, String)> _table = {
   'settings.detect': ('重新偵測', 'Re-detect', '再検出'),
   'settings.restartNote': ('變更於下次處理／演唱時生效', 'Applies to the next prep/sing session', '次回の処理／歌唱から適用されます'),
   // KTV charts
-  'charts.title': ('點歌排行榜', 'KTV charts', 'カラオケランキング'),
+  'charts.title': ('熱門歌單', 'Hot songs', '人気曲'),
   'charts.intro': (
     '台灣與日本 KTV 的每週點歌排行，以及 KKBOX 的單曲週榜，直接取自各業者官網。結果會保留 6 小時，按右上角可重新整理。',
     'Weekly request charts from karaoke operators in Taiwan and Japan, plus the KKBOX weekly single charts, read from their own websites. Results are kept for 6 hours; use the button at the top right to refresh.',
