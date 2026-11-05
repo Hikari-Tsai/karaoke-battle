@@ -17,7 +17,7 @@ void main() {
       'total': 96.2,
       'rank': 'SS',
       'raw_total': 93.1,
-      'scale': 2,
+      'scale': 3,
       'sub_scores': {
         'pitch': {'value': 0.96}, 'rhythm': {'value': 0.91}, 'stability': {'value': 0.88},
         'vibrato': {'value': null}, 'expression': {'value': 0.82}, 'long_tone': {'value': 0.97},

@@ -46,8 +46,8 @@ class RhythmWindows {
 
   static double credit(RhythmJudgement j) => switch (j) {
         RhythmJudgement.perfect => 1.0,
-        RhythmJudgement.great => 0.7,
-        RhythmJudgement.good => 0.4,
+        RhythmJudgement.great => 0.85,
+        RhythmJudgement.good => 0.6,
         RhythmJudgement.miss => 0.0,
       };
 

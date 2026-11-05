@@ -884,18 +884,22 @@ class SubScores {
 /// Rank letters, best first.
 const List<String> rankLetters = ['SSS', 'SS', 'S', 'A', 'B', 'C', 'D'];
 
-/// Version of the score scale written to score.json (`scale`). 2 is the
-/// DAM-like scale of [damLikeTotal]; files without it hold raw totals.
-const int scoreScaleVersion = 2;
+/// Version of the scoring written to score.json (`scale`):
+/// 3 = the lenient sub-scores and [scaledTotal] curve (v0.7.3),
+/// 2 = the DAM-like `0.55·raw + 45` scale, none = raw totals.
+/// Takes scored before 3 are re-scored from their pitch files when shown;
+/// [readScoreTotal] converts what cannot be re-scored.
+const int scoreScaleVersion = 3;
 
-/// Maps the raw weighted total (0..100) onto a scale comparable to DAM
-/// 精密採点 (national averages around 80, 90 = good, 95+ = very good):
-/// `0.55·raw + 45` from raw 20 up, `2.8·raw` below (both 56 at raw 20), so
-/// 0 stays 0 for a take that was not sung and 100 stays 100. See
-/// docs/SCORING.md, "Score scale".
-double damLikeTotal(double raw) {
+/// Maps the raw weighted total (0..100) onto the displayed score: `2.8·raw`
+/// below raw 20 (a take that was not sung stays near 0), then an ease-out
+/// curve `56 + 44·(1 − (1 − t)^1.5)`, `t = (raw − 20) / 80`, so decent
+/// singing lands in the high 80s and 90s. See docs/SCORING.md 5.1.
+double scaledTotal(double raw) {
   final r = raw.clamp(0.0, 100.0);
-  return r < 20 ? 2.8 * r : 0.55 * r + 45;
+  if (r < 20) return 2.8 * r;
+  final t = (r - 20) / 80;
+  return 56 + 44 * (1 - math.pow(1 - t, 1.5).toDouble());
 }
 
 /// Monotonic rank mapping on the DAM-like scale:
@@ -910,17 +914,21 @@ String rankForTotal(double total) {
   return 'D';
 }
 
-/// Total, rank and raw total of a score.json map. Files written before the
-/// DAM-like scale (no `scale` field) are converted, so old and new takes
-/// compare fairly.
+/// Total, rank and raw total of a score.json map. Older files are put on
+/// the current curve from their raw total (their stricter sub-scores stay
+/// as they were until the take is re-scored).
 ({double total, String rank, double raw}) readScoreTotal(Map<String, dynamic> j) {
   final t = (j['total'] as num?)?.toDouble() ?? 0;
   if (j['scale'] == scoreScaleVersion) {
     return (total: t, rank: (j['rank'] as String?) ?? rankForTotal(t), raw: (j['raw_total'] as num?)?.toDouble() ?? t);
   }
-  final total = damLikeTotal(t);
-  return (total: total, rank: rankForTotal(total), raw: t);
+  final raw = j['scale'] == 2 ? (j['raw_total'] as num?)?.toDouble() ?? t : t;
+  final total = scaledTotal(raw);
+  return (total: total, rank: rankForTotal(total), raw: raw);
 }
+
+/// Whether a score.json map was made with older (stricter) scoring.
+bool isOutdatedScore(Map<String, dynamic> j) => j['scale'] != scoreScaleVersion;
 
 /// [j] with total, rank, raw_total and scale on the current scale.
 Map<String, dynamic> upgradeScoreJson(Map<String, dynamic> j) {
@@ -950,7 +958,7 @@ class ScoreResult {
   /// read back from an older score.json).
   final RhythmResult? rhythm;
 
-  /// Final score in `[0, 100]` on the DAM-like scale ([damLikeTotal]).
+  /// Final score in `[0, 100]` ([scaledTotal] of the raw total).
   final double total;
 
   /// The weighted sub-score total before [damLikeTotal].

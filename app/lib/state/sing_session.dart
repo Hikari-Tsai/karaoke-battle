@@ -393,7 +393,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     required TakeInfo take,
     required bool octaveInvariant,
     void Function(TakeProcessing)? onProgress,
+    bool reuseF0 = false,
   }) async {
+    // Re-scoring with newer rules: the take's pitch file is already there.
+    if (reuseF0 && await File(take.f0Json).exists()) return _scoreSaved(services, files, take, octaveInvariant);
     final model = ModelRegistry.swiftF0;
     if (!await services.models.isInstalled(model)) {
       onProgress?.call(const TakeProcessing('sing.downloadingModel', 0));
@@ -412,6 +415,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       await sub.cancel();
     }
     onProgress?.call(const TakeProcessing('sing.scoring', 0));
+    return _scoreSaved(services, files, take, octaveInvariant);
+  }
+
+  static Future<ScoreData> _scoreSaved(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant) async {
     final settings = services.settings;
     return ScoringBridge.scoreAndSave(
       notesJsonPath: files.notesJson,

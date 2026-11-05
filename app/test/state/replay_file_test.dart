@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:karaoke_battle/scoring/models.dart' show scaledTotal;
 import 'package:karaoke_battle/state/replay_file.dart';
 
 ReplayFile sample({String? voice}) => ReplayFile(
@@ -21,7 +22,7 @@ ReplayFile sample({String? voice}) => ReplayFile(
         ],
       },
       takeF0: {'hop': 0.016, 'sample_rate': 16000, 'times': [0.0, 0.016], 'f0': [0.0, 220.0], 'confidence': [0.1, 0.9]},
-      score: {'total': 93.4, 'rank': 'S', 'raw_total': 88.0, 'scale': 2, 'sub_scores': {}},
+      score: {'total': 93.4, 'rank': 'S', 'raw_total': 88.0, 'scale': 3, 'sub_scores': {}},
       voiceFile: voice,
     );
 
@@ -99,7 +100,7 @@ void main() {
   test('a score without the scale field is converted to the DAM-like scale', () {
     final j = sample().toJson()..['score'] = {'total': 85.0, 'rank': 'S'};
     final r = ReplayFile.parse(jsonEncode(j));
-    expect(r.total, closeTo(91.75, 1e-9));
+    expect(r.total, closeTo(scaledTotal(85), 1e-9));
     expect(r.score['raw_total'], 85);
   });
 }
