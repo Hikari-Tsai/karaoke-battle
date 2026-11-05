@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <map>
 #include <memory>
 
 #include "../core/error.h"
@@ -133,6 +134,7 @@ struct Tokens {
     int64_t eot = 50257, sot = 50258, sot_prev = 50362, no_speech = 50363, no_timestamps = 50364, ts_begin = 50365;
     int max_initial_ts = 50;
     std::vector<int64_t> suppress, begin_suppress;
+    std::vector<int64_t> languages;  // <|en|>, <|zh|>, ... (lang_to_id)
 };
 
 int load_tokens(const std::string& path, Tokens& t) {
@@ -150,6 +152,8 @@ int load_tokens(const std::string& path, Tokens& t) {
         t.max_initial_ts = j.value("max_initial_timestamp_index", 50);
         t.suppress = j.value("suppress_tokens", std::vector<int64_t>{});
         t.begin_suppress = j.value("begin_suppress_tokens", std::vector<int64_t>{});
+        if (j.contains("lang_to_id"))
+            for (const auto& kv : j.at("lang_to_id").items()) t.languages.push_back(kv.value().get<int64_t>());
     } catch (const std::exception& e) {
         return fail(KE_ERR_MODEL, "whisper: bad generation_config.json: %s", e.what());
     }
@@ -384,6 +388,16 @@ bool repetition_loop(const std::vector<int64_t>& seq) {
     return false;
 }
 
+// True when the text tokens of `seq` are all a contiguous part of `prompt`
+// (the model echoed its prompt).
+bool echoes(const std::vector<int64_t>& seq, const std::vector<int64_t>& prompt, int64_t eot) {
+    std::vector<int64_t> text;
+    for (int64_t t : seq)
+        if (t < eot) text.push_back(t);
+    if (text.size() < 2 || prompt.size() < text.size()) return false;
+    return std::search(prompt.begin(), prompt.end(), text.begin(), text.end()) != prompt.end();
+}
+
 int decode_window(Decoder& dec, const Tokens& tk, const float* enc, int64_t enc_len, int64_t d_model,
                   const std::vector<int64_t>& prefix, size_t sot_index, int max_tokens, WindowResult& r) {
     std::vector<float> logits, logprobs;
@@ -479,8 +493,9 @@ int recognize_file(ke_runtime* rt, const std::string& model_dir, const std::stri
     int rc = report_progress(progress, user, 0.f, "decode");
     if (rc != KE_OK) return rc;
 
-    int64_t language = 50260, task = 50360;
+    int64_t language = 0, task = 50360;  // language 0: detect from the first sung window
     std::vector<int64_t> style_prompt;
+    std::map<int64_t, std::vector<int64_t>> prompt_by_language;
     bool condition = true;
     double no_speech_threshold = 0.6, logprob_threshold = -1.0;
     try {
@@ -488,6 +503,9 @@ int recognize_file(ke_runtime* rt, const std::string& model_dir, const std::stri
         language = o.value("language_token", language);
         task = o.value("task_token", task);
         style_prompt = o.value("prompt_tokens", style_prompt);
+        if (o.contains("prompt_by_language"))
+            for (const auto& kv : o.at("prompt_by_language").items())
+                prompt_by_language[std::stoll(kv.key())] = kv.value().get<std::vector<int64_t>>();
         condition = o.value("condition_on_previous", condition);
         no_speech_threshold = o.value("no_speech_threshold", no_speech_threshold);
         logprob_threshold = o.value("logprob_threshold", logprob_threshold);
@@ -565,22 +583,52 @@ int recognize_file(ke_runtime* rt, const std::string& model_dir, const std::stri
             const int64_t d_model = enc_out[0].shape.size() == 3 ? enc_out[0].shape[2] : 0;
             if (enc_len <= 0 || d_model <= 0) return fail(KE_ERR_MODEL, "whisper: unexpected encoder output");
 
+            // Language: given, or detected once from the first sung window
+            // (the most likely language token after <|startoftranscript|>).
+            if (language <= 0) {
+                std::vector<float> lg;
+                int64_t vocab = 0;
+                rc = dec.start(enc_out[0].f32(), enc_len, d_model, {tk.sot}, lg, vocab);
+                if (rc != KE_OK) return rc;
+                float best = -std::numeric_limits<float>::infinity();
+                language = 50260;
+                for (int64_t id : tk.languages)
+                    if (id < vocab && lg[static_cast<size_t>(id)] > best) {
+                        best = lg[static_cast<size_t>(id)];
+                        language = id;
+                    }
+                KE_LOGI("whisper: detected language token %lld", static_cast<long long>(language));
+                const auto it = prompt_by_language.find(language);
+                if (it != prompt_by_language.end()) style_prompt = it->second;
+            }
             // Previous text: the style prompt, then what was recognised so far
             // with its timestamps, so the model keeps writing timestamps.
-            std::vector<int64_t> prompt = style_prompt;
-            if (condition) prompt.insert(prompt.end(), previous.end() - static_cast<long>(std::min<size_t>(previous.size(), 180)), previous.end());
-            if (prompt.size() > 223) prompt.erase(prompt.begin(), prompt.end() - 223);
-            std::vector<int64_t> prefix;
-            if (!prompt.empty()) {
-                prefix.push_back(tk.sot_prev);
-                prefix.insert(prefix.end(), prompt.begin(), prompt.end());
-            }
-            const size_t sot_index = prefix.size();
-            prefix.insert(prefix.end(), {tk.sot, language, task});
-
+            auto make_prefix = [&](bool with_prompt, size_t& sot_index) {
+                std::vector<int64_t> prompt;
+                if (with_prompt) {
+                    prompt = style_prompt;
+                    if (condition) prompt.insert(prompt.end(), previous.end() - static_cast<long>(std::min<size_t>(previous.size(), 180)), previous.end());
+                    if (prompt.size() > 223) prompt.erase(prompt.begin(), prompt.end() - 223);
+                }
+                std::vector<int64_t> prefix;
+                if (!prompt.empty()) {
+                    prefix.push_back(tk.sot_prev);
+                    prefix.insert(prefix.end(), prompt.begin(), prompt.end());
+                }
+                sot_index = prefix.size();
+                prefix.insert(prefix.end(), {tk.sot, language, task});
+                return prefix;
+            };
+            size_t sot_index = 0;
             WindowResult wr;
-            rc = decode_window(dec, tk, enc_out[0].f32(), enc_len, d_model, prefix, sot_index, 224, wr);
+            rc = decode_window(dec, tk, enc_out[0].f32(), enc_len, d_model, make_prefix(true, sot_index), sot_index, 224, wr);
             if (rc != KE_OK) return rc;
+            if (echoes(wr.tokens, style_prompt, tk.eot)) {
+                // The model repeated the prompt instead of listening: once more without it.
+                wr = WindowResult();
+                rc = decode_window(dec, tk, enc_out[0].f32(), enc_len, d_model, make_prefix(false, sot_index), sot_index, 224, wr);
+                if (rc != KE_OK) return rc;
+            }
             ++windows;
             const double offset = double(seek) / 100.0;
             const auto& toks = wr.tokens;
@@ -649,6 +697,7 @@ int recognize_file(ke_runtime* rt, const std::string& model_dir, const std::stri
     }
 
     out["windows"] = windows;
+    out["language_token"] = language;
     const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t_start).count();
     out["seconds"] = secs;
     std::ofstream f(out_json, std::ios::binary);

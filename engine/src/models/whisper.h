@@ -48,8 +48,10 @@ void log_mel(const float* samples, size_t n, const std::vector<float>& filters, 
 std::vector<uint8_t> voiced_frames(const std::vector<float>& audio, double range_db = 22.0, int hold = 30);
 
 // Long-form recognition of a WAV. options_json:
-//   {"language_token":50260, "task_token":50360,
+//   {"language_token":50260,         // 0 or absent: detected from the first sung window
+//    "task_token":50360,
 //    "prompt_tokens":[...],          // style prompt, before every window
+//    "prompt_by_language":{"50260":[...]},  // style prompt for a detected language
 //    "condition_on_previous":true,   // + the previous windows' tokens "no_speech_threshold":0.6,
 //    "logprob_threshold":-1.0}
 // Output JSON: {"segments":[{"start":s,"end":s,"avg_logprob":x,"tokens":[...]}],
