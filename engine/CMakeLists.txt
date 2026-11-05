@@ -57,6 +57,7 @@ set(KE_SOURCES
   src/models/game.cpp
   src/models/slicer.cpp
   src/models/beat_this.cpp
+  src/models/whisper.cpp
   src/audio/audio_engine.cpp
 )
 

@@ -186,6 +186,21 @@ KE_API int  ke_transcribe(ke_runtime* rt, const char* model_dir, const char* inp
 KE_API int  ke_beats(ke_runtime* rt, const char* model_dir, const char* input_wav, const char* beats_out_json,
                      ke_progress_cb progress, void* user);
 
+/*
+ * Speech recognition with Whisper (onnx-community export: onnx/encoder_model.onnx
+ * and onnx/decoder_model_merged.onnx with their .onnx_data, plus
+ * generation_config.json, in model_dir). Input is mixed to mono and
+ * resampled to 16 kHz inside; silent stretches are skipped.
+ * options_json: {"language_token":50260,"task_token":50360,"prompt_tokens":[..],
+ *                "condition_on_previous":true,
+ *                "no_speech_threshold":0.6,"logprob_threshold":-1.0}
+ * Output JSON: {"segments":[{"start":s,"end":s,"avg_logprob":x,"tokens":[ids]}],
+ *               "windows":n,"duration":s,"seconds":s}  (text tokens only)
+ */
+KE_API int  ke_whisper(ke_runtime* rt, const char* model_dir, const char* input_wav,
+                       const char* options_json, const char* out_json,
+                       ke_progress_cb progress, void* user);
+
 KE_API int  ke_f0_extract(ke_runtime* rt, const char* swiftf0_model_path, const char* input_wav,
                           float fmin, float fmax, const char* f0_out_json,
                           ke_progress_cb progress, void* user);

@@ -10,6 +10,7 @@
 #include "models/mdx.h"
 #include "models/swiftf0.h"
 #include "models/beat_this.h"
+#include "models/whisper.h"
 
 extern "C" {
 
@@ -53,6 +54,12 @@ KE_API int ke_beats(ke_runtime* rt, const char* model_dir, const char* input_wav
                     ke_progress_cb progress, void* user) {
     if (!rt || !model_dir || !input_wav || !beats_out_json) return ke::fail(KE_ERR_INVALID_ARG, "ke_beats: null argument");
     return ke::beat_this::extract_file(rt, model_dir, input_wav, beats_out_json, progress, user);
+}
+
+KE_API int ke_whisper(ke_runtime* rt, const char* model_dir, const char* input_wav, const char* options_json,
+                      const char* out_json, ke_progress_cb progress, void* user) {
+    if (!rt || !model_dir || !input_wav || !out_json) return ke::fail(KE_ERR_INVALID_ARG, "ke_whisper: null argument");
+    return ke::whisper::recognize_file(rt, model_dir, input_wav, options_json ? options_json : "{}", out_json, progress, user);
 }
 
 KE_API int ke_f0_extract(ke_runtime* rt, const char* swiftf0_model_path, const char* input_wav, float fmin, float fmax,
