@@ -31,6 +31,7 @@ class _AboutScreenState extends State<AboutScreen> {
     ('mir_eval (scoring metric definitions) — Raffel et al., ISMIR 2014', 'MIT', 'https://github.com/mir-evaluation/mir_eval', false),
     ('Beat This! — Foscarin, Schlüter, Widmer (CPJKU), ISMIR 2024 (beats / tempo)', 'MIT', 'https://github.com/CPJKU/beat_this', false),
     ('kuromoji.js — Takuya Asano / Atilika (Japanese readings for romaji)', 'Apache-2.0', 'https://github.com/takuyaa/kuromoji.js', false),
+    ('Whisper large-v3 — OpenAI (ONNX export: onnx-community; lyrics recognition)', 'Apache-2.0', 'https://huggingface.co/openai/whisper-large-v3', false),
     ('mecab-ipadic — Nara Institute of Science and Technology (NAIST)', 'NAIST / ICOT terms', 'https://huggingface.co/aaatmy/kuromoji-ipadic-pack', false),
     ('ONNX Runtime', 'MIT', 'https://github.com/microsoft/onnxruntime', false),
     ('miniaudio', 'MIT-0', 'https://github.com/mackron/miniaudio', false),

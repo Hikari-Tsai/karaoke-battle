@@ -178,7 +178,7 @@ class PrepPipeline extends ChangeNotifier {
 
     // 3b. thumbnail, subtitles and romaji (never fatal)
     await ensureThumbnail(song);
-    await ensureLyrics(song);
+    await ensureLyrics(song, ask: true);
     await ensureRomaji(song);
     checkCancel();
 
@@ -263,39 +263,90 @@ class PrepPipeline extends ChangeNotifier {
   }
 
   final Set<String> _lyricsInFlight = {};
+  final _noLyrics = StreamController<Song>.broadcast();
 
-  /// For YouTube songs, downloads the subtitle tracks once and writes
-  /// lyrics.json (an empty one when the video has none, so it is not retried).
-  /// Network failures leave no file, so a later call retries.
-  Future<void> ensureLyrics(Song song) async {
-    final url = song.sourceUrl;
-    if (song.sourceType != SourceType.youtube || url == null) return;
+  /// Songs whose preparation found no lyrics, so the user can be asked to
+  /// import a subtitle file or type them in.
+  Stream<Song> get noLyrics => _noLyrics.stream;
+
+  /// Downloads a YouTube song's subtitle tracks once and writes lyrics.json
+  /// (an empty one when there are none, so it is not retried; local files
+  /// always get an empty one). Network failures leave no file, so a later
+  /// call retries. With [ask], an empty result is reported on [noLyrics].
+  Future<void> ensureLyrics(Song song, {bool ask = false}) async {
     final f = library.files(song);
     if (await File(f.lyricsJson).exists()) return;
     if (!_lyricsInFlight.add(song.id)) return;
     try {
-      final tracks = await sidecars.subtitleTracks(url);
-      final plan = planSubtitles(manual: tracks.manual, auto: tracks.auto, songLanguage: song.language, uiLanguage: I18n.lang);
-      final lyrics = Lyrics(tracks: [], primary: plan.primary, secondary: plan.secondary);
-      if (!plan.isEmpty) {
-        await Directory(f.subsDir).create(recursive: true);
-        if (plan.manual.isNotEmpty) await sidecars.downloadSubtitles(url, f.subsDir, plan.manual, auto: false);
-        if (plan.auto != null) await sidecars.downloadSubtitles(url, f.subsDir, [plan.auto!], auto: true);
-        for (final key in [...plan.manual, ?plan.auto]) {
-          final file = File(p.join(f.subsDir, 'subs.$key.vtt'));
-          if (!await file.exists()) continue;
-          final lines = parseVtt(await file.readAsString());
-          if (lines.isNotEmpty) lyrics.tracks.add(LyricTrack(lang: key, auto: key == plan.auto, lines: lines));
+      final url = song.sourceUrl;
+      final lyrics = Lyrics.empty();
+      if (song.sourceType == SourceType.youtube && url != null) {
+        final tracks = await sidecars.subtitleTracks(url);
+        final plan = planSubtitles(manual: tracks.manual, auto: tracks.auto, songLanguage: song.language, uiLanguage: I18n.lang);
+        lyrics
+          ..primary = plan.primary
+          ..secondary = plan.secondary;
+        if (!plan.isEmpty) {
+          await Directory(f.subsDir).create(recursive: true);
+          if (plan.manual.isNotEmpty) await sidecars.downloadSubtitles(url, f.subsDir, plan.manual, auto: false);
+          if (plan.auto != null) await sidecars.downloadSubtitles(url, f.subsDir, [plan.auto!], auto: true);
+          for (final key in [...plan.manual, ?plan.auto]) {
+            final file = File(p.join(f.subsDir, 'subs.$key.vtt'));
+            if (!await file.exists()) continue;
+            final lines = parseVtt(await file.readAsString());
+            if (lines.isNotEmpty) lyrics.tracks.add(LyricTrack(lang: key, auto: key == plan.auto, lines: lines));
+          }
         }
         if (lyrics.track(lyrics.primary) == null) lyrics.primary = lyrics.tracks.isEmpty ? null : lyrics.tracks.first.lang;
         if (lyrics.track(lyrics.secondary) == null) lyrics.secondary = null;
       }
       await File(f.lyricsJson).writeAsString(jsonEncode(lyrics.toJson()));
       notifyListeners();
+      if (ask && lyrics.isEmpty) _noLyrics.add(song);
     } catch (_) {
     } finally {
       _lyricsInFlight.remove(song.id);
     }
+  }
+
+  /// The song's lyrics.json, or empty lyrics when it is missing or unreadable.
+  Future<Lyrics> loadLyrics(Song song) async {
+    try {
+      final j = jsonDecode(await File(library.files(song).lyricsJson).readAsString());
+      return Lyrics.fromJson((j as Map).cast<String, dynamic>());
+    } catch (_) {
+      return Lyrics.empty();
+    }
+  }
+
+  /// Bumped on every [saveLyrics], so a romaji run that read older lyrics
+  /// does not write them back.
+  final Map<String, int> _lyricsGen = {};
+  final Set<String> _romajiAgain = {};
+
+  /// Writes lyrics.json and adds romaji to new Japanese lines.
+  Future<void> saveLyrics(Song song, Lyrics lyrics) async {
+    _lyricsGen[song.id] = (_lyricsGen[song.id] ?? 0) + 1;
+    await File(library.files(song).lyricsJson).writeAsString(jsonEncode(lyrics.toJson()));
+    notifyListeners();
+    unawaited(ensureRomaji(song).then((_) => notifyListeners()));
+  }
+
+  /// Reads a subtitle file (SRT / WebVTT / LRC) into a new track that becomes
+  /// the main lyrics. Throws [SubtitleFormatException] for unreadable files.
+  Future<LyricTrack> importSubtitles(Song song, String path) async {
+    final lines = parseSubtitleFile(p.basename(path), await File(path).readAsBytes());
+    final lyrics = await loadLyrics(song);
+    final track = LyricTrack(
+      lang: lyrics.uniqueKey('${song.language}-x-import'),
+      auto: false,
+      lines: lines,
+      source: LyricSource.imported,
+      label: p.basename(path),
+    );
+    lyrics.putPrimary(track);
+    await saveLyrics(song, lyrics);
+    return track;
   }
 
   final Set<String> _beatsQueued = {};
@@ -332,7 +383,12 @@ class PrepPipeline extends ChangeNotifier {
     final f = library.files(song);
     final file = File(f.lyricsJson);
     if (!await file.exists()) return;
-    if (!_romajiInFlight.add(song.id)) return;
+    if (!_romajiInFlight.add(song.id)) {
+      _romajiAgain.add(song.id); // saved while romanising: run again after
+      return;
+    }
+    final gen = _lyricsGen[song.id] ?? 0;
+    var rerun = false;
     try {
       final lyrics = Lyrics.fromJson(jsonDecode(await file.readAsString()) as Map<String, dynamic>);
       final todo = lyrics.tracks.where((t) => t.isJapanese && t.romajiVersion < kRomajiVersion).toList();
@@ -360,12 +416,18 @@ class PrepPipeline extends ChangeNotifier {
           }
         }
       }
-      await file.writeAsString(jsonEncode(lyrics.toJson()));
-      notifyListeners();
+      // The user saved newer lyrics meanwhile: never overwrite them.
+      if ((_lyricsGen[song.id] ?? 0) != gen) {
+        rerun = true;
+      } else {
+        await file.writeAsString(jsonEncode(lyrics.toJson()));
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint('romaji: $e');
     } finally {
       _romajiInFlight.remove(song.id);
+      if (_romajiAgain.remove(song.id) || rerun) unawaited(ensureRomaji(song));
     }
   }
 

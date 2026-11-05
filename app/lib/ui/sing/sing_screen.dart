@@ -21,6 +21,7 @@ import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
 import '../results/results_screen.dart';
 import 'piano_roll.dart';
+import '../lyrics/lyrics_actions.dart';
 import 'lyrics_overlay.dart';
 import 'tempo_dialog.dart';
 import 'video_pane.dart';
@@ -284,8 +285,33 @@ class _SingScreenState extends State<SingScreen>
       final l = Lyrics.fromJson(
         jsonDecode(await f.readAsString()) as Map<String, dynamic>,
       );
-      if (mounted && !l.isEmpty) setState(() => _lyrics = l);
+      if (mounted) setState(() => _lyrics = l.isEmpty ? null : l);
     } catch (_) {}
+  }
+
+  /// Placeholder for the lyrics menu of a song without lyrics.
+  Lyrics? _noLyrics;
+
+  Future<void> _importLyrics(SingSession s) async {
+    if (await pickAndImportLyrics(context, widget.song)) {
+      await _loadLyrics(s.files.lyricsJson);
+    }
+  }
+
+  /// Pasting or recognising runs the models: the preview pauses meanwhile.
+  Future<void> _lyricsAction(SingSession s, Future<bool> Function(BuildContext, Song) action) async {
+    s.pause();
+    if (await action(context, widget.song)) {
+      await _loadLyrics(s.files.lyricsJson);
+    }
+  }
+
+  /// The editor plays the song itself, so the preview pauses first.
+  Future<void> _editLyrics(SingSession s) async {
+    s.pause();
+    if (await openLyricsEditor(context, widget.song)) {
+      await _loadLyrics(s.files.lyricsJson);
+    }
   }
 
   @override
@@ -585,14 +611,18 @@ class _SingScreenState extends State<SingScreen>
                                       child: _LiveJudgementsButton(),
                                     ),
                                     const SizedBox(width: 6),
-                                    if (_lyrics != null)
-                                      _StageButton(
-                                        child: LyricsMenu(
-                                          lyrics: _lyrics!,
-                                          lyricsPath: s.files.lyricsJson,
-                                          onChanged: () => setState(() {}),
-                                        ),
+                                    _StageButton(
+                                      child: LyricsMenu(
+                                        lyrics: _lyrics ?? (_noLyrics ??= Lyrics.empty()),
+                                        lyricsPath: s.files.lyricsJson,
+                                        onChanged: () => setState(() {}),
+                                        // Not while a take is being recorded.
+                                        onImport: s.recording ? null : () => _importLyrics(s),
+                                        onEdit: s.recording ? null : () => _editLyrics(s),
+                                        onPaste: s.recording ? null : () => _lyricsAction(s, pasteLyrics),
+                                        onWhisper: s.recording ? null : () => _lyricsAction(s, recognizeLyrics),
                                       ),
+                                    ),
                                   ],
                                 ),
                               ),

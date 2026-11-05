@@ -12,6 +12,7 @@ import '../../state/i18n.dart';
 import '../../state/note_edits.dart';
 import '../../state/scoring_bridge.dart';
 import '../../state/sing_session.dart';
+import '../lyrics/lyrics_actions.dart';
 import '../results/new_record_dialog.dart';
 import '../results/replay_screen.dart';
 import '../results/results_screen.dart';
@@ -349,11 +350,20 @@ class _SongCardState extends State<_SongCard> {
                     onSelected: (v) => switch (v) {
                       'reprocess' => _reprocess(),
                       'folder' => revealPath(dir),
+                      'lyricsImport' => pickAndImportLyrics(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
+                      'lyricsEdit' => openLyricsEditor(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
+                      'lyricsPaste' => pasteLyrics(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
+                      'lyricsWhisper' => recognizeLyrics(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       _ => null,
                     },
                     itemBuilder: (_) => [
                       PopupMenuItem(value: 'reprocess', child: ListTile(leading: const Icon(Icons.refresh), title: Text(tr('library.reprocess')))),
                       PopupMenuItem(value: 'folder', child: ListTile(leading: const Icon(Icons.folder_open), title: Text(tr('library.showFolder')))),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(value: 'lyricsImport', child: ListTile(leading: const Icon(Icons.file_open_outlined), title: Text(tr('lyrics.import')))),
+                      PopupMenuItem(value: 'lyricsPaste', child: ListTile(leading: const Icon(Icons.content_paste), title: Text(tr('lyrics.paste')))),
+                      PopupMenuItem(value: 'lyricsEdit', child: ListTile(leading: const Icon(Icons.edit_note), title: Text(tr('lyrics.edit')))),
+                      PopupMenuItem(value: 'lyricsWhisper', child: ListTile(leading: const Icon(Icons.graphic_eq), title: Text(tr('lyrics.whisper')))),
                     ],
                   ),
                 ],

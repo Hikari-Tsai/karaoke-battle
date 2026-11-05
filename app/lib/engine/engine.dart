@@ -286,6 +286,12 @@ class EngineRuntime {
     return _runJob(_BeatsArgs(modelDir, inputWav, beatsOut));
   }
 
+  /// Whisper recognition of [inputWav] into [out] (segments of token ids;
+  /// see ke_whisper in karaoke_engine.h for [options]).
+  EngineJob whisper({required String modelDir, required String inputWav, required Map<String, dynamic> options, required String out}) {
+    return _runJob(_WhisperArgs(modelDir, inputWav, jsonEncode(options), out));
+  }
+
   EngineJob _runJob(_JobArgs args) {
     final cancel = calloc<Int32>();
     final progressCtrl = StreamController<JobProgress>.broadcast();
@@ -343,6 +349,11 @@ class _BeatsArgs extends _JobArgs {
   final String modelDir, input, out;
 }
 
+class _WhisperArgs extends _JobArgs {
+  _WhisperArgs(this.modelDir, this.input, this.options, this.out);
+  final String modelDir, input, options, out;
+}
+
 class _JobResult {
   _JobResult(this.code, this.message);
   final int code;
@@ -379,6 +390,7 @@ _JobResult _jobEntry(String libPath, int rtAddr, int cancelAddr, SendPort progre
       _TranscribeArgs a => b.transcribe(rt, s(a.modelDir), s(a.input), s(a.options), s(a.out), cb.nativeFunction, nullptr),
       _F0Args a => b.f0Extract(rt, s(a.model), s(a.input), a.fmin, a.fmax, s(a.out), cb.nativeFunction, nullptr),
       _BeatsArgs a => b.beats(rt, s(a.modelDir), s(a.input), s(a.out), cb.nativeFunction, nullptr),
+      _WhisperArgs a => b.whisper(rt, s(a.modelDir), s(a.input), s(a.options), s(a.out), cb.nativeFunction, nullptr),
     };
     return _JobResult(rc, rc == KeError.ok ? '' : b.lastErrorString());
   } finally {

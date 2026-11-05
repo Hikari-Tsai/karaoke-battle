@@ -76,6 +76,10 @@ Press "Edit notes" and drag a note up or down to fix it. While you drag, a sine 
 
 <p align="center"><img src="docs/media/edit-notes.gif" width="720" alt="Dragging a note to fix its pitch"></p>
 
+### Import and edit lyrics
+
+When the YouTube video has subtitles they become the lyrics; when it has none, or the song is a local file, the app asks whether to import a subtitle file (SRT, VTT, LRC), paste the lyrics, generate them with AI (OpenAI Whisper speech recognition), or type them in. Pasted lyrics are timed automatically: by default from the notes found when the song was prepared (done in seconds), or with the AI, which listens for the words first. The AI model (about 6.2 GB on Windows, where it runs on the GPU; the 1.8 GB int8 build on Mac, where it runs on the CPU) is only downloaded when first used, after asking. The lyrics button in Preview also moves the lyrics earlier or later with ◀ ▶. "Edit lyrics…" in a song's menu edits the text and times line by line: paste the whole lyrics and press Enter as each line starts while the song plays, shift everything at once, split or merge lines, and export to SRT or LRC. The original YouTube subtitles are kept, so you can switch back at any time.
+
 ### Hot songs
 
 The "Hot songs" tab reads the weekly request charts straight from the Holiday KTV, Cashbox Party, JOYSOUND and DAM websites, plus the KKBOX weekly single charts. Switch between languages or genres (Mandarin, Taiwanese, Cantonese, anime, VOCALOID…) and see the rank, song, artist, the number to enter on the karaoke machine and the counting period; the two Taiwanese operators and KKBOX also show the movement since last week (KKBOX is a streaming chart, so it has no machine numbers). Handy when you can't decide what to sing. Results are kept for 6 hours and can be refreshed by hand. Each source has a tab at the top; each tab ends with a link to the chart on the source's website, and every song has a "Search on YouTube" button.
@@ -101,6 +105,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BACKENDS.md](docs/BACKEN
 | [aaatmy/swift-f0-onnx](https://huggingface.co/aaatmy/swift-f0-onnx) | Real-time and offline F0 | Lars Nieradzik | MIT |
 | [aaatmy/beat-this-onnx](https://huggingface.co/aaatmy/beat-this-onnx) | Beats, downbeats and BPM (beat grid, metronome) | CPJKU (Foscarin, Schlüter, Widmer) | MIT |
 | [aaatmy/kuromoji-ipadic-pack](https://huggingface.co/aaatmy/kuromoji-ipadic-pack) | Romanization of Japanese lyrics (downloaded only when a song has Japanese lyrics) | kuromoji.js (Takuya Asano), mecab-ipadic (NAIST) | Apache-2.0, IPADIC terms |
+| [aaatmy/whisper-large-v3-onnx](https://huggingface.co/aaatmy/whisper-large-v3-onnx) | Lyrics recognition for songs without subtitles and timing of pasted lyrics (Whisper large-v3, optional, downloaded on first use) | OpenAI | Apache-2.0 |
 
 All three mirrors are verbatim copies of the official upstream files (not retrained, quantized or re-exported), with only a manifest and SHA-256 hashes added.
 The GAME weights are licensed for non-commercial use only, so use of the app as a whole is subject to those terms.

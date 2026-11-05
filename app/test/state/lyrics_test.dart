@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:karaoke_battle/state/lyrics.dart';
 
@@ -121,5 +123,81 @@ how are you
       expect(noteWipeFraction(line, const [], const [], 1), closeTo(0.25, 1e-9));
       expect(noteWipeFraction(const LyricLine(10, 12, 'x'), on, off, 11), closeTo(0.5, 1e-9));
     });
+  });
+
+  group('imported subtitle files', () {
+    test('SRT with an index, comma decimals and override tags', () {
+      const srt = '1\r\n00:00:01,000 --> 00:00:03,500\r\n{\\an8}<i>第一行</i>\r\n\r\n2\r\n00:00:04,000 --> 00:00:06,000\r\n第二行\r\n第二行續\r\n';
+      final l = parseSubtitleFile('song.srt', utf8.encode(srt));
+      expect([for (final x in l) (x.start, x.end, x.text)], [(1.0, 3.5, '第一行'), (4.0, 6.0, '第二行 第二行續')]);
+    });
+
+    test('LRC: repeated stamps, breaks, offset, word stamps and metadata', () {
+      const lrc = '[ti:Song]\n[offset:+500]\n[00:10.00]<00:10.00>Hello <00:10.50>world\n[00:12.00]\n[00:15.00][01:00.00]Chorus\n[00:40.00]Long gap\n';
+      final l = parseLrc(lrc);
+      expect([for (final x in l) (x.start, x.end, x.text)], [
+        (9.5, 11.5, 'Hello world'), // ends at the empty break stamp
+        (14.5, 24.5, 'Chorus'), // capped at 10 s
+        (39.5, 49.5, 'Long gap'),
+        (59.5, 65.5, 'Chorus'), // last line: 6 s
+      ]);
+    });
+
+    test('BOMs and UTF-16 are decoded; legacy encodings are rejected', () {
+      expect(decodeSubtitleBytes([0xEF, 0xBB, 0xBF, ...utf8.encode('歌')]), '歌');
+      expect(decodeSubtitleBytes([0xFF, 0xFE, 0x4C, 0x6B]), '歌');
+      expect(decodeSubtitleBytes([0xFE, 0xFF, 0x6B, 0x4C]), '歌');
+      expect(() => decodeSubtitleBytes([0xBA, 0x71]), throwsA(isA<SubtitleFormatException>().having((e) => e.reason, 'reason', 'encoding')));
+      expect(() => parseSubtitleFile('a.txt', utf8.encode('just words')), throwsA(isA<SubtitleFormatException>()));
+    });
+
+    test('SRT and LRC written out parse back', () {
+      const lines = [LyricLine(1.25, 3.5, 'a'), LyricLine(3.5, 5, 'b'), LyricLine(8, 9.75, 'c')];
+      expect([for (final x in parseVtt(toSrt(lines))) (x.start, x.end, x.text)], [(1.25, 3.5, 'a'), (3.5, 5.0, 'b'), (8.0, 9.75, 'c')]);
+      expect(toLrc(lines), '[00:01.25]a\n[00:03.50]b\n[00:05.00]\n[00:08.00]c\n[00:09.75]\n');
+      expect([for (final x in parseLrc(toLrc(lines))) (x.start, x.end, x.text)], [(1.25, 3.5, 'a'), (3.5, 5.0, 'b'), (8.0, 9.75, 'c')]);
+    });
+
+    test('editor times', () {
+      expect(formatLyricTime(75.256), '1:15.26');
+      expect(formatLyricTime(3725), '1:02:05.00');
+      expect(parseLyricTime('1:15.26'), closeTo(75.26, 1e-9));
+      expect(parseLyricTime('12,5'), 12.5);
+      expect(parseLyricTime('1:02:05'), 3725);
+      expect(parseLyricTime('abc'), isNull);
+    });
+  });
+
+  group('app tracks', () {
+    test('keys, edits and the source round-trip', () {
+      final yt = LyricTrack(lang: 'zh-TW', auto: false, lines: const [LyricLine(1, 2, '甲')]);
+      final lyrics = Lyrics(tracks: [yt], primary: 'zh-TW');
+      expect(Lyrics.editKeyFor(yt), 'zh-TW-x-edit');
+      expect(lyrics.uniqueKey('zh-TW'), 'zh-TW2');
+      final edit = LyricTrack(lang: Lyrics.editKeyFor(yt), auto: false, lines: const [LyricLine(1, 2, '乙')], source: LyricSource.edited);
+      lyrics.putPrimary(edit);
+      expect(lyrics.primary, 'zh-TW-x-edit');
+      expect(Lyrics.editKeyFor(edit), 'zh-TW-x-edit'); // edited in place
+      expect(langFamily(edit.lang), 'zh');
+      final back = Lyrics.fromJson(jsonDecode(jsonEncode(lyrics.toJson())) as Map<String, dynamic>);
+      expect(back.tracks.map((t) => (t.lang, t.source)), [('zh-TW', LyricSource.youtube), ('zh-TW-x-edit', LyricSource.edited)]);
+      expect(back.primaryTrack!.lines.single.text, '乙');
+    });
+  });
+
+  test('timing offset: saved per track, applied when shown, baked by the editor', () {
+    final t = LyricTrack(lang: 'ja', auto: false, lines: const [LyricLine(1, 2, 'a', romaji: 'a')], offset: 0.3);
+    final lyrics = Lyrics(tracks: [t, LyricTrack(lang: 'en', auto: false, lines: const [LyricLine(1, 2, 'x')])], primary: 'ja', secondary: 'en');
+    final shown = lyrics.shifted();
+    expect(shown.primaryTrack!.lines.single.start, closeTo(1.3, 1e-9));
+    expect(shown.primaryTrack!.lines.single.romaji, 'a');
+    expect(shown.primaryTrack!.offset, 0); // not applied twice
+    expect(shown.secondaryTrack!.lines.single.start, 1); // its own offset: none
+    expect(t.lines.single.start, 1); // the saved lines are unchanged
+    final back = Lyrics.fromJson(jsonDecode(jsonEncode(lyrics.toJson())) as Map<String, dynamic>);
+    expect(back.primaryTrack!.offset, 0.3);
+    expect(back.track('en')!.toJson().containsKey('offset'), isFalse);
+    final none = Lyrics(tracks: [LyricTrack(lang: 'ja', auto: false, lines: const [])]);
+    expect(identical(none.shifted(), none), isTrue);
   });
 }

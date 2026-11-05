@@ -119,6 +119,25 @@ please honor the MIT license by providing credit to UVR and its developers.」Ki
 }
 ```
 
+### 1.5 Whisper（歌詞辨識）
+
+* 上游：<https://github.com/openai/whisper>（程式碼與權重 MIT）；權重頁面
+  <https://huggingface.co/openai/whisper-large-v3>（Apache-2.0）。
+* 本 App 使用 onnx-community 的 ONNX 轉換版（[onnx-community/whisper-large-v3-ONNX](https://huggingface.co/onnx-community/whisper-large-v3-ONNX)），
+  原樣鏡像於 [aaatmy/whisper-large-v3-onnx](https://huggingface.co/aaatmy/whisper-large-v3-onnx)，未修改權重。
+* 上游 README 提供下列引用格式。
+
+```bibtex
+@inproceedings{radford2023robust,
+  title={Robust Speech Recognition via Large-Scale Weak Supervision},
+  author={Radford, Alec and Kim, Jong Wook and Xu, Tao and Brockman, Greg and McLeavey, Christine and Sutskever, Ilya},
+  booktitle={Proceedings of the 40th International Conference on Machine Learning},
+  pages={28492--28518},
+  year={2023},
+  organization={PMLR}
+}
+```
+
 ## 2. 評分演算法
 
 評分模組（[docs/SCORING.md](SCORING.md)）是自行實作的純 Dart 程式，沒有引入任何評分套件，

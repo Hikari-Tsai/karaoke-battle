@@ -74,6 +74,10 @@ YouTube のリンクを貼るか動画・音声ファイルをドロップする
 
 <p align="center"><img src="docs/media/edit-notes.gif" width="720" alt="音符をドラッグして音程を修正"></p>
 
+### 歌詞の読み込みと編集
+
+YouTube の動画に字幕があればそのまま歌詞になります。字幕がない動画やローカルファイルでは、字幕ファイル（SRT・VTT・LRC）の読み込み、歌詞の貼り付け、AI で字幕を作成（OpenAI Whisper 音声認識）、自分で入力から選べます。貼り付けた歌詞は自動でタイミングを合わせます。既定では曲の準備で取り出した音符を使い（数秒で完了）、「AI で聞き取り」を選ぶと歌詞を聞き取ってから合わせます。AI モデル（Windows は約 6.2 GB で GPU 実行、Mac は int8 版約 1.8 GB で CPU 実行）は初回使用時に確認してからダウンロードします。プレビューの歌詞ボタンでは ◀ ▶ で字幕を早めたり遅らせたりできます。曲メニューの「歌詞を編集…」では文字と時間を 1 行ずつ直せます。歌詞をまとめて貼り付け、再生しながら各行の頭で Enter を押して打点するほか、全体をずらす、行の分割・結合、SRT・LRC での書き出しもできます。元の YouTube 字幕は残るので、いつでも戻せます。
+
 ### 人気曲
 
 左の「人気曲」タブでは、ホリデイKTV・銭櫃（キャッシュボックス）・JOYSOUND・DAM の公式サイトから週間ランキングを、KKBOX から週間シングルランキングを取得します。言語やジャンル（北京語、台湾語、広東語、アニメ、ボカロ…）を切り替えて、順位・曲名・歌手・選曲番号・集計期間を表示し、台湾の 2 社と KKBOX は前週からの順位変動も表示します（KKBOX はストリーミングのランキングなので選曲番号はありません）。何を歌うか迷ったときに便利です。結果は 6 時間保持され、手動で再読み込みもできます。各ソースは画面上部のタブで切り替えられ、各タブの最後に公式サイトのランキングへのリンクがあります。各曲には「YouTube で検索」ボタンもあります。
@@ -99,6 +103,7 @@ YouTube のリンクを貼るか動画・音声ファイルをドロップする
 | [aaatmy/swift-f0-onnx](https://huggingface.co/aaatmy/swift-f0-onnx) | リアルタイム・オフライン F0 | Lars Nieradzik | MIT |
 | [aaatmy/beat-this-onnx](https://huggingface.co/aaatmy/beat-this-onnx) | 拍・小節頭・BPM（拍線、メトロノーム） | CPJKU（Foscarin、Schlüter、Widmer） | MIT |
 | [aaatmy/kuromoji-ipadic-pack](https://huggingface.co/aaatmy/kuromoji-ipadic-pack) | 日本語歌詞のローマ字表記（日本語歌詞がある場合のみダウンロード） | kuromoji.js（Takuya Asano）、mecab-ipadic（NAIST） | Apache-2.0、IPADIC 条項 |
+| [aaatmy/whisper-large-v3-onnx](https://huggingface.co/aaatmy/whisper-large-v3-onnx) | 字幕のない曲の歌詞認識と、貼り付けた歌詞のタイミング合わせ（Whisper large-v3、任意、初回使用時にダウンロード） | OpenAI | Apache-2.0 |
 
 三つのミラーはいずれも上流の公式ファイルをそのままコピーしたもので（再学習・量子化・再エクスポートは行っていません）、manifest と SHA-256 を追加しているだけです。
 GAME の重みは非商用ライセンスのため、アプリ全体の利用もその条項の制約を受けます。

@@ -1,6 +1,7 @@
-// Lyrics from YouTube subtitles: WebVTT parsing (manual and rolling
-// auto-generated captions), track selection and the per-song lyrics.json.
+// Lyrics: WebVTT parsing (manual and rolling auto-generated captions),
+// imported subtitle files (SRT / LRC), track selection and lyrics.json.
 // Pure Dart (no Flutter) so it can be unit tested.
+import 'dart:convert';
 import 'dart:math' as math;
 
 class LyricLine {
@@ -13,17 +14,44 @@ class LyricLine {
   final String? romaji;
 
   LyricLine withRomaji(String? r) => LyricLine(start, end, text, romaji: r);
+  LyricLine shifted(double by) => by == 0 ? this : LyricLine(start + by, end + by, text, romaji: romaji);
 
   Map<String, dynamic> toJson() => {'start': start, 'end': end, 'text': text, 'romaji': ?romaji};
   static LyricLine fromJson(Map<String, dynamic> j) =>
       LyricLine((j['start'] as num).toDouble(), (j['end'] as num).toDouble(), j['text'] as String? ?? '', romaji: j['romaji'] as String?);
 }
 
+/// Where a lyrics track came from.
+enum LyricSource {
+  youtube, // the video's subtitles
+  imported, // a subtitle file the user picked
+  edited, // the user's edit of another track
+  manual, // typed in from scratch in the editor
+  whisper, // speech recognition
+  aligned, // pasted by the user, timed by the app (notes or Whisper)
+}
+
 class LyricTrack {
-  LyricTrack({required this.lang, required this.auto, required this.lines, this.romajiVersion = 0});
-  final String lang; // YouTube subtitle key, e.g. ja, zh-TW, en-orig
+  LyricTrack({required this.lang, required this.auto, required this.lines, this.romajiVersion = 0, this.source = LyricSource.youtube, this.label, this.offset = 0});
+
+  /// Unique key of the track within a song. For YouTube tracks the subtitle
+  /// key (ja, zh-TW, en-orig); the app's own tracks add a private-use tag to
+  /// the song's language (ja-x-import, zh-TW-x-edit), so [langFamily] still
+  /// tells the language.
+  final String lang;
   final bool auto; // automatically generated captions
   List<LyricLine> lines;
+  final LyricSource source;
+
+  /// Shown in menus: the imported file's name, or the edited track's label.
+  final String? label;
+
+  /// Seconds added to every line when shown (positive: the lyrics come
+  /// later), set from the sing screen to fix subtitles that are out of sync.
+  double offset;
+
+  /// [lines] moved by [offset].
+  List<LyricLine> get shownLines => offset == 0 ? lines : [for (final l in lines) l.shifted(offset)];
 
   /// Version of the romaji rules the lines were romanised with (0 = none);
   /// bumping [kRomajiVersion] re-romanises existing songs.
@@ -66,15 +94,28 @@ class LyricTrack {
   Map<String, dynamic> toJson() => {
         'lang': lang,
         'auto': auto,
+        if (source != LyricSource.youtube) 'source': source.name,
+        'label': ?label,
+        if (offset != 0) 'offset': offset,
         if (romajiVersion > 0) 'romaji_version': romajiVersion,
         'lines': [for (final l in lines) l.toJson()],
       };
   static LyricTrack fromJson(Map<String, dynamic> j) => LyricTrack(
         lang: j['lang'] as String? ?? '',
         auto: j['auto'] == true,
+        source: LyricSource.values.asNameMap()[j['source']] ?? LyricSource.youtube,
+        label: j['label'] as String?,
+        offset: (j['offset'] as num?)?.toDouble() ?? 0,
         romajiVersion: (j['romaji_version'] as num?)?.toInt() ?? 0,
         lines: [for (final e in (j['lines'] as List? ?? const [])) LyricLine.fromJson((e as Map).cast<String, dynamic>())],
       );
+}
+
+/// The language subtag of a track key without the app's private-use part
+/// ('zh-TW-x-edit' -> 'zh-TW').
+String baseLang(String key) {
+  final i = key.indexOf('-x-');
+  return i < 0 ? key : key.substring(0, i);
 }
 
 /// All subtitle tracks fetched for a song plus the user's choice of the main
@@ -97,6 +138,49 @@ class Lyrics {
       if (t.lang == lang) return t;
     }
     return null;
+  }
+
+  /// [base] if no track uses it, else base2, base3, …
+  String uniqueKey(String base) {
+    if (track(base) == null) return base;
+    for (var n = 2;; n++) {
+      if (track('$base$n') == null) return '$base$n';
+    }
+  }
+
+  /// Adds [t], or replaces the track with the same key, and makes it the
+  /// main lyrics.
+  void putPrimary(LyricTrack t) {
+    final i = tracks.indexWhere((e) => e.lang == t.lang);
+    if (i >= 0) {
+      tracks[i] = t;
+    } else {
+      tracks.add(t);
+    }
+    primary = t.lang;
+    if (secondary == primary) secondary = null;
+  }
+
+  /// Key an edit of [t] is saved under: the app's own tracks are edited in
+  /// place; YouTube or recognised tracks keep the original and get an
+  /// "-x-edit" sibling.
+  static String editKeyFor(LyricTrack t) => switch (t.source) {
+        LyricSource.youtube || LyricSource.whisper => '${baseLang(t.lang)}-x-edit',
+        _ => t.lang,
+      };
+
+  /// The lyrics as shown: every track's [LyricTrack.offset] applied to its
+  /// lines (this object itself when no track has one).
+  Lyrics shifted() {
+    if (tracks.every((t) => t.offset == 0)) return this;
+    return Lyrics(
+      tracks: [
+        for (final t in tracks)
+          LyricTrack(lang: t.lang, auto: t.auto, lines: t.shownLines, romajiVersion: t.romajiVersion, source: t.source, label: t.label),
+      ],
+      primary: primary,
+      secondary: secondary,
+    );
   }
 
   LyricTrack? get primaryTrack => track(primary) ?? (tracks.isEmpty ? null : tracks.first);
@@ -197,6 +281,7 @@ SubtitlePlan planSubtitles({
 
 final _cueTime = RegExp(r'^\s*((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})\s*-->\s*((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})');
 final _tag = RegExp(r'<[^>]*>');
+final _assTag = RegExp(r'\{\\[^}]*\}'); // {\an8} etc. in some SRT files
 final _inlineTime = RegExp(r'<\d{1,2}:\d{2}[:.]\d{2}');
 final _noise = RegExp(r'^[\[\(（【♪♫\s]*(music|音楽|音樂|音乐|拍手|applause|笑)?[\]\)）】♪♫\s]*$', caseSensitive: false);
 
@@ -249,7 +334,7 @@ List<LyricLine> parseVtt(String vtt) {
     final timed = raw.where((l) => _inlineTime.hasMatch(l)).toList();
     final source = timed.isNotEmpty ? timed : raw;
     final text = source
-        .map((l) => _decode(l.replaceAll(_tag, '')).trim())
+        .map((l) => _decode(l.replaceAll(_tag, '').replaceAll(_assTag, '')).trim())
         .where((l) => l.isNotEmpty && !_noise.hasMatch(l))
         .join(' ')
         .replaceAll(RegExp(r'\s+'), ' ')
@@ -269,6 +354,150 @@ List<LyricLine> parseVtt(String vtt) {
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Subtitle files the user imports (SRT / WebVTT / LRC) and exports
+// ---------------------------------------------------------------------------
+
+/// Extensions offered when importing.
+const kSubtitleExtensions = ['srt', 'vtt', 'lrc'];
+
+/// Thrown for a file that cannot be read as subtitles.
+class SubtitleFormatException implements Exception {
+  const SubtitleFormatException(this.reason);
+
+  /// 'encoding' (not UTF-8 / UTF-16) or 'format' (no timed lines found).
+  final String reason;
+  @override
+  String toString() => 'SubtitleFormatException($reason)';
+}
+
+/// Text of a subtitle file: UTF-8 (with or without BOM) or UTF-16 with a BOM.
+/// Legacy encodings (Big5, GBK, Shift_JIS) are rejected rather than garbled.
+String decodeSubtitleBytes(List<int> b) {
+  if (b.length >= 3 && b[0] == 0xEF && b[1] == 0xBB && b[2] == 0xBF) b = b.sublist(3);
+  if (b.length >= 2 && ((b[0] == 0xFF && b[1] == 0xFE) || (b[0] == 0xFE && b[1] == 0xFF))) {
+    final le = b[0] == 0xFF;
+    final units = <int>[for (var i = 2; i + 1 < b.length; i += 2) le ? b[i] | (b[i + 1] << 8) : (b[i] << 8) | b[i + 1]];
+    return String.fromCharCodes(units);
+  }
+  try {
+    return utf8.decode(b);
+  } on FormatException {
+    throw const SubtitleFormatException('encoding');
+  }
+}
+
+/// Lines of a subtitle file, chosen by extension (sniffed when unknown).
+List<LyricLine> parseSubtitleFile(String fileName, List<int> bytes) {
+  final text = decodeSubtitleBytes(bytes);
+  final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : '';
+  final lines = switch (ext) {
+    'lrc' => parseLrc(text),
+    'srt' || 'vtt' => parseVtt(text),
+    _ => text.contains('-->') ? parseVtt(text) : parseLrc(text),
+  };
+  if (lines.isEmpty) throw const SubtitleFormatException('format');
+  return lines;
+}
+
+final _lrcStamp = RegExp(r'\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]');
+final _lrcWordStamp = RegExp(r'<\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?>');
+final _lrcOffset = RegExp(r'^\s*\[offset:\s*([+-]?\d+)\s*\]', caseSensitive: false);
+
+/// Parses LRC: `[mm:ss.xx]text`, several stamps per row for repeated lines,
+/// `[offset:±ms]`, word stamps `<mm:ss.xx>` (dropped). LRC has no end
+/// times: a line lasts until the next stamp (an empty one marks a break),
+/// at most [maxLine] seconds.
+List<LyricLine> parseLrc(String lrc, {double maxLine = 10, double lastLine = 6}) {
+  var offset = 0.0;
+  final stamps = <(double, String)>[];
+  for (final row in lrc.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n')) {
+    final o = _lrcOffset.firstMatch(row);
+    if (o != null) {
+      offset = int.parse(o.group(1)!) / 1000; // positive: lyrics come sooner
+      continue;
+    }
+    var rest = row.trimLeft();
+    final times = <double>[];
+    while (true) {
+      final m = _lrcStamp.matchAsPrefix(rest);
+      if (m == null) break;
+      times.add(int.parse(m.group(1)!) * 60 + double.parse(m.group(2)!.replaceAll(':', '.')));
+      rest = rest.substring(m.end).trimLeft();
+    }
+    if (times.isEmpty) continue; // metadata ([ar:], [ti:]) or plain text
+    final text = _decode(rest.replaceAll(_lrcWordStamp, '').replaceAll(_tag, '')).replaceAll(RegExp(r'\s+'), ' ').trim();
+    for (final t in times) {
+      stamps.add((t, text));
+    }
+  }
+  stamps.sort((a, b) => a.$1.compareTo(b.$1));
+  final out = <LyricLine>[];
+  for (var i = 0; i < stamps.length; i++) {
+    final (t, text) = stamps[i];
+    if (text.isEmpty || _noise.hasMatch(text)) continue;
+    final start = math.max(0.0, t - offset);
+    final next = i + 1 < stamps.length ? math.max(0.0, stamps[i + 1].$1 - offset) : start + lastLine;
+    out.add(LyricLine(start, math.min(next, start + maxLine), text));
+  }
+  return out;
+}
+
+String _srtTime(double t) {
+  final ms = (t * 1000).round();
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${two(ms ~/ 3600000)}:${two(ms ~/ 60000 % 60)}:${two(ms ~/ 1000 % 60)},${(ms % 1000).toString().padLeft(3, '0')}';
+}
+
+String toSrt(List<LyricLine> lines) {
+  final b = StringBuffer();
+  for (var i = 0; i < lines.length; i++) {
+    b
+      ..writeln(i + 1)
+      ..writeln('${_srtTime(lines[i].start)} --> ${_srtTime(lines[i].end)}')
+      ..writeln(lines[i].text)
+      ..writeln();
+  }
+  return b.toString();
+}
+
+String _lrcTime(double t) {
+  final cs = (t * 100).round();
+  return '[${(cs ~/ 6000).toString().padLeft(2, '0')}:${(cs ~/ 100 % 60).toString().padLeft(2, '0')}.${(cs % 100).toString().padLeft(2, '0')}]';
+}
+
+/// LRC with an empty stamp where a line ends before the next one starts.
+String toLrc(List<LyricLine> lines) {
+  final b = StringBuffer();
+  for (var i = 0; i < lines.length; i++) {
+    final l = lines[i];
+    b.writeln('${_lrcTime(l.start)}${l.text}');
+    final next = i + 1 < lines.length ? lines[i + 1].start : null;
+    if (next == null || next - l.end > 0.3) b.writeln(_lrcTime(l.end));
+  }
+  return b.toString();
+}
+
+/// `m:ss.cc` (or `h:mm:ss.cc`) for the editor.
+String formatLyricTime(double t) {
+  final cs = (t * 100).round();
+  final h = cs ~/ 360000, m = cs ~/ 6000 % 60, s = cs ~/ 100 % 60, c = cs % 100;
+  final tail = '${s.toString().padLeft(2, '0')}.${c.toString().padLeft(2, '0')}';
+  return h > 0 ? '$h:${m.toString().padLeft(2, '0')}:$tail' : '$m:$tail';
+}
+
+/// Inverse of [formatLyricTime]; also takes plain seconds and a comma. Null
+/// when [s] is not a time.
+double? parseLyricTime(String s) {
+  final t = s.trim().replaceAll(',', '.');
+  if (!RegExp(r'^(\d+:){0,2}\d+(\.\d+)?$').hasMatch(t)) return null;
+  var v = 0.0;
+  for (final part in t.split(':')) {
+    v = v * 60 + double.parse(part);
+  }
+  return v;
 }
 
 // ---------------------------------------------------------------------------

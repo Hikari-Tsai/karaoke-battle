@@ -75,6 +75,10 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 <p align="center"><img src="docs/media/edit-notes.gif" width="720" alt="拖曳音符修正音高"></p>
 
+### 匯入與編輯歌詞
+
+YouTube 影片有字幕就直接當歌詞；沒有字幕或是本機檔案時，App 會跳出視窗，讓你匯入字幕檔（SRT、VTT、LRC）、貼上歌詞、用 AI 產生字幕（OpenAI Whisper 語音辨識），或自己輸入。貼上的整首歌詞會自動對上時間：預設用備歌時轉出的音符（幾秒完成），也可以選「AI 聽歌對時」（先聽出唱的字再對時）。AI 模型（Windows 約 6.2 GB，在顯示卡上執行；Mac 用 int8 版約 1.8 GB，在 CPU 上執行）第一次使用時才詢問下載。預覽畫面的歌詞按鈕可以用 ◀ ▶ 調整字幕快慢。歌曲卡片選單的「編輯字幕」可以逐行修改文字與時間：貼上整首歌詞後邊聽邊按 Enter 打點，也能整體位移、拆行合併，並匯出成 SRT 或 LRC。原本的 YouTube 字幕會保留，隨時可以切回。
+
 ### 熱門歌單
 
 左側的「熱門歌單」分頁直接抓取好樂迪、錢櫃、JOYSOUND、DAM 官網的每週點歌排行，以及 KKBOX 的單曲週榜，可切換語言或分類（國語、台語、粵語、動畫、VOCALOID…），顯示名次、歌名、歌手、點歌機曲號與統計期間，台灣兩家與 KKBOX 另有上週名次的升降（KKBOX 是串流排行，沒有點歌機曲號）。想不到要唱什麼時可以直接挑熱門歌。結果會保留 6 小時，也可以手動重新整理；各來源以頁面上方的分頁切換，每個分頁最下方有前往該來源官網排行榜的連結；每首歌也有「在 YouTube 搜尋」按鈕。
@@ -100,6 +104,7 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 | [aaatmy/swift-f0-onnx](https://huggingface.co/aaatmy/swift-f0-onnx) | 即時與離線 F0 | Lars Nieradzik | MIT |
 | [aaatmy/beat-this-onnx](https://huggingface.co/aaatmy/beat-this-onnx) | 節拍、重拍與 BPM（拍線、節拍器） | CPJKU（Foscarin、Schlüter、Widmer） | MIT |
 | [aaatmy/kuromoji-ipadic-pack](https://huggingface.co/aaatmy/kuromoji-ipadic-pack) | 日文歌詞的羅馬拼音（遇到日文歌詞才下載） | kuromoji.js（Takuya Asano）、mecab-ipadic（NAIST） | Apache-2.0、IPADIC 條款 |
+| [aaatmy/whisper-large-v3-onnx](https://huggingface.co/aaatmy/whisper-large-v3-onnx) | 沒有字幕的歌辨識歌詞、為貼上的歌詞對時（Whisper large-v3，選用，第一次使用時才下載） | OpenAI | Apache-2.0 |
 
 三個鏡像都是上游官方檔案的原樣複製（未重新訓練、量化或匯出），只加上 manifest 與 SHA-256。
 GAME 權重為非商業授權，整個 App 的使用因此受該條款約束。

@@ -34,6 +34,7 @@
 | Beat This! final0 (CPJKU) | MIT, Copyright (c) 2024 Institute of Computational Perception, JKU Linz | beat / downbeat tracking for BPM, beat grid and metronome; ONNX mirror `aaatmy/beat-this-onnx` |
 | kuromoji.js 0.1.2 (+ async, lodash, doublearray, zlibjs) | Apache-2.0 (+ MIT) | Japanese readings for romaji; downloaded on first Japanese lyrics from `aaatmy/kuromoji-ipadic-pack`, run with Deno |
 | mecab-ipadic 2.7.0-20070801 | NAIST / ICOT terms (redistribution permitted with notice) | dictionary bundled with kuromoji; Copyright 2000-2003 Nara Institute of Science and Technology, notice reproduced in the pack |
+| Whisper large-v3 (OpenAI) | Apache-2.0 (weights as published at huggingface.co/openai/whisper-large-v3; code and weights also MIT at github.com/openai/whisper) | lyrics recognition (optional download); ONNX export by onnx-community, mirrored unchanged as `aaatmy/whisper-large-v3-onnx` |
 
 ### GAME model attribution (CC BY-NC-SA 4.0)
 
@@ -53,6 +54,8 @@ No endorsement by the licensor is implied.
 | `engine/src/models/game.*`, `slicer.*` | openvpi/GAME `inference/me_infer.py`, `data.py`, `slicer2.py` | MIT, Copyright (c) 2026 Team OpenVPI |
 | `engine/src/models/beat_this.*` | Beat This! inference pipeline as in Hikari-Tsai/music-detection `frontend/inference/dsp.js` and `tempo.js` (log-mel, chunking, peak picking, tempo fit), matching the beat_this Python package | MIT |
 | `engine/src/models/mdx.*` | python-audio-separator `mdx_separator.py` (port of UVR `separate.py`) | MIT |
+| `engine/src/models/whisper.*` | openai/whisper `decoding.py` (timestamp rules, token suppression, no-speech check) and `transcribe.py` (long-form seeking); log-mel as transformers `WhisperFeatureExtractor` | MIT (openai/whisper), Apache-2.0 (transformers) |
+| `app/lib/state/whisper_tokenizer.dart` | byte-level BPE with GPT-2's `bytes_to_unicode` (openai/gpt-2 `encoder.py`) | MIT |
 | `app/lib/scoring/` | metric definitions follow mir_eval (`melody`, `transcription`); re-implemented in Dart, no code copied | MIT (mir_eval) |
 
 Citations for the papers behind the models and the scoring metrics are in `docs/CITATIONS.md`.

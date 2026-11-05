@@ -91,6 +91,11 @@ class EngineBindings {
                 Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>),
             int Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, double, double, Pointer<Utf8>,
                 Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>)>('ke_f0_extract'),
+        whisper = lib.lookupFunction<
+            Int32 Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
+                Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>),
+            int Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
+                Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>)>('ke_whisper'),
         beats = lib.lookupFunction<
             Int32 Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
                 Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>),
@@ -182,6 +187,8 @@ class EngineBindings {
       Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>) f0Extract;
   final int Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
       Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>) beats;
+  final int Function(Pointer<KeRuntime>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>,
+      Pointer<NativeFunction<KeProgressCbNative>>, Pointer<Void>) whisper;
   final int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Int32>, int) audioSetClicks;
   final int Function(Pointer<KeAudio>, double) audioSetClickGain;
   final int Function(Pointer<KeAudio>, int) audioSetVocalReturn;

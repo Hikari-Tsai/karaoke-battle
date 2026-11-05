@@ -135,7 +135,50 @@ class ModelRegistry {
     ],
   );
 
-  static const all = [swiftF0, mdxVocals, mdxInstrumental, gameLarge, gameSmall, beatThis, jaReading];
+  /// Whisper large-v3 (OpenAI) for recognising lyrics and timing pasted
+  /// lyrics. Optional, downloaded on first use. Windows gets the float32
+  /// build so the whole model runs on CUDA / DirectML (the int8 build's
+  /// quantized ops fall back to the CPU there); macOS runs on the CPU, where
+  /// the int8 build of the same model is about 4x faster (see [whisperLarge]).
+  static const whisperLargeF32 = ModelSpec(
+    id: 'whisper-large-v3',
+    repo: 'aaatmy/whisper-large-v3-onnx',
+    title: 'Whisper large-v3 (lyrics recognition)',
+    license: 'Apache-2.0',
+    files: [
+      ModelFile('onnx/encoder_model.onnx', 412412, '484baaed2f03c4e521650eba3f5228bd59728cbc18edb5aa1c5223a6b94ca491'),
+      ModelFile('onnx/encoder_model.onnx_data', 2547875840, '8983477ea590e9a4f5f755b5117a8d7f952da3dc28e993dea0594d7693d411da'),
+      ModelFile('onnx/decoder_model_merged.onnx', 2305652, '31c3d7df27dad36be97dc6f5396ae96fdc9eafa51f7a6de816beb2ce71757bad'),
+      ModelFile('onnx/decoder_model_merged.onnx_data', 3626086400, '69700fe5f05cae25e834e9f226e678aebbc18af13c5526ad81829489c357515d'),
+      ModelFile('config.json', 1288, 'a306bdf86d5f79595082755649214d8ba2b4e2cb2a7c124c6325c3acb7abf303'),
+      ModelFile('generation_config.json', 3896, '33ff6901e35fd6ff9d7ac219a7c88118d383dac59f4a48c1bca46b86a11e20c9'),
+      ModelFile('preprocessor_config.json', 340, '7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711'),
+      ModelFile('vocab.json', 1036558, 'e2aa043ef015641d363d8288e7c241c85e36a5c761fb303598e0710233344387'),
+      ModelFile('added_tokens.json', 34648, '3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0'),
+      ModelFile('tokenizer.json', 3930645, '5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b'),
+    ],
+  );
+
+  /// The int8 (dynamically quantized) build of the same model, for CPUs.
+  static const whisperLargeInt8 = ModelSpec(
+    id: 'whisper-large-v3-int8',
+    repo: 'aaatmy/whisper-large-v3-onnx',
+    title: 'Whisper large-v3 int8 (lyrics recognition)',
+    license: 'Apache-2.0',
+    files: [
+      ModelFile('onnx/encoder_model_quantized.onnx', 644795348, 'f438cff17ce55089f5046c7392421ec646cdf3081098a6510558578321a15c3f'),
+      ModelFile('onnx/decoder_model_merged_quantized.onnx', 1177130831, 'f0d0fd460448a18ef7835d2ba53fe40aeca244d18715e46fae68f149fb22e2d6'),
+      ModelFile('generation_config.json', 3896, '33ff6901e35fd6ff9d7ac219a7c88118d383dac59f4a48c1bca46b86a11e20c9'),
+      ModelFile('vocab.json', 1036558, 'e2aa043ef015641d363d8288e7c241c85e36a5c761fb303598e0710233344387'),
+      ModelFile('added_tokens.json', 34648, '3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0'),
+      ModelFile('tokenizer.json', 3930645, '5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b'),
+    ],
+  );
+
+  /// The Whisper build for this platform.
+  static ModelSpec get whisperLarge => Platform.isMacOS ? whisperLargeInt8 : whisperLargeF32;
+
+  static final all = [swiftF0, mdxVocals, mdxInstrumental, gameLarge, gameSmall, beatThis, jaReading, whisperLarge];
 
   /// Models required for the default pipeline.
   static const required = [swiftF0, mdxVocals, mdxInstrumental, gameLarge, beatThis];

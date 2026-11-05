@@ -2,6 +2,7 @@
 // to right as it is sung, its translation below, and the next line dimmed.
 // On each new line the next line flips up into the current slot while the
 // sung line slides up and fades out.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -13,6 +14,7 @@ import 'package:provider/provider.dart';
 import '../../services/settings.dart';
 import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
+import '../lyrics/lyrics_actions.dart';
 
 class LyricsOverlay extends StatelessWidget {
   const LyricsOverlay({super.key, required this.lyrics, required this.position, this.noteOnsets, this.noteOffsets, this.showRomaji = true});
@@ -38,9 +40,10 @@ class LyricsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final main = lyrics.primaryTrack;
+    final display = lyrics.shifted(); // the user's timing offsets
+    final main = display.primaryTrack;
     if (main == null) return const SizedBox.shrink();
-    final trans = lyrics.secondaryTrack;
+    final trans = display.secondaryTrack;
     return LayoutBuilder(builder: (context, c) {
       // Scale with the video height so it reads the same at any window size.
       final big = (c.maxHeight * 0.075).clamp(16.0, 40.0);
@@ -208,58 +211,220 @@ class _FractionClipper extends CustomClipper<Rect> {
   bool shouldReclip(_FractionClipper old) => old.fraction != fraction;
 }
 
-/// Corner menu: show / hide lyrics, pick the lyrics track and a translation.
-/// The global show flag is a setting; the track choice is saved per song.
-class LyricsMenu extends StatelessWidget {
-  const LyricsMenu({super.key, required this.lyrics, required this.lyricsPath, required this.onChanged});
+/// Corner menu over the stage: show / hide lyrics and romaji, pick the
+/// lyrics track and a translation, shift the lyrics' timing, and import or
+/// edit lyrics. The global show flags are settings; the track choice and
+/// the timing offset are saved per song. Also shown for a song without
+/// lyrics, so they can be added from here.
+class LyricsMenu extends StatefulWidget {
+  const LyricsMenu({
+    super.key,
+    required this.lyrics,
+    required this.lyricsPath,
+    required this.onChanged,
+    this.onImport,
+    this.onEdit,
+    this.onWhisper,
+    this.onPaste,
+  });
   final Lyrics lyrics;
   final String lyricsPath;
+
+  /// After a change saved to [lyricsPath] (track choice, offset).
   final VoidCallback onChanged;
 
-  String _label(LyricTrack t) => t.auto ? '${t.lang} (${tr('sing.lyricsAuto')})' : t.lang;
+  /// Import a subtitle file / open the editor; null disables them (while
+  /// recording).
+  final VoidCallback? onImport;
+  final VoidCallback? onEdit;
+
+  /// Recognise the lyrics with Whisper.
+  final VoidCallback? onWhisper;
+
+  /// Paste the lyrics as text and have them timed.
+  final VoidCallback? onPaste;
+
+  @override
+  State<LyricsMenu> createState() => _LyricsMenuState();
+}
+
+class _LyricsMenuState extends State<LyricsMenu> {
+  final _controller = MenuController();
+  Timer? _saveLater;
+
+  Lyrics get lyrics => widget.lyrics;
 
   Future<void> _save() async {
     try {
-      await File(lyricsPath).writeAsString(jsonEncode(lyrics.toJson()));
+      await File(widget.lyricsPath).writeAsString(jsonEncode(lyrics.toJson()));
     } catch (_) {}
-    onChanged();
+  }
+
+  void _changed({bool now = true}) {
+    widget.onChanged();
+    _saveLater?.cancel();
+    // Offset clicks come in bursts: write once they stop.
+    _saveLater = Timer(Duration(milliseconds: now ? 0 : 400), _save);
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    if (_saveLater?.isActive ?? false) {
+      _saveLater!.cancel();
+      _save();
+    }
+    super.dispose();
+  }
+
+  void _close(VoidCallback? then) {
+    _controller.close();
+    then?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<AppSettings>();
-    final main = lyrics.primaryTrack?.lang;
-    return PopupMenuButton<String>(
-      tooltip: tr('sing.lyrics'),
-      icon: Icon(settings.showLyrics ? Icons.subtitles : Icons.subtitles_off, color: Colors.white, shadows: LyricsOverlay._shadow),
-      onSelected: (v) {
-        if (v == 'toggle') {
-          settings.setShowLyrics(!settings.showLyrics);
-        } else if (v == 'romaji') {
-          settings.setShowRomaji(!settings.showRomaji);
-        } else if (v.startsWith('main:')) {
-          lyrics.primary = v.substring(5);
-          if (lyrics.secondary == lyrics.primary) lyrics.secondary = null;
-          _save();
-        } else if (v.startsWith('sec:')) {
-          final k = v.substring(4);
-          lyrics.secondary = k.isEmpty ? null : k;
-          _save();
-        }
-      },
-      itemBuilder: (_) => [
-        CheckedPopupMenuItem(value: 'toggle', checked: settings.showLyrics, child: Text(tr('sing.lyricsShow'))),
-        if (lyrics.primaryTrack?.hasRomaji ?? false)
-          CheckedPopupMenuItem(value: 'romaji', checked: settings.showRomaji, child: Text(tr('sing.lyricsRomaji'))),
-        const PopupMenuDivider(),
-        PopupMenuItem(enabled: false, height: 28, child: Text(tr('sing.lyricsMain'))),
-        for (final t in lyrics.tracks) CheckedPopupMenuItem(value: 'main:${t.lang}', checked: t.lang == main, child: Text(_label(t))),
-        const PopupMenuDivider(),
-        PopupMenuItem(enabled: false, height: 28, child: Text(tr('sing.lyricsTranslation'))),
-        CheckedPopupMenuItem(value: 'sec:', checked: lyrics.secondaryTrack == null, child: Text(tr('sing.lyricsNone'))),
-        for (final t in lyrics.tracks)
-          if (t.lang != main) CheckedPopupMenuItem(value: 'sec:${t.lang}', checked: t.lang == lyrics.secondaryTrack?.lang, child: Text(_label(t))),
+    final theme = Theme.of(context);
+    final main = lyrics.primaryTrack;
+    Widget check(bool on) => SizedBox(width: 24, child: on ? const Icon(Icons.check, size: 18) : null);
+    Widget header(String text) => Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+          child: Text(text, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        );
+    return MenuAnchor(
+      controller: _controller,
+      alignmentOffset: const Offset(-300, 4),
+      menuChildren: [
+        if (main == null)
+          header(tr('lyrics.noneYet'))
+        else ...[
+          CheckboxMenuButton(value: settings.showLyrics, onChanged: (_) => settings.setShowLyrics(!settings.showLyrics), child: Text(tr('sing.lyricsShow'))),
+          if (main.hasRomaji)
+            CheckboxMenuButton(value: settings.showRomaji, onChanged: (_) => settings.setShowRomaji(!settings.showRomaji), child: Text(tr('sing.lyricsRomaji'))),
+          const Divider(height: 8),
+          header(tr('sing.lyricsMain')),
+          for (final t in lyrics.tracks)
+            MenuItemButton(
+              leadingIcon: check(t.lang == main.lang),
+              onPressed: () {
+                lyrics.primary = t.lang;
+                if (lyrics.secondary == lyrics.primary) lyrics.secondary = null;
+                _changed();
+              },
+              child: Text(lyricTrackLabel(t)),
+            ),
+          if (lyrics.tracks.length > 1) ...[
+            const Divider(height: 8),
+            header(tr('sing.lyricsTranslation')),
+            MenuItemButton(
+              leadingIcon: check(lyrics.secondaryTrack == null),
+              onPressed: () {
+                lyrics.secondary = null;
+                _changed();
+              },
+              child: Text(tr('sing.lyricsNone')),
+            ),
+            for (final t in lyrics.tracks)
+              if (t.lang != main.lang)
+                MenuItemButton(
+                  leadingIcon: check(t.lang == lyrics.secondaryTrack?.lang),
+                  onPressed: () {
+                    lyrics.secondary = t.lang;
+                    _changed();
+                  },
+                  child: Text(lyricTrackLabel(t)),
+                ),
+          ],
+          const Divider(height: 8),
+          _OffsetRow(
+            offset: main.offset,
+            onChanged: (v) {
+              main.offset = v;
+              _changed(now: false);
+            },
+          ),
+        ],
+        const Divider(height: 8),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.file_open_outlined, size: 20),
+          onPressed: widget.onImport == null ? null : () => _close(widget.onImport),
+          child: Text(tr('lyrics.import')),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.content_paste, size: 20),
+          onPressed: widget.onPaste == null ? null : () => _close(widget.onPaste),
+          child: Text(tr('lyrics.paste')),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.edit_note, size: 20),
+          onPressed: widget.onEdit == null ? null : () => _close(widget.onEdit),
+          child: Text(tr('lyrics.edit')),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.graphic_eq, size: 20),
+          onPressed: widget.onWhisper == null ? null : () => _close(widget.onWhisper),
+          child: Text(tr('lyrics.whisper')),
+        ),
       ],
+      builder: (context, controller, _) => IconButton(
+        tooltip: tr('sing.lyrics'),
+        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+        icon: Icon(main != null && settings.showLyrics ? Icons.subtitles : Icons.subtitles_off, color: Colors.white, shadows: LyricsOverlay._shadow),
+      ),
+    );
+  }
+}
+
+/// Rewind / forward buttons for the main track's timing, like a player's:
+/// ◀ moves the lyrics later, ▶ moves them earlier (double triangles by
+/// 0.5 s, single ones by 0.1 s). Stays open while clicking, so the effect
+/// can be watched as it plays.
+class _OffsetRow extends StatelessWidget {
+  const _OffsetRow({required this.offset, required this.onChanged});
+  final double offset;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    void step(double by) => onChanged(((offset + by) * 100).round() / 100);
+    Widget btn(IconData icon, double by) => IconButton(
+          tooltip: tr(by > 0 ? 'lyrics.offsetLaterBy' : 'lyrics.offsetEarlierBy', {'s': by.abs().toStringAsFixed(1)}),
+          visualDensity: VisualDensity.compact,
+          onPressed: () => step(by),
+          icon: Icon(icon, size: 22),
+        );
+    final secs = offset.abs().toStringAsFixed(2);
+    final value = offset > 0 ? tr('lyrics.offsetLater', {'s': secs}) : offset < 0 ? tr('lyrics.offsetEarlier', {'s': secs}) : tr('lyrics.offsetNone');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 8, 6),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.schedule, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Text(tr('lyrics.offset'), style: theme.textTheme.bodyMedium),
+          const SizedBox(width: 8),
+          btn(Icons.fast_rewind, 0.5),
+          btn(Icons.arrow_left, 0.1),
+          SizedBox(
+            width: 104,
+            child: Text(value, textAlign: TextAlign.center, maxLines: 1, softWrap: false, style: theme.textTheme.titleSmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
+          ),
+          btn(Icons.arrow_right, -0.1),
+          btn(Icons.fast_forward, -0.5),
+          IconButton(
+            tooltip: tr('lyrics.offsetReset'),
+            visualDensity: VisualDensity.compact,
+            onPressed: offset == 0 ? null : () => onChanged(0),
+            icon: const Icon(Icons.restart_alt, size: 18),
+          ),
+        ]),
+        Padding(
+          padding: const EdgeInsets.only(left: 26),
+          child: Text(tr('lyrics.offsetHint'), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ),
+      ]),
     );
   }
 }

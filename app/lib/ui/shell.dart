@@ -1,11 +1,14 @@
 // Main shell: NavigationRail + pages, runs the startup flow once. Until the
 // launch check finds every required model and tool, the setup gate is shown
 // instead of the app.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/problem_report.dart';
+import '../services/song_library.dart';
 import '../services/update_checker.dart';
 import '../state/app_services.dart';
 import '../state/i18n.dart';
@@ -14,6 +17,7 @@ import 'about/about_screen.dart';
 import 'charts/charts_screen.dart';
 import 'rules/rules_screen.dart';
 import 'library/library_screen.dart';
+import 'lyrics/no_lyrics_dialog.dart';
 import 'replays/replays_screen.dart';
 import 'settings/settings_screen.dart';
 import 'startup/backend_dialog.dart';
@@ -39,10 +43,52 @@ class _AppShellState extends State<AppShell> {
   int _index = _lastIndex;
   bool _checking = !_readyGlobal;
 
+  // Songs whose preparation found no lyrics, asked about one at a time.
+  static final List<Song> _noLyricsQueue = [];
+  StreamSubscription<Song>? _noLyricsSub;
+  Timer? _noLyricsRetry;
+  bool _askingLyrics = false;
+
   @override
   void initState() {
     super.initState();
+    _noLyricsSub = context.read<AppServices>().pipeline.noLyrics.listen((song) {
+      _noLyricsQueue.add(song);
+      _askNoLyrics();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
+    if (_noLyricsQueue.isNotEmpty) _askNoLyrics();
+  }
+
+  @override
+  void dispose() {
+    _noLyricsSub?.cancel();
+    _noLyricsRetry?.cancel();
+    super.dispose();
+  }
+
+  /// Shows the queued no-lyrics questions, but only while the shell itself
+  /// is on screen: never over a song being sung or another page.
+  Future<void> _askNoLyrics() async {
+    if (_askingLyrics) return;
+    _askingLyrics = true;
+    try {
+      while (_noLyricsQueue.isNotEmpty && mounted) {
+        if (!_readyGlobal || !(ModalRoute.of(context)?.isCurrent ?? true)) {
+          _noLyricsRetry?.cancel();
+          _noLyricsRetry = Timer(const Duration(seconds: 2), _askNoLyrics);
+          return;
+        }
+        final song = _noLyricsQueue.removeAt(0);
+        final services = context.read<AppServices>();
+        // Deleted, or lyrics added from the song's menu meanwhile.
+        if (!services.library.songs.any((s) => s.id == song.id)) continue;
+        if (!(await services.pipeline.loadLyrics(song)).isEmpty || !mounted) continue;
+        await showNoLyricsDialog(context, song);
+      }
+    } finally {
+      _askingLyrics = false;
+    }
   }
 
   Future<void> _startup() async {
