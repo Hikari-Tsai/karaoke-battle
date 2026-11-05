@@ -22,13 +22,13 @@ ReplayFile sample({String? voice}) => ReplayFile(
         ],
       },
       takeF0: {'hop': 0.016, 'sample_rate': 16000, 'times': [0.0, 0.016], 'f0': [0.0, 220.0], 'confidence': [0.1, 0.9]},
-      score: {'total': 93.4, 'rank': 'S', 'raw_total': 88.0, 'scale': 3, 'sub_scores': {}},
+      score: {'total': 91.0, 'rank': 'S', 'raw_total': 88.0, 'scale': 4, 'sub_scores': {}},
       voiceFile: voice,
     );
 
 void main() {
   test('round trip keeps every field', () {
-    final r = ReplayFile.parse(sample(voice: '食虫植物 93.4 vocal.mp3').encode());
+    final r = ReplayFile.parse(sample(voice: '食虫植物 91.0 vocal.mp3').encode());
     expect(r.player, 'Hikari');
     expect(r.song.youtubeId, 'trrLxXbRjeM');
     expect(r.song.title, '食虫植物');
@@ -38,10 +38,10 @@ void main() {
     expect(r.notes['excluded_spans'], [
       [3.0, 3.4],
     ]);
-    expect(r.total, 93.4);
+    expect(r.total, 91.0);
     expect(r.rank, 'S');
     expect(r.hasVoice, isTrue);
-    expect(r.voiceFile, '食虫植物 93.4 vocal.mp3');
+    expect(r.voiceFile, '食虫植物 91.0 vocal.mp3');
   });
 
   test('rejects non-JSON, other formats and newer versions', () {
@@ -86,11 +86,11 @@ void main() {
   });
 
   test('voice file: round trip and only bare .mp3 names', () {
-    final j = sample().toJson()..['voice'] = {'codec': 'mp3', 'file': '食虫植物 93.4 vocal.mp3'};
+    final j = sample().toJson()..['voice'] = {'codec': 'mp3', 'file': '食虫植物 91.0 vocal.mp3'};
     final r = ReplayFile.parse(jsonEncode(j));
-    expect(r.voiceFile, '食虫植物 93.4 vocal.mp3');
+    expect(r.voiceFile, '食虫植物 91.0 vocal.mp3');
     expect(r.hasVoice, isTrue);
-    expect((ReplayFile.parse(r.encode()).toJson()['voice'] as Map)['file'], '食虫植物 93.4 vocal.mp3');
+    expect((ReplayFile.parse(r.encode()).toJson()['voice'] as Map)['file'], '食虫植物 91.0 vocal.mp3');
     for (final bad in ['../x.mp3', 'a/b.mp3', r'a\b.mp3', '.hidden.mp3', 'x.exe', 'C:x.mp3', 'x.m4a', '']) {
       final b = sample().toJson()..['voice'] = {'file': bad};
       expect(() => ReplayFile.parse(jsonEncode(b)), throwsA(isA<ReplayFormatException>()), reason: bad);

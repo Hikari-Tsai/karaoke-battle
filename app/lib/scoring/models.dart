@@ -885,21 +885,39 @@ class SubScores {
 const List<String> rankLetters = ['SSS', 'SS', 'S', 'A', 'B', 'C', 'D'];
 
 /// Version of the scoring written to score.json (`scale`):
-/// 3 = the lenient sub-scores and [scaledTotal] curve (v0.7.3),
+/// 4 = the lenient sub-scores with the [scaledTotal] knots (v0.7.4),
+/// 3 = the same sub-scores with a more generous ease-out curve (v0.7.3),
 /// 2 = the DAM-like `0.55·raw + 45` scale, none = raw totals.
-/// Takes scored before 3 are re-scored from their pitch files when shown;
+/// Takes scored before 4 are re-scored from their pitch files when shown;
 /// [readScoreTotal] converts what cannot be re-scored.
-const int scoreScaleVersion = 3;
+const int scoreScaleVersion = 4;
 
-/// Maps the raw weighted total (0..100) onto the displayed score: `2.8·raw`
-/// below raw 20 (a take that was not sung stays near 0), then an ease-out
-/// curve `56 + 44·(1 − (1 − t)^1.5)`, `t = (raw − 20) / 80`, so decent
-/// singing lands in the high 80s and 90s. See docs/SCORING.md 5.1.
+/// (raw, total) knots of [scaledTotal], interpolated linearly. The low end
+/// is generous (a take that was not sung stays near 0, a partly sung one
+/// gets the 60s); above raw 35 each raw point is worth 0.4–0.8 so good and
+/// great singing stay apart, and S (91) needs raw ~88. See docs/SCORING.md 5.1.
+const List<(double, double)> scoreCurveKnots = [
+  (0, 0),
+  (20, 56),
+  (35, 68),
+  (65, 80),
+  (80, 87),
+  (90, 92),
+  (100, 100),
+];
+
+/// Maps the raw weighted total (0..100) onto the displayed score along
+/// [scoreCurveKnots].
 double scaledTotal(double raw) {
   final r = raw.clamp(0.0, 100.0);
-  if (r < 20) return 2.8 * r;
-  final t = (r - 20) / 80;
-  return 56 + 44 * (1 - math.pow(1 - t, 1.5).toDouble());
+  for (var i = 1; i < scoreCurveKnots.length; i++) {
+    final (x1, y1) = scoreCurveKnots[i];
+    if (r <= x1) {
+      final (x0, y0) = scoreCurveKnots[i - 1];
+      return y0 + (y1 - y0) * (r - x0) / (x1 - x0);
+    }
+  }
+  return 100;
 }
 
 /// Monotonic rank mapping on the DAM-like scale:
@@ -922,7 +940,8 @@ String rankForTotal(double total) {
   if (j['scale'] == scoreScaleVersion) {
     return (total: t, rank: (j['rank'] as String?) ?? rankForTotal(t), raw: (j['raw_total'] as num?)?.toDouble() ?? t);
   }
-  final raw = j['scale'] == 2 ? (j['raw_total'] as num?)?.toDouble() ?? t : t;
+  final scale = j['scale'];
+  final raw = scale is int && scale >= 2 ? (j['raw_total'] as num?)?.toDouble() ?? t : t;
   final total = scaledTotal(raw);
   return (total: total, rank: rankForTotal(total), raw: raw);
 }

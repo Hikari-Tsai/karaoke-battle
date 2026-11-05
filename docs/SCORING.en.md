@@ -149,8 +149,7 @@ Default weights: pitch 40, rhythm 20, stability 10, vibrato 10, expression 10, l
 
 ```
 raw   = 100 × Σ(wᵢ · sᵢ) / Σ(wᵢ)      summed only over "evaluable" sub-scores; weights are renormalized automatically
-total = 2.8 × raw                     (raw < 20)
-        56 + 44 × (1 − (1 − t)^1.5)   (raw ≥ 20, t = (raw − 20) / 80)   a forgiving, fun scale, see 5.1
+total = raw interpolated linearly between the knots in 5.1
 ```
 
 | Total score | Rank |
@@ -163,22 +162,24 @@ total = 2.8 × raw                     (raw < 20)
 | ≥ 67 | C |
 | Otherwise | D |
 
-### 5.1 Score scale (forgiving on purpose)
+### 5.1 Score scale
 
-From v0.7.3 the scoring is deliberately lenient: ordinary singing that is in tune and in time should land between 85 and 95, so singing stays fun. The earlier scale aligned with DAM 精密採点 (`0.55 × raw + 45`) let almost nobody pass 90 in practice.
-
-Two layers are relaxed:
+The sub-scores were relaxed in v0.7.3 and the total curve was tightened at the top in v0.7.4: ordinary singing still scores, but good and great singing stay apart. The earlier scale aligned with DAM 精密採点 (`0.55 × raw + 45`) let almost nobody pass 90 in practice; v0.7.3's ease-out curve then packed every decent take between 87 and 97, with nothing to tell them apart.
 
 1. **Sub-scores** (table above): pitch reaches full marks with 75% of frames in tune (was 95%); rhythm gives GREAT 85% and GOOD 60% (was 70% and 40%); stability tolerates 80 cents more wobble than the original singer (was 50); expression is full at correlation 0.6 (was 0.8); a long note held for 80% of its length counts as full.
-2. **Total curve**: below raw 20 it stays `2.8 × raw`, so a silent or random take stays near 0; from raw 20 an ease-out curve `56 + 44 × (1 − (1 − t)^1.5)`, `t = (raw − 20) / 80`, gathers decent singing between 85 and 95. Both pieces give 56 at raw 20, so the curve is continuous and monotonic.
+2. **Total curve**: linear interpolation between the knots below. The low end is generous (a silent or random take stays near 0, a partly sung one gets the 60s); above raw 35 each raw point is worth 0.4 to 0.8, steeper towards the top, so good and great singing separate. S (91) needs raw about 88, SSS (98) needs raw 97.5.
 
-| raw | 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Total | 0 | 28 | 56 | 64.0 | 71.4 | 78.3 | 84.4 | 89.9 | 94.5 | 98.1 | 100 |
+| raw | 0 | 20 | 35 | 65 | 80 | 90 | 100 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Total | 0 | 56 | 68 | 80 | 87 | 92 | 100 |
 
-Calibrated by re-scoring 16 real takes: the 4 takes with roughly 60%+ pitch accuracy and fair timing rose from 50–79 to 87–94 (A and S); the 5 that hit only a few notes sit at 63–67; silent or random takes stay below 50. Rank thresholds are unchanged (98 / 95 / 91 / 86 / 78 / 67).
+| raw | 10 | 30 | 40 | 50 | 60 | 70 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Total | 28 | 64.0 | 70.0 | 74.0 | 78.0 | 82.3 |
 
-score.json stores `scale: 3`. Takes scored by older versions (`scale` 2 or missing) are re-scored from their saved pitch files when shown, so old and new scores compare directly; files that cannot be re-scored (such as imported replays) put their saved raw total on the new curve.
+Calibrated on 18 real takes: the 5 with roughly 60%+ pitch accuracy and fair timing score 80.1 to 90.7 (B and A, about 7 below v0.7.3); the 5 that hit only a few notes sit at 63 to 67; silent or random takes stay at 52 or below, the same as v0.7.3. Rank thresholds are unchanged (98 / 95 / 91 / 86 / 78 / 67).
+
+score.json stores `scale: 4`. Takes scored by older versions (`scale` 3, 2 or missing) are re-scored from their saved pitch files when shown, so old and new scores compare directly; files that cannot be re-scored (such as imported replays) put their saved raw total on the new curve.
 
 ## 6. Calibration results
 

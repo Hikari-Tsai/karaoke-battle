@@ -476,13 +476,20 @@ void main() {
   });
 
   group('score mapping', () {
-    test('score curve: anchors, continuity at 20 and monotonic', () {
+    test('score curve: knots, interpolation and monotonic', () {
       expect(scaledTotal(0), 0);
       expect(scaledTotal(10), closeTo(28, 1e-9));
       expect(scaledTotal(20), closeTo(56, 1e-9));
       expect(scaledTotal(19.999), closeTo(56, 1e-2));
-      expect(scaledTotal(60), closeTo(84.44, 0.01));
-      expect(scaledTotal(77), closeTo(93.22, 0.01));
+      expect(scaledTotal(35), closeTo(68, 1e-9));
+      expect(scaledTotal(60), closeTo(78, 1e-9));
+      expect(scaledTotal(77), closeTo(85.6, 1e-9));
+      expect(scaledTotal(90), closeTo(92, 1e-9));
+      // Rank thresholds: S needs raw 88, SSS raw 97.5.
+      expect(rankForTotal(scaledTotal(87.9)), 'A');
+      expect(rankForTotal(scaledTotal(88)), 'S');
+      expect(rankForTotal(scaledTotal(97.4)), 'SS');
+      expect(rankForTotal(scaledTotal(97.5)), 'SSS');
       expect(scaledTotal(100), closeTo(100, 1e-9));
       expect(scaledTotal(-5), 0);
       expect(scaledTotal(120), closeTo(100, 1e-9));
@@ -502,8 +509,12 @@ void main() {
       expect(dam.raw, 61.3);
       expect(dam.total, closeTo(scaledTotal(61.3), 1e-9));
       expect(isOutdatedScore({'scale': 2}), isTrue);
-      final current = readScoreTotal({'total': 93.2, 'rank': 'S', 'raw_total': 77.0, 'scale': scoreScaleVersion});
-      expect(current.total, 93.2);
+      final fun = readScoreTotal({'total': 97.2, 'rank': 'SS', 'raw_total': 87.4, 'scale': 3});
+      expect(fun.total, closeTo(scaledTotal(87.4), 1e-9));
+      expect(fun.rank, 'A');
+      expect(isOutdatedScore({'scale': 3}), isTrue);
+      final current = readScoreTotal({'total': 85.6, 'rank': 'B', 'raw_total': 77.0, 'scale': scoreScaleVersion});
+      expect(current.total, 85.6);
       expect(current.raw, 77);
       expect(isOutdatedScore({'scale': scoreScaleVersion}), isFalse);
       final up = upgradeScoreJson({'total': 60.0, 'rank': 'B', 'sub_scores': {}});

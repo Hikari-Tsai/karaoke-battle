@@ -28,7 +28,7 @@ ReplayFile _file({String? yt = 'trrLxXbRjeM', String title = '食虫植物'}) =>
         'excluded_spans': [],
       },
       takeF0: {'hop': 0.016, 'sample_rate': 16000, 'times': [0.0, 0.016], 'f0': [0.0, 220.0], 'confidence': [0.1, 0.9]},
-      score: {'total': 88.5, 'rank': 'A', 'raw_total': 79.1, 'scale': 3},
+      score: {'total': 86.6, 'rank': 'A', 'raw_total': 79.1, 'scale': 4},
     );
 
 void main() {
@@ -49,7 +49,7 @@ void main() {
     final r = (await replays.import(src.path)).single;
     expect(r.title, '食虫植物');
     expect(r.player, 'Hikari');
-    expect(r.total, 88.5);
+    expect(r.total, 86.6);
     expect(r.hasVoice, isFalse);
     final info = jsonDecode(File(r.take.infoJson).readAsStringSync()) as Map;
     expect(info['pitch_shift'], -2);

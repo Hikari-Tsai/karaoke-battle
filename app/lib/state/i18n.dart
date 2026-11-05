@@ -828,9 +828,9 @@ const Map<String, (String, String, String)> _table = {
   'rules.lyrics': ('評分演算法不辨識歌詞：唱錯字、忘詞用哼的帶過，都不會扣分（歌曲的語言只影響 GAME 模型偵測樂譜的準確度）。', 'The scoring algorithm does not recognise the words: wrong lyrics, or humming through a line you forgot, cost you nothing (the song\'s language only affects how accurately the GAME model detects the notes).', '採点アルゴリズムは歌詞を判定しません。歌詞の間違いや、忘れた部分をハミングでごまかしても減点されません（曲の言語が影響するのは、GAME モデルが楽譜を検出する精度だけです）。'),
   'rules.ranks': ('等級', 'Ranks', 'ランク'),
   'rules.scale': (
-    '評分走歡樂路線：唱在調上、跟得上拍子，大約就有 85 分以上；唱得好的 90 分以上，95 分以上很厲害，98 分以上接近原唱。',
-    'Scoring is on the generous side: stay in tune and on the beat and you will land around 85 or more; good singing scores 90+, 95+ is excellent, and 98+ is close to the original singer.',
-    '採点は楽しめる甘めの設定です。音程とリズムが合っていれば 85 点前後以上、上手なら 90 点以上、95 点以上はかなり上手、98 点以上は原曲にかなり近い歌唱です。',
+    '唱在調上、跟得上拍子，大約有 80 分；唱得好的 85 分以上，91 分以上（S）要音準和節奏都很穩，95 分以上接近原唱。',
+    'Stay in tune and on the beat and you will land around 80; good singing scores 85+, 91+ (S) takes steady pitch and rhythm throughout, and 95+ is close to the original singer.',
+    '音程とリズムが合っていれば 80 点前後、上手なら 85 点以上、91 点以上（S）は音程もリズムも安定した歌唱、95 点以上は原曲にかなり近い歌唱です。',
   ),
   'rules.tips': ('小技巧', 'Tips', 'コツ'),
   'rules.tipHeadphones': ('戴耳機，避免伴奏被麥克風收進去影響偵測。', 'Wear headphones so the accompaniment does not leak into the microphone.', 'ヘッドホンを着けて、伴奏がマイクに入らないようにしましょう。'),
