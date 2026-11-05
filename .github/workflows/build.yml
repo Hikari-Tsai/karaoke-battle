@@ -345,6 +345,26 @@ jobs:
         run: |
           if (Test-Path app/pubspec.yaml) { "present=true" >> $env:GITHUB_OUTPUT } else { "present=false" >> $env:GITHUB_OUTPUT; Write-Host "::warning::app/pubspec.yaml not found - skipping Flutter build" }
 
+      # media_kit_libs_windows_video downloads ANGLE.7z once, with no retry,
+      # and fails the build on a bad download (seen on runners while the file
+      # was fine elsewhere). Fetch it with retries; the plugin then finds a
+      # file with the right MD5 and skips its own download.
+      - name: Pre-fetch media_kit's ANGLE archive
+        if: steps.app.outputs.present == 'true'
+        shell: pwsh
+        run: |
+          $dir = "app/build/windows/x64"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $dest = Join-Path $dir "ANGLE.7z"
+          $url = "https://github.com/alexmercerind/flutter-windows-ANGLE-OpenGL-ES/releases/download/v1.0.1/ANGLE.7z"
+          $md5 = "e866f13e8d552348058afaafe869b1ed"
+          for ($i = 1; $i -le 5; $i++) {
+            try { Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing } catch { Write-Host "attempt ${i}: $_" }
+            if ((Test-Path $dest) -and ((Get-FileHash $dest -Algorithm MD5).Hash.ToLower() -eq $md5)) { Write-Host "ANGLE.7z ok"; exit 0 }
+            Start-Sleep -Seconds (5 * $i)
+          }
+          Write-Host "::warning::could not pre-fetch ANGLE.7z; the plugin will try itself"
+
       - name: flutter build windows --release
         if: steps.app.outputs.present == 'true'
         working-directory: app
