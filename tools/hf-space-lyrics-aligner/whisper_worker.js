@@ -48,13 +48,13 @@ self.onmessage = async (e) => {
     }
     const tok = new WhisperTokenizer(json(small['vocab.json']), json(small['added_tokens.json']), WhisperTokenizer.parseMerges(new TextDecoder().decode(small['merges.txt'])));
     const model = new WhisperModel(ort, enc, dec, tok, json(small['generation_config.json']), json(small['preprocessor_config.json']).feature_size ?? 128);
-    const { segments } = await whisperSegments(model, job.vocals16k, job.language === 'auto' ? null : job.language, async (f) => {
+    const { segments, raw } = await whisperSegments(model, job.vocals16k, job.language === 'auto' ? null : job.language, async (f) => {
       progress('whisper', f);
       await breathe();
     });
     await enc.release();
     await dec.release();
-    self.postMessage({ type: 'done', segments: segments.map((s) => ({ start: s.start, end: s.end, text: s.text })), seconds: (performance.now() - t0) / 1000, stats });
+    self.postMessage({ type: 'done', segments: segments.map((s) => ({ start: s.start, end: s.end, text: s.text })), seconds: (performance.now() - t0) / 1000, stats, language: raw.language });
   } catch (err) {
     self.postMessage({ type: 'error', message: String(err?.message || err) });
   }

@@ -29,7 +29,7 @@ import { readWav } from './wav.mjs';
 const args = process.argv.slice(2);
 const models = [];
 const songs = [];
-let threads = 4, out = 'results.json', notesFile = 'notes.json';
+let threads = 4, out = 'results.json', notesFile = 'notes.json', detect = false, forceLang = null;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--model') {
     const [name, dir] = args[++i].split('=');
@@ -37,6 +37,8 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i] === '--threads') threads = +args[++i];
   else if (args[i] === '--out') out = args[++i];
   else if (args[i] === '--notes') notesFile = args[++i];
+  else if (args[i] === '--lang') forceLang = args[++i]; // Whisper language override (e.g. a wrong one)
+  else if (args[i] === '--detect') detect = true; // let Whisper detect the language (the Space's default)
   else songs.push(args[i]);
 }
 
@@ -84,13 +86,14 @@ for (const song of songs) {
     const model = await loadWhisper(m.dir, opts);
     const load = (Date.now() - tLoad) / 1000;
     const t = Date.now();
-    const { segments, raw } = await whisperSegments(model, audio, lang);
+    const { segments, raw } = await whisperSegments(model, audio, detect ? null : forceLang || lang);
     const secs = (Date.now() - t) / 1000;
     const recUnits = comparableUnits(segments.map((s) => s.text).join(''));
     const r = {
       seconds: +secs.toFixed(1),
       load: +load.toFixed(1),
       windows: raw.windows,
+      language: raw.language,
       segments: segments.length,
       rawSegments: raw.segments.length,
       cer: +(editDistance(recUnits, truthUnits) / truthUnits.length).toFixed(3),

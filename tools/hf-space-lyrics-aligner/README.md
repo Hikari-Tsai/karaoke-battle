@@ -65,7 +65,7 @@ cover, 158 s, 27 lines) against their published subtitles. Metric as in the app'
 |start − subtitle start|, share of lines within 0.5 s / 1 s. The notes are fixed to the app's GAME output,
 so only Whisper changes. All sizes use the int8 ONNX exports and the same decoder (a port of the app's,
 checked token for token against it). CER: character error rate of the recognised text against the
-subtitle text. Time: native ONNX Runtime 1.23.2 on CPU (Apple M1 Pro, 4 threads), excluding loading.
+subtitle text. The Japanese test song's subtitles start about 5 s late on the first line. Time: native ONNX Runtime 1.23.2 on CPU (Apple M1 Pro, 4 threads), excluding loading.
 The songs themselves are not part of this Space.
 
 | Whisper | download | zh ≤0.5 s / ≤1 s | ja ≤0.5 s / ≤1 s | CER zh / ja | Whisper text only, zh · ja | CPU time zh / ja |
@@ -84,6 +84,14 @@ The songs themselves are not part of this Space.
   any size can be picked in the page.
 * large-v3-turbo fell into repetition loops on both songs (high CER, 18 windows instead of 9); base
   misses too much text. large-v3 hallucinated credits over the Mandarin intro.
+* **Language**: Whisper runs with language detection by default (as the app since v0.7.2: the most likely
+  language token after `<|startoftranscript|>` on the first sung window; the Traditional-Chinese / Cantonese
+  style prompt only for zh / yue, and a window that only echoes the prompt is decoded again without it).
+  Every size, base included, detected the right language on both test songs (the Mandarin song → zh, the
+  Japanese cover, sung in Japanese → ja) and on a 49 s Japanese clip whose metadata says zh. With detection
+  the table above is unchanged. Forcing the wrong language breaks recognition: the Japanese song as zh gave
+  CER 2.36 (small) / 1.14 (large-v3) and Whisper-only timing fell to 0% / 7% within 0.5 s; GAME + Whisper
+  then falls back to the notes alone (59% / 74%). The page offers "Detect" as the default.
 * "Whisper text only" times the lines from Whisper's text alone (snapped to note onsets); it is not
   what the page does, but shows how well each size finds the phrases.
 

@@ -526,6 +526,7 @@ export class WhisperModel {
               detected = name.slice(2, -2);
             }
           }
+          this.lastDetected = detected;
           if (promptByLanguage[detected]) stylePrompt = this.tok.encode(promptByLanguage[detected]);
         }
         // Previous text: the style prompt, then what was recognised so far

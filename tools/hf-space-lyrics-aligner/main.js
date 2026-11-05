@@ -73,6 +73,7 @@ function updateFirstRun() {
   if (method() === 'whisper') mb += WHISPER[$('whisper').value]?.mb ?? 0;
   $('firstRun').textContent = t('firstRun', { mb });
   $('whisperField').hidden = method() !== 'whisper';
+  $('whisperLangField').hidden = method() !== 'whisper';
 }
 
 // ---------------------------------------------------------------------------
@@ -168,27 +169,33 @@ async function run() {
         { type: 'prep', planes, language, gameSize: $('gameSize').value, ep: $('device').value, skipSeparation: $('skipSep').checked },
         planes.map((p) => p.buffer),
       );
-      memo = { key, notes: r.notes, vocals16k: r.vocals16k, segments: {} };
+      memo = { key, notes: r.notes, vocals16k: r.vocals16k, segments: {}, detected: {} };
       Object.assign(times, r.times);
     }
     let segments = null;
+    let detected = null;
     if (method() === 'whisper') {
       const id = $('whisper').value;
-      if (!memo.segments[id]) {
+      const wl = $('whisperLang').value;
+      const sid = `${id}|${wl}`;
+      if (!memo.segments[sid]) {
         // A copy: the stem is kept for other Whisper sizes.
         const v = memo.vocals16k.slice();
-        const r = await runWorker('./whisper_worker.js', { type: 'whisper', vocals16k: v, language, whisper: id }, [v.buffer]);
-        memo.segments[id] = r.segments;
+        const r = await runWorker('./whisper_worker.js', { type: 'whisper', vocals16k: v, language: wl === 'detect' ? null : wl, whisper: id }, [v.buffer]);
+        memo.segments[sid] = r.segments;
+        memo.detected[sid] = r.language;
         times.whisper = r.seconds;
         console.info('whisper', r.stats);
       }
-      segments = memo.segments[id].map((s) => new TimedText(s.start, s.end, s.text));
+      segments = memo.segments[sid].map((s) => new TimedText(s.start, s.end, s.text));
+      detected = memo.detected[sid];
     }
     showProgress({ stage: 'align', fraction: 0.5 });
     await new Promise((r) => setTimeout(r, 0));
     const lines = timeLyrics(lyrics, memo.notes, segments);
     setBusy(false);
-    state = { ...state, lines: lines.map((l) => ({ start: l.start, end: l.end, text: l.text })), segments, notes: memo.notes.length, times, offset: 0 };
+    if (lines.length === 0) return showError(t('nothingHeard'));
+    state = { ...state, lines: lines.map((l) => ({ start: l.start, end: l.end, text: l.text })), segments, detected, notes: memo.notes.length, times, offset: 0 };
     $('offset').value = '0';
     renderResult();
     $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -222,7 +229,11 @@ function renderResult() {
     .filter(([, s]) => s != null)
     .map(([k, s]) => t(`t_${k}`, { s: s.toFixed(0) }))
     .join(t('sep'));
-  $('summary').textContent = t('summary', { lines: state.lines.length, notes: state.notes }) + (times ? ' ' + t('took', { t: times }) : '');
+  $('summary').textContent =
+    t('summary', { lines: state.lines.length, notes: state.notes }) +
+    (state.detected ? ' ' + t('detected', { lang: state.detected }) : '') +
+    (state.segments && state.segments.length === 0 ? ' ' + t('nothingHeard') : '') +
+    (times ? ' ' + t('took', { t: times }) : '');
   const body = $('table').tBodies[0];
   body.innerHTML = '';
   current().forEach((l, i) => {
