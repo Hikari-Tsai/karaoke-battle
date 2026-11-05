@@ -261,12 +261,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Section(
             title: tr('settings.uiLanguage'),
             children: [
-              SegmentedButton<String>(
-                segments: [
-                  for (final code in I18n.supported) ButtonSegment(value: code, label: Text(I18n.nativeNames[code]!)),
-                ],
-                selected: {I18n.lang},
-                onSelectionChanged: (v) => I18n.lang = v.first,
+              // Sections stretch their children; keep this one its own width.
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SegmentedButton<String>(
+                  segments: [
+                    for (final code in I18n.supported) ButtonSegment(value: code, label: Text(I18n.nativeNames[code]!)),
+                  ],
+                  selected: {I18n.lang},
+                  onSelectionChanged: (v) => I18n.lang = v.first,
+                ),
               ),
             ],
           ),
