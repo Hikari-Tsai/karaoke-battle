@@ -377,7 +377,7 @@ class _LyricsMenuState extends State<LyricsMenu> {
 }
 
 /// Rewind / forward buttons for the main track's timing, like a player's:
-/// ◀ moves the lyrics later, ▶ moves them earlier (double triangles by
+/// ◀ moves the lyrics earlier, ▶ moves them later (double triangles by
 /// 0.5 s, single ones by 0.1 s). Stays open while clicking, so the effect
 /// can be watched as it plays.
 class _OffsetRow extends StatelessWidget {
@@ -405,14 +405,14 @@ class _OffsetRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(tr('lyrics.offset'), style: theme.textTheme.bodyMedium),
           const SizedBox(width: 8),
-          btn(Icons.fast_rewind, 0.5),
-          btn(Icons.arrow_left, 0.1),
+          btn(Icons.fast_rewind, -0.5),
+          btn(Icons.arrow_left, -0.1),
           SizedBox(
             width: 104,
             child: Text(value, textAlign: TextAlign.center, maxLines: 1, softWrap: false, style: theme.textTheme.titleSmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
           ),
-          btn(Icons.arrow_right, -0.1),
-          btn(Icons.fast_forward, -0.5),
+          btn(Icons.arrow_right, 0.1),
+          btn(Icons.fast_forward, 0.5),
           IconButton(
             tooltip: tr('lyrics.offsetReset'),
             visualDensity: VisualDensity.compact,

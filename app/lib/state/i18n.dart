@@ -322,7 +322,7 @@ const Map<String, (String, String, String)> _table = {
   'lyrics.import': ('匯入字幕檔…', 'Import subtitle file…', '字幕ファイルを読み込む…'),
   'lyrics.noneYet': ('這首歌還沒有歌詞', 'No lyrics for this song yet', 'この曲にはまだ歌詞がありません'),
   'lyrics.offset': ('字幕時間', 'Lyrics timing', '字幕のタイミング'),
-  'lyrics.offsetHint': ('◀ 字幕延後出現　▶ 字幕提早出現（雙箭頭一次 0.5 秒）', '◀ lyrics later   ▶ lyrics earlier (double arrows: 0.5 s)', '◀ 字幕を遅く　▶ 字幕を早く（二重矢印は 0.5 秒）'),
+  'lyrics.offsetHint': ('◀ 字幕提早出現　▶ 字幕延後出現（雙箭頭一次 0.5 秒）', '◀ lyrics earlier   ▶ lyrics later (double arrows: 0.5 s)', '◀ 字幕を早く　▶ 字幕を遅く（二重矢印は 0.5 秒）'),
   'lyrics.offsetEarlier': ('提早 {s} 秒', '{s} s earlier', '{s} 秒早く'),
   'lyrics.offsetLater': ('延後 {s} 秒', '{s} s later', '{s} 秒遅く'),
   'lyrics.offsetNone': ('0.00 秒', '0.00 s', '0.00 秒'),
