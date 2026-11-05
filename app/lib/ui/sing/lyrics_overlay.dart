@@ -16,6 +16,9 @@ import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
 import '../lyrics/lyrics_actions.dart';
 
+/// Font family of the sung lyrics (bundled jf open huninn).
+const lyricsFont = 'Huninn';
+
 class LyricsOverlay extends StatelessWidget {
   const LyricsOverlay({super.key, required this.lyrics, required this.position, this.noteOnsets, this.noteOffsets, this.showRomaji = true});
   final Lyrics lyrics;
@@ -44,7 +47,8 @@ class LyricsOverlay extends StatelessWidget {
     final main = display.primaryTrack;
     if (main == null) return const SizedBox.shrink();
     final trans = display.secondaryTrack;
-    return LayoutBuilder(builder: (context, c) {
+    // Rounded type for the lyrics (characters it lacks fall back).
+    return DefaultTextStyle.merge(style: const TextStyle(fontFamily: lyricsFont), child: LayoutBuilder(builder: (context, c) {
       // Scale with the video height so it reads the same at any window size.
       final big = (c.maxHeight * 0.075).clamp(16.0, 40.0);
       final small = big * 0.62;
@@ -172,7 +176,7 @@ class LyricsOverlay extends StatelessWidget {
           );
         },
       );
-    });
+    }));
   }
 }
 

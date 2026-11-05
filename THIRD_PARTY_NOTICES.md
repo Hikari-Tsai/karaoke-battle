@@ -34,6 +34,7 @@
 | Beat This! final0 (CPJKU) | MIT, Copyright (c) 2024 Institute of Computational Perception, JKU Linz | beat / downbeat tracking for BPM, beat grid and metronome; ONNX mirror `aaatmy/beat-this-onnx` |
 | kuromoji.js 0.1.2 (+ async, lodash, doublearray, zlibjs) | Apache-2.0 (+ MIT) | Japanese readings for romaji; downloaded on first Japanese lyrics from `aaatmy/kuromoji-ipadic-pack`, run with Deno |
 | mecab-ipadic 2.7.0-20070801 | NAIST / ICOT terms (redistribution permitted with notice) | dictionary bundled with kuromoji; Copyright 2000-2003 Nara Institute of Science and Technology, notice reproduced in the pack |
+| jf open huninn 2.1 (jf open 粉圓, justfont) | SIL OFL 1.1; Hanzi derived from Kosugi Maru (MOTOYA, Apache-2.0) | rounded font of the sung lyrics, bundled unmodified as `app/assets/fonts/jf-openhuninn-2.1.ttf` with its license `jf-openhuninn-OFL.txt` (also on the app's license page) |
 | Whisper large-v3 (OpenAI) | Apache-2.0 (weights as published at huggingface.co/openai/whisper-large-v3; code and weights also MIT at github.com/openai/whisper) | lyrics recognition (optional download); ONNX export by onnx-community, mirrored unchanged as `aaatmy/whisper-large-v3-onnx` |
 
 ### GAME model attribution (CC BY-NC-SA 4.0)

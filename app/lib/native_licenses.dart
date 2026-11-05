@@ -1,6 +1,7 @@
 // Licenses of native code compiled into the engine, shown on Flutter's
 // license page next to the Dart packages.
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 const _cloudSeed = r'''MIT License
 
@@ -25,5 +26,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.''';
 
 void registerNativeLicenses() {
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['jf open huninn (jf open 粉圓) font'], await rootBundle.loadString('assets/fonts/jf-openhuninn-OFL.txt'));
+  });
   LicenseRegistry.addLicense(() => Stream.value(const LicenseEntryWithLineBreaks(['Cloud Seed (Ghost Note Audio)'], _cloudSeed)));
 }

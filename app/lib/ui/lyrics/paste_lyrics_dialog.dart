@@ -22,6 +22,7 @@ class _PasteLyricsDialog extends StatefulWidget {
 class _PasteLyricsDialogState extends State<_PasteLyricsDialog> {
   final _text = TextEditingController();
   bool _whisper = false;
+  String? _language; // for the AI; null = detect
 
   @override
   void dispose() {
@@ -70,12 +71,18 @@ class _PasteLyricsDialogState extends State<_PasteLyricsDialog> {
               style: muted,
             ),
           ),
+          if (_whisper) ...[
+            const SizedBox(height: 12),
+            Text(tr('recognize.chooseLang'), style: theme.textTheme.titleSmall),
+            const SizedBox(height: 6),
+            LanguageChips(value: _language, onChanged: (v) => setState(() => _language = v)),
+          ],
         ]),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('cancel'))),
         FilledButton(
-          onPressed: _text.text.trim().isEmpty ? null : () => Navigator.pop(context, RecognizeRequest.align(_text.text, useWhisper: _whisper)),
+          onPressed: _text.text.trim().isEmpty ? null : () => Navigator.pop(context, RecognizeRequest.align(_text.text, useWhisper: _whisper, language: _language)),
           child: Text(tr('paste.start')),
         ),
       ],

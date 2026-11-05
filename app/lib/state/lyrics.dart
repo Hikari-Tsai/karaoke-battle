@@ -192,8 +192,13 @@ class Lyrics {
         'secondary': secondary,
         'tracks': [for (final t in tracks) t.toJson()],
       };
+  /// Tracks without lines are dropped (v0.7.0 / v0.7.1 could save an empty
+  /// recognition as the main lyrics); the main lyrics then fall back.
   static Lyrics fromJson(Map<String, dynamic> j) => Lyrics(
-        tracks: [for (final e in (j['tracks'] as List? ?? const [])) LyricTrack.fromJson((e as Map).cast<String, dynamic>())],
+        tracks: [
+          for (final e in (j['tracks'] as List? ?? const []))
+            if (((e as Map)['lines'] as List? ?? const []).isNotEmpty) LyricTrack.fromJson(e.cast<String, dynamic>()),
+        ],
         primary: j['primary'] as String?,
         secondary: j['secondary'] as String?,
       );

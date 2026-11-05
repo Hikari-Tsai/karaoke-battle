@@ -200,4 +200,16 @@ how are you
     final none = Lyrics(tracks: [LyricTrack(lang: 'ja', auto: false, lines: const [])]);
     expect(identical(none.shifted(), none), isTrue);
   });
+
+  test('empty tracks are dropped and the main lyrics fall back', () {
+    final l = Lyrics.fromJson({
+      'primary': 'zh-x-whisper',
+      'tracks': [
+        {'lang': 'zh-x-paste', 'auto': false, 'source': 'aligned', 'lines': [{'start': 1, 'end': 2, 'text': 'a'}]},
+        {'lang': 'zh-x-whisper', 'auto': false, 'source': 'whisper', 'lines': []},
+      ],
+    });
+    expect(l.tracks.map((t) => t.lang), ['zh-x-paste']);
+    expect(l.primaryTrack!.lang, 'zh-x-paste');
+  });
 }

@@ -19,10 +19,35 @@ import '../startup/setup_rows.dart';
 class RecognizeRequest {
   const RecognizeRequest.recognize()
       : pasted = null,
-        useWhisper = true;
-  const RecognizeRequest.align(String this.pasted, {required this.useWhisper});
+        useWhisper = true,
+        language = null;
+  const RecognizeRequest.align(String this.pasted, {required this.useWhisper, this.language});
   final String? pasted;
   final bool useWhisper;
+
+  /// Language the song is sung in (see [LyricsRecognizer.languages]); null
+  /// detects it.
+  final String? language;
+}
+
+/// Choice chips for the song's language: "detect" (null) or one of
+/// [LyricsRecognizer.languages].
+class LanguageChips extends StatelessWidget {
+  const LanguageChips({super.key, required this.value, required this.onChanged});
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Wrap(spacing: 8, runSpacing: 6, children: [
+        ChoiceChip(
+          avatar: const Icon(Icons.auto_awesome, size: 18),
+          label: Text(tr('recognize.langAuto')),
+          selected: value == null,
+          onSelected: (_) => onChanged(null),
+        ),
+        for (final l in LyricsRecognizer.languages)
+          ChoiceChip(label: Text(tr('lang.$l')), selected: value == l, onSelected: (_) => onChanged(l)),
+      ]);
 }
 
 /// Shows the dialog; true when new lyrics were saved.
@@ -35,7 +60,7 @@ Future<bool> showRecognizeDialog(BuildContext context, Song song, RecognizeReque
   return ok ?? false;
 }
 
-enum _Phase { checking, needModel, downloading, waitingPrep, running, failed }
+enum _Phase { choose, checking, needModel, downloading, waitingPrep, running, failed }
 
 class _RecognizeDialog extends StatefulWidget {
   const _RecognizeDialog({required this.song, required this.request});
@@ -54,7 +79,8 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
     backend: _services.backend,
     pipeline: _services.pipeline,
   );
-  _Phase _phase = _Phase.checking;
+  late _Phase _phase = widget.request.pasted == null ? _Phase.choose : _Phase.checking;
+  String? _language; // for recognition; null = detect
   double _fraction = 0;
   String _stage = '';
   String _error = '';
@@ -66,7 +92,7 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
   void initState() {
     super.initState();
     _services.pipeline.addListener(_onPipeline);
-    _next();
+    if (_phase != _Phase.choose) _next();
   }
 
   @override
@@ -148,12 +174,14 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
     try {
       final req = widget.request;
       final track = req.pasted == null
-          ? await _recognizer.recognize(widget.song, onProgress: progress, cancel: _cancel)
-          : await _recognizer.align(widget.song, req.pasted!, useWhisper: req.useWhisper, onProgress: progress, cancel: _cancel);
+          ? await _recognizer.recognize(widget.song, language: _language, onProgress: progress, cancel: _cancel)
+          : await _recognizer.align(widget.song, req.pasted!, useWhisper: req.useWhisper, language: req.language, onProgress: progress, cancel: _cancel);
       if (!mounted) return;
       final messenger = ScaffoldMessenger.maybeOf(context);
       Navigator.of(context).pop(true);
       messenger?.showSnackBar(SnackBar(content: Text(tr(req.pasted == null ? 'recognize.doneWhisper' : 'recognize.doneAlign', {'n': '${track.lines.length}'}))));
+    } on NothingRecognized {
+      _fail(tr('recognize.noneFound'));
     } catch (e) {
       if (_cancel.isCompleted) {
         if (mounted) Navigator.of(context).pop(false);
@@ -189,6 +217,25 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
     final List<Widget> body;
     List<Widget> actions;
     switch (_phase) {
+      case _Phase.choose:
+        body = [
+          Text(tr('recognize.chooseLang'), style: theme.textTheme.titleSmall),
+          const SizedBox(height: 10),
+          LanguageChips(value: _language, onChanged: (v) => setState(() => _language = v)),
+          const SizedBox(height: 10),
+          Text(tr('recognize.langHint'), style: muted),
+        ];
+        actions = [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(tr('cancel'))),
+          FilledButton.icon(
+            onPressed: () {
+              setState(() => _phase = _Phase.checking);
+              _next();
+            },
+            icon: const Icon(Icons.auto_awesome),
+            label: Text(tr('recognize.start')),
+          ),
+        ];
       case _Phase.checking:
         body = [const LinearProgressIndicator()];
         actions = [];

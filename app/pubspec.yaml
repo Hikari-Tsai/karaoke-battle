@@ -82,6 +82,16 @@ flutter:
     - assets/cuda_pack.json
     - assets/sidecars.json
     - assets/images/app_icon.png
+    - assets/fonts/jf-openhuninn-OFL.txt
+
+  # Rounded font for the sung lyrics: jf open huninn 2.1 (jf open 粉圓,
+  # justfont; SIL OFL 1.1, Hanzi from Kosugi Maru), unmodified. Traditional
+  # Chinese, Japanese kana / kanji and Latin; other characters fall back to
+  # the system font.
+  fonts:
+    - family: Huninn
+      fonts:
+        - asset: assets/fonts/jf-openhuninn-2.1.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

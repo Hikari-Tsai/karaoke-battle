@@ -19,6 +19,11 @@ import 'model_registry.dart';
 import 'prep_pipeline.dart';
 import 'song_library.dart';
 
+/// Recognition found no lyrics.
+class NothingRecognized implements Exception {
+  const NothingRecognized();
+}
+
 /// Progress of a recognition: 0..1 and a stage key ('load', 'recognize').
 typedef RecognizeProgress = void Function(double fraction, String stage);
 
@@ -57,36 +62,32 @@ class LyricsRecognizer {
 
   // ---- Whisper ------------------------------------------------------------------
 
-  static String _whisperLang(String songLanguage) => switch (songLanguage) {
-        'yue' => 'yue',
-        'ja' => 'ja',
-        'en' => 'en',
-        'ko' => 'ko',
-        _ => 'zh',
-      };
+  /// Languages the user can pick; null is "detect".
+  static const languages = ['zh', 'yue', 'ja', 'en', 'ko'];
 
   /// A short "previous text" that sets the script: Whisper writes
   /// Simplified Chinese unless the context is Traditional. Other languages
   /// get none (a Japanese prompt was echoed back instead of the lyrics).
-  static String _stylePrompt(String songLanguage) => switch (songLanguage) {
-        'yue' => '以下係粵語歌詞。',
-        'zh' => '以下是繁體中文的歌詞。',
-        _ => '',
-      };
+  static const _stylePrompts = {'zh': '以下是繁體中文的歌詞。', 'yue': '以下係粵語歌詞。'};
 
-  /// Runs Whisper on [song]; returns the recognised segments.
-  Future<List<TimedText>> _whisper(Song song, {RecognizeProgress? onProgress, Completer<void>? cancel}) async {
+  /// Runs Whisper on [song] in [language] (a key of [languages]; null
+  /// detects it from the singing). Returns the recognised segments.
+  Future<List<TimedText>> _whisper(Song song, String? language, {RecognizeProgress? onProgress, Completer<void>? cancel}) async {
     final audio = audioFor(song);
     if (audio == null) throw StateError('not prepared');
     final dir = models.dirOf(model);
     final tok = _tokenizer ??= await WhisperTokenizer.load(dir);
-    final lang = _whisperLang(song.language);
-    final prompt = _stylePrompt(song.language);
     final options = <String, dynamic>{
-      'language_token': tok.special('<|$lang|>') ?? tok.special('<|zh|>'),
       'task_token': tok.special('<|transcribe|>'),
-      'prompt_tokens': tok.encode(prompt),
       'condition_on_previous': true,
+      if (language != null) ...{
+        'language_token': tok.special('<|$language|>') ?? tok.special('<|zh|>'),
+        'prompt_tokens': tok.encode(_stylePrompts[language] ?? ''),
+      } else
+        'prompt_by_language': {
+          for (final e in _stylePrompts.entries)
+            if (tok.special('<|${e.key}|>') != null) '${tok.special('<|${e.key}|>')}': tok.encode(e.value),
+        },
     };
     final out = p.join(library.files(song).dir, 'whisper.json');
     final rt = await backend.runtime();
@@ -102,26 +103,29 @@ class LyricsRecognizer {
     return [
       for (final s in j['segments'] as List)
         TimedText((s['start'] as num).toDouble(), (s['end'] as num).toDouble(), tok.decode((s['tokens'] as List).cast<int>()).trim()),
-    ].where((s) => s.text.isNotEmpty && !isLikelyHallucination(s.text) && !echoesPrompt(s.text, prompt)).toList();
+    ].where((s) => s.text.isNotEmpty && !isLikelyHallucination(s.text) && !_stylePrompts.values.any((pr) => echoesPrompt(s.text, pr))).toList();
   }
 
   /// Recognises the lyrics of [song] and makes them the main lyrics.
-  Future<LyricTrack> recognize(Song song, {RecognizeProgress? onProgress, Completer<void>? cancel}) async {
-    final segments = await _whisper(song, onProgress: onProgress, cancel: cancel);
+  /// Throws [NothingRecognized] when no lyrics came out (often the wrong
+  /// language), rather than saving an empty track.
+  Future<LyricTrack> recognize(Song song, {String? language, RecognizeProgress? onProgress, Completer<void>? cancel}) async {
+    final segments = await _whisper(song, language, onProgress: onProgress, cancel: cancel);
     final notes = await _notes(song);
     final lines = linesFromSegments(segments, notes.onset, notes.offset);
+    if (lines.isEmpty) throw const NothingRecognized();
     return _save(song, LyricSource.whisper, '${song.language}-x-whisper', lines);
   }
 
   /// Times the pasted [text] (one line per row) and makes it the main
   /// lyrics: with Whisper when [useWhisper], else from the notes.
-  Future<LyricTrack> align(Song song, String text, {required bool useWhisper, RecognizeProgress? onProgress, Completer<void>? cancel}) async {
+  Future<LyricTrack> align(Song song, String text, {required bool useWhisper, String? language, RecognizeProgress? onProgress, Completer<void>? cancel}) async {
     final rows = splitLyricLines(text);
     if (rows.isEmpty) throw StateError('no lyrics');
     final notes = await _notes(song);
     final List<LyricLine> lines;
     if (useWhisper) {
-      final segments = await _whisper(song, onProgress: onProgress, cancel: cancel);
+      final segments = await _whisper(song, language, onProgress: onProgress, cancel: cancel);
       lines = alignWithWhisper(rows, segments, notes.onset, notes.offset);
     } else {
       onProgress?.call(0.5, 'align');

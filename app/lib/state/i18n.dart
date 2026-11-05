@@ -230,6 +230,7 @@ const Map<String, (String, String, String)> _table = {
   'lang.ja': ('日文', 'Japanese', '日本語'),
   'lang.yue': ('粵語', 'Cantonese', '広東語'),
   'lang.en': ('英文', 'English', '英語'),
+  'lang.ko': ('韓文', 'Korean', '韓国語'),
   'source.youtube': ('YouTube', 'YouTube', 'YouTube'),
   'source.file': ('檔案', 'File', 'ファイル'),
   // stages
@@ -415,6 +416,11 @@ const Map<String, (String, String, String)> _table = {
   'paste.byWhisperDownload': ('AI 會先聽出唱的是哪些字再對時，較不容易對錯行，但需要幾分鐘；第一次使用要先下載 AI 模型（{size}）。', 'The AI listens for the words before timing them, so lines land in the right place more often; takes a few minutes, and the AI model ({size}) is downloaded the first time.', 'AI が歌詞を聞き取ってから合わせるので行がずれにくくなりますが、数分かかります。初回は AI モデル（{size}）のダウンロードが必要です。'),
   'paste.start': ('開始對時', 'Time the lyrics', 'タイミングを合わせる'),
   'recognize.titleWhisper': ('用 AI 產生字幕', 'Generate lyrics with AI', 'AI で字幕を作成'),
+  'recognize.chooseLang': ('歌曲是用哪種語言唱的？', 'Which language is the song sung in?', '曲は何語で歌われていますか？'),
+  'recognize.langAuto': ('自動偵測', 'Detect', '自動判定'),
+  'recognize.langHint': ('AI 需要知道語言才聽得懂；選錯語言（例如日文歌選成中文）會辨識不出歌詞。不確定就用自動偵測。', 'The AI needs the right language: the wrong one (say, Mandarin for a Japanese song) recognises nothing. If unsure, let it detect.', 'AI には言語が必要です。違う言語（日本語の曲に中国語など）を選ぶと何も認識できません。分からなければ自動判定にしてください。'),
+  'recognize.start': ('開始', 'Start', '開始'),
+  'recognize.noneFound': ('AI 沒有聽出任何歌詞。通常是語言選錯了（例如日文歌選成中文），請換成正確的語言或「自動偵測」再試一次。', 'The AI recognised no lyrics. Usually the language was wrong (say, Mandarin for a Japanese song): try again with the right language or Detect.', 'AI は歌詞を認識できませんでした。多くは言語の選択違いです（日本語の曲に中国語など）。正しい言語か「自動判定」でもう一度試してください。'),
   'recognize.titleAlign': ('歌詞對時', 'Timing the lyrics', '歌詞のタイミング合わせ'),
   'recognize.needModel': (
     '第一次使用需要下載 AI 語音辨識模型（{size}），之後可以在「設定」的模型區移除。下載期間 App 可以照常使用。',
