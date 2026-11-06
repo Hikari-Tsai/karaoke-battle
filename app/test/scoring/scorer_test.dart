@@ -80,7 +80,7 @@ void main() {
       expect(r.subScores.expression.value, isNull);
       // 40 + 20 + 10 + 0 + 10 out of 90 available points.
       expect(r.rawTotal, closeTo(100 * 80 / 90, 1e-6));
-      expect(r.total, closeTo(damLikeTotal(100 * 80 / 90), 1e-6));
+      expect(r.total, closeTo(scaledTotal(100 * 80 / 90), 1e-6));
     });
   });
 
@@ -277,7 +277,7 @@ void main() {
       );
       expect(r.frameMetrics.rawChromaAccuracy, lessThan(0.15));
       expect(r.subScores.pitch.value, 0);
-      expect(r.total, lessThan(15));
+      expect(r.total, lessThan(20));
       expect(r.rank, 'D');
       // Without the gap penalty the free warp would cherry-pick frames.
       final free = Scorer.score(
@@ -476,34 +476,49 @@ void main() {
   });
 
   group('score mapping', () {
-    test('DAM-like scale: anchors, continuity at 20 and monotonic', () {
-      expect(damLikeTotal(0), 0);
-      expect(damLikeTotal(10), closeTo(28, 1e-9));
-      expect(damLikeTotal(20), closeTo(56, 1e-9));
-      expect(damLikeTotal(19.999), closeTo(56, 1e-2));
-      expect(damLikeTotal(65), closeTo(80.75, 1e-9));
-      expect(damLikeTotal(90), closeTo(94.5, 1e-9));
-      expect(damLikeTotal(100), 100);
-      expect(damLikeTotal(-5), 0);
-      expect(damLikeTotal(120), 100);
+    test('score curve: knots, interpolation and monotonic', () {
+      expect(scaledTotal(0), 0);
+      expect(scaledTotal(10), closeTo(28, 1e-9));
+      expect(scaledTotal(20), closeTo(56, 1e-9));
+      expect(scaledTotal(19.999), closeTo(56, 1e-2));
+      expect(scaledTotal(35), closeTo(68, 1e-9));
+      expect(scaledTotal(60), closeTo(78, 1e-9));
+      expect(scaledTotal(77), closeTo(85.6, 1e-9));
+      expect(scaledTotal(90), closeTo(92, 1e-9));
+      // Rank thresholds: S needs raw 88, SSS raw 97.5.
+      expect(rankForTotal(scaledTotal(87.9)), 'A');
+      expect(rankForTotal(scaledTotal(88)), 'S');
+      expect(rankForTotal(scaledTotal(97.4)), 'SS');
+      expect(rankForTotal(scaledTotal(97.5)), 'SSS');
+      expect(scaledTotal(100), closeTo(100, 1e-9));
+      expect(scaledTotal(-5), 0);
+      expect(scaledTotal(120), closeTo(100, 1e-9));
       var prev = -1.0;
       for (var x = 0.0; x <= 100; x += 0.25) {
-        final y = damLikeTotal(x);
+        final y = scaledTotal(x);
         expect(y, greaterThan(prev));
         prev = y;
       }
     });
 
-    test('score.json written before the scale is converted on read', () {
+    test('older score.json files are put on the current curve from their raw total', () {
       final legacy = readScoreTotal({'total': 85.0, 'rank': 'S'});
       expect(legacy.raw, 85);
-      expect(legacy.total, closeTo(91.75, 1e-9));
-      expect(legacy.rank, 'S');
-      final current = readScoreTotal({'total': 91.75, 'rank': 'S', 'raw_total': 85.0, 'scale': scoreScaleVersion});
-      expect(current.total, 91.75);
-      expect(current.raw, 85);
+      expect(legacy.total, closeTo(scaledTotal(85), 1e-9));
+      final dam = readScoreTotal({'total': 78.7, 'rank': 'B', 'raw_total': 61.3, 'scale': 2});
+      expect(dam.raw, 61.3);
+      expect(dam.total, closeTo(scaledTotal(61.3), 1e-9));
+      expect(isOutdatedScore({'scale': 2}), isTrue);
+      final fun = readScoreTotal({'total': 97.2, 'rank': 'SS', 'raw_total': 87.4, 'scale': 3});
+      expect(fun.total, closeTo(scaledTotal(87.4), 1e-9));
+      expect(fun.rank, 'A');
+      expect(isOutdatedScore({'scale': 3}), isTrue);
+      final current = readScoreTotal({'total': 85.6, 'rank': 'B', 'raw_total': 77.0, 'scale': scoreScaleVersion});
+      expect(current.total, 85.6);
+      expect(current.raw, 77);
+      expect(isOutdatedScore({'scale': scoreScaleVersion}), isFalse);
       final up = upgradeScoreJson({'total': 60.0, 'rank': 'B', 'sub_scores': {}});
-      expect(up['total'], closeTo(78, 1e-9));
+      expect(up['total'], closeTo(scaledTotal(60), 1e-9));
       expect(up['raw_total'], 60);
       expect(up['scale'], scoreScaleVersion);
       expect(upgradeScoreJson(up)['total'], up['total'], reason: 'upgrading twice changes nothing');
@@ -532,13 +547,15 @@ void main() {
 
     test('sub-score curves', () {
       expect(Scorer.pitchScore(1.0), 1.0);
-      expect(Scorer.pitchScore(0.95), 1.0);
-      expect(Scorer.pitchScore(0.575), closeTo(0.5, 1e-9));
+      expect(Scorer.pitchScore(0.75), 1.0);
+      expect(Scorer.pitchScore(0.45), closeTo(0.5, 1e-9));
       expect(Scorer.pitchScore(0.1), 0.0);
+      expect(Scorer.longToneSubScore(0.8), 1.0);
+      expect(Scorer.longToneSubScore(0.4), closeTo(0.5, 1e-9));
       expect(Scorer.stabilityScore(0), 1.0);
-      expect(Scorer.stabilityScore(25), closeTo(0.5, 1e-9));
+      expect(Scorer.stabilityScore(40), closeTo(0.5, 1e-9));
       expect(Scorer.stabilityScore(null), 0.0);
-      expect(Scorer.expressionScore(0.8), 1.0);
+      expect(Scorer.expressionScore(0.6), 1.0);
       expect(Scorer.expressionScore(-0.5), 0.0);
     });
 
@@ -667,7 +684,8 @@ void main() {
         ),
       );
       expect(r.frameMetrics.rawChromaAccuracy, lessThan(0.6));
-      expect(r.subScores.pitch.value, lessThan(0.6));
+      // Lenient on purpose, but still well short of an in-tune take.
+      expect(r.subScores.pitch.value, lessThan(0.75));
     });
   });
 

@@ -29,11 +29,11 @@
 ///
 /// ## Final score mapping (all sub-scores in `[0, 1]`, monotonic)
 ///
-/// * pitch       = clamp((RCA − 0.2) / 0.75, 0, 1)
+/// * pitch       = clamp((RCA − 0.15) / 0.6, 0, 1)
 /// * rhythm      = mean per-note credit of rhythm-game style judgements
 ///   (PERFECT / GREAT / GOOD / MISS on onset 70 % and offset 30 %, windows
 ///   scaled by tempo), measured on the globally offset take; see rhythm.dart.
-/// * stability   = clamp(1 − max(0, std − refStd) / 50, 0, 1), std = mean
+/// * stability   = clamp(1 − max(0, std − refStd) / 80, 0, 1), std = mean
 ///   over long reference notes (take voiced >= 50 %) of the std in cents of
 ///   the take pitch after removing the vibrato band, refStd = the same on
 ///   the reference F0 curve (0 without it); 0 when no long note is
@@ -45,7 +45,7 @@
 ///   when the reference F0 is given, else vibratoTarget (0.4); null
 ///   (excluded) when the reference has no long note or the original uses
 ///   (almost) no vibrato (referenceAmount < 0.25).
-/// * expression  = clamp(r / 0.8, 0, 1), r = Pearson correlation of the
+/// * expression  = clamp(r / 0.6, 0, 1), r = Pearson correlation of the
 ///   aligned loudness curves; null when either curve is missing.
 /// * long tone   = mean over long reference notes of the fraction of the
 ///   note where the take is voiced and within 50 cents of the target
@@ -282,10 +282,10 @@ class Scorer {
         value: expression == null ? null : expressionScore(expression),
         weight: w.expression,
       ),
-      longTone: SubScore(value: longTone, weight: w.longTone),
+      longTone: SubScore(value: longTone == null ? null : longToneSubScore(longTone), weight: w.longTone),
     );
     final raw = subScores.total;
-    final total = damLikeTotal(raw);
+    final total = scaledTotal(raw);
     return ScoreResult(
       total: total,
       rank: rankForTotal(total),
@@ -307,8 +307,13 @@ class Scorer {
   /// latency is calibrated (beyond it the calibration is assumed stale).
   static const double rhythmClockToleranceSeconds = 0.15;
 
-  /// `clamp((rca − 0.2) / 0.75, 0, 1)`.
-  static double pitchScore(double rca) => ((rca - 0.2) / 0.75).clamp(0.0, 1.0);
+  /// `clamp((rca − 0.15) / 0.6, 0, 1)`: full marks from 75% of the sung
+  /// frames in tune (lenient on purpose, see docs/SCORING.md 5).
+  static double pitchScore(double rca) => ((rca - 0.15) / 0.6).clamp(0.0, 1.0);
+
+  /// `clamp(achieved / 0.8, 0, 1)`: holding long notes for 80% of their
+  /// length is enough.
+  static double longToneSubScore(double achieved) => (achieved / 0.8).clamp(0.0, 1.0);
 
   /// Former rhythm formula (F1 + median timing), kept for comparison:
   /// `0.4·F1(onset) + 0.3·F1(onset+pitch+offset) + 0.3·timing`.
@@ -329,13 +334,13 @@ class Scorer {
         .clamp(0.0, 1.0);
   }
 
-  /// `clamp(1 − max(0, std − refStd) / 50, 0, 1)` with `refStd` the
+  /// `clamp(1 − max(0, std − refStd) / 80, 0, 1)` with `refStd` the
   /// reference's own stability (0 without a reference F0 curve); 0 when
   /// [stdCents] is null (no analysable long note in the take).
   static double stabilityScore(double? stdCents, [double? refStdCents]) =>
       stdCents == null
       ? 0.0
-      : (1 - math.max(0.0, stdCents - (refStdCents ?? 0.0)) / 50).clamp(
+      : (1 - math.max(0.0, stdCents - (refStdCents ?? 0.0)) / 80).clamp(
           0.0,
           1.0,
         );
@@ -366,6 +371,6 @@ class Scorer {
     return (amount / target).clamp(0.0, 1.0);
   }
 
-  /// `clamp(r / 0.8, 0, 1)`.
-  static double expressionScore(double r) => (r / 0.8).clamp(0.0, 1.0);
+  /// `clamp(r / 0.6, 0, 1)`.
+  static double expressionScore(double r) => (r / 0.6).clamp(0.0, 1.0);
 }

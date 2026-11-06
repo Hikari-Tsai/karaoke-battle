@@ -133,6 +133,29 @@ class _SongCardState extends State<_SongCard> {
     final library = context.read<SongLibrary>();
     final t = await library.takes(widget.song);
     if (mounted) setState(() => _takes = t);
+    _rescoreOutdated(t);
+  }
+
+  /// Songs whose old takes are being re-scored (once per run).
+  static final Set<String> _rescoring = {};
+
+  /// Takes scored with older, stricter rules are scored again from their
+  /// saved pitch files, so old and new scores compare fairly.
+  Future<void> _rescoreOutdated(List<TakeInfo> takes) async {
+    final stale = takes.where((t) => t.outdated && File(t.f0Json).existsSync() && File(t.wav).existsSync()).toList();
+    if (stale.isEmpty || !_rescoring.add(widget.song.id)) return;
+    final services = context.read<AppServices>();
+    final files = services.library.files(widget.song);
+    try {
+      for (final t in stale) {
+        try {
+          await SingSession.scoreTake(services: services, files: files, take: t, octaveInvariant: services.settings.octaveInvariant, reuseF0: true);
+        } catch (_) {}
+      }
+    } finally {
+      _rescoring.remove(widget.song.id);
+    }
+    if (mounted) await _loadTakes();
   }
 
   /// The scored take with the highest total, if any.
