@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lyrics Aligner</title>
+  <meta name="description" content="Song + plain lyrics → timed SRT / LRC subtitles, in the browser (UVR MDX-Net, openvpi GAME, Whisper).">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="main.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1 data-i18n="title">歌詞對時</h1>
+      <p class="tagline" data-i18n="tagline"></p>
+    </div>
+    <nav class="langs" id="langs" aria-label="Language"></nav>
+  </header>
+
+  <main>
+    <section class="card" id="form">
+      <label class="field">
+        <span class="label" data-i18n="audio"></span>
+        <input type="file" id="file" accept="audio/*,video/mp4,.mp3,.wav,.m4a,.flac,.ogg,.opus,.mp4">
+        <span class="hint" data-i18n="audioHint"></span>
+      </label>
+      <audio id="player" controls hidden></audio>
+
+      <label class="field">
+        <span class="label" data-i18n="lyrics"></span>
+        <textarea id="lyrics" rows="12" spellcheck="false" data-i18n-ph="lyricsPh"></textarea>
+      </label>
+
+      <div class="row">
+        <label class="field">
+          <span class="label" data-i18n="language"></span>
+          <select id="language">
+            <option value="zh" data-i18n="lang_zh"></option>
+            <option value="yue" data-i18n="lang_yue"></option>
+            <option value="ja" data-i18n="lang_ja"></option>
+            <option value="en" data-i18n="lang_en"></option>
+            <option value="auto" data-i18n="lang_auto"></option>
+          </select>
+        </label>
+      </div>
+
+      <fieldset class="field methods">
+        <legend class="label" data-i18n="method"></legend>
+        <label class="method"><input type="radio" name="method" value="game" checked>
+          <span><b data-i18n="method_game"></b><small data-i18n="method_game_desc"></small></span></label>
+        <label class="method"><input type="radio" name="method" value="whisper">
+          <span><b data-i18n="method_whisper"></b><small data-i18n="method_whisper_desc"></small></span></label>
+      </fieldset>
+
+      <label class="field" id="whisperField" hidden>
+        <span class="label" data-i18n="whisperModel"></span>
+        <select id="whisper"></select>
+      </label>
+      <label class="field" id="whisperLangField" hidden>
+        <span class="label" data-i18n="whisperLang"></span>
+        <select id="whisperLang">
+          <option value="detect" data-i18n="wl_detect"></option>
+          <option value="zh" data-i18n="lang_zh"></option>
+          <option value="yue" data-i18n="lang_yue"></option>
+          <option value="ja" data-i18n="lang_ja"></option>
+          <option value="en" data-i18n="lang_en"></option>
+          <option value="ko" data-i18n="lang_ko"></option>
+        </select>
+        <span class="hint" data-i18n="whisperLangHint"></span>
+      </label>
+
+      <details class="advanced">
+        <summary data-i18n="advanced"></summary>
+        <div class="row">
+          <label class="field">
+            <span class="label" data-i18n="gameModel"></span>
+            <select id="gameSize">
+              <option value="large" data-i18n="game_large"></option>
+              <option value="small" data-i18n="game_small"></option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="label" data-i18n="device"></span>
+            <select id="device">
+              <option value="webgpu" data-i18n="device_auto"></option>
+              <option value="wasm" data-i18n="device_wasm"></option>
+            </select>
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" id="skipSep"> <span data-i18n="skipSep"></span></label>
+        <button type="button" class="link" id="clearCache" data-i18n="clearCache"></button>
+        <span class="hint" id="cacheMsg"></span>
+      </details>
+
+      <p class="hint" id="firstRun"></p>
+      <p class="warn" id="threadWarn" hidden><span data-i18n="singleThread"></span> <a id="fullLink" target="_blank" rel="noopener" data-i18n="openFull"></a></p>
+
+      <div class="actions">
+        <button type="button" id="run" class="primary" data-i18n="run"></button>
+        <button type="button" id="cancel" data-i18n="cancel" hidden></button>
+      </div>
+      <div id="progress" class="progress" hidden>
+        <div class="stage" id="stage"></div>
+        <div class="bar"><div id="bar"></div></div>
+      </div>
+      <p class="error" id="error" hidden></p>
+    </section>
+
+    <section class="card" id="result" hidden>
+      <h2 data-i18n="result"></h2>
+      <p class="hint" id="summary"></p>
+      <div class="now" id="now" aria-live="polite"></div>
+      <div class="row offset">
+        <span class="label" data-i18n="offset"></span>
+        <button type="button" id="earlier" data-i18n="earlier"></button>
+        <input type="number" id="offset" step="0.1" value="0" aria-label="offset">
+        <span data-i18n="seconds"></span>
+        <button type="button" id="later" data-i18n="later"></button>
+      </div>
+      <div class="actions">
+        <button type="button" id="dlSrt" class="primary" data-i18n="downloadSrt"></button>
+        <button type="button" id="dlLrc" data-i18n="downloadLrc"></button>
+        <button type="button" id="dlJson" data-i18n="downloadJson"></button>
+      </div>
+      <div class="table-wrap">
+        <table id="table">
+          <thead><tr><th data-i18n="colStart"></th><th data-i18n="colEnd"></th><th data-i18n="colText"></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <details id="recWrap" hidden>
+        <summary data-i18n="recognized"></summary>
+        <ol id="recognized" class="recognized"></ol>
+      </details>
+    </section>
+
+    <section class="card about">
+      <h2 data-i18n="aboutTitle"></h2>
+      <p data-i18n-html="about"></p>
+      <p data-i18n="license"></p>
+      <details>
+        <summary data-i18n="study"></summary>
+        <div id="study" class="table-wrap"></div>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

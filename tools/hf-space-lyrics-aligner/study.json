@@ -1,0 +1,105 @@
+{
+ "labels": {
+  "zh-Hant": {
+   "note": "兩首測試歌（中文 47 行、日文 27 行）與其字幕比對：每行開始時間誤差 ≤0.5 秒／≤1 秒的比例。音符固定用 App 的 GAME 結果，只換 Whisper。CER＝辨識文字的字元錯誤率（越低越好）。時間為原生 CPU（Apple M1 Pro，4 執行緒）；瀏覽器內會更慢。語言用自動偵測：所有大小在兩首歌上都偵測正確（中文歌 zh、日文翻唱 ja）；把日文歌強制當中文，辨識會失敗（small 的 CER 2.36）。",
+   "columns": [
+    "Whisper",
+    "下載",
+    "中文 對時",
+    "日文 對時",
+    "中文 CER",
+    "日文 CER",
+    "只用 Whisper 文字（中／日）",
+    "CPU 時間（中／日）"
+   ]
+  },
+  "en": {
+   "note": "Two test songs (Mandarin, 47 lines; Japanese, 27 lines) against their subtitles: share of lines whose start is within 0.5 s / 1 s. Notes fixed to the app's GAME output, only Whisper changes. CER = character error rate of the recognised text (lower is better). Times: native CPU (Apple M1 Pro, 4 threads); slower in the browser. Language detected automatically: every size picked the right one on both songs (zh, ja); forcing zh on the Japanese song broke recognition (CER 2.36 with small).",
+   "columns": [
+    "Whisper",
+    "download",
+    "zh alignment",
+    "ja alignment",
+    "zh CER",
+    "ja CER",
+    "Whisper text only (zh / ja)",
+    "CPU time (zh / ja)"
+   ]
+  },
+  "ja": {
+   "note": "テスト曲 2 曲（中国語 47 行、日本語 27 行）を字幕と比較：各行の開始時刻の誤差が 0.5 秒／1 秒以内の割合。音符はアプリの GAME 結果に固定し、Whisper だけを変えています。CER＝認識テキストの文字誤り率（低いほど良い）。時間はネイティブ CPU（Apple M1 Pro、4 スレッド）；ブラウザではさらにかかります。言語は自動判定：全サイズが両曲で正しく判定（中国語の曲 zh、日本語カバー ja）。日本語の曲を中国語に固定すると認識は破綻します（small で CER 2.36）。",
+   "columns": [
+    "Whisper",
+    "サイズ",
+    "中国語 タイミング",
+    "日本語 タイミング",
+    "中国語 CER",
+    "日本語 CER",
+    "Whisper の文字のみ（中／日）",
+    "CPU 時間（中／日）"
+   ]
+  }
+ },
+ "rows": [
+  [
+   "— (GAME only)",
+   "—",
+   "85% / 96%",
+   "59% / 74%",
+   "—",
+   "—",
+   "—",
+   "—"
+  ],
+  [
+   "large-v3",
+   "1822 MB",
+   "85% / 96%",
+   "56% / 70%",
+   "0.33",
+   "0.36",
+   "45/77% · 33/67%",
+   "84 s / 39 s"
+  ],
+  [
+   "large-v3-turbo",
+   "1085 MB",
+   "85% / 96%",
+   "59% / 74%",
+   "0.74",
+   "0.85",
+   "11/19% · 41/67%",
+   "77 s / 32 s"
+  ],
+  [
+   "medium",
+   "986 MB",
+   "85% / 96%",
+   "59% / 78%",
+   "0.45",
+   "0.28",
+   "30/53% · 74/93%",
+   "31 s / 21 s"
+  ],
+  [
+   "small ★",
+   "249 MB",
+   "85% / 96%",
+   "63% / 78%",
+   "0.27",
+   "0.36",
+   "60/89% · 59/81%",
+   "15 s / 9 s"
+  ],
+  [
+   "base",
+   "77 MB",
+   "85% / 96%",
+   "56% / 70%",
+   "0.82",
+   "0.69",
+   "51/70% · 37/52%",
+   "9 s / 4 s"
+  ]
+ ]
+}
