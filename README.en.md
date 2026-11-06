@@ -50,7 +50,7 @@ Paste a YouTube link or drop in a media file. In the background the app separate
 
 A scrolling piano roll shows every note of the original singer, and your pitch is drawn live on top of it: green is on pitch, yellow is close, red is off. Viewers get it at a glance. Each note also pops a rhythm-game PERFECT / GREAT / GOOD / MISS judgement as you sing it (the star button at the top right turns them off).
 
-<p align="center"><img src="docs/media/sing.gif" width="720" alt="Singing screen: scrolling piano roll with a live pitch line"></p>
+<p align="center"><img src="docs/media/sing.gif" width="720" alt="Singing screen: scrolling piano roll, live pitch line, judgements and lyrics"></p>
 
 ### Key shift and vocal return
 
@@ -60,7 +60,7 @@ Key moves the accompaniment and the reference notes together. The vocal return a
 
 ### Scores and share cards
 
-Right after you sing you get a 0–100 score on a scale close to DAM's Seimitsu Saiten, a rank from D to SSS and six sub-scores, and one click turns it into a share card for X, Instagram or Threads. Every take stays in the library, with your best score on top.
+Right after you sing you get a 0–100 score, a rank from D to SSS and six sub-scores: staying in tune and on the beat gets you around 80, an S (91+) takes steady pitch and rhythm throughout, and wrong words cost nothing. and one click turns it into a share card for X, Instagram or Threads. Every take stays in the library, with your best score on top.
 
 <p align="center"><img src="docs/media/results.gif" width="720" alt="Results: total score, rank, sub-scores and the share card"></p>
 
@@ -78,7 +78,18 @@ Press "Edit notes" and drag a note up or down to fix it. While you drag, a sine 
 
 ### Import and edit lyrics
 
-When the YouTube video has subtitles they become the lyrics; when it has none, or the song is a local file, the app asks whether to import a subtitle file (SRT, VTT, LRC), paste the lyrics, generate them with AI (OpenAI Whisper speech recognition, which detects the sung language or takes the one you pick), or type them in. Pasted lyrics are timed automatically: by default from the notes found when the song was prepared (done in seconds), or with the AI, which listens for the words first. The AI model (about 6.2 GB on Windows, where it runs on the GPU; the 1.8 GB int8 build on Mac, where it runs on the CPU) is only downloaded when first used, after asking. The lyrics button in Preview also moves the lyrics earlier or later with ◀ ▶. "Edit lyrics…" in a song's menu edits the text and times line by line: paste the whole lyrics and press Enter as each line starts while the song plays, shift everything at once, split or merge lines, and export to SRT or LRC. The original YouTube subtitles are kept, so you can switch back at any time.
+When the YouTube video has subtitles they become the lyrics, shown in a rounded typeface (jf open huninn) that reads well in Chinese, Japanese kana and English. When it has none, or the song is a local file, the app asks what to do:
+
+* **Import a subtitle file**: SRT, VTT or LRC.
+* **Paste the lyrics**: paste the whole song and it is timed automatically, by default from the notes found when the song was prepared (done in seconds), or with "AI listening", which hears the words first.
+* **Generate lyrics with AI**: OpenAI Whisper speech recognition, which detects the sung language or takes the one you pick. The model is only downloaded when first used, after asking (about 6.2 GB on Windows, where it runs on the GPU; the 1.8 GB int8 build on Mac, where it runs on the CPU).
+* **Type them in**.
+
+<p align="center"><img src="docs/media/lyrics.gif" width="720" alt="Pasting lyrics in Preview, timed from the notes, with the rounded lyrics highlighted word by word, then nudging the timing"></p>
+
+The lyrics button in Preview offers the same choices and moves the lyrics earlier or later with ◀ ▶ (double arrows: 0.5 s). "Edit lyrics…" in a song's menu edits the text and times line by line: press Enter as each line starts while the song plays, shift everything at once, split or merge lines, and export to SRT or LRC. The original YouTube subtitles are kept, so you can switch back at any time.
+
+<p align="center"><img src="docs/media/lyrics-editor.gif" width="720" alt="The lyrics editor: pressing Enter on each line while the song plays, then exporting to SRT or LRC"></p>
 
 ### Hot songs
 
@@ -107,14 +118,14 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BACKENDS.md](docs/BACKEN
 | [aaatmy/kuromoji-ipadic-pack](https://huggingface.co/aaatmy/kuromoji-ipadic-pack) | Romanization of Japanese lyrics (downloaded only when a song has Japanese lyrics) | kuromoji.js (Takuya Asano), mecab-ipadic (NAIST) | Apache-2.0, IPADIC terms |
 | [aaatmy/whisper-large-v3-onnx](https://huggingface.co/aaatmy/whisper-large-v3-onnx) | Lyrics recognition for songs without subtitles and timing of pasted lyrics (Whisper large-v3, optional, downloaded on first use) | OpenAI | Apache-2.0 |
 
-All three mirrors are verbatim copies of the official upstream files (not retrained, quantized or re-exported), with only a manifest and SHA-256 hashes added.
+The GAME, MDX-Net and SwiftF0 mirrors are verbatim copies of the official upstream files (not retrained, quantized or re-exported), with only a manifest and SHA-256 hashes added; the Whisper mirror is a verbatim copy of onnx-community's ONNX export of openai/whisper-large-v3 (including its int8 quantized build).
 The GAME weights are licensed for non-commercial use only, so use of the app as a whole is subject to those terms.
 
 ## Scoring
 
 When you finish singing, the recorded F0 curve is aligned and compared with the original vocals (GAME notes plus a SwiftF0 reference curve), producing six sub-scores:
 **pitch** (Raw Chroma Accuracy), **rhythm** (rhythm-game style PERFECT / GREAT / GOOD / MISS per note, with windows scaled by BPM), **stability**,
-**vibrato**, **expression** (correlation of energy curves) and **long tone**. Their weighted total is mapped to a 0–100 score on a scale close to DAM 精密採点 (around 80 is typical, 90 and above is good), with a rank from D to SSS.
+**vibrato**, **expression** (correlation of energy curves) and **long tone**. Their weighted total is mapped to a 0–100 score with a rank from D to SSS: staying in tune and on the beat gets you around 80, good singing 85 or more, and an S (91+) takes steady pitch and rhythm throughout. The words are not recognised, so wrong lyrics or humming through a forgotten line cost nothing. When the scoring rules change, older takes are re-scored from their saved pitch so old and new scores compare directly.
 
 The judgement pop-ups shown while singing and in the replay weigh timing and pitch together and carry FAST / LATE and HIGH / LOW tags; they are display only, and the score comes from the whole recording after the take.
 
@@ -127,7 +138,7 @@ For the full alignment method, metric definitions, formulas and calibration resu
 
 Download the DMG or zip from the [Download](#download) section above and install it. On macOS, the first time you launch it, right-click the app and choose "Open" (it is not notarized); on Windows, choose "Run anyway" in SmartScreen.
 The first launch downloads the models (about 500 MB) and external tools; on Windows you can also choose to download the CUDA runtime.
-After adding a song (a YouTube link or a dropped file), wait for song preparation to finish, then press "Preview" to open the singing screen. You can listen to the original track or the accompaniment and view the piano roll first; put on headphones and press "Start recording" to begin scoring. The microphone button at the top right of the singing screen opens a panel that turns on the vocal return, which sends your voice to the output together with the music; the same panel switches a hall reverb on or off and sets its mix, and replays use it too. The star button next to it turns the live judgement pop-ups on or off (on by default). Recording, scoring and exported replay files always use the dry voice. If scoring did not finish, expand the song in the library and press "Score" next to the take to score it again.
+After adding a song (a YouTube link or a dropped file), wait for song preparation to finish, then press "Preview" to open the singing screen. You can listen to the original track or the accompaniment and view the piano roll first; put on headphones and press "Start recording" to begin scoring. The microphone button at the top right of the singing screen opens a panel that turns on the vocal return, which sends your voice to the output together with the music; the same panel switches a hall reverb on or off and sets its mix, and replays use it too. The star button next to it turns the live judgement pop-ups on or off (on by default). When a new version is out, a bubble appears on "About" at the bottom of the left rail. Recording, scoring and exported replay files always use the dry voice. If scoring did not finish, expand the song in the library and press "Score" next to the take to score it again.
 For the full steps, data locations and FAQ, see [docs/INSTALL.md](docs/INSTALL.md) (Chinese).
 
 ## Building
@@ -165,6 +176,8 @@ For full citation formats (including BibTeX) and each upstream project's require
 * Scoring metric definitions are taken from **mir_eval** (Raffel et al., ISMIR 2014) and the melody extraction evaluation literature (Poliner et al. 2007; Salamon et al. 2014);
   real-time pitch tracking uses **MPM** (McLeod & Wyvill, ICMC 2005); alignment uses Sakoe-Chiba band DTW (1978).
 * Key shifting uses [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch), audio I/O uses miniaudio, and inference uses ONNX Runtime.
+* Lyrics recognition uses **OpenAI Whisper** large-v3 (Radford et al., *Robust Speech Recognition via Large-Scale Weak Supervision*, ICML 2023), exported to ONNX by onnx-community.
+* The lyrics typeface is [jf open huninn](https://github.com/justfont/open-huninn-font) by justfont (SIL OFL 1.1).
 * The vocal reverb uses the [Cloud Seed](https://github.com/GhostNoteAudio/CloudSeedCore) algorithm by Ghost Note Audio (MIT). This project is not affiliated with Ghost Note Audio.
 
 ## Legal notice

@@ -49,7 +49,7 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 鋼琴卷軸捲動顯示原唱的每個音符，你唱的音高即時畫成曲線：綠色是準、黃色差一點、紅色偏掉了，觀眾一看就懂。每個音唱下去就會像音遊一樣跳出 PERFECT／GREAT／GOOD／MISS 字卡（右上的星星按鈕可關閉）。
 
-<p align="center"><img src="docs/media/sing.gif" width="720" alt="演唱畫面：捲動的鋼琴卷軸與即時音高曲線"></p>
+<p align="center"><img src="docs/media/sing.gif" width="720" alt="演唱畫面：捲動的鋼琴卷軸、即時音高曲線、判定字卡與歌詞"></p>
 
 ### 升降 Key 與人聲返送
 
@@ -59,7 +59,7 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 ### 分數與分享圖卡
 
-唱完立刻給出和 DAM 精密採点相近的 0 到 100 分、D 到 SSS 等級與六項子分數，一鍵做成分享圖卡（可貼到 X、Instagram、Threads）。每次演唱都留在曲庫，最高分一目了然。
+唱完立刻給出 0 到 100 分、D 到 SSS 等級與六項子分數：唱在調上、跟得上拍子大約 80 分，要拿 91 分以上的 S 得音準和節奏都很穩，唱錯字或忘詞不扣分。一鍵做成分享圖卡（可貼到 X、Instagram、Threads）。每次演唱都留在曲庫，最高分一目了然。
 
 <p align="center"><img src="docs/media/results.gif" width="720" alt="結果頁：總分、等級、子分數與分享圖卡"></p>
 
@@ -77,7 +77,18 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 ### 匯入與編輯歌詞
 
-YouTube 影片有字幕就直接當歌詞；沒有字幕或是本機檔案時，App 會跳出視窗，讓你匯入字幕檔（SRT、VTT、LRC）、貼上歌詞、用 AI 產生字幕（OpenAI Whisper 語音辨識，會自動偵測演唱語言，也可以手動指定），或自己輸入。貼上的整首歌詞會自動對上時間：預設用備歌時轉出的音符（幾秒完成），也可以選「AI 聽歌對時」（先聽出唱的字再對時）。AI 模型（Windows 約 6.2 GB，在顯示卡上執行；Mac 用 int8 版約 1.8 GB，在 CPU 上執行）第一次使用時才詢問下載。預覽畫面的歌詞按鈕可以用 ◀ ▶ 調整字幕快慢。歌曲卡片選單的「編輯字幕」可以逐行修改文字與時間：貼上整首歌詞後邊聽邊按 Enter 打點，也能整體位移、拆行合併，並匯出成 SRT 或 LRC。原本的 YouTube 字幕會保留，隨時可以切回。
+YouTube 影片有字幕就直接當歌詞，用圓體（jf open 粉圓）顯示，中文、日文假名與英文都好讀。沒有字幕或是本機檔案時，App 會跳出視窗讓你選：
+
+* **匯入字幕檔**：SRT、VTT、LRC。
+* **貼上歌詞**：整首貼上就自動對上時間。預設用備歌時轉出的音符對時，幾秒就好；也可以選「AI 聽歌對時」，先聽出唱的字再對時。
+* **用 AI 產生字幕**：OpenAI Whisper 語音辨識，會自動偵測演唱語言，也可以手動指定。模型第一次使用時才詢問下載（Windows 約 6.2 GB，在顯示卡上執行；Mac 用 int8 版約 1.8 GB，在 CPU 上執行）。
+* **自己輸入**。
+
+<p align="center"><img src="docs/media/lyrics.gif" width="720" alt="預覽畫面貼上歌詞、依音符自動對時，圓體歌詞逐字上色，再調整字幕時間"></p>
+
+預覽畫面的歌詞按鈕也有這些選項，還能用 ◀ ▶ 把字幕提早或延後（雙箭頭一次 0.5 秒）。歌曲卡片選單的「編輯字幕」可以逐行修改文字與時間：邊聽邊按 Enter 打點、整體位移、拆行合併，並匯出成 SRT 或 LRC。原本的 YouTube 字幕會保留，隨時可以切回。
+
+<p align="center"><img src="docs/media/lyrics-editor.gif" width="720" alt="編輯字幕：邊播放邊按 Enter 打點，再匯出 SRT 或 LRC"></p>
 
 ### 熱門歌單
 
@@ -106,14 +117,14 @@ YouTube 影片有字幕就直接當歌詞；沒有字幕或是本機檔案時，
 | [aaatmy/kuromoji-ipadic-pack](https://huggingface.co/aaatmy/kuromoji-ipadic-pack) | 日文歌詞的羅馬拼音（遇到日文歌詞才下載） | kuromoji.js（Takuya Asano）、mecab-ipadic（NAIST） | Apache-2.0、IPADIC 條款 |
 | [aaatmy/whisper-large-v3-onnx](https://huggingface.co/aaatmy/whisper-large-v3-onnx) | 沒有字幕的歌辨識歌詞、為貼上的歌詞對時（Whisper large-v3，選用，第一次使用時才下載） | OpenAI | Apache-2.0 |
 
-三個鏡像都是上游官方檔案的原樣複製（未重新訓練、量化或匯出），只加上 manifest 與 SHA-256。
+GAME、MDX-Net 與 SwiftF0 的鏡像都是上游官方檔案的原樣複製（未重新訓練、量化或匯出），只加上 manifest 與 SHA-256；Whisper 的鏡像是 onnx-community 對 openai/whisper-large-v3 所做 ONNX 匯出（含 int8 量化版）的原樣複製。
 GAME 權重為非商業授權，整個 App 的使用因此受該條款約束。
 
 ## 評分
 
 演唱結束後把錄下的 F0 曲線與原唱（GAME 音符加 SwiftF0 參考曲線）對齊比較，給出六項子分數：
 **音準**（Raw Chroma Accuracy）、**節奏**（像音遊一樣逐音判定 PERFECT／GREAT／GOOD／MISS，時間窗依 BPM 縮放）、**安定度**、
-**顫音**、**抑揚**（能量曲線相關性）、**長音**，加權後換算成和 DAM 精密採点相近的 0 到 100 分（80 分左右是一般水準、90 分以上算唱得好），並給出 D 到 SSS 的等級。
+**顫音**、**抑揚**（能量曲線相關性）、**長音**，加權後換算成 0 到 100 分並給出 D 到 SSS 的等級：唱在調上、跟得上拍子大約 80 分，唱得好的 85 分以上，91 分以上（S）要音準和節奏都很穩。評分不辨識歌詞，唱錯字或忘詞用哼的都不扣分。評分規則改版時，舊的演唱紀錄會用保存的音高自動重算，新舊分數可以直接比較。
 
 演唱中與回放時跳出的判定字卡同時看時間和音準，並標出 FAST／LATE 與 HIGH／LOW；字卡只是顯示，分數以唱完後對整段錄音的評分為準。
 
@@ -127,7 +138,7 @@ GAME 權重為非商業授權，整個 App 的使用因此受該條款約束。
 
 從上方「[下載](#下載)」區下載 DMG 或 zip 安裝。macOS 第一次請在 App 上按右鍵「打開」（未公證）；Windows 在 SmartScreen 選「仍要執行」。
 首次啟動會下載模型（約 500 MB）與外部工具，Windows 另可選擇下載 CUDA 執行環境。
-新增歌曲（YouTube 連結或拖入檔案）後等待備歌完成，按「預覽」進入演唱頁，可先聽原曲或伴奏並看鋼琴卷軸，戴上耳機按「開始錄製」才開始評分。演唱頁右上角的麥克風按鈕可開啟人聲返送（Vocal Return），把自己的聲音和音樂一起送到輸出，同一個面板也能開關 Hall 殘響並調整混合比例，回放時也會套用。旁邊的星星按鈕可開關即時判定字卡（預設開啟）。錄音、計分與匯出的重播檔一律使用乾聲。若評分沒完成，可在曲庫展開該首歌，按演唱紀錄旁的「評分」重新評分。
+新增歌曲（YouTube 連結或拖入檔案）後等待備歌完成，按「預覽」進入演唱頁，可先聽原曲或伴奏並看鋼琴卷軸，戴上耳機按「開始錄製」才開始評分。演唱頁右上角的麥克風按鈕可開啟人聲返送（Vocal Return），把自己的聲音和音樂一起送到輸出，同一個面板也能開關 Hall 殘響並調整混合比例，回放時也會套用。旁邊的星星按鈕可開關即時判定字卡（預設開啟）。有新版本時，左側導覽列最下方的「關於」會跳出提示。錄音、計分與匯出的重播檔一律使用乾聲。若評分沒完成，可在曲庫展開該首歌，按演唱紀錄旁的「評分」重新評分。
 完整步驟、資料位置與常見問題見 [docs/INSTALL.md](docs/INSTALL.md)。
 
 ## 建置
@@ -165,6 +176,8 @@ cd app && flutter pub get && flutter run -d macos
 * 評分指標的定義取自 **mir_eval**（Raffel et al., ISMIR 2014）與旋律抽取評估文獻（Poliner et al. 2007；Salamon et al. 2014）；
   即時音高追蹤用 **MPM**（McLeod & Wyvill, ICMC 2005）；對齊用 Sakoe-Chiba 帶狀 DTW（1978）。
 * 升降 key 使用 [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch)，音訊 I/O 使用 miniaudio，推論使用 ONNX Runtime。
+* 歌詞辨識使用 **OpenAI Whisper** large-v3（Radford et al., *Robust Speech Recognition via Large-Scale Weak Supervision*, ICML 2023），ONNX 由 onnx-community 匯出。
+* 歌詞字型為 justfont 的 [jf open 粉圓](https://github.com/justfont/open-huninn-font)（SIL OFL 1.1）。
 * 人聲殘響使用 Ghost Note Audio 的 [Cloud Seed](https://github.com/GhostNoteAudio/CloudSeedCore) 演算法（MIT）。本專案與 Ghost Note Audio 無關。
 
 ## 法律聲明
