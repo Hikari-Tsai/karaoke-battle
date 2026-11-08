@@ -161,6 +161,16 @@ The main way to test is to use the app live on stream. If something goes wrong, 
 
 ## Acknowledgments
 
+### Early testers
+
+Thanks to the streamers who tested the app before the official release:
+
+* **天櫻咲樂**: tested 50XX-series GPUs; found the GPU tensor-operation bug, the CPU/GPU switching bug and the on-screen card bug while recording; suggested edit-mode UI and scoring changes and inspired the leaderboard; tested it live on stream.
+* **多帕**: found the yt-dlp error; tested 30XX-series GPUs; suggested scoring changes and when the best score should refresh, and proposed automatic lyric alignment; tested it live on stream.
+* **可樂月月**: suggested and refined lyric In/Out timing, the manual lyrics import, and the idea of Whisper-based lyrics.
+
+### Models and libraries
+
 For full citation formats (including BibTeX) and each upstream project's requirements, see [docs/CITATIONS.md](docs/CITATIONS.md) (Chinese).
 
 * **GAME 1.0 Small / Large** (melody transcription models) by **Team OpenVPI**,
