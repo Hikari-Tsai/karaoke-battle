@@ -420,7 +420,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   static Future<ScoreData> _scoreSaved(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant) async {
     final settings = services.settings;
-    return ScoringBridge.scoreAndSave(
+    final score = await ScoringBridge.scoreAndSave(
       notesJsonPath: files.notesJson,
       refF0JsonPath: files.refF0Json,
       takeF0JsonPath: take.f0Json,
@@ -434,6 +434,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       tempoBpm: (await TempoOverride.load(files.tempoJson)).bpm ?? (await DetectedBeats.load(files.beatsJson))?.bpm,
       calibratedTiming: settings.latencySeconds != null,
     );
+    services.library.markTakesChanged(files);
+    return score;
   }
 
   /// Offset to add to take-file time to get track time (from the capture sidecar).

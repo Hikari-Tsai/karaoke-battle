@@ -159,6 +159,15 @@ class SongLibrary extends ChangeNotifier {
 
   Song? byId(String id) => _songs.where((s) => s.id == id).firstOrNull;
 
+  /// Fires with a song id whenever one of that song's takes gets a new
+  /// score.json. Library cards listen so their best score stays current even
+  /// when the take was sung from a route they are not awaiting (e.g. "sing
+  /// again" on the results screen).
+  final ValueNotifier<({String songId, int seq})?> takesChanged = ValueNotifier(null);
+
+  void markTakesChanged(SongFiles files) =>
+      takesChanged.value = (songId: p.basename(files.dir), seq: (takesChanged.value?.seq ?? 0) + 1);
+
   Future<Song> create({required String title, required SourceType sourceType, String? sourceUrl, String language = 'zh'}) async {
     final s = Song(id: const Uuid().v4(), title: title, sourceType: sourceType, createdAt: DateTime.now(), sourceUrl: sourceUrl, language: language);
     await Directory(paths.songDir(s.id)).create(recursive: true);

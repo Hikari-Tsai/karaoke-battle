@@ -116,17 +116,30 @@ class _SongCard extends StatefulWidget {
 class _SongCardState extends State<_SongCard> {
   List<TakeInfo>? _takes;
   bool _expanded = false;
+  late final SongLibrary _library = context.read<SongLibrary>();
 
   @override
   void initState() {
     super.initState();
     _loadTakes(); // the best score is shown on the card even when collapsed
+    _library.takesChanged.addListener(_onTakesChanged);
     if (widget.song.stage == PrepStage.done) {
       // Songs prepared before thumbnails / subtitles existed get them lazily.
       final pipeline = context.read<AppServices>().pipeline;
       pipeline.ensureThumbnail(widget.song).then((_) => pipeline.ensureLyrics(widget.song)).then((_) => pipeline.ensureRomaji(widget.song));
       pipeline.ensureBeats(widget.song);
     }
+  }
+
+  @override
+  void dispose() {
+    _library.takesChanged.removeListener(_onTakesChanged);
+    super.dispose();
+  }
+
+  /// A take of this song was scored somewhere (sing, sing again, re-score).
+  void _onTakesChanged() {
+    if (mounted && _library.takesChanged.value?.songId == widget.song.id) _loadTakes();
   }
 
   Future<void> _loadTakes() async {
