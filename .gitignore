@@ -21,3 +21,6 @@ engine/third_party/onnxruntime/
 .idea/
 .vscode/
 *.swp
+
+# Local notes (competitor analysis etc.), never pushed
+/notes/
