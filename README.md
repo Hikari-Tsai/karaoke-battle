@@ -94,6 +94,17 @@ YouTube 影片有字幕就直接當歌詞，用圓體（jf open 粉圓）顯示�
 
 左側的「熱門歌單」分頁直接抓取好樂迪、錢櫃、JOYSOUND、DAM 官網的每週點歌排行，以及 KKBOX 的單曲週榜，可切換語言或分類（國語、台語、粵語、動畫、VOCALOID…），顯示名次、歌名、歌手、點歌機曲號與統計期間，台灣兩家與 KKBOX 另有上週名次的升降（KKBOX 是串流排行，沒有點歌機曲號）。想不到要唱什麼時可以直接挑熱門歌。結果會保留 6 小時，也可以手動重新整理；各來源以頁面上方的分頁切換，每個分頁最下方有前往該來源官網排行榜的連結；每首歌也有「在 YouTube 搜尋」按鈕。
 
+## 技術特點
+
+* 原生 C++ 引擎，免 Python
+* Mac Universal；Windows：CUDA／DirectML／CPU
+* 安裝包約 60 MB
+* 本機人聲分離、GAME 轉譜、SwiftF0 音高
+* 六項子分數：DTW 對齊、八度等價、自動移調
+* 不辨識歌詞，唱錯字不扣分
+
+完整說明見 [docs/TECH.md](docs/TECH.md)。
+
 ## 架構
 
 詳見 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、[docs/BACKENDS.md](docs/BACKENDS.md)、[docs/BUILD.md](docs/BUILD.md)。
