@@ -20,8 +20,9 @@ Karaoke Battle 的技術重點整理。細節見 [ARCHITECTURE.md](ARCHITECTURE.
 ## 即時演唱
 
 * miniaudio 雙工裝置，播放時鐘就是引擎實際送出的 frame 數；回呼內不配置記憶體、不加鎖。
-* 即時音高雙軌：MPM（延遲約 0.07 秒）驅動判定字卡，SwiftF0（延遲約 0.3 秒）畫曲線並用於最後評分。
-* 捲動鋼琴卷軸，綠／黃／紅即時上色；音遊式 PERFECT／GREAT／GOOD／MISS 判定，標出 FAST／LATE 與 HIGH／LOW。
+* 即時判定字卡只看拍點：引擎每 5 ms 用約 21 ms 視窗做 spectral flux 起音偵測，不等音高，字卡在聲音後約一個視窗（加裝置延遲）就出現。
+* 即時音高：MPM（延遲約 0.07 秒）或 SwiftF0（延遲約 0.3 秒）畫曲線，SwiftF0 也用於最後評分。
+* 捲動鋼琴卷軸，綠／黃／紅即時上色；音遊式 PERFECT／GREAT／GOOD／MISS 判定，演唱中標出 FAST／LATE，回放時再加 HIGH／LOW。
 * signalsmith-stretch 升降 Key（伴奏與參考音符一起移調）。
 * 人聲返送加 Cloud Seed Hall 殘響，回放時也會套用。
 * 延遲校準：播放 click、錄回後互相關取中位數。

@@ -272,10 +272,13 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     final gateOn = settings.noiseGateEnabled;
     final gateDb = settings.noiseGateDb;
     for (final f in frames) {
-      final voiced = f.f0 > 0 && (f.source == 0 || f.confidence >= 0.5) && (!gateOn || f.rmsDb >= gateDb);
-      // Live judgements always use the low-latency MPM frames (source 0).
-      if (f.source == 0) judge?.addFrame(f.time, voiced ? hzToMidi(f.f0) : double.nan);
+      // Live judgements use the engine's onset frames (source 2) only.
+      if (f.source == 2) {
+        judge?.addFrame(f.time, onset: f.f0 > 0.5, levelDb: f.rmsDb);
+        continue;
+      }
       if (f.source != _wantedSource) continue;
+      final voiced = f.f0 > 0 && (f.source == 0 || f.confidence >= 0.5) && (!gateOn || f.rmsDb >= gateDb);
       if (!voiced) {
         _pendingHud = SingHud(noteName: '—', cents: double.nan, voiced: false, refNoteName: _pendingHud.refNoteName);
         _hudDirty = true;
@@ -328,10 +331,14 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       if (l.isPlaying) l.pause();
       l.seek(0);
       trace.clear();
-      judge = LiveJudge(notes: notes, windows: RhythmWindows.forTempo(beatGrid.bpm), pitchShift: pitchShift);
-      // With SwiftF0, run MPM as well (mode 2): the live judgements use its
-      // frames, which arrive ~0.07 s after the sound instead of ~0.3 s.
-      l.startCapture(runtime: rt, swiftF0ModelPath: model, mode: mode == 0 ? 0 : 2);
+      judge = LiveJudge(
+        notes: notes,
+        windows: RhythmWindows.forTempo(beatGrid.bpm),
+        pitchShift: pitchShift,
+        levelFloorDb: settings.noiseGateEnabled ? settings.noiseGateDb : -50,
+      );
+      // The engine's onset frames (source 2) come with every capture mode.
+      l.startCapture(runtime: rt, swiftF0ModelPath: model, mode: mode == 0 ? 0 : 1);
       recording = true;
       recordStartedAt = DateTime.now();
       l.play();

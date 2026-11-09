@@ -24,7 +24,7 @@ native C++ engine, all ML models downloaded on first run from Hugging Face (`aaa
 | --- | --- |
 | `engine/include/karaoke_engine.h` | **The contract.** C API used by Dart. Change it only with matching Dart bindings. |
 | `engine/src/core/` | error/log, ONNX Runtime dynamic loading + `OrtSession` helper, WAV I/O, resampler, GPU inventory |
-| `engine/src/dsp/` | `Stft` (pocketfft, mixed radix), `Mpm` pitch tracker |
+| `engine/src/dsp/` | `Stft` (pocketfft, mixed radix), `Mpm` pitch tracker, `OnsetDetector` (live onsets) |
 | `engine/src/models/` | `mdx` (separation), `game` (+ `slicer`), `swiftf0` |
 | `engine/src/audio/` | `ke_audio_*` implementation (miniaudio) |
 | `engine/tools/ke_cli.cpp` | CLI mirroring the C API; used by tests and CI |
@@ -150,8 +150,11 @@ Validate against `pip install swift-f0` on the same WAV: median |cents| < 5 on v
   Pitch shift via `signalsmith::stretch::SignalsmithStretch<float>` (preset `presetDefault`,
   `setTransposeSemitones`) processed in the callback thread in blocks; bypass when 0.
 * Capture: lock-free SPSC ring buffer (`ma_pcm_rb`) → (a) MPM on 2048-sample windows every
-  10 ms in a worker thread, (b) SwiftF0 worker: resample 48k→16k, run on 1 s windows every 160 ms
-  with 176 ms lookahead; emit frames with `source=1`.
+  10 ms in a worker thread (`source=0`), (b) SwiftF0 worker: resample 48k→16k, run on 1 s windows every 160 ms
+  with 176 ms lookahead; emit frames with `source=1`, (c) onset detector (spectral flux on ~21 ms
+  windows every 5 ms, causal peak picking) in every capture mode, `source=2` frames with
+  f0 = 1 at an onset, confidence = flux, rms = window level; they drive the live judgements.
+  Tune it with `tools/onset_eval.cpp` + `tests/audio/onset_eval.py` / `live_judge_eval.py`.
 * Each frame timestamp = capture sample time − latency compensation, mapped to the
   playback clock when a track is playing (capture start is recorded against the playback cursor).
 * `ke_audio_save_capture` writes the whole capture (kept in a growable buffer, mono f32) and a

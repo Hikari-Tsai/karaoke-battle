@@ -12,7 +12,9 @@
 //                      frame) so workers can map capture time to the playback clock.
 //   dsp worker       : drains the ring: growable capture buffer (for save), MPM
 //                      pitch every 10 ms on 2048-sample windows (source=0),
-//                      streaming resample to 16 kHz for the model worker.
+//                      onsets every 5 ms on ~21 ms windows (source=2, for the
+//                      live judgements), streaming resample to 16 kHz for the
+//                      model worker.
 //   model worker     : SwiftF0 on a sliding ~1 s window every 160 ms (10 frames),
 //                      emitting frames that have >= 10 frames of lookahead
 //                      (swift-f0 PitchStream semantics), source=1.
@@ -52,6 +54,7 @@
 #include "core/resample.h"
 #include "core/wav.h"
 #include "dsp/mpm.h"
+#include "dsp/onset.h"
 #include "models/swiftf0.h"
 
 namespace {
@@ -551,6 +554,7 @@ void ke_audio::dsp_worker() {
     const bool do_model = (mode == 1 || mode == 2) && model && resampler_ok;
     ke::dsp::Mpm mpm(sr, kMpmWindow, 60.f, 1500.f);
     const int64_t hop = std::max<int64_t>(1, std::llround(sr * kMpmHopSeconds));
+    ke::dsp::OnsetDetector onsets(sr);
     std::vector<float> win(kMpmWindow, 0.f);        // sliding analysis window (ends at `have`)
     int64_t have = 0;                               // capture samples consumed so far
     int64_t next_analysis = kMpmWindow;             // capture index at which the next window ends
@@ -595,6 +599,11 @@ void ke_audio::dsp_worker() {
                 std::lock_guard<std::mutex> lock(capture_mutex);
                 capture_all.insert(capture_all.end(), chunk.begin(), chunk.begin() + n);
             }
+            // Onset frames: f0 = 1 at an onset (else 0), confidence = the
+            // onset detection function, source = 2.
+            onsets.feed(chunk.data(), n, [&](const ke::dsp::OnsetDetector::Frame& f) {
+                push_frame(map_time(f.centre, nullptr), f.onset ? 1.f : 0.f, f.odf, f.rms_db, 2.f);
+            });
             if (do_mpm) {
                 // feed the sliding window and analyse every `hop` samples
                 size_t off = 0;

@@ -6,7 +6,7 @@ import 'package:karaoke_battle/state/live_judge.dart';
 import 'package:karaoke_battle/state/song_data.dart';
 
 void main() {
-  const hop = 0.01;
+  const hop = 0.005;
 
   // Two notes: C4 at 1.0–1.6 s and E4 at 2.0–2.6 s.
   NoteList notes() => NoteList(
@@ -15,88 +15,88 @@ void main() {
         Float64List.fromList([60, 64]),
       );
 
-  /// Feeds frames every 10 ms from 0 to [until]; [pitch] gives the sung
-  /// MIDI pitch at a time (NaN = silent).
-  LiveJudge run(double Function(double t) pitch, {double until = 3.0, double shift = 0}) {
+  bool near(double t, double at) => (t - at).abs() < hop / 2;
+
+  /// Feeds onset frames every 5 ms from 0 to [until]: an onset at each time
+  /// in [onsets], singing (-20 dB) while [singing] holds, else silence.
+  LiveJudge run(List<double> onsets, {bool Function(double t)? singing, double until = 3.0, double shift = 0}) {
     final j = LiveJudge(notes: notes(), windows: RhythmWindows.forTempo(120), pitchShift: shift);
     for (var t = 0.0; t <= until; t += hop) {
-      j.addFrame(t, pitch(t));
+      final sing = singing?.call(t) ?? onsets.any((o) => t >= o && t < o + 0.5);
+      j.addFrame(t, onset: onsets.any((o) => near(t, o)), levelDb: sing ? -20 : -80);
       j.update(t);
     }
     return j;
   }
 
-  double sung(double t, {double early = 0, double cents = 0}) {
-    if (t >= 1.0 - early && t < 1.6) return 60 + cents / 100;
-    if (t >= 2.0 - early && t < 2.6) return 64 + cents / 100;
-    return double.nan;
-  }
-
-  test('on time and in tune: PERFECT with no tags', () {
-    final j = run((t) => sung(t));
+  test('on time: PERFECT with no tags, shown as soon as the onset arrives', () {
+    final j = run([1.0, 2.0]);
     expect(j.marks.map((m) => m.tier), ['perfect', 'perfect']);
     expect(j.marks.every((m) => m.fast == null && m.high == null), isTrue);
-    expect(j.marks.first.time, closeTo(1.0 + LiveJudge.pitchSeconds, 0.011), reason: 'pops up 0.12 s after the sung onset');
+    expect(j.marks.first.time, closeTo(1.0, 0.006));
   });
 
-  test('early entry: GREAT with FAST', () {
-    final j = run((t) => sung(t, early: 0.08));
-    expect(j.marks.map((m) => m.tier), ['great', 'great']);
-    expect(j.marks.first.fast, isTrue);
+  test('early entry: GREAT with FAST; late: GOOD with LATE; never HIGH/LOW', () {
+    final early = run([0.92, 1.92]);
+    expect(early.marks.map((m) => m.tier), ['great', 'great']);
+    expect(early.marks.first.fast, isTrue);
+    final late = run([1.12, 2.12]);
+    expect(late.marks.map((m) => m.tier), ['good', 'good']);
+    expect(late.marks.first.fast, isFalse);
+    expect([...early.marks, ...late.marks].every((m) => m.high == null), isTrue);
   });
 
-  test('on time but 40 cents flat: GOOD with LOW', () {
-    final j = run((t) => sung(t, cents: -40));
-    expect(j.marks.map((m) => m.tier), ['good', 'good']);
-    expect(j.marks.first.high, isFalse);
-    expect(j.marks.first.fast, isNull);
-  });
-
-  test('silence is a MISS; an octave off is still in tune', () {
-    final silent = run((t) => double.nan);
-    expect(silent.marks.map((m) => m.tier), ['miss', 'miss']);
-    final octave = run((t) => sung(t) - 12);
-    expect(octave.marks.map((m) => m.tier), ['perfect', 'perfect']);
-  });
-
-  test('a late entry is judged later; a MISS when the window closes', () {
-    final late = run((t) => t >= 1.12 && t < 1.6 ? 60.0 : double.nan, until: 1.8);
-    expect(late.marks.single.tier, 'good');
-    expect(late.marks.single.fast, isFalse);
-    expect(late.marks.single.time, closeTo(1.12 + LiveJudge.pitchSeconds, 0.011));
-    final silent = run((t) => double.nan, until: 1.8);
+  test('silence is a MISS when the window closes', () {
+    final silent = run([], until: 1.8);
     final w = RhythmWindows.forTempo(120).good;
-    expect(silent.marks.single.time, closeTo(1.0 + w + LiveJudge.minRunSeconds + LiveJudge.maxGapSeconds, 0.011));
+    expect(silent.marks.single.tier, 'miss');
+    expect(silent.marks.single.time, closeTo(1.0 + w, 0.006));
   });
 
-  test('the key shift moves the target', () {
-    final j = run((t) => sung(t) + 2, shift: 2);
-    expect(j.marks.map((m) => m.tier), ['perfect', 'perfect']);
+  test('singing through without a new onset gives no pop-up', () {
+    // One syllable held from 0.95 s over the second note's onset.
+    final j = run([0.95], singing: (t) => t >= 0.95 && t < 2.6);
+    expect(j.marks.map((m) => m.tier), ['perfect'], reason: 'only the first note has an onset (50 ms early is still PERFECT)');
+  });
+
+  test('an onset is claimed by the nearer note only', () {
+    // 1.45 s is closer to note 1 (1.0) than to note 2 (2.0): outside both
+    // GOOD windows anyway, so both notes miss rather than share it.
+    final j = run([1.45], singing: (t) => false);
+    expect(j.marks.map((m) => m.tier), ['miss', 'miss']);
+  });
+
+  test('the key shift moves where the pop-up is drawn', () {
+    final j = run([1.0, 2.0], shift: 2);
+    expect(j.marks.map((m) => m.midi), [62, 66]);
   });
 
   test('waits for late frames, then judges anyway', () {
     final j = LiveJudge(notes: notes(), windows: RhythmWindows.forTempo(120));
-    for (var t = 1.0; t < 1.08; t += hop) {
-      j.addFrame(t, 60);
+    for (var t = 0.9; t < 1.05; t += hop) {
+      j.addFrame(t, onset: false, levelDb: -20);
     }
-    expect(j.update(1.2), isFalse, reason: 'frames only reach 1.08 s; judgement time is 1.12 s');
-    expect(j.update(1.5), isFalse, reason: 'still waiting');
-    expect(j.update(1.73), isTrue, reason: 'gives up waiting after 0.6 s');
-    expect(j.marks.single.tier, 'perfect');
-    expect(j.marks.single.time, 1.73, reason: 'shown from when it was judged');
+    expect(j.update(1.2), isFalse, reason: 'frames only reach 1.05 s; the window closes at 1.15 s');
+    expect(j.update(1.7), isFalse, reason: 'still waiting');
+    expect(j.update(1.76), isFalse, reason: 'gave up waiting, but the singer was singing: no pop-up');
+    final silent = LiveJudge(notes: notes(), windows: RhythmWindows.forTempo(120));
+    silent.addFrame(1.0, onset: false, levelDb: -80);
+    expect(silent.update(1.76), isTrue);
+    expect(silent.marks.single.tier, 'miss');
+    expect(silent.marks.single.time, 1.76, reason: 'shown from when it was judged');
   });
 
   test('frames arriving late: the pop-up starts when it is shown', () {
-    const lag = 0.25;
+    const lag = 0.05;
     final j = LiveJudge(notes: notes(), windows: RhythmWindows.forTempo(120));
     final shownAt = <double>[];
     for (var t = 0.0; t <= 3.0; t += hop) {
       final ft = t - lag; // the frame for track time ft arrives at playback t
-      if (ft >= 0) j.addFrame(ft, sung(ft));
+      if (ft >= 0) j.addFrame(ft, onset: near(ft, 1.0) || near(ft, 2.0), levelDb: -20);
       if (j.update(t)) shownAt.add(t);
     }
-    expect(j.marks.map((m) => m.tier), ['perfect', 'perfect'], reason: 'judged on complete frames');
+    expect(j.marks.map((m) => m.tier), ['perfect', 'perfect']);
     expect(j.marks.map((m) => m.time), shownAt);
-    expect(j.marks.first.time, closeTo(1.0 + LiveJudge.pitchSeconds + lag, 0.011));
+    expect(j.marks.first.time, closeTo(1.0 + lag, 0.006));
   });
 }

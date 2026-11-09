@@ -66,7 +66,7 @@ Right after you sing you get a 0–100 score, a rank from D to SSS and six sub-s
 
 ### Rhythm-game style judgements
 
-While you sing and in the replay, PERFECT / GREAT / GOOD / MISS judgements pop up at the playhead, rhythm-game style. Each one weighs timing and pitch together and is tagged FAST / LATE and HIGH / LOW, so you can see at a glance whether a note was early, late, sharp or flat. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take.
+While you sing and in the replay, PERFECT / GREAT / GOOD / MISS judgements pop up at the playhead, rhythm-game style. While you sing they judge timing only, so they pop up the moment you come in, tagged FAST / LATE; in the replay they weigh timing and pitch together and add HIGH / LOW, so you can see at a glance whether a note was early, late, sharp or flat. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take.
 
 <p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT, GREAT, GOOD and MISS judgements popping up"></p>
 
@@ -127,7 +127,7 @@ When you finish singing, the recorded F0 curve is aligned and compared with the 
 **pitch** (Raw Chroma Accuracy), **rhythm** (rhythm-game style PERFECT / GREAT / GOOD / MISS per note, with windows scaled by BPM), **stability**,
 **vibrato**, **expression** (correlation of energy curves) and **long tone**. Their weighted total is mapped to a 0–100 score with a rank from D to SSS: staying in tune and on the beat gets you around 80, good singing 85 or more, and an S (91+) takes steady pitch and rhythm throughout. The words are not recognised, so wrong lyrics or humming through a forgotten line cost nothing. When the scoring rules change, older takes are re-scored from their saved pitch so old and new scores compare directly.
 
-The judgement pop-ups shown while singing and in the replay weigh timing and pitch together and carry FAST / LATE and HIGH / LOW tags; they are display only, and the score comes from the whole recording after the take.
+The judgement pop-ups shown while singing judge timing only (FAST / LATE) to keep the delay short; the replay pop-ups weigh timing and pitch together and add HIGH / LOW. They are display only, and the score comes from the whole recording after the take.
 
 Three key design points: **notes an octave apart count as the same note** (singing an octave higher or lower is still correct), **global transposition is allowed**
 (a single semitone offset for the whole song, estimated automatically), and **slides in the original vocals and GAME transcription errors are tolerated**: each frame's

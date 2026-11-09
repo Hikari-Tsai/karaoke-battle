@@ -70,11 +70,16 @@ void main() {
       live.saveCapture(take);
       expect(File(take).existsSync(), isTrue);
       expect(File('$take.json').existsSync(), isTrue);
-      // Frames may be empty on a machine without a microphone signal, but when present they are well formed.
+      // Pitch frames may be empty on a machine without a microphone signal, but when present they are well formed.
       for (final f in frames) {
-        expect(f.confidence, inInclusiveRange(0, 1));
-        expect(f.source, anyOf(0, 1));
+        expect(f.source, anyOf(0, 1, 2));
+        if (f.source == 2) {
+          expect(f.f0, anyOf(0.0, 1.0), reason: 'onset frames carry 1 at an onset, else 0');
+        } else {
+          expect(f.confidence, inInclusiveRange(0, 1));
+        }
       }
+      expect(frames.where((f) => f.source == 2), isNotEmpty, reason: 'onset frames come every 5 ms while capturing');
       // ignore: avoid_print
       print('live test: position=$pos frames=${frames.length} latency=${live.latency()}');
     } finally {
