@@ -257,13 +257,21 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       hud.value = SingHud(noteName: h.noteName, cents: h.cents, levelDb: level, voiced: h.voiced, refNoteName: h.refNoteName);
       _hudDirty = false;
     }
-    if (playing && duration > 0 && pos >= duration - 0.02 && recording) {
-      // Track finished: stop playback; the caller decides whether to score.
-      l.pause();
+    // Track finished while recording. The engine stops playback by itself at
+    // the end, so this checks the position and not the playing flag.
+    if (recording && !_endReported && duration > 0 && pos >= duration - 0.05) {
+      _endReported = true;
+      if (playing) l.pause();
       playing = false;
       notifyListeners();
+      onTrackEnded?.call();
     }
   }
+
+  /// Called once per take when the track plays to its end while recording;
+  /// the sing screen stops, scores and shows the results.
+  VoidCallback? onTrackEnded;
+  bool _endReported = false;
 
   void _drainFrames(LiveAudio l, double pos) {
     final frames = l.readFrames();
@@ -330,6 +338,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     try {
       if (l.isPlaying) l.pause();
       l.seek(0);
+      _endReported = false;
       trace.clear();
       judge = LiveJudge(
         notes: notes,

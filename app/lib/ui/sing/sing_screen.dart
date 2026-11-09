@@ -359,6 +359,7 @@ class _SingScreenState extends State<SingScreen>
         return;
       }
       _session = s;
+      s.onTrackEnded = _onTrackEnded;
       _ticker = createTicker((_) => s.tick())..start();
       _loadBeats(s);
       setState(() {});
@@ -373,6 +374,18 @@ class _SingScreenState extends State<SingScreen>
     _ticker?.dispose();
     _session?.dispose();
     super.dispose();
+  }
+
+  /// The song played to its end while recording: finish the take on its
+  /// own. A short wait lets the microphone catch the last sung sound, which
+  /// arrives one audio latency after the playback.
+  void _onTrackEnded() {
+    final s = _session;
+    if (s == null) return;
+    final wait = (s.latencyCompensation + 0.15).clamp(0.15, 0.6);
+    Future<void>.delayed(Duration(milliseconds: (wait * 1000).round()), () {
+      if (mounted && s.recording && !_busy) _stopAndScore();
+    });
   }
 
   Future<void> _stopAndScore() async {
