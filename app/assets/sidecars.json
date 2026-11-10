@@ -1,7 +1,7 @@
 {
-  "$schema_note": "Sidecar programs downloaded by the app at first run (never bundled in the installer). Generated 2026-10-28. Every sha256 below was computed locally from a fresh download (and cross-checked against the publisher's checksum file where one exists). Pinned to release assets; 'latest' GitHub tags are rolling and are NOT used because their files change.",
+  "$schema_note": "Sidecar programs downloaded by the app at first run (never bundled in the installer). Generated 2026-10-28. Every sha256 below was computed locally from a fresh download (and cross-checked against the publisher's checksum file where one exists). Each entry is pinned to a release asset; its 'fallbacks' list links that follow new versions ('latest'), tried only when the pinned link fails, each verified at install time with the publisher's checksum ('sha256_url': a checksum list; 'sha256_suffix': the checksum file next to the file the link redirects to). The app reads this file (app/assets/sidecars.json) from the repo's main branch before installing, so a dead link can be fixed here without a release: keep it readable by older app versions (only add keys).",
   "install_dir": "<app support>/sidecars/",
-  "update_policy": "The app may query the GitHub releases API for newer yt-dlp/deno releases (they ship checksum files); ffmpeg builds should be updated by regenerating this manifest.",
+  "update_policy": "yt-dlp updates itself with -U after install. Pins are refreshed by regenerating this manifest; for BtbN pick a month-end autobuild (daily ones are deleted after about two weeks). martin-riedl.de deletes old builds as well, hence the release/snapshot fallbacks.",
   "yt-dlp": {
     "version": "2026.10.26",
     "release_url": "https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.26",
@@ -25,14 +25,26 @@
           "arm64"
         ],
         "install_as": "yt-dlp",
-        "chmod": "0755"
+        "chmod": "0755",
+        "fallbacks": [
+          {
+            "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos",
+            "sha256_url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS"
+          }
+        ]
       },
       "win-x64": {
         "filename": "yt-dlp.exe",
         "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp.exe",
         "size": 23575744,
         "sha256": "f5389d3698ecde4ef06f4e6b1ce0294fe9ac1396228c8990b8d3416d6d177a7d",
-        "install_as": "yt-dlp.exe"
+        "install_as": "yt-dlp.exe",
+        "fallbacks": [
+          {
+            "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe",
+            "sha256_url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS"
+          }
+        ]
       }
     }
   },
@@ -51,7 +63,13 @@
         "sha256_url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-aarch64-apple-darwin.zip.sha256sum",
         "extract": "deno",
         "install_as": "deno",
-        "chmod": "0755"
+        "chmod": "0755",
+        "fallbacks": [
+          {
+            "url": "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-apple-darwin.zip",
+            "sha256_url": "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-apple-darwin.zip.sha256sum"
+          }
+        ]
       },
       "macos-x86_64": {
         "filename": "deno-x86_64-apple-darwin.zip",
@@ -61,7 +79,13 @@
         "sha256_url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-apple-darwin.zip.sha256sum",
         "extract": "deno",
         "install_as": "deno",
-        "chmod": "0755"
+        "chmod": "0755",
+        "fallbacks": [
+          {
+            "url": "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-apple-darwin.zip",
+            "sha256_url": "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-apple-darwin.zip.sha256sum"
+          }
+        ]
       },
       "win-x64": {
         "filename": "deno-x86_64-pc-windows-msvc.zip",
@@ -70,7 +94,13 @@
         "sha256": "cba84b26e0df5ae7f74fc66b86a95b866872a86292ebd84fa1e959927edd93bf",
         "sha256_url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-pc-windows-msvc.zip.sha256sum",
         "extract": "deno.exe",
-        "install_as": "deno.exe"
+        "install_as": "deno.exe",
+        "fallbacks": [
+          {
+            "url": "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip",
+            "sha256_url": "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip.sha256sum"
+          }
+        ]
       }
     },
     "note": "Deno is not universal2; the app picks the asset by Process.runtimeArchitecture / sysctl hw.machine. Rosetta-translated x86_64 deno also works on Apple silicon but is slower."
@@ -93,7 +123,17 @@
           "extract": "ffmpeg",
           "install_as": "ffmpeg",
           "chmod": "0755",
-          "arch": "arm64"
+          "arch": "arm64",
+          "fallbacks": [
+            {
+              "url": "https://ffmpeg.martin-riedl.de/redirect/latest/macos/arm64/release/ffmpeg.zip",
+              "sha256_suffix": ".sha256"
+            },
+            {
+              "url": "https://ffmpeg.martin-riedl.de/redirect/latest/macos/arm64/snapshot/ffmpeg.zip",
+              "sha256_suffix": ".sha256"
+            }
+          ]
         },
         "ffprobe": {
           "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffprobe.zip",
@@ -103,7 +143,17 @@
           "extract": "ffprobe",
           "install_as": "ffprobe",
           "chmod": "0755",
-          "arch": "arm64"
+          "arch": "arm64",
+          "fallbacks": [
+            {
+              "url": "https://ffmpeg.martin-riedl.de/redirect/latest/macos/arm64/release/ffprobe.zip",
+              "sha256_suffix": ".sha256"
+            },
+            {
+              "url": "https://ffmpeg.martin-riedl.de/redirect/latest/macos/arm64/snapshot/ffprobe.zip",
+              "sha256_suffix": ".sha256"
+            }
+          ]
         },
         "license": "GPLv3",
         "source": "https://ffmpeg.martin-riedl.de/"
@@ -117,7 +167,17 @@
           "extract": "ffmpeg",
           "install_as": "ffmpeg",
           "chmod": "0755",
-          "arch": "x86_64"
+          "arch": "x86_64",
+          "fallbacks": [
+            {
+              "url": "https://ffmpeg.martin-riedl.de/redirect/latest/macos/amd64/release/ffmpeg.zip",
+              "sha256_suffix": ".sha256"
+            },
+            {
+              "url": "https://ffmpeg.martin-riedl.de/redirect/latest/macos/amd64/snapshot/ffmpeg.zip",
+              "sha256_suffix": ".sha256"
+            }
+          ]
         },
         "ffprobe": {
           "url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1789931006_9.0.2/ffprobe.zip",
@@ -127,7 +187,17 @@
           "extract": "ffprobe",
           "install_as": "ffprobe",
           "chmod": "0755",
-          "arch": "x86_64"
+          "arch": "x86_64",
+          "fallbacks": [
+            {
+              "url": "https://ffmpeg.martin-riedl.de/redirect/latest/macos/amd64/release/ffprobe.zip",
+              "sha256_suffix": ".sha256"
+            },
+            {
+              "url": "https://ffmpeg.martin-riedl.de/redirect/latest/macos/amd64/snapshot/ffprobe.zip",
+              "sha256_suffix": ".sha256"
+            }
+          ]
         },
         "license": "GPLv3",
         "source": "https://ffmpeg.martin-riedl.de/"
@@ -159,6 +229,12 @@
           },
           "not_extracted": [
             "bin/ffplay.exe"
+          ],
+          "fallbacks": [
+            {
+              "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n9.0-latest-win64-lgpl-9.0.zip",
+              "sha256_url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256"
+            }
           ]
         },
         "license": "LGPLv3 (BtbN lgpl variant)",

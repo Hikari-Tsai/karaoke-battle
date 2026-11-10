@@ -31,12 +31,64 @@ enum YtDlpHealth {
 }
 
 class SidecarSource {
-  const SidecarSource({required this.url, this.sha256, this.archiveMember, this.license = ''});
+  const SidecarSource({
+    required this.url,
+    this.sha256,
+    this.sha256Url,
+    this.sha256Suffix,
+    this.archiveMember,
+    this.license = '',
+    this.fallbacks = const [],
+  });
   final String url;
+
+  /// Pinned hash of the file at [url].
   final String? sha256;
+
+  /// For a link that follows new versions ("latest"): the publisher's
+  /// checksum list, read at install time; the line for this file's name is
+  /// used.
+  final String? sha256Url;
+
+  /// Like [sha256Url], but the checksum sits next to the file the link
+  /// redirects to (this suffix appended to the final URL, e.g. ".sha256").
+  final String? sha256Suffix;
+
   /// When the download is a zip/tar, the path of the executable inside it.
   final String? archiveMember;
   final String license;
+
+  /// Tried in order when [url] fails (a deleted release, a bad hash). Each
+  /// one must be verifiable: a pinned hash or a publisher checksum.
+  final List<SidecarSource> fallbacks;
+
+  bool get verifiable => sha256 != null || sha256Url != null || sha256Suffix != null;
+}
+
+/// The hash for [fileName] in a checksum list (`<hash>  <name>` lines, as
+/// sha256sum writes them; or PowerShell Get-FileHash output, `Hash : <hash>`
+/// followed by `Path : <path>`), or the hash of a file holding just one
+/// bare hash.
+String? checksumFor(String text, String fileName) {
+  for (final m in RegExp(r'Hash\s*:\s*([0-9A-Fa-f]{64})\s*[\r\n]+\s*Path\s*:\s*(\S[^\r\n]*)').allMatches(text)) {
+    if (m.group(2)!.trim().split(RegExp(r'[\\/]')).last == fileName) return m.group(1)!.toLowerCase();
+  }
+  final bare = <String>[];
+  var lines = 0;
+  for (final raw in const LineSplitter().convert(text)) {
+    if (raw.trim().isEmpty) continue;
+    lines++;
+    final m = RegExp(r'^([0-9a-fA-F]{64})(?:\s+\*?(.+))?$').firstMatch(raw.trim());
+    if (m == null) continue;
+    final hash = m.group(1)!.toLowerCase();
+    final name = m.group(2)?.trim();
+    if (name == null) {
+      bare.add(hash);
+    } else if (p.basename(name) == fileName) {
+      return hash;
+    }
+  }
+  return lines == 1 && bare.length == 1 ? bare.single : null;
 }
 
 /// Platform/arch keyed sources. Loaded from assets/sidecars.json when present
@@ -94,16 +146,37 @@ class SidecarCatalog {
   /// Parses scripts/sidecars.json (see that file for the layout):
   /// `"yt-dlp"/"deno": {"assets": {"<platform>": {url, sha256, extract?}}}` and
   /// `"ffmpeg": {"assets": {"<platform>": {"ffmpeg": {...}, "ffprobe": {...}} | {"archive": {...}}}}`.
-  static SidecarCatalog fromJson(Map<String, dynamic> j) {
+  ///
+  /// Each source may list `"fallbacks": [{url, sha256 | sha256_url |
+  /// sha256_suffix, extract?}]`, tried when the pinned link fails. Only
+  /// https links are used. With [withDefaults] false, kinds missing from
+  /// the JSON stay missing (for the online copy, which only overrides).
+  static SidecarCatalog fromJson(Map<String, dynamic> j, {bool withDefaults = true}) {
     final out = <SidecarKind, Map<String, SidecarSource>>{};
+    bool https(Object? u) => u is String && u.startsWith('https://');
+    List<SidecarSource> fallbacksOf(Map<String, dynamic> a, String? member, String license) => [
+          for (final f in (a['fallbacks'] is List ? a['fallbacks'] as List : const []))
+            if (f is Map<String, dynamic> && https(f['url']))
+              if (SidecarSource(
+                url: f['url'] as String,
+                sha256: f['sha256'] as String?,
+                sha256Url: https(f['sha256_url']) ? f['sha256_url'] as String : null,
+                sha256Suffix: f['sha256_suffix'] as String?,
+                archiveMember: f['extract'] is String ? f['extract'] as String : member,
+                license: license,
+              ) case final s when s.verifiable)
+                s,
+        ];
     SidecarSource? asset(Map<String, dynamic>? a, String license) {
-      if (a == null || a['url'] is! String) return null;
+      if (a == null || !https(a['url'])) return null;
       final extract = a['extract'];
+      final member = extract is String ? extract : (a['archive_member'] as String?);
       return SidecarSource(
         url: a['url'] as String,
         sha256: a['sha256'] as String?,
-        archiveMember: extract is String ? extract : (a['archive_member'] as String?),
+        archiveMember: member,
         license: license,
+        fallbacks: fallbacksOf(a, member, license),
       );
     }
 
@@ -133,8 +206,16 @@ class SidecarCatalog {
           String? memberFor(String name) =>
               extract.entries.where((x) => '${x.value}'.toLowerCase().startsWith(name)).map((x) => x.key).firstOrNull;
           final m1 = memberFor('ffmpeg'), m2 = memberFor('ffprobe');
-          if (m1 != null) ffm[e.key] = SidecarSource(url: ar['url'] as String, sha256: ar['sha256'] as String?, archiveMember: m1, license: lic);
-          if (m2 != null) ffp[e.key] = SidecarSource(url: ar['url'] as String, sha256: ar['sha256'] as String?, archiveMember: m2, license: lic);
+          if (!https(ar['url'])) continue;
+          SidecarSource src(String member) => SidecarSource(
+                url: ar['url'] as String,
+                sha256: ar['sha256'] as String?,
+                archiveMember: member,
+                license: lic,
+                fallbacks: fallbacksOf(ar, member, lic),
+              );
+          if (m1 != null) ffm[e.key] = src(m1);
+          if (m2 != null) ffp[e.key] = src(m2);
         } else {
           final s1 = asset(a['ffmpeg'] as Map<String, dynamic>?, lic);
           final s2 = asset(a['ffprobe'] as Map<String, dynamic>?, lic);
@@ -145,6 +226,7 @@ class SidecarCatalog {
       out[SidecarKind.ffmpeg] = ffm;
       out[SidecarKind.ffprobe] = ffp;
     }
+    if (!withDefaults) return SidecarCatalog(out);
     final d = defaults();
     for (final kind in SidecarKind.values) {
       out.putIfAbsent(kind, () => d.sources[kind] ?? {});
@@ -154,10 +236,37 @@ class SidecarCatalog {
 }
 
 class Sidecars {
-  Sidecars(this.paths, this.catalog, {Downloader? downloader}) : _dl = downloader ?? Downloader();
+  Sidecars(this.paths, this.catalog, {Downloader? downloader, this.onlineManifest}) : _dl = downloader ?? Downloader();
   final AppPaths paths;
   final SidecarCatalog catalog;
   final Downloader _dl;
+
+  /// The repo's current sidecars.json. Read before an install so a dead
+  /// download link can be fixed by updating that file, without a new app
+  /// release; the bundled catalog is used when it can't be read.
+  final Uri? onlineManifest;
+  Future<SidecarCatalog?>? _online;
+
+  static final defaultOnlineManifest = Uri.parse('https://raw.githubusercontent.com/Hikari-Tsai/karaoke-battle/main/app/assets/sidecars.json');
+
+  Future<SidecarCatalog?> _loadOnline() async {
+    final url = onlineManifest;
+    if (url == null) return null;
+    try {
+      final text = await _dl.fetchText(url, timeout: const Duration(seconds: 8));
+      return SidecarCatalog.fromJson(jsonDecode(text) as Map<String, dynamic>, withDefaults: false);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Where to download [k] from: the online catalog when it has an entry,
+  /// else the bundled one. A failed read is retried on the next install.
+  Future<SidecarSource?> sourceFor(SidecarKind k) async {
+    final online = await (_online ??= _loadOnline());
+    if (online == null) _online = null;
+    return online?.sourceFor(k) ?? catalog.sourceFor(k);
+  }
 
   /// Installs in flight, so the settings button, the setup rows and the
   /// download retry share one download instead of racing on the same file.
@@ -225,21 +334,56 @@ class Sidecars {
   Future<String> _install(SidecarKind k, {void Function(DownloadProgress)? onProgress}) async {
     final dest = managedPath(k);
     if (await File(dest).exists()) return dest;
-    final src = catalog.sourceFor(k);
+    final src = await sourceFor(k);
     if (src == null) throw StateError('no download source for ${k.name} on ${SidecarCatalog.platformKey}');
-    if (src.archiveMember == null) {
-      await _dl.download(Uri.parse(src.url), dest, sha256: src.sha256, onProgress: onProgress);
+    // The pinned link first, then the fallbacks (links that follow new
+    // versions, checked against the publisher's checksums).
+    final errors = <Object>[];
+    for (final s in [src, ...src.fallbacks]) {
+      try {
+        await _installFrom(s, dest, onProgress);
+        await _makeExecutable(dest);
+        return dest;
+      } catch (e) {
+        errors.add(e);
+      }
+    }
+    if (errors.length == 1) throw errors.single;
+    throw DownloadException([
+      '${errors.first}'.replaceFirst('DownloadException: ', ''),
+      for (final e in errors.skip(1)) '${tr('sidecars.fallbackFailed')}: ${'$e'.replaceFirst('DownloadException: ', '')}',
+    ].join('\n'));
+  }
+
+  Future<void> _installFrom(SidecarSource s, String dest, void Function(DownloadProgress)? onProgress) async {
+    var url = Uri.parse(s.url);
+    var sha = s.sha256;
+    if (sha == null && (s.sha256Url != null || s.sha256Suffix != null)) {
+      final name = p.basename(url.path);
+      Uri sums;
+      if (s.sha256Suffix != null) {
+        // Download the very file the checksum belongs to, not whatever the
+        // link points at a moment later.
+        url = await _dl.resolve(url);
+        sums = Uri.parse('$url${s.sha256Suffix}');
+      } else {
+        sums = Uri.parse(s.sha256Url!);
+      }
+      sha = checksumFor(await _dl.fetchText(sums), name);
+      if (sha == null) throw DownloadException('no checksum for $name in $sums');
+    }
+    if (s.archiveMember == null) {
+      await _dl.download(url, dest, sha256: sha, onProgress: onProgress);
     } else {
-      final tmp = p.join(paths.cache, p.basename(Uri.parse(src.url).path));
-      await _dl.download(Uri.parse(src.url), tmp, sha256: src.sha256, onProgress: onProgress);
-      await _extractMember(tmp, src.archiveMember!, dest);
+      final tmp = p.join(paths.cache, p.basename(url.path));
+      await _dl.download(url, tmp, sha256: sha, onProgress: onProgress);
+      await _extractMember(tmp, s.archiveMember!, dest);
       await File(tmp).delete();
     }
-    await _makeExecutable(dest);
-    return dest;
   }
 
   Future<void> _extractMember(String archive, String member, String dest) async {
+    await Directory(p.dirname(dest)).create(recursive: true);
     // Use the platform's own tools to avoid pulling a tar implementation in.
     if (archive.endsWith('.zip')) {
       final tmpDir = await Directory(paths.cache).createTemp('unzip');

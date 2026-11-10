@@ -1,5 +1,6 @@
 // Streaming HTTP downloader with progress, resume-free but atomic, sha256 verification.
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -42,7 +43,7 @@ class Downloader {
     final part = File('$destPath.part');
     final req = http.Request('GET', url);
     if (headers != null) req.headers.addAll(headers);
-    req.headers['User-Agent'] = 'KaraokeBattle/0.1 (+https://github.com)';
+    req.headers['User-Agent'] = _userAgent;
     final resp = await _client.send(req);
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
       throw DownloadException('HTTP ${resp.statusCode} for $url');
@@ -88,6 +89,49 @@ class Downloader {
       if (await part.exists()) await part.delete();
       rethrow;
     }
+  }
+
+  static const _userAgent = 'KaraokeBattle/0.1 (+https://github.com)';
+
+  /// Follows redirects and returns the final URL (for "latest" links whose
+  /// checksum sits next to the file they point to). Uses GET and drops the
+  /// body: some servers answer HEAD with a sporadic 404.
+  Future<Uri> resolve(Uri url, {int maxHops = 5, Duration timeout = const Duration(seconds: 20)}) async {
+    var u = url;
+    for (var i = 0; i <= maxHops; i++) {
+      final req = http.Request('GET', u)
+        ..followRedirects = false
+        ..headers['User-Agent'] = _userAgent;
+      final resp = await _client.send(req).timeout(timeout);
+      // Never read the file itself, only the status line and headers.
+      unawaited(resp.stream.listen(null, onError: (_) {}).cancel());
+      if (resp.statusCode >= 300 && resp.statusCode < 400) {
+        final loc = resp.headers['location'];
+        if (loc == null || loc.isEmpty) throw DownloadException('redirect without a location for $u');
+        u = u.resolve(loc);
+        continue;
+      }
+      if (resp.statusCode < 200 || resp.statusCode >= 300) throw DownloadException('HTTP ${resp.statusCode} for $u');
+      return u;
+    }
+    throw DownloadException('too many redirects for $url');
+  }
+
+  /// Downloads a small text file (a checksum list, a manifest), refusing
+  /// anything over [maxBytes].
+  Future<String> fetchText(Uri url, {int maxBytes = 1 << 20, Duration timeout = const Duration(seconds: 20)}) async {
+    final req = http.Request('GET', url)..headers['User-Agent'] = _userAgent;
+    final resp = await _client.send(req).timeout(timeout);
+    if (resp.statusCode < 200 || resp.statusCode >= 300) {
+      await resp.stream.drain<void>();
+      throw DownloadException('HTTP ${resp.statusCode} for $url');
+    }
+    final bytes = <int>[];
+    await for (final chunk in resp.stream.timeout(timeout)) {
+      bytes.addAll(chunk);
+      if (bytes.length > maxBytes) throw DownloadException('$url is larger than $maxBytes bytes');
+    }
+    return utf8.decode(bytes, allowMalformed: true);
   }
 
   static Future<String> sha256OfFile(String path) async {

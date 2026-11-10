@@ -195,6 +195,20 @@ builds on macOS - GPLv3; BtbN `win64-lgpl` on Windows - LGPLv3), each with URL, 
 sha256. Models come from Hugging Face `aaatmy/*` (see `docs/ARCHITECTURE.md`). The app
 downloads all of these into `<app support>/sidecars/` and `<app support>/models/` on first run.
 
+Publishers delete old builds (BtbN after about two weeks except month-end ones, martin-riedl.de
+too), so a pinned link can die. Two safeguards:
+
+* Before installing a sidecar the app reads `app/assets/sidecars.json` from `main` on GitHub and
+  uses it over the bundled copy; a dead link is fixed by updating that file (keep
+  `scripts/sidecars.json` identical), no release needed. Only add keys, so older versions still
+  read it.
+* Every entry has `fallbacks`: links that follow new versions (GitHub `latest`, martin-riedl's
+  release/snapshot redirects), tried only when the pinned link fails and verified with the
+  publisher's own checksum (`sha256_url`, or `sha256_suffix` next to the redirect target).
+
+`KE_LIVE_SIDECARS=1 flutter test test/services/sidecars_fallback_test.dart` checks every fallback
+against the network and installs ffmpeg through one.
+
 ## CI (`.github/workflows/build.yml`)
 
 * Triggers: push to `main`, pull requests, `workflow_dispatch`, tags `v*`. One run per ref

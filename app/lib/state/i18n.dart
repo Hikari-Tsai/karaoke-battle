@@ -628,6 +628,7 @@ const Map<String, (String, String, String)> _table = {
   'ytdlp.done': ('yt-dlp 已就緒。', 'yt-dlp is ready.', 'yt-dlp の準備ができました。'),
   'ytdlp.dontRemind': ('不要再提醒', "Don't remind me again", '今後は表示しない'),
   'sidecars.ytDlpInstalling': ('正在下載程式自己的 yt-dlp…', "Downloading the app's own yt-dlp…", 'アプリ専用の yt-dlp をダウンロード中…'),
+  'sidecars.fallbackFailed': ('備用來源也失敗', 'Fallback source failed too', '予備の取得元も失敗'),
   'sidecars.ytDlpInstalled': ('已改用程式自己的 yt-dlp，重新下載', "Switched to the app's own yt-dlp; downloading again", 'アプリ専用の yt-dlp に切り替えて再ダウンロード'),
   'settings.audio': ('音訊裝置', 'Audio devices', 'オーディオデバイス'),
   'settings.captureDevice': ('麥克風', 'Input', '入力（マイク）'),

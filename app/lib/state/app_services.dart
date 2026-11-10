@@ -81,7 +81,7 @@ Future<AppServices> bootstrapServices() async {
   } catch (_) {
     catalog = SidecarCatalog.defaults();
   }
-  final sidecars = Sidecars(paths, catalog);
+  final sidecars = Sidecars(paths, catalog, onlineManifest: Sidecars.defaultOnlineManifest);
 
   final backend = BackendManager(engine, paths, settings);
   final library = SongLibrary(paths);
