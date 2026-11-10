@@ -80,7 +80,7 @@
     "evaluation": {
       "evermeet.cx": "x86_64 only (author states no Apple Silicon builds will be provided). Static, configured with --enable-gpl --enable-version3 (libx264/x265/xvid...) => GPLv3 binary. Ships .sig (GPG) files, no sha256 file. Kept as a reference/alternative only; not selected.",
       "ffmpeg.martin-riedl.de": "Separate arm64 and x86_64 (amd64) static release builds of 9.0.2 with per-file .sha256 files. Configured with --enable-gpl --enable-version3 (libx264, libx265, openssl...) => GPLv3 binary. No LGPL variant is offered. Selected for macOS.",
-      "BtbN/FFmpeg-Builds": "Windows x64; the *-win64-lgpl-* variant is built without GPL components (LICENSE.txt in the zip = LGPL v3). Dated autobuild-* releases are immutable, the 'latest' tag is rolling. Selected for Windows (pinned autobuild)."
+      "BtbN/FFmpeg-Builds": "Windows x64; the *-win64-lgpl-* variant is built without GPL components (LICENSE.txt in the zip = LGPL v3). Daily autobuild-* releases are deleted after about two weeks; only the last build of each month is kept long term, and the 'latest' tag is rolling. Selected for Windows, pinned to a month-end autobuild (always pick a month-end one when updating)."
     },
     "licensing_note": "ffmpeg is executed as a separate process (Process.start) and is downloaded by the user at first run; it is never linked into or shipped inside the app bundle. GPLv3 macOS builds are therefore acceptable (mere aggregation), but the app must show the ffmpeg licence and offer the corresponding source link (https://ffmpeg.org/download.html, build pages above) in About. If a strictly LGPL macOS build is required later, replace the macOS entries (e.g. build with --disable-gpl via scripts).",
     "assets": {
@@ -147,15 +147,15 @@
       },
       "win-x64": {
         "archive": {
-          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-27-18-38/ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0.zip",
-          "filename": "ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0.zip",
-          "size": 172594345,
-          "sha256": "79e8ff30c01ac58a2bc4e820c86be81d426ea0bee10df8030fc6ac3c72fe785c",
-          "sha256_url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-27-18-38/checksums.sha256",
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-31-12-59/ffmpeg-n9.0.2-39-g7adfbe40dc-win64-lgpl-9.0.zip",
+          "filename": "ffmpeg-n9.0.2-39-g7adfbe40dc-win64-lgpl-9.0.zip",
+          "size": 168715328,
+          "sha256": "9d37c564e0d01c18cde184a079fa6ef04d7d2783ada41da81d04165cc8f1a650",
+          "sha256_url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-31-12-59/checksums.sha256",
           "extract": {
-            "ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0/bin/ffmpeg.exe": "ffmpeg.exe",
-            "ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0/bin/ffprobe.exe": "ffprobe.exe",
-            "ffmpeg-n9.0.2-36-g6882969ce9-win64-lgpl-9.0/LICENSE.txt": "ffmpeg-LICENSE.txt"
+            "ffmpeg-n9.0.2-39-g7adfbe40dc-win64-lgpl-9.0/bin/ffmpeg.exe": "ffmpeg.exe",
+            "ffmpeg-n9.0.2-39-g7adfbe40dc-win64-lgpl-9.0/bin/ffprobe.exe": "ffprobe.exe",
+            "ffmpeg-n9.0.2-39-g7adfbe40dc-win64-lgpl-9.0/LICENSE.txt": "ffmpeg-LICENSE.txt"
           },
           "not_extracted": [
             "bin/ffplay.exe"
