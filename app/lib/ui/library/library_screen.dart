@@ -15,6 +15,7 @@ import '../../state/sing_session.dart';
 import '../lyrics/lyrics_actions.dart';
 import '../results/new_record_dialog.dart';
 import '../results/replay_screen.dart';
+import '../replays/export_replay_dialog.dart';
 import '../results/results_screen.dart';
 import '../sing/sing_screen.dart';
 import '../widgets/rank.dart';
@@ -436,6 +437,7 @@ class _SongCardState extends State<_SongCard> {
                     isBest: identical(t, best),
                     onView: File(t.scoreJson).existsSync() ? () => _openResult(t) : null,
                     onShare: t.total != null ? () => _share(t) : null,
+                    onExport: t.total != null && File(t.f0Json).existsSync() ? () => showExportReplayDialog(context, song: song, take: t) : null,
                     onScore: t.total == null && File(t.wav).existsSync() ? () => _scoreTake(t) : null,
                     onReplay: File(t.wav).existsSync() && File(t.f0Json).existsSync()
                         ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: song, take: t)))
@@ -473,12 +475,13 @@ class _SongCardState extends State<_SongCard> {
 /// One take: score and rank up front, sub-scores in the subtitle; the best
 /// take of the song is highlighted.
 class _TakeRow extends StatelessWidget {
-  const _TakeRow({required this.take, required this.isBest, required this.onView, this.onReplay, this.onShare, this.onScore});
+  const _TakeRow({required this.take, required this.isBest, required this.onView, this.onReplay, this.onShare, this.onExport, this.onScore});
   final TakeInfo take;
   final bool isBest;
   final VoidCallback? onView;
   final VoidCallback? onReplay;
   final VoidCallback? onShare;
+  final VoidCallback? onExport;
   final VoidCallback? onScore;
 
   static const _order = ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'long_tone'];
@@ -537,6 +540,8 @@ class _TakeRow extends StatelessWidget {
             IconButton(tooltip: tr('replay.button'), onPressed: onReplay, icon: const Icon(Icons.play_circle_outline)),
           if (onShare != null)
             IconButton(tooltip: tr('share.button'), onPressed: onShare, icon: const Icon(Icons.share)),
+          if (onExport != null)
+            IconButton(tooltip: tr('export.button'), onPressed: onExport, icon: const Icon(Icons.ios_share)),
           if (onScore != null)
             TextButton(onPressed: onScore, child: Text(tr('library.scoreTake')))
           else

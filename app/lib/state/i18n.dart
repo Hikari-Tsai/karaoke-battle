@@ -516,6 +516,12 @@ const Map<String, (String, String, String)> _table = {
   'replays.missingYoutube': ('曲庫中沒有這首歌，可以從 YouTube 下載並備歌。', 'This song is not in your library yet; download it from YouTube to prepare it.', 'この曲はライブラリにありません。YouTube からダウンロードして準備できます。'),
   'replays.missingFile': ('這首歌來自對方的本機檔案，請選擇同一首歌的音檔或影片。', 'This song came from a local file on their computer; choose the same song\'s audio or video file.', 'この曲は相手のローカルファイルです。同じ曲の音声または動画ファイルを選んでください。'),
   'replays.download': ('下載並備歌', 'Download and prepare', 'ダウンロードして準備'),
+  'replays.ytAskTitle': ('從 YouTube 下載伴奏？', 'Get the backing track from YouTube?', 'YouTube から伴奏を取得しますか？'),
+  'replays.ytAskBody': (
+    '「{title}」的重播檔附有 YouTube 影片，曲庫中還沒有這首歌：\n{url}\n\n要從 YouTube 下載並備歌（分離伴奏）嗎？備好後就能觀看這段重播。',
+    'The replay of "{title}" comes with a YouTube video and the song is not in your library yet:\n{url}\n\nDownload it from YouTube and prepare it (separate the backing track)? Once ready, you can watch the replay.',
+    '「{title}」のリプレイには YouTube 動画が付いていますが、この曲はまだライブラリにありません：\n{url}\n\nYouTube からダウンロードして準備（伴奏を分離）しますか？準備ができるとリプレイを再生できます。',
+  ),
   'replays.pickSource': ('選擇原曲檔案', 'Choose source file', '原曲ファイルを選択'),
   'replays.chooseSong': ('從曲庫選擇原曲', 'Pick the song from library', 'ライブラリから原曲を選ぶ'),
   'replays.card': ('結果卡', 'Result card', '結果カード'),

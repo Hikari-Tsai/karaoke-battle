@@ -54,12 +54,47 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
         try {
           final list = await replays.import(path);
           _snack(list.length == 1 ? tr('replays.imported', {'title': list.first.title}) : tr('replays.importedMany', {'n': list.length}));
+          await _offerYoutube(list);
         } catch (e) {
           _snack('${tr('replays.importFailed')}: ${replayImportError(e)}');
         }
       }
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// For imported replays that carry a YouTube video id and whose song is not
+  /// in the library: asks (once per video) whether to download and prepare
+  /// it. Replays without an id are left as they are.
+  Future<void> _offerYoutube(List<ImportedReplay> imported) async {
+    final services = context.read<AppServices>();
+    final asked = <String>{};
+    for (final r in imported) {
+      final yt = r.youtubeId;
+      if (yt == null || !asked.add(yt) || !mounted) continue;
+      if (ReplayLibrary.findSong(services.library, r) != null) continue;
+      final url = youtubeWatchUrl(yt);
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(tr('replays.ytAskTitle')),
+          content: SelectableText(tr('replays.ytAskBody', {'title': r.title, 'url': url})),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('later'))),
+            FilledButton.icon(onPressed: () => Navigator.of(ctx).pop(true), icon: const Icon(Icons.download), label: Text(tr('replays.download'))),
+          ],
+        ),
+      );
+      if (ok != true) continue;
+      try {
+        final language = kLanguages.contains(r.language) ? r.language : services.settings.defaultLanguage;
+        final song = await services.pipeline.addUrl(url, language: language);
+        await services.replays.link(r, song.id);
+        // Other replays of the same video find the song by its id.
+      } catch (e) {
+        _snack('${tr('error')}: $e');
+      }
     }
   }
 
@@ -189,7 +224,7 @@ class _ReplayCardState extends State<_ReplayCard> {
 
   Future<void> _download() => _guard(() async {
         final services = context.read<AppServices>();
-        final song = await services.pipeline.addUrl('https://www.youtube.com/watch?v=${r.youtubeId}', language: _language);
+        final song = await services.pipeline.addUrl(youtubeWatchUrl(r.youtubeId!), language: _language);
         await services.replays.link(r, song.id);
       });
 

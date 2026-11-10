@@ -8,7 +8,8 @@
 //                       take.wav      the vocal decoded for playback
 //
 // Exports are a .zip: "<title> <score>.json" plus "<title> <score> vocal.mp3"
-// (the dry recording), which the JSON names in voice.file.
+// (the dry recording), which the JSON names in voice.file. The JSON carries
+// the song's YouTube video id when it has one, so the importer can fetch it.
 //
 // The take files use the same names as a song's takes/<id>/ folder, so the
 // replay screen plays an imported replay like one of the user's own takes.
@@ -302,7 +303,8 @@ class ReplayLibrary extends ChangeNotifier {
         artist: song.artist,
         language: song.language,
         sourceType: song.sourceType == SourceType.youtube ? 'youtube' : 'file',
-        youtubeId: song.youtubeId,
+        // A song added from a link whose title lookup failed has no id yet.
+        youtubeId: song.youtubeId ?? youtubeIdFromUrl(song.sourceUrl),
         durationSec: song.durationSec,
       ),
       createdAt: take.createdAt,

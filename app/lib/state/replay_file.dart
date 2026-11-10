@@ -5,8 +5,9 @@
 // Only format version 2 is read; earlier development formats are refused.
 //
 // Imported files are untrusted: every field is type- and size-checked, no
-// path from the file is ever used, and only a YouTube video id (not a URL)
-// is kept for finding the song.
+// path from the file is ever used, and only a YouTube video id is kept for
+// finding the song; a file without one (songs from local files) simply has
+// no link.
 import 'dart:convert';
 
 import '../scoring/models.dart' show upgradeScoreJson;
@@ -39,6 +40,32 @@ class ReplaySong {
         'youtube_id': ?youtubeId,
         'duration_sec': ?durationSec,
       };
+}
+
+final _youtubeIdPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
+
+String youtubeWatchUrl(String id) => 'https://www.youtube.com/watch?v=$id';
+
+/// The video id of a YouTube link (watch?v=, youtu.be/, shorts/, embed/,
+/// live/, music.youtube.com), or null for anything else. Used on export for
+/// a song added from a link whose id was never looked up.
+String? youtubeIdFromUrl(String? url) {
+  if (url == null || url.length > 2000) return null;
+  final u = Uri.tryParse(url.trim());
+  if (u == null || (u.scheme != 'https' && u.scheme != 'http')) return null;
+  final host = u.host.toLowerCase();
+  String? id;
+  if (host == 'youtu.be') {
+    id = u.pathSegments.isEmpty ? null : u.pathSegments.first;
+  } else if (host == 'youtube.com' || host.endsWith('.youtube.com')) {
+    final seg = u.pathSegments;
+    if (seg.isNotEmpty && seg.first == 'watch') {
+      id = u.queryParameters['v'];
+    } else if (seg.length >= 2 && const ['shorts', 'embed', 'live', 'v'].contains(seg.first)) {
+      id = seg[1];
+    }
+  }
+  return id != null && _youtubeIdPattern.hasMatch(id) ? id : null;
 }
 
 class ReplayFile {
@@ -135,7 +162,7 @@ class ReplayFile {
     final song = _map(root['song'], 'song');
     final take = _map(root['take'], 'take');
     final ytRaw = song['youtube_id'];
-    final yt = ytRaw is String && RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(ytRaw) ? ytRaw : null;
+    final yt = ytRaw is String && _youtubeIdPattern.hasMatch(ytRaw) ? ytRaw : null;
     final track = _str(take['track'], 'take.track', fallback: 'inst');
 
     final voiceRaw = root['voice'];

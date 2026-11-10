@@ -103,4 +103,48 @@ void main() {
     expect(r.total, closeTo(scaledTotal(85), 1e-9));
     expect(r.score['raw_total'], 85);
   });
+
+  test('exports carry the video id only, no URL', () {
+    final song = sample().toJson()['song'] as Map;
+    expect(song['youtube_id'], 'trrLxXbRjeM');
+    expect(song.containsKey('youtube_url'), isFalse);
+  });
+
+  test('files without a YouTube id (local songs) import with no link', () {
+    final none = sample().toJson();
+    (none['song'] as Map).remove('youtube_id');
+    final r = ReplayFile.parse(jsonEncode(none));
+    expect(r.song.youtubeId, isNull);
+    expect((r.toJson()['song'] as Map).containsKey('youtube_id'), isFalse);
+  });
+
+  test('a URL in the file is never read, even a YouTube one', () {
+    final j = sample().toJson();
+    (j['song'] as Map)
+      ..remove('youtube_id')
+      ..['youtube_url'] = 'https://www.youtube.com/watch?v=trrLxXbRjeM';
+    expect(ReplayFile.parse(jsonEncode(j)).song.youtubeId, isNull);
+  });
+
+  test('youtubeIdFromUrl (for songs added from a link) accepts YouTube links only', () {
+    for (final url in [
+      'https://www.youtube.com/watch?v=trrLxXbRjeM&t=12s',
+      'https://youtu.be/trrLxXbRjeM?si=abc',
+      'https://m.youtube.com/watch?v=trrLxXbRjeM',
+      'https://music.youtube.com/watch?v=trrLxXbRjeM&list=x',
+      'https://www.youtube.com/shorts/trrLxXbRjeM',
+    ]) {
+      expect(youtubeIdFromUrl(url), 'trrLxXbRjeM', reason: url);
+    }
+    for (final url in [
+      'https://evil.example/watch?v=trrLxXbRjeM',
+      'https://youtube.com.evil.example/watch?v=trrLxXbRjeM',
+      'file:///etc/passwd',
+      'https://www.youtube.com/watch?v=short',
+      'not a url',
+      null,
+    ]) {
+      expect(youtubeIdFromUrl(url), isNull, reason: url);
+    }
+  });
 }
