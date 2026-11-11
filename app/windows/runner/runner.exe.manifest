@@ -3,6 +3,11 @@
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
     <windowsSettings>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
+      <!-- Narrow (char) strings are UTF-8 in this process. Dart hands the engine
+           UTF-8 paths; without this, Windows reads them in the legacy code page
+           (Big5, CP1252...) and any folder or user name with non-ASCII
+           characters breaks (e.g. "onnxruntime library not found"). -->
+      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
     </windowsSettings>
   </application>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
