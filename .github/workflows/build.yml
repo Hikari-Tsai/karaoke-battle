@@ -343,6 +343,35 @@ jobs:
         shell: pwsh
         run: ./scripts/build_engine.ps1 -Clean
 
+      # The app hands the engine UTF-8 paths. A folder such as "唱歌" once made
+      # the engine miss onnxruntime.dll, because Windows read the path in the
+      # legacy code page. ke_cli carries the same UTF-8 manifest as the app.
+      - name: Engine handles non-ASCII paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $name = -join [char[]](0x5531, 0x6B4C, 0x20, 0x6E2C, 0x8A66)   # "唱歌 測試"
+          $dir = Join-Path $env:RUNNER_TEMP $name
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $lib = 'engine/third_party/onnxruntime/win-x64/lib'
+          Copy-Item engine/build/Release/ke_cli.exe, engine/build/Release/karaoke_engine.dll -Destination $dir
+          Copy-Item "$lib/onnxruntime.dll", "$lib/onnxruntime_providers_shared.dll", "$lib/DirectML.dll" -Destination $dir
+          $cli = Join-Path $dir 'ke_cli.exe'
+          & $cli runtime --ort (Join-Path $dir 'onnxruntime.dll')
+          if ($LASTEXITCODE -ne 0) { throw "ke_cli could not load onnxruntime.dll from $dir" }
+          # A 0.5 s mono 16-bit WAV, read and written by the engine itself.
+          $in = Join-Path $dir "$name.wav"; $out = Join-Path $dir "$name-out.wav"
+          $sr = 48000; $n = 24000
+          $ms = New-Object System.IO.MemoryStream; $w = New-Object System.IO.BinaryWriter($ms)
+          $w.Write([Text.Encoding]::ASCII.GetBytes('RIFF')); $w.Write([int](36 + 2 * $n)); $w.Write([Text.Encoding]::ASCII.GetBytes('WAVEfmt '))
+          $w.Write([int]16); $w.Write([int16]1); $w.Write([int16]1); $w.Write([int]$sr); $w.Write([int](2 * $sr)); $w.Write([int16]2); $w.Write([int16]16)
+          $w.Write([Text.Encoding]::ASCII.GetBytes('data')); $w.Write([int](2 * $n))
+          for ($i = 0; $i -lt $n; $i++) { $w.Write([int16](8000 * [Math]::Sin(2 * [Math]::PI * 440 * $i / $sr))) }
+          $w.Flush(); [IO.File]::WriteAllBytes($in, $ms.ToArray())
+          & $cli reverb --in $in --out $out
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $out)) { throw "ke_cli could not read or write a WAV under $dir" }
+          Write-Host "non-ASCII paths ok: $dir"
+
       - name: Upload engine artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -403,6 +432,10 @@ jobs:
           Copy-Item engine/third_party/onnxruntime/win-x64/lib/DirectML.dll $out
           Get-ChildItem engine/third_party/onnxruntime/win-x64/LICENSE-*.txt -ErrorAction SilentlyContinue | Copy-Item -Destination $out
           # Run-time paths used by the Dart side (docs/BUILD.md): <exe dir>\karaoke_engine.dll, onnxruntime.dll, DirectML.dll
+          # The UTF-8 code page in runner.exe.manifest must reach the exe, or
+          # non-ASCII install folders and user names break the engine.
+          $exeText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("$out/$env:APP_NAME.exe"))
+          if ($exeText -notmatch '<activeCodePage[^>]*>UTF-8</activeCodePage>') { throw "$env:APP_NAME.exe has no UTF-8 activeCodePage manifest" }
           Get-ChildItem $out | Format-Table Length, Name
           "out=$out" >> $env:GITHUB_OUTPUT
 
