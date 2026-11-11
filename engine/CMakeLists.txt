@@ -8,7 +8,22 @@ if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "" FORCE)
 endif()
 
-project(karaoke_engine LANGUAGES C CXX VERSION 0.1.0)
+# The engine shares the app's version: app/pubspec.yaml is the only place it
+# is set, and a change there reconfigures the build.
+set(KE_PUBSPEC "${CMAKE_CURRENT_SOURCE_DIR}/../app/pubspec.yaml")
+set(KE_VERSION "0.0.0")
+if(EXISTS "${KE_PUBSPEC}")
+  file(STRINGS "${KE_PUBSPEC}" _ke_version_line REGEX "^version:")
+  if(_ke_version_line MATCHES "^version:[ \t]*([0-9]+\\.[0-9]+\\.[0-9]+)")
+    set(KE_VERSION "${CMAKE_MATCH_1}")
+  endif()
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${KE_PUBSPEC}")
+endif()
+if(KE_VERSION STREQUAL "0.0.0")
+  message(WARNING "No version found in ${KE_PUBSPEC}; the engine reports 0.0.0")
+endif()
+
+project(karaoke_engine LANGUAGES C CXX VERSION ${KE_VERSION})
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -63,7 +78,7 @@ set(KE_SOURCES
 )
 
 add_library(karaoke_engine SHARED ${KE_SOURCES})
-target_compile_definitions(karaoke_engine PRIVATE KE_BUILD_SHARED=1)
+target_compile_definitions(karaoke_engine PRIVATE KE_BUILD_SHARED=1 KE_VERSION_STRING="${PROJECT_VERSION}")
 # Vendored Cloud Seed sources: upstream warnings only.
 set_source_files_properties(third_party/cloudseed/DSP/Biquad.cpp third_party/cloudseed/DSP/RandomBuffer.cpp
   PROPERTIES COMPILE_OPTIONS "$<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w>")

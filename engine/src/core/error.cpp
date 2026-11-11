@@ -19,7 +19,12 @@ constexpr size_t kQueueCap = 1000;
 
 extern "C" {
 
-KE_API const char* ke_version(void) { return "0.1.0"; }
+// Set by CMake from app/pubspec.yaml (the app and the engine share one version).
+#ifndef KE_VERSION_STRING
+#define KE_VERSION_STRING "0.0.0-dev"
+#endif
+
+KE_API const char* ke_version(void) { return KE_VERSION_STRING; }
 
 KE_API void ke_set_log_callback(ke_log_cb cb, void* user) {
     std::lock_guard<std::mutex> lock(g_log_mutex);

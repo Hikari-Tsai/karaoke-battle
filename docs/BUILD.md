@@ -232,4 +232,7 @@ against the network and installs ffmpeg through one.
   (e.g. `v1.2.0-beta.1`) is marked as a pre-release.
 * The version comes from the tag (`v1.2.3` -> `--build-name 1.2.3`), `--build-number` is the
   run number; non-tag builds use `0.0.0`.
+* The engine has no version of its own: CMake reads `version:` from `app/pubspec.yaml`
+  (`ke_version()`, `ke_cli`, the About screen). So a release bumps `pubspec.yaml` first, then
+  tags; a tag that does not match `pubspec.yaml` fails the build.
 * Every action is pinned to a commit SHA (version in the trailing comment).

@@ -22,7 +22,9 @@ void main() {
 
   test('engine loads, reports GPU and creates a CPU runtime', () {
     final e = Engine.instance;
-    expect(e.version, isNotEmpty);
+    // The engine takes its version from pubspec.yaml at build time.
+    final app = RegExp(r'^version:\s*(\d+\.\d+\.\d+)', multiLine: true).firstMatch(File('pubspec.yaml').readAsStringSync())!.group(1);
+    expect(e.version, app, reason: 'rebuild the engine after changing the app version');
     expect(e.gpuInfo(), isNotEmpty);
     final rt = e.createRuntime(ortLibraryPath: EngineLocator.ortLibraryPath(), ep: KeEp.cpu);
     expect(rt.info()['ort_version'], isNotEmpty);
