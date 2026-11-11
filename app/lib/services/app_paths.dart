@@ -45,7 +45,19 @@ class AppPaths {
 
   static AppPaths? _instance;
 
-  static Future<String> platformDefaultRoot() async => p.join((await getApplicationSupportDirectory()).path, 'KaraokeBattle');
+  static Future<String> platformDefaultRoot() async {
+    if (Platform.isWindows) {
+      final appData = Platform.environment['APPDATA'];
+      if (appData != null && appData.isNotEmpty) return windowsDefaultRoot(appData);
+    }
+    return p.join((await getApplicationSupportDirectory()).path, 'KaraokeBattle');
+  }
+
+  /// The Windows data folder, fixed. path_provider builds it from the exe's
+  /// CompanyName and ProductName, which were "com.karaokebattle" and
+  /// "karaoke_battle" when users' data was first stored there; those fields
+  /// now carry display names, so the folder must not follow them.
+  static String windowsDefaultRoot(String appData) => p.windows.join(appData, 'com.karaokebattle', 'karaoke_battle', 'KaraokeBattle');
 
   static Future<AppPaths> init() async {
     if (_instance != null) return _instance!;

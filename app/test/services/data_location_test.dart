@@ -70,4 +70,8 @@ void main() {
     expect(() => DataLocation.move(from.path, to), throwsStateError);
     expect(await Directory(from.path).exists(), isTrue);
   });
+
+  test('the Windows data folder stays where 0.7.x stored it, whatever the exe is named', () {
+    expect(AppPaths.windowsDefaultRoot(r'C:\Users\me\AppData\Roaming'), r'C:\Users\me\AppData\Roaming\com.karaokebattle\karaoke_battle\KaraokeBattle');
+  });
 }

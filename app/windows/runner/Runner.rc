@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.karaokebattle" "\0"
-            VALUE "FileDescription", "karaoke_battle" "\0"
+            VALUE "CompanyName", "Hikari Tsai" "\0"
+            VALUE "FileDescription", "Karaoke Battle" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "karaoke_battle" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.karaokebattle. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Hikari Tsai. MIT License." "\0"
             VALUE "OriginalFilename", "karaoke_battle.exe" "\0"
-            VALUE "ProductName", "karaoke_battle" "\0"
+            VALUE "ProductName", "Karaoke Battle" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

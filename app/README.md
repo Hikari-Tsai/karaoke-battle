@@ -1,17 +1,19 @@
-# karaoke_battle
+# Karaoke Battle: Flutter app
 
-A new Flutter project.
+The desktop app (macOS / Windows) of [Karaoke Battle](../README.md), a karaoke scoring app for
+streamers by Hikari Tsai, MIT License. The audio engine it loads lives in [`../engine`](../engine).
 
-## Getting Started
+The package name `karaoke_battle` is only Flutter's internal identifier; the app is shown as
+"Karaoke Battle".
 
-This project is a starting point for a Flutter application.
+## Run from source
 
-A few resources to get you started if this is your first Flutter project:
+Build the engine and fetch ONNX Runtime first (see [docs/BUILD.md](../docs/BUILD.md)), then:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter run -d macos      # or: -d windows
+flutter test
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Install steps for users: [docs/INSTALL.md](../docs/INSTALL.md)
+- How the app and the engine fit together: [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)

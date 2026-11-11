@@ -11,4 +11,4 @@ PRODUCT_NAME = Karaoke Battle
 PRODUCT_BUNDLE_IDENTIFIER = com.karaokebattle.karaokeBattle
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.karaokebattle. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Hikari Tsai. MIT License.
