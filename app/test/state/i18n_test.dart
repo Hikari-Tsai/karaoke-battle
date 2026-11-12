@@ -16,6 +16,20 @@ void main() {
     }
   });
 
+  test('every sub-score has its rule and tips for the results question marks', () {
+    for (final lang in I18n.supported) {
+      I18n.notifier.value = lang;
+      for (final k in ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'longTone']) {
+        for (final key in ['rules.$k', 'results.tip.$k', 'results.$k']) {
+          expect(tr(key), isNot(equals(key)), reason: '$key missing in $lang');
+        }
+      }
+      for (final key in ['results.tipRule', 'results.tipHow', 'results.tipMore', 'results.scoringGuide']) {
+        expect(tr(key), isNot(equals(key)), reason: '$key missing in $lang');
+      }
+    }
+  });
+
   test('switching the language notifies and persists through onChanged', () {
     final seen = <String>[];
     I18n.onChanged = seen.add;

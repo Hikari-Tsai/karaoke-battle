@@ -472,6 +472,40 @@ const Map<String, (String, String, String)> _table = {
   'results.vibrato': ('顫音', 'Vibrato', 'ビブラート'),
   'results.expression': ('表現力', 'Expression', '抑揚'),
   'results.longTone': ('長音', 'Long tone', 'ロングトーン'),
+  'results.tipRule': ('怎麼計分', 'How it is scored', '採点のしかた'),
+  'results.tipHow': ('小訣竅', 'Tips', 'コツ'),
+  'results.tipMore': ('完整說明請按下方的「完整評分說明」。', 'Everything else is under "Full scoring guide" below.', '詳しくは下の「採点の詳しい説明」をどうぞ。'),
+  'results.scoringGuide': ('完整評分說明', 'Full scoring guide', '採点の詳しい説明'),
+  'results.tip.pitch': (
+    '先用「預覽」聽幾次，看鋼琴卷軸記住旋律；音符條變綠就是唱準了。唱不上去就調「升降 Key」，不會扣分。戴耳機，伴奏才不會漏進麥克風干擾偵測。',
+    'Use Preview a few times and learn the melody on the piano roll; a note bar turning green means you are in tune. If it is too high, change the key; that costs nothing. Wear headphones so the accompaniment does not leak into the mic.',
+    '「プレビュー」で何度か聴き、ピアノロールでメロディを覚えましょう。音符バーが緑になれば音程は合っています。高すぎるときは「キー」を変えても減点されません。ヘッドホンを着けると伴奏がマイクに入りません。',
+  ),
+  'results.tip.rhythm': (
+    '播放線碰到音符條開頭再出聲，句尾唱到音符條結束才收。結果下方會顯示你整體偏快還是偏慢，下次往反方向修正。快歌的判定比較嚴。',
+    'Start each note when the playhead reaches the bar and end it where the bar ends. The summary below says whether you tend to be early or late; correct the other way next time. Fast songs are judged more strictly.',
+    'プレイヘッドが音符バーの頭に来たら歌い出し、バーの終わりで止めましょう。下の集計に早め・遅めの傾向が出るので、次は逆方向に修正を。速い曲ほど判定が厳しくなります。',
+  ),
+  'results.tip.stability': (
+    '長音用腹部撐住氣，音量保持一致，尾巴不要往下掉音。先求穩，再考慮加顫音。',
+    'Support long notes from your belly, keep the volume even and do not let the end drop in pitch. Get them steady before adding vibrato.',
+    'ロングトーンはお腹で支え、音量を一定に保ち、語尾で音程を下げないように。まず安定させてからビブラートを。',
+  ),
+  'results.tip.vibrato': (
+    '先把長音唱穩，在後半段加上輕微、規律的顫音。太大、太快的抖動不算；原唱沒顫音的歌不計這項。',
+    'Hold the long note steady first, then add a light, even vibrato in its second half. Wide or very fast wobbles do not count; songs without vibrato skip this item.',
+    'まずロングトーンを安定させ、後半に軽く規則的なビブラートを。大きすぎ・速すぎる揺れは数えません。原曲にビブラートがない曲ではこの項目はありません。',
+  ),
+  'results.tip.expression': (
+    '主歌收著唱、副歌放開唱，跟著原唱的強弱走。麥克風和嘴巴保持固定距離，音量變化才會被正確量到。',
+    'Sing the verses softer and open up in the chorus, following the original dynamics. Keep the mic at a steady distance from your mouth so the changes are measured correctly.',
+    'Aメロは抑えめ、サビは思い切って、原曲の強弱に合わせましょう。マイクと口の距離を一定に保つと、強弱が正しく測れます。',
+  ),
+  'results.tip.longTone': (
+    '在句子之間提早換氣，長音唱到音符條結束再收。氣不夠時，寧可把前一句的尾巴收短一點去換氣。',
+    'Breathe between phrases and hold long notes until the bar ends. If you run short of breath, cut the previous phrase a little shorter to breathe.',
+    'フレーズの間で早めに息を吸い、ロングトーンは音符バーの終わりまで伸ばしましょう。息が足りないときは前のフレーズを少し短く切って息継ぎを。',
+  ),
   'export.button': ('匯出重播', 'Export replay', 'リプレイを書き出す'),
   'export.title': ('匯出重播檔', 'Export a replay file', 'リプレイファイルを書き出す'),
   'export.body': (

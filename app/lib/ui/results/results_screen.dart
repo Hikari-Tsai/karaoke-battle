@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../rules/rules_screen.dart';
+import '../widgets/info_tip.dart';
 import '../widgets/rank.dart';
 import 'new_record_dialog.dart';
 import 'replay_screen.dart';
@@ -183,13 +185,23 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                             Text('${tr('results.shift')}: ${score.shift} (${score.octaveExactShift >= 0 ? '+' : ''}${score.octaveExactShift})', style: theme.textTheme.labelSmall),
                                             const SizedBox(height: 16),
                                             for (final k in ScoreData.subScoreKeys) ...[
-                                              _SubScoreBar(label: tr('results.${_camel(k)}'), value: score.subScores[k]),
+                                              _SubScoreBar(label: tr('results.${_camel(k)}'), value: score.subScores[k], tipKey: _camel(k)),
                                               const SizedBox(height: 8),
                                             ],
                                             if (score.raw['rhythm'] is Map) ...[
                                               const SizedBox(height: 4),
                                               _RhythmSummary(rhythm: (score.raw['rhythm'] as Map).cast<String, dynamic>()),
                                             ],
+                                            const SizedBox(height: 8),
+                                            Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: TextButton.icon(
+                                                // Opened over the results, so Back returns here.
+                                                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RulesScreen())),
+                                                icon: const Icon(Icons.menu_book_outlined, size: 18),
+                                                label: Text(tr('results.scoringGuide')),
+                                              ),
+                                            ),
                                           ],
                                         ),
                                 ),
@@ -323,9 +335,13 @@ class _RhythmSummary extends StatelessWidget {
 }
 
 class _SubScoreBar extends StatelessWidget {
-  const _SubScoreBar({required this.label, required this.value});
+  const _SubScoreBar({required this.label, required this.value, required this.tipKey});
   final String label;
   final double? value;
+
+  /// Sub-score key in the rules ('pitch', 'longTone', ...): its rule and tips
+  /// are shown behind the question mark.
+  final String tipKey;
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +353,15 @@ class _SubScoreBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: theme.textTheme.bodyMedium),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(label, style: theme.textTheme.bodyMedium),
+              InfoTip(
+                icon: Icons.help_outline,
+                size: 16,
+                sections: [(tr('results.tipRule'), tr('rules.$tipKey')), (tr('results.tipHow'), tr('results.tip.$tipKey'))],
+                footer: tr('results.tipMore'),
+              ),
+            ]),
             Text(value == null ? tr('results.notAvailable') : value!.toStringAsFixed(0), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
           ],
         ),

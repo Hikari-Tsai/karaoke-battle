@@ -1,13 +1,15 @@
-// Circled-i icon placed after a setting's title; hovering shows a short
-// explanation made of titled sections.
+// Circled-i (or circled question mark) icon placed after a title; hovering
+// shows a short explanation made of titled sections.
 import 'package:flutter/material.dart';
 
 class InfoTip extends StatelessWidget {
-  const InfoTip({super.key, required this.sections, this.footer});
+  const InfoTip({super.key, required this.sections, this.footer, this.icon = Icons.info_outline, this.size = 18});
 
   /// (heading, body) pairs.
   final List<(String, String)> sections;
   final String? footer;
+  final IconData icon;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,7 @@ class InfoTip extends StatelessWidget {
         cursor: SystemMouseCursors.help,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Icon(Icons.info_outline, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          child: Icon(icon, size: size, color: theme.colorScheme.onSurfaceVariant),
         ),
       ),
     );
