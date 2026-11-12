@@ -28,6 +28,12 @@ body:
     attributes:
       label: 運算後端 / Compute backend / 演算バックエンド
       placeholder: "CPU / CUDA / DirectML / CoreML"
+  - type: input
+    id: gpu
+    attributes:
+      label: 顯示卡 / Graphics card / グラフィックカード
+      description: 從 App 回報時會自動填入 / Filled in when reporting from the app / アプリから報告すると自動で入ります
+      placeholder: "NVIDIA GeForce RTX 3060 (12 GB) / Apple M1 Pro"
   - type: textarea
     id: what
     attributes:
