@@ -598,16 +598,9 @@ class _SingScreenState extends State<SingScreen>
                                   children: [
                                     _TempoChip(
                                       grid: s.beatGrid,
-                                      metronomeOn: context
-                                          .watch<AppSettings>()
-                                          .metronomeOn,
+                                      metronomeOn: s.metronomeOn,
                                       onOpen: _openTempo,
-                                      onToggleMetronome: () {
-                                        final st = context.read<AppSettings>();
-                                        st
-                                            .setMetronomeOn(!st.metronomeOn)
-                                            .then((_) => s.applyMetronome());
-                                      },
+                                      onToggleMetronome: () => s.setMetronomeOn(!s.metronomeOn),
                                     ),
                                     const SizedBox(width: 6),
                                     _StageButton(

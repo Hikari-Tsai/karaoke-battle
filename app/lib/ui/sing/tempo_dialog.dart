@@ -3,9 +3,7 @@
 // tap tempo (T or the button, while the track plays) and the metronome.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
-import '../../services/settings.dart';
 import '../../state/beat_grid.dart';
 import '../../state/i18n.dart';
 import '../../state/sing_session.dart';
@@ -115,7 +113,6 @@ class _TempoDialogState extends State<_TempoDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final settings = context.watch<AppSettings>();
     final det = d;
     return Focus(
       focusNode: _focus,
@@ -203,23 +200,17 @@ class _TempoDialogState extends State<_TempoDialog> {
                 Text(tr('tempo.metronome')),
                 const Spacer(),
                 Switch(
-                  value: settings.metronomeOn,
-                  onChanged: (v) {
-                    settings.setMetronomeOn(v);
-                    widget.session.applyMetronome();
-                  },
+                  value: widget.session.metronomeOn,
+                  onChanged: (v) => setState(() => widget.session.setMetronomeOn(v)),
                 ),
               ]),
               Row(children: [
                 const Icon(Icons.volume_down, size: 18),
                 Expanded(
                   child: Slider(
-                    value: settings.metronomeGain,
+                    value: widget.session.metronomeGain,
                     max: 1.5,
-                    onChanged: (v) {
-                      settings.setMetronomeGain(v);
-                      widget.session.applyMetronome();
-                    },
+                    onChanged: (v) => setState(() => widget.session.setMetronomeGain(v)),
                   ),
                 ),
                 const Icon(Icons.volume_up, size: 18),

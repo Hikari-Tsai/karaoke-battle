@@ -4,6 +4,7 @@ import 'dart:math' as math;
 //
 // Per-frame data goes through ValueNotifiers (position, hud) so the widget
 // tree is not rebuilt per frame; coarse state uses ChangeNotifier.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +19,7 @@ import 'beat_grid.dart';
 import 'playback_clock.dart';
 import 'live_judge.dart';
 import 'live_trace.dart';
+import 'sing_settings.dart';
 import 'scoring_bridge.dart';
 import 'song_data.dart';
 
@@ -60,12 +62,76 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     notifyListeners();
   }
 
-  /// Applies the metronome on/off and level settings to the audio engine.
+  /// Metronome of this song (from its sing settings; the global setting
+  /// until it is changed for the song).
+  late bool metronomeOn = services.settings.metronomeOn;
+  late double metronomeGain = services.settings.metronomeGain;
+
+  /// Applies the metronome on/off and level to the audio engine.
   void applyMetronome() {
-    final st = services.settings;
     try {
-      _live?.clickGain = st.metronomeOn && !beatGrid.isEmpty ? st.metronomeGain : 0;
+      _live?.clickGain = metronomeOn && !beatGrid.isEmpty ? metronomeGain : 0;
     } catch (_) {}
+  }
+
+  void setMetronomeOn(bool v) {
+    metronomeOn = v;
+    _metronomeSet = true;
+    applyMetronome();
+    _saveSoon();
+    notifyListeners();
+  }
+
+  void setMetronomeGain(double v) {
+    metronomeGain = v.clamp(0.0, 1.5).toDouble();
+    _metronomeSet = true;
+    applyMetronome();
+    _saveSoon();
+    notifyListeners();
+  }
+
+  // ---- per-song sing settings --------------------------------------------------
+
+  bool _metronomeSet = false;
+  bool _trackSet = false;
+  Timer? _saveTimer;
+
+  SongSingSettings get singSettings => SongSingSettings(
+        track: _trackSet ? track.name : null,
+        pitchShift: pitchShift,
+        volume: volume,
+        octaveAlign: octaveAlign,
+        windowSeconds: windowSeconds,
+        metronomeOn: _metronomeSet ? metronomeOn : null,
+        metronomeGain: _metronomeSet ? metronomeGain : null,
+      );
+
+  void _applySaved(SongSingSettings v) {
+    if (v.track != null) {
+      _trackSet = true;
+      track = v.track == 'mix' ? TrackKind.mix : TrackKind.inst;
+    }
+    pitchShift = v.pitchShift;
+    volume = v.volume;
+    octaveAlign = v.octaveAlign;
+    windowSeconds = v.windowSeconds;
+    if (v.metronomeOn != null || v.metronomeGain != null) {
+      _metronomeSet = true;
+      metronomeOn = v.metronomeOn ?? metronomeOn;
+      metronomeGain = v.metronomeGain ?? metronomeGain;
+    }
+  }
+
+  /// Saves the song's sing settings shortly after the last change.
+  void _saveSoon() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 400), _saveNow);
+  }
+
+  void _saveNow() {
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    singSettings.save(files.singSettingsJson).catchError((Object _) {});
   }
 
   /// Sounds a sine at MIDI pitch [midi] as heard (the key shift is added),
@@ -136,6 +202,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   Future<void> init() async {
     final s = services.settings;
+    _applySaved(await SongSingSettings.load(files.singSettingsJson));
     try {
       final l = LiveAudio.create(
         services.engine,
@@ -144,10 +211,12 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         sampleRate: s.sampleRate,
       );
       _live = l;
-      if (!hasInst && hasMix) track = TrackKind.mix;
+      if (track == TrackKind.inst && !hasInst && hasMix) track = TrackKind.mix;
+      if (track == TrackKind.mix && !hasMix && hasInst) track = TrackKind.inst;
       l.loadTrack(_trackPath);
       duration = l.trackDuration;
       l.volume = volume;
+      l.pitchShift = pitchShift;
       applyVoiceFx();
       final lat = s.latencySeconds;
       if (lat != null) {
@@ -201,6 +270,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     try {
       if (wasPlaying) l.pause();
       track = t;
+      _trackSet = true;
+      _saveSoon();
       l.loadTrack(_trackPath);
       duration = l.trackDuration;
       l.seek(pos.clamp(0, duration));
@@ -217,22 +288,26 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     pitchShift = semitones.clamp(-6, 6).roundToDouble();
     _live?.pitchShift = pitchShift;
     judge?.pitchShift = pitchShift;
+    _saveSoon();
     notifyListeners();
   }
 
   void setVolume(double v) {
     volume = v.clamp(0, 1.5);
     _live?.volume = volume;
+    _saveSoon();
     notifyListeners();
   }
 
   void setOctaveAlign(bool v) {
     octaveAlign = v;
+    _saveSoon();
     notifyListeners();
   }
 
   void setWindowSeconds(double s) {
     windowSeconds = s.clamp(4, 16);
+    _saveSoon();
     notifyListeners();
   }
 
@@ -470,6 +545,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   @override
   void dispose() {
+    if (_saveTimer != null) _saveNow();
     final l = _live;
     _live = null;
     if (l != null) {
