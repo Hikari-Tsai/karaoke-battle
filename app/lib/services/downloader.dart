@@ -22,11 +22,20 @@ class DownloadException implements Exception {
 }
 
 class Downloader {
-  Downloader({http.Client? client}) : _client = client ?? http.Client();
+  Downloader({http.Client? client, this.idleTimeout = const Duration(seconds: 60), this.connectTimeout = const Duration(seconds: 30)})
+      : _client = client ?? http.Client();
   final http.Client _client;
 
+  /// No byte for this long fails the download (a stalled connection would
+  /// otherwise leave its progress bar stuck for good).
+  final Duration idleTimeout;
+
+  /// Time allowed to connect and get the response headers.
+  final Duration connectTimeout;
+
   /// Downloads [url] to [destPath] (atomically via a .part file). Verifies
-  /// [sha256] when given. [cancel] completes to abort.
+  /// [sha256] when given. [cancel] completes to abort, at once, also while
+  /// connecting or while no data arrives.
   Future<void> download(
     Uri url,
     String destPath, {
@@ -44,8 +53,16 @@ class Downloader {
     final req = http.Request('GET', url);
     if (headers != null) req.headers.addAll(headers);
     req.headers['User-Agent'] = _userAgent;
-    final resp = await _client.send(req);
+    final cancelled = Completer<void>();
+    cancel?.then((_) {
+      if (!cancelled.isCompleted) cancelled.complete();
+    });
+    final resp = await Future.any([
+      _client.send(req).timeout(connectTimeout, onTimeout: () => throw DownloadException('no response from $url after ${connectTimeout.inSeconds} s')),
+      cancelled.future.then<http.StreamedResponse>((_) => throw DownloadException('cancelled')),
+    ]);
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
+      unawaited(resp.stream.listen(null, onError: (_) {}).cancel());
       throw DownloadException('HTTP ${resp.statusCode} for $url');
     }
     final total = resp.contentLength ?? -1;
@@ -53,16 +70,31 @@ class Downloader {
     final sink = part.openWrite();
     final digest = AccumulatorSink<Digest>();
     final hasher = cryptoSha256.startChunkedConversion(digest);
-    var cancelled = false;
-    cancel?.then((_) => cancelled = true);
     try {
-      await for (final chunk in resp.stream) {
-        if (cancelled) throw DownloadException('cancelled');
-        sink.add(chunk);
-        hasher.add(chunk);
-        received += chunk.length;
-        onProgress?.call(DownloadProgress(received, total));
-      }
+      final finished = Completer<void>();
+      final sub = resp.stream
+          .timeout(idleTimeout, onTimeout: (s) => s.addError(DownloadException('no data from $url for ${idleTimeout.inSeconds} s')))
+          .listen(
+        (chunk) {
+          sink.add(chunk);
+          hasher.add(chunk);
+          received += chunk.length;
+          onProgress?.call(DownloadProgress(received, total));
+        },
+        onError: (Object e) {
+          if (!finished.isCompleted) finished.completeError(e);
+        },
+        onDone: () {
+          if (!finished.isCompleted) finished.complete();
+        },
+        cancelOnError: true,
+      );
+      unawaited(cancelled.future.then((_) {
+        if (finished.isCompleted) return;
+        unawaited(sub.cancel());
+        finished.completeError(DownloadException('cancelled'));
+      }));
+      await finished.future;
       await sink.flush();
       await sink.close();
       hasher.close();

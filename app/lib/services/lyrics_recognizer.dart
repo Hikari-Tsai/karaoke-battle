@@ -73,6 +73,28 @@ class LyricsRecognizer {
   /// Runs Whisper on [song] in [language] (a key of [languages]; null
   /// detects it from the singing). Returns the recognised segments.
   Future<List<TimedText>> _whisper(Song song, String? language, {RecognizeProgress? onProgress, Completer<void>? cancel}) async {
+    // One Whisper job at a time. A cancelled job stops at its next token,
+    // but loading the model cannot be interrupted, so a new request waits
+    // for it instead of running a second copy beside it.
+    final prior = _lastJob;
+    final gate = Completer<void>();
+    _lastJob = gate.future;
+    try {
+      await prior;
+      _throwIfCancelled(cancel);
+      return await _runWhisper(song, language, onProgress: onProgress, cancel: cancel);
+    } finally {
+      gate.complete();
+    }
+  }
+
+  static Future<void> _lastJob = Future<void>.value();
+
+  static void _throwIfCancelled(Completer<void>? cancel) {
+    if (cancel?.isCompleted ?? false) throw StateError('cancelled');
+  }
+
+  Future<List<TimedText>> _runWhisper(Song song, String? language, {RecognizeProgress? onProgress, Completer<void>? cancel}) async {
     final audio = audioFor(song);
     if (audio == null) throw StateError('not prepared');
     final dir = models.dirOf(model);
@@ -114,6 +136,7 @@ class LyricsRecognizer {
     final notes = await _notes(song);
     final lines = linesFromSegments(segments, notes.onset, notes.offset);
     if (lines.isEmpty) throw const NothingRecognized();
+    _throwIfCancelled(cancel);
     return _save(song, LyricSource.whisper, '${song.language}-x-whisper', lines);
   }
 
@@ -131,6 +154,7 @@ class LyricsRecognizer {
       onProgress?.call(0.5, 'align');
       lines = alignToNotes(rows, notes.onset, notes.offset);
     }
+    _throwIfCancelled(cancel);
     return _save(song, LyricSource.aligned, '${song.language}-x-paste', lines);
   }
 

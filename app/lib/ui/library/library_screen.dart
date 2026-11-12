@@ -283,7 +283,9 @@ class _SongCardState extends State<_SongCard> {
     );
     if (ok != true || !mounted) return;
     final services = context.read<AppServices>();
-    services.pipeline.cancel(widget.song.id);
+    // Wait until nothing writes into the song folder any more, or deleting
+    // it can fail (Windows keeps open files) and the job could recreate it.
+    await services.pipeline.cancel(widget.song.id);
     await services.library.delete(widget.song);
   }
 
@@ -391,7 +393,11 @@ class _SongCardState extends State<_SongCard> {
                   FilledButton.icon(onPressed: ready ? _sing : null, icon: const Icon(Icons.play_circle_outline), label: Text(tr('library.sing'))),
                 const SizedBox(width: 4),
                 if (inProgress)
-                  IconButton(tooltip: tr('library.cancelPrep'), onPressed: () => services.pipeline.cancel(song.id), icon: const Icon(Icons.stop_circle_outlined))
+                  IconButton(
+                    tooltip: tr('library.cancelPrep'),
+                    onPressed: services.pipeline.isCancelling(song.id) ? null : () => services.pipeline.cancel(song.id),
+                    icon: const Icon(Icons.stop_circle_outlined),
+                  )
                 else ...[
                   IconButton(tooltip: tr('delete'), onPressed: _delete, icon: const Icon(Icons.delete_outline)),
                   PopupMenuButton<String>(

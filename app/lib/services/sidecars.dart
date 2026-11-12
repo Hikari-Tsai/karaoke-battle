@@ -460,19 +460,44 @@ class Sidecars {
   // ---- running --------------------------------------------------------------
 
   /// Runs a process, streaming stderr/stdout lines to [onLine]. Returns exit code.
+  ///
+  /// [cancel] kills the process together with what it started (yt-dlp runs
+  /// ffmpeg and deno), and the call returns once the process is gone even if
+  /// a leftover child still holds the output pipes open.
   Future<int> run(String exe, List<String> args, {void Function(String line)? onLine, Future<void>? cancel, String? workingDir, Map<String, String>? env}) async {
     final proc = await Process.start(exe, args, environment: {..._env(), ...?env}, workingDirectory: workingDir, runInShell: false);
-    cancel?.then((_) => proc.kill());
+    var cancelled = false;
+    cancel?.then((_) {
+      cancelled = true;
+      killTree(proc);
+    });
     final done = Completer<void>();
     var open = 2;
     void closeOne() {
-      if (--open == 0) done.complete();
+      if (--open == 0 && !done.isCompleted) done.complete();
     }
 
-    proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((l) => onLine?.call(l), onDone: closeOne);
-    proc.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((l) => onLine?.call(l), onDone: closeOne);
-    await done.future;
-    return proc.exitCode;
+    proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((l) => onLine?.call(l), onDone: closeOne, onError: (_) {});
+    proc.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((l) => onLine?.call(l), onDone: closeOne, onError: (_) {});
+    final code = await proc.exitCode;
+    // Normally the pipes close with the process; a child it left behind can
+    // keep them open, so do not wait for them after a cancel or for long.
+    await done.future.timeout(cancelled ? const Duration(milliseconds: 300) : const Duration(seconds: 5), onTimeout: () {});
+    return code;
+  }
+
+  /// Kills [proc] and the processes it started. On Windows killing a process
+  /// leaves its children running, so the whole tree goes through taskkill.
+  static void killTree(Process proc) {
+    if (Platform.isWindows) {
+      Process.run('taskkill', ['/PID', '${proc.pid}', '/T', '/F']).then((r) {
+        if (r.exitCode != 0) proc.kill();
+      }, onError: (Object _) {
+        proc.kill();
+      });
+    } else {
+      proc.kill();
+    }
   }
 
   static final _ytProgress = RegExp(r'\[download\]\s+([\d.]+)%');
@@ -542,14 +567,26 @@ class Sidecars {
     return outPath!;
   }
 
+  /// How long [probeUrl] waits for yt-dlp.
+  static const probeTimeout = Duration(minutes: 2);
+
   /// yt-dlp metadata (title, duration, id) without downloading.
   Future<Map<String, dynamic>> probeUrl(String url) async {
     final yt = await resolve(SidecarKind.ytDlp);
     if (yt == null) throw StateError('yt-dlp not available');
     final deno = await resolve(SidecarKind.deno);
-    final r = await Process.run(yt, ['--no-playlist', '-J', if (deno != null) ...['--js-runtimes', 'deno:$deno'], url], environment: _env());
-    if (r.exitCode != 0) throw StateError('yt-dlp -J failed: ${r.stderr}');
-    return jsonDecode(r.stdout as String) as Map<String, dynamic>;
+    final out = StringBuffer(), err = StringBuffer();
+    final proc = await Process.start(yt, ['--no-playlist', '-J', if (deno != null) ...['--js-runtimes', 'deno:$deno'], url], environment: _env());
+    final o = proc.stdout.transform(utf8.decoder).listen(out.write, onError: (_) {});
+    final e = proc.stderr.transform(utf8.decoder).listen(err.write, onError: (_) {});
+    // A stalled network must not leave the add-song dialog spinning forever.
+    final code = await proc.exitCode.timeout(probeTimeout, onTimeout: () {
+      killTree(proc);
+      throw StateError('yt-dlp -J: no answer after ${probeTimeout.inSeconds} s');
+    });
+    await Future.wait([o.asFuture<void>(), e.asFuture<void>()]).timeout(const Duration(seconds: 5), onTimeout: () => const []);
+    if (code != 0) throw StateError('yt-dlp -J failed: $err');
+    return jsonDecode(out.toString()) as Map<String, dynamic>;
   }
 
   /// Subtitle track keys (uploader-provided and automatic) for a URL.

@@ -291,7 +291,12 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
         ];
         actions = [
           TextButton(
-            onPressed: _cancel.isCompleted ? null : () => setState(() => _cancel.complete()),
+            // Closes at once: the engine stops at its next step in the
+            // background and nothing is saved.
+            onPressed: () {
+              if (!_cancel.isCompleted) _cancel.complete();
+              Navigator.of(context).pop(false);
+            },
             child: Text(tr('cancel')),
           ),
         ];

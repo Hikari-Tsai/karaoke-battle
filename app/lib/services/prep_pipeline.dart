@@ -49,6 +49,8 @@ class PrepPipeline extends ChangeNotifier {
 
   final Map<String, PrepStatus> _status = {};
   final Map<String, Completer<void>> _cancels = {};
+  final Map<String, Completer<void>> _finished = {};
+  final Set<String> _cancelling = {};
   final List<String> _queue = [];
   bool _running = false;
 
@@ -59,6 +61,7 @@ class PrepPipeline extends ChangeNotifier {
   bool isQueued(String songId) => _queue.contains(songId) || _status[songId] != null;
 
   void _emit(Song s, PrepStage stage, {double fraction = 0, String message = ''}) {
+    if (_cancelling.contains(s.id) && stage != PrepStage.failed) message = tr('library.cancelling');
     _status[s.id] = PrepStatus(songId: s.id, stage: stage, fraction: fraction, message: message);
     notifyListeners();
   }
@@ -71,10 +74,38 @@ class PrepPipeline extends ChangeNotifier {
     _pump();
   }
 
-  void cancel(String songId) {
-    _queue.remove(songId);
-    _cancels[songId]?.complete();
+  /// Stops a song's preparation. A song still waiting in the queue leaves it
+  /// at once (marked failed, so it can be retried); a running one stops at
+  /// its next step. Completes when nothing runs for the song any more.
+  Future<void> cancel(String songId) {
+    if (_queue.remove(songId)) {
+      _status.remove(songId);
+      final song = library.byId(songId);
+      if (song != null) {
+        song
+          ..stage = PrepStage.failed
+          ..error = tr('library.cancelled');
+        unawaited(library.save(song));
+      }
+      notifyListeners();
+      return Future<void>.value();
+    }
+    final c = _cancels[songId];
+    if (c == null) return Future<void>.value();
+    if (!c.isCompleted) {
+      c.complete();
+      _cancelling.add(songId);
+      final st = _status[songId];
+      if (st != null) {
+        _status[songId] = PrepStatus(songId: songId, stage: st.stage, fraction: st.fraction, message: tr('library.cancelling'));
+        notifyListeners();
+      }
+    }
+    return _finished[songId]?.future ?? Future<void>.value();
   }
+
+  /// The song is stopping after [cancel].
+  bool isCancelling(String songId) => _cancelling.contains(songId);
 
   Future<void> _pump() async {
     if (_running) return;
@@ -86,15 +117,22 @@ class PrepPipeline extends ChangeNotifier {
         if (song == null) continue;
         final cancel = Completer<void>();
         _cancels[id] = cancel;
+        final finished = _finished[id] = Completer<void>();
         try {
           await _run(song, cancel.future);
         } catch (e) {
+          final message = cancel.isCompleted ? tr('library.cancelled') : '$e';
           song.stage = PrepStage.failed;
-          song.error = '$e';
-          await library.save(song);
-          _emit(song, PrepStage.failed, message: '$e');
+          song.error = message;
+          // Not when the song was deleted meanwhile: saving would bring its
+          // folder back.
+          if (library.byId(id) != null) await library.save(song);
+          _emit(song, PrepStage.failed, message: message);
         } finally {
           _cancels.remove(id);
+          _cancelling.remove(id);
+          _finished.remove(id);
+          finished.complete();
           Future<void>.delayed(const Duration(seconds: 3), () {
             if (_status[id]?.stage == PrepStage.done || _status[id]?.stage == PrepStage.failed) {
               _status.remove(id);

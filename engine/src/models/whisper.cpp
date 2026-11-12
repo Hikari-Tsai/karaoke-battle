@@ -7,6 +7,7 @@
 #include <complex>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
@@ -399,7 +400,8 @@ bool echoes(const std::vector<int64_t>& seq, const std::vector<int64_t>& prompt,
 }
 
 int decode_window(Decoder& dec, const Tokens& tk, const float* enc, int64_t enc_len, int64_t d_model,
-                  const std::vector<int64_t>& prefix, size_t sot_index, int max_tokens, WindowResult& r) {
+                  const std::vector<int64_t>& prefix, size_t sot_index, int max_tokens, WindowResult& r,
+                  const std::function<int()>& keep_going) {
     std::vector<float> logits, logprobs;
     int64_t vocab = 0;
     int rc = dec.start(enc, enc_len, d_model, prefix, logits, vocab);
@@ -416,6 +418,12 @@ int decode_window(Decoder& dec, const Tokens& tk, const float* enc, int64_t enc_
 
     auto& seq = r.tokens;
     for (int step = 0; step < max_tokens; ++step) {
+        // A window can take many seconds to decode: let a cancel stop it
+        // between tokens instead of after the whole window.
+        if (keep_going) {
+            rc = keep_going();
+            if (rc != KE_OK) return rc;
+        }
         // --- filters ---
         for (int64_t i = 0; i < vocab; ++i)
             if (suppressed[static_cast<size_t>(i)]) cur[static_cast<size_t>(i)] = kNegInf;
@@ -569,8 +577,10 @@ int recognize_file(ke_runtime* rt, const std::string& model_dir, const std::stri
                 seek = std::max(seek, next - 50);
                 continue;
             }
-            rc = report_progress(progress, user, load_part + (1.f - load_part) * float(seek) / float(total), "recognize");
+            const float window_progress = load_part + (1.f - load_part) * float(seek) / float(total);
+            rc = report_progress(progress, user, window_progress, "recognize");
             if (rc != KE_OK) return rc;
+            const std::function<int()> keep_going = [&] { return report_progress(progress, user, window_progress, "recognize"); };
             const long seg_frames = std::min<long>(kWindowFrames, total - seek);
             const size_t from = static_cast<size_t>(seek) * kHop;
             const size_t n = std::min<size_t>(static_cast<size_t>(seg_frames) * kHop, audio.size() - from);
@@ -621,12 +631,12 @@ int recognize_file(ke_runtime* rt, const std::string& model_dir, const std::stri
             };
             size_t sot_index = 0;
             WindowResult wr;
-            rc = decode_window(dec, tk, enc_out[0].f32(), enc_len, d_model, make_prefix(true, sot_index), sot_index, 224, wr);
+            rc = decode_window(dec, tk, enc_out[0].f32(), enc_len, d_model, make_prefix(true, sot_index), sot_index, 224, wr, keep_going);
             if (rc != KE_OK) return rc;
             if (echoes(wr.tokens, style_prompt, tk.eot)) {
                 // The model repeated the prompt instead of listening: once more without it.
                 wr = WindowResult();
-                rc = decode_window(dec, tk, enc_out[0].f32(), enc_len, d_model, make_prefix(false, sot_index), sot_index, 224, wr);
+                rc = decode_window(dec, tk, enc_out[0].f32(), enc_len, d_model, make_prefix(false, sot_index), sot_index, 224, wr, keep_going);
                 if (rc != KE_OK) return rc;
             }
             ++windows;

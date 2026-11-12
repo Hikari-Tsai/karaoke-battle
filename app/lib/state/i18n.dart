@@ -197,6 +197,8 @@ const Map<String, (String, String, String)> _table = {
   'library.sing': ('預覽', 'Preview', 'プレビュー'),
   'library.reprocess': ('重新處理', 'Reprocess', '再処理'),
   'library.redownload': ('重新下載', 'Download again', '再ダウンロード'),
+  'library.cancelling': ('正在停止…', 'Stopping…', '停止しています…'),
+  'library.cancelled': ('已取消', 'Cancelled', 'キャンセルしました'),
   'library.showFolder': ('顯示資料夾', 'Show folder', 'フォルダを表示'),
   'library.takes': ('演唱紀錄', 'Takes', '歌唱履歴'),
   'library.noTakes': ('尚無演唱紀錄', 'No takes yet', '歌唱履歴はまだありません'),
