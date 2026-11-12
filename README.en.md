@@ -163,11 +163,14 @@ The main way to test is to use the app live on stream. If something goes wrong, 
 
 ### Early testers
 
-Thanks to the streamers who tested the app before the official release:
+Thanks to the streamers and friends who tested the app and reported problems before the official release:
 
 * **天櫻咲樂**: tested 50XX-series GPUs; found the GPU tensor-operation bug, the CPU/GPU switching bug and the on-screen card bug while recording; suggested edit-mode UI and scoring changes and inspired the leaderboard; tested it live on stream.
-* **多帕**: found the yt-dlp error; tested 30XX-series GPUs; suggested scoring changes and when the best score should refresh, and proposed automatic lyric alignment; tested it live on stream.
-* **可樂月月**: suggested and refined lyric In/Out timing, the manual lyrics import, and the idea of Whisper-based lyrics.
+* **多帕**: found the yt-dlp error; tested 30XX- and 50XX-series GPUs; suggested scoring changes and when the best score should refresh, and proposed automatic lyric alignment; tested it live on stream.
+* **可樂月月**: suggested and refined lyric In/Out timing, the manual lyrics import, and the idea of Whisper-based lyrics; found the freeze when cancelling during processing.
+* **妮亞露**: tested 30XX-series GPUs; found songs whose setup could be blocked, the felt latency while recording, and "Sing again" resetting the settings; proposed showing where imported lyrics come from, confirming permanent deletes and a visible "Download again" button after a failed download; found the large loudness differences between downloaded songs and proposed mastering them in the background.
+* **貝拉子**: found the FFmpeg download version and path problems.
+* **東爺**: found the bug with Chinese characters in paths.
 
 ### Models and libraries
 
