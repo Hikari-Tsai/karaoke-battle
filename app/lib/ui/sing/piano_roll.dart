@@ -102,6 +102,8 @@ class PianoRollPainter extends CustomPainter {
     this.beatTimes = const [],
     this.beatAccents = const [],
     this.traceUntilPlayhead = false,
+    this.live = false,
+    this.liveHoldSeconds = 0.45,
   }) : super(repaint: position);
 
   final NoteList notes;
@@ -126,6 +128,18 @@ class PianoRollPainter extends CustomPainter {
 
   /// Replay: draw the sung line only up to the playhead, as it was sung.
   final bool traceUntilPlayhead;
+
+  /// Live singing. The sung line stays at its true time, so it is written a
+  /// little behind the playhead (audio latency plus one analysis window, as
+  /// a DAW draws a recording's waveform behind its line). To keep the
+  /// feedback immediate, the newest pitch also sits on the playhead as a
+  /// marker, a dashed lead joins it to the end of the line, and the parts of
+  /// each note that were sung in tune light up.
+  final bool live;
+
+  /// The playhead marker shows the newest pitch while it is at most this
+  /// many seconds old (the latency, plus slack for the analysis window).
+  final double liveHoldSeconds;
   final double pitchShift;
   /// When set, the painter is static and shows 0..totalDuration.
   final double? totalDuration;
@@ -262,6 +276,7 @@ class PianoRollPainter extends CustomPainter {
         paint = upcoming;
       }
       canvas.drawRRect(rect, paint);
+      if (live && on < pos) _paintHits(canvas, rect, on, off, x);
       if (outline != null) canvas.drawRRect(rect, outline);
       if (i == selectedNote) {
         canvas.drawRRect(
@@ -364,8 +379,82 @@ class PianoRollPainter extends CustomPainter {
           Paint()
             ..color = colors.playhead
             ..strokeWidth = 2);
+      if (live) _paintLiveCursor(canvas, pos, x, y, noteH);
     }
     canvas.restore();
+  }
+
+  /// Lights up the stretches of a note (its [rect], from [on] to [off]) where
+  /// the sung pitch was in tune, at the time it was sung.
+  void _paintHits(Canvas canvas, RRect rect, double on, double off, double Function(double) x) {
+    final tr = trace;
+    if (tr == null || tr.isEmpty) return;
+    final fill = Paint()..color = colors.good.withValues(alpha: 0.55);
+    canvas.save();
+    canvas.clipRRect(rect);
+    double? start;
+    var last = double.nan;
+    void close() {
+      if (start != null) canvas.drawRect(Rect.fromLTRB(x(start!), rect.top, x(math.min(last + _hitFrame, off)), rect.bottom), fill);
+      start = null;
+    }
+
+    for (var j = tr.lowerBound(on); j < tr.length; j++) {
+      final t = tr.timeAt(j);
+      if (t >= off) break;
+      if (start != null && t - last > _hitGap) close();
+      if (tr.categoryAt(j) == PitchCategory.good) {
+        start ??= t;
+        last = t;
+      } else {
+        close();
+      }
+    }
+    close();
+    canvas.restore();
+  }
+
+  /// A hit stretch is extended by one frame, and broken by a gap longer than
+  /// [_hitGap] (an unvoiced stretch; unvoiced frames are not stored).
+  static const _hitFrame = 0.02, _hitGap = 0.08;
+
+  /// The newest sung pitch as a marker on the playhead, with a dashed lead
+  /// from where the line has been written so far.
+  void _paintLiveCursor(Canvas canvas, double pos, double Function(double) x, double Function(double) y, double noteH) {
+    final tr = trace;
+    if (tr == null || tr.isEmpty) return;
+    final k = tr.length - 1;
+    final lt = tr.timeAt(k);
+    final age = pos - lt;
+    if (age < -0.05 || age > liveHoldSeconds) return;
+    final fade = (liveHoldSeconds - age) < 0.12 ? ((liveHoldSeconds - age) / 0.12).clamp(0.0, 1.0) : 1.0;
+    final color = [colors.none, colors.good, colors.near, colors.off][tr.categoryAt(k)];
+    final px = x(pos), py = y(tr.displayAt(k));
+    final lx = x(lt);
+    if (px - lx > 4) {
+      final dash = Paint()
+        ..color = color.withValues(alpha: 0.45 * fade)
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round;
+      for (var d = lx + 3; d < px - 3; d += 9) {
+        canvas.drawLine(Offset(d, py), Offset(math.min(d + 4, px - 3), py), dash);
+      }
+    }
+    final r = math.max(5.0, math.min(9.0, noteH * 0.5));
+    canvas.drawCircle(
+        Offset(px, py),
+        r * 1.9,
+        Paint()
+          ..color = color.withValues(alpha: 0.35 * fade)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+    canvas.drawCircle(Offset(px, py), r, Paint()..color = color.withValues(alpha: fade));
+    canvas.drawCircle(
+        Offset(px, py),
+        r,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.9 * fade)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);
   }
 
   static double _niceStep(double span, double width) {
@@ -394,6 +483,8 @@ class PianoRollPainter extends CustomPainter {
       old.selectedNote != selectedNote ||
       old.revision != revision ||
       old.beatTimes != beatTimes ||
+      old.live != live ||
+      old.liveHoldSeconds != liveHoldSeconds ||
       old.colors != colors;
 }
 
@@ -531,6 +622,8 @@ class PianoRollView extends StatelessWidget {
     this.beatTimes = const [],
     this.beatAccents = const [],
     this.traceUntilPlayhead = false,
+    this.live = false,
+    this.liveHoldSeconds = 0.45,
   });
 
   final NoteList notes;
@@ -550,6 +643,10 @@ class PianoRollView extends StatelessWidget {
   final List<double> beatTimes;
   final List<bool> beatAccents;
   final bool traceUntilPlayhead;
+
+  /// See [PianoRollPainter.live] and [PianoRollPainter.liveHoldSeconds].
+  final bool live;
+  final double liveHoldSeconds;
 
   @override
   Widget build(BuildContext context) {
@@ -573,6 +670,8 @@ class PianoRollView extends StatelessWidget {
             beatTimes: beatTimes,
             beatAccents: beatAccents,
             traceUntilPlayhead: traceUntilPlayhead,
+            live: live,
+            liveHoldSeconds: liveHoldSeconds,
           ),
           child: const SizedBox.expand(),
         ),

@@ -265,7 +265,11 @@ class _ReplayCardState extends State<_ReplayCard> {
         content: Text(tr('replays.deleteBody', {'title': r.title, 'player': _player})),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error, foregroundColor: Theme.of(ctx).colorScheme.onError),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(tr('deleteForever')),
+          ),
         ],
       ),
     );

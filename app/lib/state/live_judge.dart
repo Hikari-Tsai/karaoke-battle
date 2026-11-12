@@ -98,7 +98,7 @@ class LiveJudge {
     final midi = notes.pitch[i] + pitchShift;
     if (found == null) {
       if (_sangDuring(from, math.max(to, notes.onset[i]))) return null;
-      return JudgementMark.forNote(time: shownAt, midi: midi, timing: 'miss');
+      return JudgementMark.forNote(time: shownAt, midi: midi, timing: 'miss', anchor: notes.onset[i]);
     }
     final err = found - notes.onset[i];
     return JudgementMark.forNote(
@@ -106,6 +106,7 @@ class LiveJudge {
       midi: midi,
       timing: windows.classify(err.abs()).name,
       onsetErrorMs: err * 1000,
+      anchor: notes.onset[i],
     );
   }
 

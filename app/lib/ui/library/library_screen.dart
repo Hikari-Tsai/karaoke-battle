@@ -269,14 +269,14 @@ class _SongCardState extends State<_SongCard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(tr('delete')),
+        title: Text(tr('deleteForever')),
         content: Text(tr('library.deleteConfirm', {'title': widget.song.title})),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('cancel'))),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Theme.of(c).colorScheme.error, foregroundColor: Theme.of(c).colorScheme.onError),
             onPressed: () => Navigator.pop(c, true),
-            child: Text(tr('delete')),
+            child: Text(tr('deleteForever')),
           ),
         ],
       ),
@@ -296,6 +296,8 @@ class _SongCardState extends State<_SongCard> {
     final stage = status?.stage ?? song.stage;
     final inProgress = status != null && stage != PrepStage.done && stage != PrepStage.failed;
     final ready = song.stage == PrepStage.done && !inProgress;
+    final failed = stage == PrepStage.failed && !inProgress;
+    final needsDownload = failed && song.sourceUrl != null && (song.sourceFile == null || !File(song.sourceFile!).existsSync());
     final services = context.read<AppServices>();
     final dir = services.library.files(song).dir;
     final best = _best;
@@ -377,7 +379,16 @@ class _SongCardState extends State<_SongCard> {
                   ),
                 ],
                 const SizedBox(width: 12),
-                FilledButton.icon(onPressed: ready ? _sing : null, icon: const Icon(Icons.play_circle_outline), label: Text(tr('library.sing'))),
+                if (failed)
+                  // Picks up where it stopped: the pipeline skips every step
+                  // whose output already exists.
+                  FilledButton.icon(
+                    onPressed: () => services.pipeline.enqueue(song),
+                    icon: Icon(needsDownload ? Icons.download : Icons.refresh),
+                    label: Text(tr(needsDownload ? 'library.redownload' : 'retry')),
+                  )
+                else
+                  FilledButton.icon(onPressed: ready ? _sing : null, icon: const Icon(Icons.play_circle_outline), label: Text(tr('library.sing'))),
                 const SizedBox(width: 4),
                 if (inProgress)
                   IconButton(tooltip: tr('library.cancelPrep'), onPressed: () => services.pipeline.cancel(song.id), icon: const Icon(Icons.stop_circle_outlined))

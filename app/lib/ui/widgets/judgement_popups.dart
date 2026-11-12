@@ -44,7 +44,7 @@ String worseTier(String a, String b) {
 /// One judged note: when it starts, its tier, where it sits and the tags
 /// shown under it (null = no tag).
 class JudgementMark {
-  const JudgementMark({required this.time, required this.tier, required this.midi, this.fast, this.high});
+  const JudgementMark({required this.time, required this.tier, required this.midi, this.fast, this.high, this.anchor});
 
   /// Combines the timing judgement of a note's onset with its pitch:
   /// [onsetErrorMs] is sung minus expected (negative = early), [cents] the
@@ -55,6 +55,7 @@ class JudgementMark {
     required String timing,
     double? onsetErrorMs,
     double? cents,
+    double? anchor,
   }) {
     final timed = (timing == 'great' || timing == 'good') && onsetErrorMs != null && onsetErrorMs != 0;
     final offKey = cents != null && cents.abs() > pitchTagCents;
@@ -64,6 +65,7 @@ class JudgementMark {
       tier: cents == null ? timing : worseTier(timing, pitchTier(cents)),
       fast: timed ? onsetErrorMs < 0 : null,
       high: offKey ? cents > 0 : null,
+      anchor: anchor,
     );
   }
 
@@ -79,6 +81,11 @@ class JudgementMark {
   final double midi; // as drawn (key shift included)
   final bool? fast; // FAST (true) / LATE (false)
   final bool? high; // HIGH (true) / LOW (false)
+
+  /// Live singing: the judged note's start. The pop-up sits there and
+  /// scrolls with the note instead of standing on the playhead, because a
+  /// live judgement arrives a little after the note (the audio latency).
+  final double? anchor;
 }
 
 class JudgementStyle {
@@ -129,7 +136,12 @@ class JudgementLayer extends StatelessWidget {
     this.windowSeconds = 8,
     this.playheadFraction = 0.3,
     this.gutter = 46,
+    this.followNotes = false,
   });
+
+  /// Places each pop-up on its note ([JudgementMark.anchor]) instead of on
+  /// the playhead (live singing).
+  final bool followNotes;
 
   /// Seconds a pop-up stays on screen.
   static const life = 0.45;
@@ -145,7 +157,8 @@ class JudgementLayer extends StatelessWidget {
       final w = c.maxWidth, h = c.maxHeight;
       final rows = (maxMidi - minMidi) + 1;
       final rowH = h / rows;
-      final x = gutter + playheadFraction * (w - gutter);
+      final plotW = w - gutter;
+      final playheadX = gutter + playheadFraction * plotW;
       return ValueListenableBuilder<double>(
         valueListenable: position,
         builder: (context, t, _) {
@@ -166,6 +179,8 @@ class JudgementLayer extends StatelessWidget {
             if (mo.opacity <= 0) continue;
             final noteTop = h - ((mk.midi - minMidi + 0.5) / rows) * h - rowH / 2;
             final y = (noteTop - 6 + mo.dy).clamp(30.0, h - 8);
+            final a = mk.anchor;
+            final x = followNotes && a != null ? gutter + (a - t + windowSeconds * playheadFraction) / windowSeconds * plotW : playheadX;
             children.add(Positioned(
               left: x - 110,
               width: 220,

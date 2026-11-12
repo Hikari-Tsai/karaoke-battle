@@ -46,6 +46,11 @@ void main() {
     expect([...early.marks, ...late.marks].every((m) => m.high == null), isTrue);
   });
 
+  test('every pop-up is anchored on its note start, also when judged late', () {
+    expect(run([1.12, 2.12]).marks.map((m) => m.anchor), [1.0, 2.0]);
+    expect(run([], until: 1.8).marks.single.anchor, 1.0);
+  });
+
   test('silence is a MISS when the window closes', () {
     final silent = run([], until: 1.8);
     final w = RhythmWindows.forTempo(120).good;

@@ -1013,6 +1013,8 @@ class _RollAreaState extends State<_RollArea> {
                                         revision: widget.revision,
                                         beatTimes: s.beatGrid.times,
                                         beatAccents: s.beatGrid.accents,
+                                        live: s.recording,
+                                        liveHoldSeconds: (s.latencyCompensation + 0.35).clamp(0.35, 1.2),
                                       );
                                       final judge = s.judge;
                                       if (judge == null ||
@@ -1035,6 +1037,7 @@ class _RollAreaState extends State<_RollArea> {
                                               minMidi: range.min,
                                               maxMidi: range.max,
                                               windowSeconds: s.windowSeconds,
+                                              followNotes: true,
                                             ),
                                           ),
                                         ],
