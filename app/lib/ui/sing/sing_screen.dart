@@ -15,6 +15,7 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/beat_grid.dart';
+import '../../state/loudness.dart';
 import '../../state/lyrics.dart';
 import '../../state/note_edits.dart';
 import '../../state/sing_session.dart';
@@ -1651,6 +1652,15 @@ class _Controls extends StatelessWidget {
   final bool busy;
   final Future<void> Function() onStop;
 
+  /// Volume tooltip: automatic (with the measured loudness) or manual.
+  static String _volumeTip(SingSession s) {
+    final l = s.loudness?.of(s.track.name);
+    final level = '${tr('sing.volume')} ${SongLoudness.gainDb(s.volume) ?? tr('sing.mute')}\n';
+    if (!s.volumeAuto) return level + tr('sing.volumeManual');
+    if (l == null) return level + tr('sing.volumeAutoPending');
+    return level + tr('sing.volumeAuto', {'lufs': l.lufs.toStringAsFixed(1), 'target': SongLoudness.targetLufs.toStringAsFixed(0)});
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = session;
@@ -1760,13 +1770,43 @@ class _Controls extends StatelessWidget {
                   icon: const Icon(Icons.add),
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.volume_up, size: 18),
-                SizedBox(
-                  width: 120,
-                  child: Slider(
-                    value: s.volume,
-                    max: 1.5,
-                    onChanged: enabled ? s.setVolume : null,
+                // 240 px when there is room; shares the free space with the
+                // spacer (and shrinks) on a narrow window instead of overflowing.
+                Flexible(
+                  flex: 3,
+                  child: Tooltip(
+                  message: _volumeTip(s),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.volume_up, size: 18),
+                      Flexible(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 240),
+                          child: Slider(
+                            value: SongLoudness.sliderFromGain(s.volume),
+                            onChanged: enabled ? (p) => s.setVolume(SongLoudness.gainFromSlider(p)) : null,
+                          ),
+                        ),
+                      ),
+                      // Lit while the volume is automatic; grey once the
+                      // slider was moved, and a click turns it back on.
+                      InkWell(
+                        borderRadius: BorderRadius.circular(4),
+                        onTap: enabled && !s.volumeAuto ? s.setVolumeAuto : null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Text(
+                            'AUTO',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: s.volumeAuto ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.45),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1799,6 +1839,18 @@ class _Controls extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: tr('sing.resetSettings'),
+                  onPressed: enabled && !s.recording
+                      ? () {
+                          s.resetToOriginal();
+                          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                            SnackBar(content: Text(tr('sing.resetDone'))),
+                          );
+                        }
+                      : null,
+                  icon: const Icon(Icons.settings_backup_restore),
                 ),
                 const Spacer(),
                 if (s.recording)

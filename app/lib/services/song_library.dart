@@ -105,6 +105,7 @@ class SongFiles {
   String get beatsJson => p.join(dir, 'beats.json');
   String get tempoJson => p.join(dir, 'tempo.json');
   String get singSettingsJson => p.join(dir, 'sing_settings.json');
+  String get loudnessJson => p.join(dir, 'loudness.json');
   String get subsDir => p.join(dir, 'subs');
   String get notesJson => p.join(dir, 'notes.json');
   String get refF0Json => p.join(dir, 'ref_f0.json');

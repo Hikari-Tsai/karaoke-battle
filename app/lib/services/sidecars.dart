@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../state/i18n.dart';
+import '../state/loudness.dart';
 import 'app_paths.dart';
 import 'downloader.dart';
 
@@ -673,6 +674,17 @@ class Sidecars {
     if (ff == null) return false;
     final r = await Process.run(ff, ['-i', input], environment: _env());
     return '${r.stderr}'.contains('Video:');
+  }
+
+  /// Integrated loudness (EBU R128) and sample peak of [input]; null when
+  /// ffmpeg is missing or the measurement fails.
+  Future<TrackLoudness?> measureLoudness(String input) async {
+    final ff = await resolve(SidecarKind.ffmpeg);
+    if (ff == null) return null;
+    final err = StringBuffer();
+    final code = await run(ff, ['-nostdin', '-hide_banner', '-nostats', '-i', input, '-af', 'ebur128=peak=sample:framelog=quiet', '-f', 'null', '-'], onLine: (l) => err.writeln(l));
+    if (code != 0) return null;
+    return parseEbur128Summary(err.toString());
   }
 
   /// Decodes any media file to a 44.1 kHz stereo 32-bit float WAV.

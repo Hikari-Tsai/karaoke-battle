@@ -16,6 +16,7 @@ import 'package:path/path.dart' as p;
 
 import '../engine/engine.dart';
 import '../state/i18n.dart';
+import '../state/loudness.dart';
 import '../state/lyrics.dart';
 import '../state/romaji.dart';
 import 'backend_manager.dart';
@@ -293,6 +294,10 @@ class PrepPipeline extends ChangeNotifier {
     }
     checkCancel();
 
+    // 9. loudness, for the automatic volume -- never fatal -----------------------------
+    await ensureLoudness(song);
+    checkCancel();
+
     song.stage = PrepStage.done;
     song.error = null;
     song.separationQuality = quality.name;
@@ -389,6 +394,32 @@ class PrepPipeline extends ChangeNotifier {
 
   final Set<String> _beatsQueued = {};
   Future<void> _beatsChain = Future<void>.value();
+
+  final Map<String, Future<SongLoudness?>> _loudnessInFlight = {};
+
+  /// Measures the loudness of a song's instrumental and original tracks once
+  /// (loudness.json), for songs prepared before this existed too. Returns
+  /// what is known; never throws.
+  Future<SongLoudness?> ensureLoudness(Song song) {
+    return _loudnessInFlight[song.id] ??= () async {
+      try {
+        final f = library.files(song);
+        final known = await SongLoudness.load(f.loudnessJson);
+        if (known != null && known.inst != null && known.mix != null) return known;
+        Future<TrackLoudness?> measure(String wav, TrackLoudness? had) async =>
+            had ?? (await File(wav).exists() ? await sidecars.measureLoudness(wav) : null);
+        final l = SongLoudness(inst: await measure(f.instWav, known?.inst), mix: await measure(f.mixWav, known?.mix));
+        if (l.inst == null && l.mix == null) return known;
+        if (await Directory(f.dir).exists()) await l.save(f.loudnessJson);
+        return l;
+      } catch (e) {
+        debugPrint('loudness: $e');
+        return null;
+      } finally {
+        _loudnessInFlight.remove(song.id);
+      }
+    }();
+  }
 
   /// Detects beats for a song prepared before beat tracking existed. Jobs run
   /// one at a time (they share the inference runtime); never fatal.

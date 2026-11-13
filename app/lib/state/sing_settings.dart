@@ -10,7 +10,7 @@ class SongSingSettings {
   const SongSingSettings({
     this.track,
     this.pitchShift = 0,
-    this.volume = 1.0,
+    this.volume,
     this.octaveAlign = true,
     this.windowSeconds = 8,
     this.metronomeOn,
@@ -20,7 +20,10 @@ class SongSingSettings {
   /// 'inst' or 'mix'; null = the default (instrumental when there is one).
   final String? track;
   final double pitchShift; // semitones, -6..6
-  final double volume; // 0..1.5
+
+  /// Track volume set by the singer (gain, 0..+12 dB); null = automatic (the gain that
+  /// brings the track to the target loudness, see SongLoudness).
+  final double? volume;
   final bool octaveAlign;
   final double windowSeconds; // 4..16
 
@@ -56,10 +59,13 @@ class SongSingSettings {
     }
 
     final track = j['track'];
+    var volume = num_('volume', 0, 3.981071705534972); // up to +12 dB
+    // Files from 0.7.11 always wrote the volume; 1.0 there was the default.
+    if (j['v'] == null && volume == 1.0) volume = null;
     return SongSingSettings(
       track: track == 'inst' || track == 'mix' ? track as String : null,
       pitchShift: num_('pitch_shift', -6, 6)?.roundToDouble() ?? 0,
-      volume: num_('volume', 0, 1.5) ?? 1.0,
+      volume: volume,
       octaveAlign: j['octave_align'] is bool ? j['octave_align'] as bool : true,
       windowSeconds: num_('window_seconds', 4, 16) ?? 8,
       metronomeOn: j['metronome_on'] is bool ? j['metronome_on'] as bool : null,
@@ -68,9 +74,10 @@ class SongSingSettings {
   }
 
   Map<String, dynamic> toJson() => {
+        'v': 2,
         'track': ?track,
         'pitch_shift': pitchShift,
-        'volume': volume,
+        'volume': ?volume,
         'octave_align': octaveAlign,
         'window_seconds': windowSeconds,
         'metronome_on': ?metronomeOn,

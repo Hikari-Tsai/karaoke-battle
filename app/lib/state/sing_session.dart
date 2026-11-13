@@ -19,6 +19,7 @@ import 'beat_grid.dart';
 import 'playback_clock.dart';
 import 'live_judge.dart';
 import 'live_trace.dart';
+import 'loudness.dart';
 import 'sing_settings.dart';
 import 'scoring_bridge.dart';
 import 'song_data.dart';
@@ -99,7 +100,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   SongSingSettings get singSettings => SongSingSettings(
         track: _trackSet ? track.name : null,
         pitchShift: pitchShift,
-        volume: volume,
+        volume: volumeAuto ? null : volume,
         octaveAlign: octaveAlign,
         windowSeconds: windowSeconds,
         metronomeOn: _metronomeSet ? metronomeOn : null,
@@ -112,7 +113,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       track = v.track == 'mix' ? TrackKind.mix : TrackKind.inst;
     }
     pitchShift = v.pitchShift;
-    volume = v.volume;
+    if (v.volume != null) {
+      volume = v.volume!;
+      volumeAuto = false;
+    }
     octaveAlign = v.octaveAlign;
     windowSeconds = v.windowSeconds;
     if (v.metronomeOn != null || v.metronomeGain != null) {
@@ -120,6 +124,57 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       metronomeOn = v.metronomeOn ?? metronomeOn;
       metronomeGain = v.metronomeGain ?? metronomeGain;
     }
+  }
+
+  /// The volume follows the track's measured loudness until the singer moves
+  /// the slider.
+  bool volumeAuto = true;
+
+  /// Measured loudness of the song's tracks (null until known).
+  SongLoudness? loudness;
+
+  /// Sets the automatic volume for the current track, when it is automatic.
+  void _applyAutoVolume() {
+    if (!volumeAuto) return;
+    volume = loudness?.autoGain(track.name) ?? 1.0;
+    _live?.volume = volume;
+  }
+
+  /// Returns the volume to automatic (the track's target loudness).
+  void setVolumeAuto() {
+    if (volumeAuto) return;
+    volumeAuto = true;
+    _applyAutoVolume();
+    _saveSoon();
+    notifyListeners();
+  }
+
+  /// Puts every setting of this song back to how it was first opened: the
+  /// instrumental, original key, automatic volume, global metronome, default
+  /// roll window and octave folding. The song then remembers that.
+  void resetToOriginal() {
+    final st = services.settings;
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    _trackSet = false;
+    _metronomeSet = false;
+    volumeAuto = true;
+    final want = hasInst ? TrackKind.inst : TrackKind.mix;
+    if (want != track) {
+      setTrack(want);
+      _trackSet = false;
+    }
+    setPitchShift(0);
+    _applyAutoVolume();
+    octaveAlign = true;
+    windowSeconds = 8;
+    metronomeOn = st.metronomeOn;
+    metronomeGain = st.metronomeGain;
+    applyMetronome();
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    File(files.singSettingsJson).delete().catchError((Object _) => File(files.singSettingsJson));
+    notifyListeners();
   }
 
   /// Saves the song's sing settings shortly after the last change.
@@ -203,6 +258,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   Future<void> init() async {
     final s = services.settings;
     _applySaved(await SongSingSettings.load(files.singSettingsJson));
+    loudness = await SongLoudness.load(files.loudnessJson);
+    if (volumeAuto) volume = loudness?.autoGain(track.name) ?? 1.0;
     try {
       final l = LiveAudio.create(
         services.engine,
@@ -230,6 +287,16 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       initError = '$e';
     }
     notifyListeners();
+    // Songs prepared before loudness was measured: measure now (a second or
+    // two with ffmpeg) and apply it if the volume is still automatic.
+    if (loudness?.inst == null || loudness?.mix == null) {
+      services.pipeline.ensureLoudness(song).then((l) {
+        if (l == null || _live == null) return;
+        loudness = l;
+        _applyAutoVolume();
+        notifyListeners();
+      });
+    }
   }
 
   // ---- transport -------------------------------------------------------------
@@ -275,6 +342,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       l.loadTrack(_trackPath);
       duration = l.trackDuration;
       l.seek(pos.clamp(0, duration));
+      if (volumeAuto) volume = loudness?.autoGain(track.name) ?? 1.0;
       l.volume = volume;
       l.pitchShift = pitchShift;
       if (wasPlaying) l.play();
@@ -293,7 +361,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   }
 
   void setVolume(double v) {
-    volume = v.clamp(0, 1.5);
+    volume = v.clamp(0, SongLoudness.maxGain);
+    volumeAuto = false;
     _live?.volume = volume;
     _saveSoon();
     notifyListeners();
