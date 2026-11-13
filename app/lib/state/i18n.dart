@@ -563,7 +563,11 @@ const Map<String, (String, String, String)> _table = {
   'video.rendering': ('產生影片中（1080p）…', 'Rendering the video (1080p)…', '動画を生成中（1080p）…'),
   'video.saving': ('儲存中…', 'Saving…', '保存中…'),
   'video.eta': ('約剩 {time}', 'About {time} left', '残り約 {time}'),
-  'video.keepOpen': ('產生影片時請保持這個視窗開著，大約需要跟歌曲一樣長的時間。', 'Keep this window open while it renders; it takes about as long as the song.', '生成中はこのウィンドウを開いたままにしてください。曲とほぼ同じ時間がかかります。'),
+  'video.keepOpen': (
+    '匯出時請保持本視窗開啟。空間殘響採用設定內的設定值，如需要更改可以到設定內進行更改。',
+    'Keep this window open while exporting. The reverb uses the values in Settings; change them there if needed.',
+    '書き出し中はこのウィンドウを開いたままにしてください。リバーブは設定の値を使います。変更する場合は設定で変更してください。',
+  ),
   'video.done': ('影片已儲存：{path}', 'Video saved: {path}', '動画を保存しました：{path}'),
   'video.reveal': ('在資料夾中顯示', 'Show in folder', 'フォルダーで表示'),
   'video.cardFooter': ('Karaoke Battle', 'Karaoke Battle', 'Karaoke Battle'),
