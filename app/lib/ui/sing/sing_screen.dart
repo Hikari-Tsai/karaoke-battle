@@ -1783,9 +1783,15 @@ class _Controls extends StatelessWidget {
                       Flexible(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 240),
-                          child: Slider(
-                            value: SongLoudness.sliderFromGain(s.volume),
-                            onChanged: enabled ? (p) => s.setVolume(SongLoudness.gainFromSlider(p)) : null,
+                          // A bubble above the thumb shows the level in dB
+                          // while it is dragged.
+                          child: SliderTheme(
+                            data: SliderTheme.of(context).copyWith(showValueIndicator: ShowValueIndicator.onDrag),
+                            child: Slider(
+                              value: SongLoudness.sliderFromGain(s.volume),
+                              label: SongLoudness.gainDb(s.volume) ?? tr('sing.mute'),
+                              onChanged: enabled ? (p) => s.setVolume(SongLoudness.gainFromSlider(p)) : null,
+                            ),
                           ),
                         ),
                       ),
