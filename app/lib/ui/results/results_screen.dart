@@ -14,6 +14,7 @@ import '../widgets/rank.dart';
 import 'new_record_dialog.dart';
 import 'replay_screen.dart';
 import '../replays/export_replay_dialog.dart';
+import 'export_video_dialog.dart';
 import '../../state/take_trace.dart';
 import '../../state/live_trace.dart';
 import '../../state/scoring_bridge.dart';
@@ -133,6 +134,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
               label: Text(tr('export.button')),
             ),
           ),
+          if (File(widget.take.wav).existsSync())
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: OutlinedButton.icon(
+                onPressed: _score == null ? null : () => showExportVideoDialog(context, song: widget.song, take: widget.take),
+                icon: const Icon(Icons.movie_outlined),
+                label: Text(tr('video.button')),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.tonalIcon(

@@ -2,8 +2,6 @@
 // with the video, lyrics, the reference notes and the sung pitch line drawn
 // up to the playhead, and the rhythm judgement of each note popping up as it
 // is reached.
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -17,18 +15,16 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/live_trace.dart';
 import '../../state/lyrics.dart';
-import '../../state/note_edits.dart';
 import '../../state/replay_session.dart';
 import '../../state/scoring_bridge.dart';
-import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
-import '../../state/take_trace.dart';
 import '../sing/lyrics_overlay.dart';
 import '../sing/piano_roll.dart';
 import '../sing/video_pane.dart';
 import '../widgets/rank.dart';
 import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
+import 'replay_data.dart';
 
 class ReplayScreen extends StatefulWidget {
   const ReplayScreen({super.key, required this.song, required this.take, this.notesJsonPath, this.player});
@@ -69,88 +65,22 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
   Future<void> _load() async {
     try {
       final services = context.read<AppServices>();
-      final files = services.library.files(widget.song);
-      final take = widget.take;
-      var track = 'inst';
-      try {
-        final info = jsonDecode(await File(take.infoJson).readAsString()) as Map<String, dynamic>;
-        _pitchShift = (info['pitch_shift'] as num?)?.toDouble() ?? 0;
-        track = info['track'] as String? ?? 'inst';
-      } catch (_) {}
-      var backing = track == 'mix' ? files.mixWav : files.instWav;
-      if (!await File(backing).exists()) backing = await File(files.instWav).exists() ? files.instWav : files.mixWav;
-      final offset = await SingSession.takeTimeOffset(take);
-
-      final notesPath = widget.notesJsonPath ?? await take.notesFor(files.notesJson);
-      final notes = await NoteList.load(notesPath);
-      final refF0 = await F0Curve.load(files.refF0Json, confidenceThreshold: 0.5);
-      try {
-        final nj = jsonDecode(await File(notesPath).readAsString()) as Map<String, dynamic>;
-        maskCurve(refF0, excludedSpansFromJson(nj));
-      } catch (_) {}
-      final score = await ScoringBridge.load(take.scoreJson);
-      final takeF0 = await F0Curve.load(take.f0Json, confidenceThreshold: 0.4, timeOffset: offset);
-      final trace = buildTakeTrace(notes, takeF0, shift: (score?.shift ?? 0).toDouble(), pitchShift: _pitchShift);
-      Lyrics? lyrics;
-      try {
-        final lf = File(files.lyricsJson);
-        if (await lf.exists()) {
-          final l = Lyrics.fromJson(jsonDecode(await lf.readAsString()) as Map<String, dynamic>);
-          if (!l.isEmpty) lyrics = l;
-        }
-      } catch (_) {}
-      // Judgement pop-ups at the notes' onsets: the onset's rhythm
-      // judgement combined with the note's pitch (see JudgementMark.forNote).
-      final judgements = <JudgementMark>[];
-      final rj = score?.raw['rhythm'];
-      if (rj is Map) {
-        final errors = <int, double>{};
-        final cents = <int, double>{};
-        final nm = score?.raw['note_metrics'];
-        if (nm is Map) {
-          for (final e in (nm['per_note'] as List? ?? const [])) {
-            if (e is! Map || e['index'] is! num) continue;
-            final i = (e['index'] as num).toInt();
-            if (e['onset_error_ms'] is num) errors[i] = (e['onset_error_ms'] as num).toDouble();
-            if (e['cents_deviation'] is num) cents[i] = (e['cents_deviation'] as num).toDouble();
-          }
-        }
-        for (final n in (rj['notes'] as List? ?? const [])) {
-          final i = (n['index'] as num).toInt();
-          if (i < 0 || i >= notes.length) continue;
-          judgements.add(JudgementMark.forNote(
-            time: notes.onset[i],
-            midi: notes.pitch[i] + _pitchShift,
-            timing: n['onset'] as String,
-            onsetErrorMs: errors[i],
-            cents: cents[i],
-          ));
-        }
-        judgements.sort((a, b) => a.time.compareTo(b.time));
-      }
-
-      final stems = await ensureReplayStems(
-        services.sidecars,
-        takeDir: take.dir,
-        voiceWav: take.wav,
-        backingWav: backing,
-        offsetSeconds: offset,
-        pitchShift: _pitchShift,
-      );
+      final d = await loadReplayData(services, widget.song, widget.take, notesJsonPath: widget.notesJsonPath);
+      _pitchShift = d.pitchShift;
       final s = ReplaySession(services.engine, services.settings);
-      await s.open(stems.backing, voice: stems.voice);
+      await s.open(d.stems.backing, voice: d.stems.voice);
       if (!mounted) {
         s.dispose();
         return;
       }
       setState(() {
         _session = s;
-        _notes = notes;
-        _refF0 = refF0;
-        _trace = trace;
-        _lyrics = lyrics;
-        _score = score;
-        _judgements = judgements;
+        _notes = d.notes;
+        _refF0 = d.refF0;
+        _trace = d.trace;
+        _lyrics = d.lyrics;
+        _score = d.score;
+        _judgements = d.judgements;
       });
       _ticker = createTicker((_) => s.tick())..start();
       s.togglePlay(); // start right away
