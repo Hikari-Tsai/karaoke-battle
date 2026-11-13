@@ -81,7 +81,7 @@ Press "Edit notes" and drag a note up or down to fix it. While you drag, a sine 
 When the YouTube video has subtitles they become the lyrics, shown in a rounded typeface (jf open huninn) that reads well in Chinese, Japanese kana and English. When it has none, or the song is a local file, the app asks what to do:
 
 * **Import a subtitle file**: SRT, VTT or LRC.
-* **Paste the lyrics**: paste the whole song and it is timed automatically, by default from the notes found when the song was prepared (done in seconds), or with "AI listening", which hears the words first.
+* **Paste lyrics (AI alignment)**: paste the whole song and it is timed automatically, by default from the notes found when the song was prepared (done in seconds), or with "AI listening", which hears the words first.
 * **Generate lyrics with AI**: OpenAI Whisper speech recognition, which detects the sung language or takes the one you pick. The model is only downloaded when first used, after asking (about 6.2 GB on Windows, where it runs on the GPU; the 1.8 GB int8 build on Mac, where it runs on the CPU).
 * **Type them in**.
 
