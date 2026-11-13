@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -103,5 +104,42 @@ void main() {
     expect(j.marks.map((m) => m.tier), ['perfect', 'perfect']);
     expect(j.marks.map((m) => m.time), shownAt);
     expect(j.marks.first.time, closeTo(1.0 + lag, 0.006));
+  });
+
+  group('speakers leaking into the mic', () {
+    // Music plays at -10 dBFS with a beat on every note start; 25 dB of it
+    // reaches the mic, whose own noise floor is -70 dB.
+    double music(double t) => -10 + ((t % 0.5) < 0.05 ? 6 : 0);
+    double power(double db) => math.pow(10, db / 10).toDouble();
+    double sum(double a, double b) => 10 * math.log(power(a) + power(b)) / math.ln10;
+
+    LiveJudge take({required bool Function(double t) singing, List<double> extraOnsets = const []}) {
+      final j = LiveJudge(notes: notes(), windows: RhythmWindows.forTempo(120));
+      for (var t = 0.0; t <= 3.0; t += hop) {
+        var mic = sum(music(t) - 25, -70);
+        if (singing(t)) mic = sum(mic, -12);
+        // The leaked beat makes an onset at every note start, sung or not.
+        final onset = near(t, 1.0) || near(t, 2.0) || extraOnsets.any((o) => near(t, o));
+        j.addFrame(t, onset: onset, levelDb: mic, playbackDb: music(t));
+        j.update(t);
+      }
+      return j;
+    }
+
+    test('a silent singer gets MISS, not the track\'s onsets', () {
+      expect(take(singing: (_) => false).marks.map((m) => m.tier), ['miss', 'miss']);
+    });
+
+    test('singing over the track is judged as before', () {
+      final j = take(singing: (t) => (t >= 1.0 && t < 1.5) || (t >= 2.0 && t < 2.5));
+      expect(j.marks.map((m) => m.tier), ['perfect', 'perfect']);
+    });
+
+    test('an onset the singer did not follow up is skipped for a later sung one', () {
+      // The beat at 1.0 is only the track; the singer comes in at 1.08.
+      final j = take(singing: (t) => t >= 1.08 && t < 1.5, extraOnsets: [1.08]);
+      expect(j.marks.first.tier, 'great');
+      expect(j.marks.first.fast, isFalse);
+    });
   });
 }

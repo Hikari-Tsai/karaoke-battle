@@ -13,8 +13,10 @@
 //   dsp worker       : drains the ring: growable capture buffer (for save), MPM
 //                      pitch every 10 ms on 2048-sample windows (source=0),
 //                      onsets every 5 ms on ~21 ms windows (source=2, for the
-//                      live judgements), streaming resample to 16 kHz for the
-//                      model worker.
+//                      live judgements, with the level the speakers were
+//                      playing so the app can tell the singer from the track
+//                      leaking into the mic), streaming resample to 16 kHz for
+//                      the model worker.
 //   model worker     : SwiftF0 on a sliding ~1 s window every 160 ms (10 frames),
 //                      emitting frames that have >= 10 frames of lookahead
 //                      (swift-f0 PitchStream semantics), source=1.
@@ -82,6 +84,13 @@ struct SyncRec {
     int64_t capture_index;   // capture sample index of the block start (since capture start)
     int64_t track_frame;     // audible track frame at the block start
     int32_t playing;
+};
+
+// Level of one output block (track + clicks + preview tone, without the vocal
+// return) keyed by the capture index of the callback that rendered it.
+struct OutRec {
+    int64_t capture_index;
+    float mean_square;
 };
 
 struct Track {
@@ -194,6 +203,9 @@ struct ke_audio {
     SyncRec sync_ring[kSyncCap];
     std::atomic<uint64_t> sync_head{0};           // producer (callback)
     uint64_t sync_tail = 0;                       // consumer (dsp worker)
+    OutRec out_ring[kSyncCap];                    // output levels (same SPSC scheme)
+    std::atomic<uint64_t> out_head{0};
+    uint64_t out_tail = 0;
     std::atomic<double> latency_comp{0.0};
     std::atomic<int> capture_mode{0};
     // worker statistics (logged at stop)
@@ -211,6 +223,7 @@ struct ke_audio {
     std::thread dsp_thread, model_thread;
     std::mutex sync_mutex;                        // guards sync_list
     std::vector<SyncRec> sync_list;
+    std::vector<OutRec> out_list;                 // dsp worker only
     std::mutex capture_mutex;                     // guards capture_all, track_start_offset
     std::vector<float> capture_all;
     double track_start_offset = 0.0;
@@ -239,6 +252,7 @@ struct ke_audio {
         if (ctx_ok) ma_context_uninit(&ctx);
     }
     double map_time(int64_t c, bool* on_track);
+    float playback_db(int64_t from, int64_t to);
     void push_frame(double t, float f0, float conf, float rms_db, float source);
     void data_callback(float* out, const float* in, ma_uint32 frames);
     void render_block(float* out, ma_uint32 frames);
@@ -456,6 +470,7 @@ void ke_audio::data_callback(float* out, const float* in, ma_uint32 total) {
     const int calib = calib_state.load(std::memory_order_acquire);
 
     // ---- capture side ----
+    int64_t out_rec_base = -1;                    // capture index of this block, when capturing
     if (in) {
         double sum = 0.0;
         for (ma_uint32 i = 0; i < total; ++i) sum += double(in[i]) * in[i];
@@ -493,6 +508,7 @@ void ke_audio::data_callback(float* out, const float* in, ma_uint32 total) {
                 remaining -= n;
             }
             captured_total.store(base + total, std::memory_order_release);
+            out_rec_base = base;
         }
     }
 
@@ -507,12 +523,26 @@ void ke_audio::data_callback(float* out, const float* in, ma_uint32 total) {
                 calib_state.store(2, std::memory_order_release);
         } else {
             ma_uint32 done = 0;
+            double out_sum = 0.0;
             while (done < total) {
                 const ma_uint32 n = std::min<ma_uint32>(total - done, kMaxBlock);
-                render_block(out + 2 * done, n);
-                mix_vocal_return(out + 2 * done, in ? in + done : nullptr, n);
-                mix_tone(out + 2 * done, n);
+                float* o = out + 2 * done;
+                render_block(o, n);
+                mix_tone(o, n);
+                // What the speakers play apart from the singer's own return.
+                for (ma_uint32 i = 0; i < n; ++i) {
+                    const float m = 0.5f * (o[2 * i] + o[2 * i + 1]);
+                    out_sum += double(m) * m;
+                }
+                mix_vocal_return(o, in ? in + done : nullptr, n);
                 done += n;
+            }
+            if (out_rec_base >= 0) {
+                const uint64_t h = out_head.load(std::memory_order_relaxed);
+                OutRec& r = out_ring[h % kSyncCap];
+                r.capture_index = out_rec_base;
+                r.mean_square = static_cast<float>(out_sum / std::max<ma_uint32>(1, total));
+                out_head.store(h + 1, std::memory_order_release);
             }
         }
     }
@@ -539,6 +569,23 @@ double ke_audio::map_time(int64_t c, bool* on_track) {
     return double(c) / sr;
 }
 
+// Loudest output level (dB) that can be leaking into the capture samples
+// [from, to): the output rendered one round trip (the latency compensation)
+// earlier, widened by 120 ms before and 30 ms after for an uncalibrated or
+// drifting latency. -140 when nothing was playing.
+float ke_audio::playback_db(int64_t from, int64_t to) {
+    const int64_t lag = static_cast<int64_t>(std::llround(latency_comp.load(std::memory_order_relaxed) * sr));
+    const int64_t lo = from - lag - static_cast<int64_t>(0.12 * sr);
+    const int64_t hi = to - lag + static_cast<int64_t>(0.03 * sr);
+    // first block that ends after lo (blocks start at capture_index)
+    auto it = std::upper_bound(out_list.begin(), out_list.end(), lo,
+                               [](int64_t v, const OutRec& r) { return v < r.capture_index; });
+    if (it != out_list.begin()) --it;
+    float best = 0.f;
+    for (; it != out_list.end() && it->capture_index < hi; ++it) best = std::max(best, it->mean_square);
+    return best > 0.f ? static_cast<float>(10.0 * std::log10(std::max(double(best), 1e-14))) : -140.f;
+}
+
 void ke_audio::push_frame(double t, float f0, float conf, float rms_db, float source) {
     std::lock_guard<std::mutex> lock(frames_mutex);
     f0_queue.push_back(static_cast<float>(t));
@@ -555,6 +602,7 @@ void ke_audio::dsp_worker() {
     ke::dsp::Mpm mpm(sr, kMpmWindow, 60.f, 1500.f);
     const int64_t hop = std::max<int64_t>(1, std::llround(sr * kMpmHopSeconds));
     ke::dsp::OnsetDetector onsets(sr);
+    const int64_t onset_shift = static_cast<int64_t>(std::llround(onsets.shift_s * sr));
     std::vector<float> win(kMpmWindow, 0.f);        // sliding analysis window (ends at `have`)
     int64_t have = 0;                               // capture samples consumed so far
     int64_t next_analysis = kMpmWindow;             // capture index at which the next window ends
@@ -581,6 +629,10 @@ void ke_audio::dsp_worker() {
                 }
                 if (sync_list.size() > 20000) sync_list.erase(sync_list.begin(), sync_list.begin() + 10000);
             }
+            const uint64_t oh = out_head.load(std::memory_order_acquire);
+            if (oh - out_tail > kSyncCap) out_tail = oh - kSyncCap;
+            for (; out_tail < oh; ++out_tail) out_list.push_back(out_ring[out_tail % kSyncCap]);
+            if (out_list.size() > 20000) out_list.erase(out_list.begin(), out_list.begin() + 10000);
         }
         // drain audio
         bool got = false;
@@ -600,9 +652,11 @@ void ke_audio::dsp_worker() {
                 capture_all.insert(capture_all.end(), chunk.begin(), chunk.begin() + n);
             }
             // Onset frames: f0 = 1 at an onset (else 0), confidence = the
-            // onset detection function, source = 2.
+            // level (dB) the speakers played into this window, source = 2.
             onsets.feed(chunk.data(), n, [&](const ke::dsp::OnsetDetector::Frame& f) {
-                push_frame(map_time(f.centre, nullptr), f.onset ? 1.f : 0.f, f.odf, f.rms_db, 2.f);
+                const int64_t start = f.centre - onset_shift - onsets.window() / 2;
+                push_frame(map_time(f.centre, nullptr), f.onset ? 1.f : 0.f,
+                           playback_db(start, start + onsets.window()), f.rms_db, 2.f);
             });
             if (do_mpm) {
                 // feed the sliding window and analyse every `hop` samples
@@ -1044,6 +1098,9 @@ KE_API int ke_audio_start_capture(ke_audio* a, ke_runtime* rt, const char* model
         std::lock_guard<std::mutex> l3(a->sync_mutex);
         a->sync_list.clear();
     }
+    a->out_list.clear();
+    a->out_head.store(0);
+    a->out_tail = 0;
     a->pending16.clear();
     ma_pcm_rb_reset(&a->rb);
     a->captured_total.store(0);

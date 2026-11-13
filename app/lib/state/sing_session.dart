@@ -424,9 +424,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     final gateOn = settings.noiseGateEnabled;
     final gateDb = settings.noiseGateDb;
     for (final f in frames) {
-      // Live judgements use the engine's onset frames (source 2) only.
+      // Live judgements use the engine's onset frames (source 2) only; their
+      // confidence is the level the speakers played (to ignore leakage).
       if (f.source == 2) {
-        judge?.addFrame(f.time, onset: f.f0 > 0.5, levelDb: f.rmsDb);
+        judge?.addFrame(f.time, onset: f.f0 > 0.5, levelDb: f.rmsDb, playbackDb: f.confidence);
         continue;
       }
       if (f.source != _wantedSource) continue;

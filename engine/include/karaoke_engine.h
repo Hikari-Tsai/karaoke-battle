@@ -283,6 +283,10 @@ KE_API int  ke_audio_is_capturing(ke_audio* a);
 /*
  * Drain pitch frames produced since the last call. Each frame is 5 floats:
  *   [time_seconds, f0_hz (0 = unvoiced), confidence 0..1, rms_db, source]
+ * Onset frames (source 2, every ~5 ms with any mode): f0 = 1 at a detected
+ * onset (else 0) and confidence = the level in dBFS the output was playing
+ * into that window (track + clicks, one round trip earlier; -140 = silent),
+ * so the app can tell the singer from the track leaking into the mic.
  * time_seconds is on the playback clock when a track is playing
  * (i.e. directly comparable with ke_audio_position), otherwise capture time.
  * Returns the number of frames written (>= 0) or an error code.
