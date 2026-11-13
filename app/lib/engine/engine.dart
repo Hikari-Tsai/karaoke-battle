@@ -507,12 +507,20 @@ class LiveAudio {
     }
   }
 
-  void loadTrack(String wavPath) {
+  /// Loads the playback track; [voice] (replays) is a recording on the same
+  /// timeline, mixed in live through the hall reverb (see [setReverb]).
+  void loadTrack(String wavPath, {String? voice}) {
     final s = wavPath.toNativeUtf8();
+    final v = voice?.toNativeUtf8();
     try {
-      _check(_b.audioLoadTrack(ptr, s), 'ke_audio_load_track');
+      if (v == null) {
+        _check(_b.audioLoadTrack(ptr, s), 'ke_audio_load_track');
+      } else {
+        _check(_b.audioLoadTrackWithVoice(ptr, s, v), 'ke_audio_load_track_with_voice');
+      }
     } finally {
       calloc.free(s);
+      if (v != null) calloc.free(v);
     }
   }
 
@@ -554,7 +562,12 @@ class LiveAudio {
   void setTone(double hz, {double gain = 0.2}) =>
       _check(_b.audioSetTone(ptr, hz.clamp(0.0, 20000.0), hz > 0 ? gain.clamp(0.0, 1.0) : 0.0), 'ke_audio_set_tone');
 
-  /// Hall reverb on the vocal return; [mix] 0 = dry, 1 = reverb only.
+  /// Hall reverb on the vocal return and on a replay's voice track; [mix]
+  /// 0 = dry, 1 = reverb only. Applies immediately.
+  /// Levels of the track and of a replay's voice (linear, 0..4), on top of
+  /// [volume]. Applies immediately.
+  void setStemGains(double track, double voice) =>
+      _check(_b.audioSetStemGains(ptr, track.clamp(0.0, 4.0), voice.clamp(0.0, 4.0)), 'ke_audio_set_stem_gains');
   void setReverb(bool on, double mix) => _check(_b.audioSetReverb(ptr, on ? 1 : 0, mix.clamp(0.0, 1.0)), 'ke_audio_set_reverb');
 
   void startCapture({EngineRuntime? runtime, String? swiftF0ModelPath, int mode = 0}) {

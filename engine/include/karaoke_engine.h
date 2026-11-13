@@ -237,6 +237,14 @@ KE_API int  ke_audio_get_latency(ke_audio* a, double* input_seconds, double* out
 /* ---- playback track (the accompaniment or the original mix) ---- */
 KE_API int    ke_audio_load_track(ke_audio* a, const char* wav_path);   /* decoded fully into memory */
 KE_API int    ke_audio_unload_track(ke_audio* a);
+/* Replays: the track plus a voice WAV on the same timeline (mono or mixed to
+ * mono, padded or cut to the track's length). The voice is mixed in through
+ * the hall reverb, which follows ke_audio_set_reverb while it plays. The
+ * voice is skipped while a pitch shift is set. */
+KE_API int    ke_audio_load_track_with_voice(ke_audio* a, const char* wav_path, const char* voice_wav_path);
+/* Linear levels of the track and of the voice (replay balance), each in
+ * [0, 4], on top of ke_audio_set_volume; both 1 by default. Ramped per block. */
+KE_API int    ke_audio_set_stem_gains(ke_audio* a, float track, float voice);
 KE_API double ke_audio_track_duration(ke_audio* a);
 KE_API int    ke_audio_play(ke_audio* a);
 KE_API int    ke_audio_pause(ke_audio* a);

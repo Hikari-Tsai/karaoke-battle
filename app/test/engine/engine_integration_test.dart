@@ -9,6 +9,8 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:karaoke_battle/engine/engine.dart';
@@ -88,4 +90,82 @@ void main() {
       live.dispose();
     }
   }, skip: (available && songDir != null) ? false : 'KE_TEST_SONG not set');
+
+  test('replay voice track: the reverb switch applies while it plays', () async {
+    // Silent backing, and a voice with two short 440 Hz bursts. The onset
+    // frames carry the level the engine was playing, so the reverb tail
+    // shows there: none after the first burst (reverb off), a tail after the
+    // second (switched on during playback).
+    final dir = Directory.systemTemp.createTempSync('ke_voice_');
+    const sr = 48000;
+    void wav(String path, double Function(double t) f, double seconds) {
+      final n = (seconds * sr).round();
+      final b = BytesBuilder();
+      void u32(int v) => b.add([v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255]);
+      void u16(int v) => b.add([v & 255, (v >> 8) & 255]);
+      b.add(ascii.encode('RIFF'));
+      u32(36 + n * 2);
+      b.add(ascii.encode('WAVEfmt '));
+      u32(16); u16(1); u16(1); u32(sr); u32(sr * 2); u16(2); u16(16);
+      b.add(ascii.encode('data'));
+      u32(n * 2);
+      for (var i = 0; i < n; i++) {
+        u16((f(i / sr).clamp(-1.0, 1.0) * 32767).round() & 0xffff);
+      }
+      File(path).writeAsBytesSync(b.toBytes());
+    }
+
+    final backing = p.join(dir.path, 'backing.wav'), voice = p.join(dir.path, 'voice.wav');
+    wav(backing, (_) => 0, 3.0);
+    bool burst(double t) => (t >= 0.3 && t < 0.5) || (t >= 1.8 && t < 2.0);
+    wav(voice, (t) => burst(t) ? 0.5 * math.sin(2 * math.pi * 440 * t) : 0, 3.0);
+
+    final live = LiveAudio.create(Engine.instance, sampleRate: sr);
+    try {
+      live.loadTrack(backing, voice: voice);
+      live.volume = 0.05;
+      live.setReverb(false, 1.0);
+      live.startCapture(mode: 0);
+      live.play();
+      final frames = <PitchFrame>[];
+      final until = DateTime.now().add(const Duration(milliseconds: 2700));
+      var switched = false;
+      while (DateTime.now().isBefore(until)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        frames.addAll(live.readFrames().where((f) => f.source == 2));
+        if (!switched && live.position > 1.2) {
+          live.setReverb(true, 1.0);
+          switched = true;
+        }
+      }
+      live.pause();
+      double loudest(double from, double to) =>
+          frames.where((f) => f.time >= from && f.time < to).fold(-200.0, (m, f) => math.max(m, f.confidence));
+      expect(loudest(0.3, 0.5), greaterThan(-50), reason: 'the voice plays');
+      expect(loudest(0.8, 1.1), lessThan(-120), reason: 'reverb off: silence after the burst');
+      expect(loudest(2.3, 2.6), greaterThan(-90), reason: 'reverb switched on while playing: a tail after the burst');
+      // The balance: with the voice faded out the bursts are gone.
+      live.setReverb(false, 1.0);
+      live.setStemGains(1, 0);
+      // Paused long enough that the level window no longer reaches the tail.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      live.readFrames();
+      frames.clear();
+      live.seek(0.2);
+      live.play();
+      final until2 = DateTime.now().add(const Duration(milliseconds: 500));
+      while (DateTime.now().isBefore(until2)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        frames.addAll(live.readFrames().where((f) => f.source == 2));
+      }
+      live.pause();
+      // (0.4 s on: the level window reaches ~150 ms back, to the first block
+      // after the seek, where the reverb's old tail fades out.)
+      expect(loudest(0.4, 0.5), lessThan(-120), reason: 'voice level 0: the burst is silent');
+      live.stopCapture();
+    } finally {
+      live.dispose();
+      dir.deleteSync(recursive: true);
+    }
+  }, skip: available ? false : 'engine not built');
 }

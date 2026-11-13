@@ -1,9 +1,9 @@
-// Builds the audio of a take replay: the recorded voice placed on the track
-// timeline (take time + offset = track time) mixed over the backing track
-// the singer heard, pitch-shifted by the same key change. With a reverb mix
-// the voice is first rendered through the engine's hall reverb. Cached as
-// replay.wav in the take folder (replay.wav.json records the reverb used);
-// take.wav itself always stays dry.
+// Builds the audio of a take replay as two stems the engine plays together:
+// the backing track the singer heard (pitch-shifted by the same key change)
+// and the recorded voice placed on the track timeline (take time + offset =
+// track time). The engine mixes the voice in through the hall reverb while
+// it plays, so the reverb switch and mix apply at once. Cached in the take
+// folder; take.wav itself always stays dry.
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -12,15 +12,49 @@ import 'package:path/path.dart' as p;
 
 import 'sidecars.dart';
 
-String replayWavPath(String takeDir) => p.join(takeDir, 'replay.wav');
+/// The two files a replay plays; [voice] is null for a replay shared
+/// without its recording.
+class ReplayStems {
+  const ReplayStems(this.backing, this.voice);
+  final String backing;
+  final String? voice;
+}
 
-/// Renders a dry voice WAV into a stereo reverberated WAV.
-typedef ReverbRenderer = Future<void> Function(String input, String output, double mix);
+/// Levels (music, voice) of a replay balance in -1..1: 0 plays both as
+/// mixed; moving right fades the music out (equal-power curve, -3 dB half
+/// way, silent at +1) and moving left fades the voice the same way.
+(double, double) replayStemGains(double balance) {
+  final b = balance.clamp(-1.0, 1.0);
+  double fade(double x) => math.cos(x * math.pi / 2);
+  return (b > 0 ? fade(b) : 1.0, b < 0 ? fade(-b) : 1.0);
+}
 
-/// Creates (or reuses) the replay mix and returns its path.
-/// [offsetSeconds] maps take time to track time; [pitchShift] is in
-/// semitones (the key the take was sung in).
-Future<String> ensureReplayMix(
+const _stemsVersion = 1;
+
+String _backingPath(String takeDir) => p.join(takeDir, 'replay_backing.wav');
+String _voicePath(String takeDir) => p.join(takeDir, 'replay_voice.wav');
+String _metaPath(String takeDir) => p.join(takeDir, 'replay_stems.json');
+
+/// Removes the cached replay audio (also the single-file mix of older
+/// versions), e.g. when a replay is linked to another song.
+Future<void> deleteReplayCache(String takeDir) async {
+  for (final f in [
+    _backingPath(takeDir),
+    _voicePath(takeDir),
+    _metaPath(takeDir),
+    p.join(takeDir, 'replay.wav'),
+    p.join(takeDir, 'replay.wav.json'),
+  ]) {
+    try {
+      final file = File(f);
+      if (await file.exists()) await file.delete();
+    } catch (_) {}
+  }
+}
+
+/// Creates (or reuses) the replay stems. [offsetSeconds] maps take time to
+/// track time; [pitchShift] is in semitones (the key the take was sung in).
+Future<ReplayStems> ensureReplayStems(
   Sidecars sidecars, {
   required String takeDir,
   required String? voiceWav,
@@ -29,90 +63,69 @@ Future<String> ensureReplayMix(
   double pitchShift = 0,
   double voiceGain = 1.0,
   double backingGain = 0.8,
-  double reverbMix = 0,
-  ReverbRenderer? renderReverb,
 }) async {
-  final out = replayWavPath(takeDir);
+  final backOut = _backingPath(takeDir), voiceOut = _voicePath(takeDir);
   final hasVoice = voiceWav != null && await File(voiceWav).exists();
-  // Reverb only matters when there is a voice to put it on.
-  final reverbPct = hasVoice && renderReverb != null ? (reverbMix.clamp(0.0, 1.0) * 100).round() : 0;
-  final meta = File('$out.json');
-  if (await File(out).exists() && await File(out).length() > 1024 && await _cachedReverb(meta) == reverbPct) return out;
+  if (await _cached(takeDir, hasVoice)) return ReplayStems(backOut, hasVoice ? voiceOut : null);
+  await deleteReplayCache(takeDir);
   final ff = await sidecars.resolve(SidecarKind.ffmpeg);
   if (ff == null) throw StateError('ffmpeg not available');
 
-  var voicePath = voiceWav;
-  var voiceStereo = false;
-  if (reverbPct > 0) {
-    voicePath = p.join(takeDir, 'voice_reverb.wav');
-    await renderReverb!(voiceWav!, voicePath, reverbPct / 100);
-    voiceStereo = true;
-  }
-
-  // Microphone recordings are usually far quieter than the track: bring the
-  // voice to about 2 dB under the backing's average level (at most +24 dB).
-  final voiceDb = hasVoice ? await _meanVolumeDb(sidecars, ff, voicePath!) : null;
-  final backDb = hasVoice ? await _meanVolumeDb(sidecars, ff, backingWav) : null;
-  if (voiceDb != null && backDb != null) {
-    final boostDb = (backDb + 20 * math.log(backingGain) / math.ln10 - 2 - voiceDb).clamp(0.0, 24.0);
-    voiceGain *= math.pow(10, boostDb / 20).toDouble();
-  }
-
-  final voice = voiceStereo
-      ? <String>['[1:a]aformat=channel_layouts=stereo', 'aresample=44100']
-      : <String>['[1:a]aformat=channel_layouts=mono', 'aresample=44100', 'pan=stereo|c0=c0|c1=c0'];
-  if (offsetSeconds > 0) {
-    voice.add('adelay=${(offsetSeconds * 1000).round()}:all=1');
-  } else if (offsetSeconds < 0) {
-    voice.addAll(['atrim=start=${(-offsetSeconds).toStringAsFixed(4)}', 'asetpts=PTS-STARTPTS']);
-  }
-  voice.add('volume=${voiceGain.toStringAsFixed(3)}[v]');
-
-  final backing = <String>['[0:a]aresample=44100'];
+  final backing = <String>['aresample=44100'];
   if (pitchShift.abs() > 1e-3) {
     // Pitch without tempo change: speed up by r, then stretch back by 1/r.
     final r = math.pow(2, pitchShift / 12).toDouble();
     backing.addAll(['asetrate=${(44100 * r).toStringAsFixed(3)}', 'aresample=44100', 'atempo=${(1 / r).toStringAsFixed(6)}']);
   }
-  backing.add('volume=${backingGain.toStringAsFixed(3)}[b]');
+  backing.add('volume=${backingGain.toStringAsFixed(3)}');
+  await _render(sidecars, ff, backingWav, backing, 'pcm_s16le', backOut);
 
-  // Without a voice (a replay shared without its recording) only the backing plays.
-  final filter = hasVoice
-      ? '${backing.join(',')};${voice.join(',')};[b][v]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[out]'
-      : '${backing.join(',')};[b]anull[out]';
+  if (hasVoice) {
+    // Microphone recordings are usually far quieter than the track: bring the
+    // voice to about 2 dB under the backing's average level (at most +24 dB).
+    final voiceDb = await _meanVolumeDb(sidecars, ff, voiceWav);
+    final backDb = await _meanVolumeDb(sidecars, ff, backingWav);
+    if (voiceDb != null && backDb != null) {
+      final boostDb = (backDb + 20 * math.log(backingGain) / math.ln10 - 2 - voiceDb).clamp(0.0, 24.0);
+      voiceGain *= math.pow(10, boostDb / 20).toDouble();
+    }
+    final voice = <String>['aformat=channel_layouts=mono', 'aresample=44100'];
+    if (offsetSeconds > 0) {
+      voice.add('adelay=${(offsetSeconds * 1000).round()}:all=1');
+    } else if (offsetSeconds < 0) {
+      voice.addAll(['atrim=start=${(-offsetSeconds).toStringAsFixed(4)}', 'asetpts=PTS-STARTPTS']);
+    }
+    voice.add('volume=${voiceGain.toStringAsFixed(3)}');
+    // Float, so the boost cannot clip before the engine's limiter.
+    await _render(sidecars, ff, voiceWav, voice, 'pcm_f32le', voiceOut);
+  }
+  await File(_metaPath(takeDir)).writeAsString(jsonEncode({'v': _stemsVersion, 'voice': hasVoice}));
+  return ReplayStems(backOut, hasVoice ? voiceOut : null);
+}
+
+Future<bool> _cached(String takeDir, bool hasVoice) async {
+  try {
+    final meta = jsonDecode(await File(_metaPath(takeDir)).readAsString()) as Map;
+    if (meta['v'] != _stemsVersion || meta['voice'] != hasVoice) return false;
+    for (final f in [_backingPath(takeDir), if (hasVoice) _voicePath(takeDir)]) {
+      final file = File(f);
+      if (!await file.exists() || await file.length() <= 1024) return false;
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<void> _render(Sidecars sidecars, String ff, String input, List<String> filters, String codec, String out) async {
   final tmp = '$out.part.wav';
-  final code = await sidecars.run(ff, [
-    '-y', '-hide_banner', '-nostdin',
-    '-i', backingWav,
-    if (hasVoice) ...['-i', voicePath!],
-    '-filter_complex', filter,
-    '-map', '[out]',
-    '-c:a', 'pcm_s16le',
-    tmp,
-  ]);
+  final code = await sidecars.run(ff, ['-y', '-hide_banner', '-nostdin', '-i', input, '-af', filters.join(','), '-c:a', codec, tmp]);
   if (code != 0) {
     final f = File(tmp);
     if (await f.exists()) await f.delete();
-    throw StateError('ffmpeg replay mix exited with $code');
+    throw StateError('ffmpeg replay stem exited with $code');
   }
   await File(tmp).rename(out);
-  await meta.writeAsString(jsonEncode({'reverb_pct': reverbPct}));
-  if (reverbPct > 0) {
-    final f = File(voicePath!);
-    if (await f.exists()) await f.delete();
-  }
-  return out;
-}
-
-/// Reverb (percent) the cached mix was built with; 0 for mixes made before
-/// replay.wav.json existed (they were always dry).
-Future<int> _cachedReverb(File meta) async {
-  try {
-    if (!await meta.exists()) return 0;
-    return ((jsonDecode(await meta.readAsString()) as Map)['reverb_pct'] as num?)?.toInt() ?? 0;
-  } catch (_) {
-    return -1;
-  }
 }
 
 final _meanVolume = RegExp(r'mean_volume:\s*(-?[0-9.]+) dB');

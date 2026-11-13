@@ -147,6 +147,10 @@ class AppSettings extends ChangeNotifier {
   double get reverbMix => _get('reverb_mix', 0.25);
   Future<void> setReverbMix(double v) => _set('reverb_mix', v.clamp(0.0, 1.0).toDouble());
 
+  /// Replay balance between the music (-1) and the voice (+1); 0 = as mixed.
+  double get replayBalance => _get('replay_balance', 0.0);
+  Future<void> setReplayBalance(double v) => _set('replay_balance', v.clamp(-1.0, 1.0).toDouble());
+
   /// Rhythm-game judgement pop-ups while recording.
   bool get liveJudgements => _get('live_judgements', true);
   Future<void> setLiveJudgements(bool v) => _set('live_judgements', v);

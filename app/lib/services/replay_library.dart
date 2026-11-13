@@ -27,6 +27,7 @@ import '../scoring/models.dart' show upgradeScoreJson;
 import '../state/replay_archive.dart';
 import '../state/replay_file.dart';
 import 'app_paths.dart';
+import 'replay_mix.dart';
 import 'sidecars.dart';
 import 'song_library.dart';
 
@@ -152,9 +153,8 @@ class ReplayLibrary extends ChangeNotifier {
 
   Future<void> link(ImportedReplay r, String songId) async {
     if (r.songId != songId) {
-      // The cached mix was built over the previous song's backing track.
-      final mix = File(p.join(r.dir, 'replay.wav'));
-      if (await mix.exists()) await mix.delete();
+      // The cached audio was built over the previous song's backing track.
+      await deleteReplayCache(r.dir);
     }
     r.songId = songId;
     await File(p.join(r.dir, 'meta.json')).writeAsString(jsonEncode(r.toJson()));

@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/replay_mix.dart';
+import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
@@ -57,9 +58,6 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
   double _pitchShift = 0;
   double _videoAspect = 16 / 9;
   List<JudgementMark> _judgements = const [];
-  String _backing = '';
-  double _offset = 0;
-  bool _remixing = false;
   final _keys = FocusNode(debugLabel: 'replay-keys');
 
   @override
@@ -131,11 +129,16 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
         judgements.sort((a, b) => a.time.compareTo(b.time));
       }
 
-      _backing = backing;
-      _offset = offset;
-      final wav = await _mix();
+      final stems = await ensureReplayStems(
+        services.sidecars,
+        takeDir: take.dir,
+        voiceWav: take.wav,
+        backingWav: backing,
+        offsetSeconds: offset,
+        pitchShift: _pitchShift,
+      );
       final s = ReplaySession(services.engine, services.settings);
-      await s.open(wav);
+      await s.open(stems.backing, voice: stems.voice);
       if (!mounted) {
         s.dispose();
         return;
@@ -153,37 +156,6 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
       s.togglePlay(); // start right away
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
-    }
-  }
-
-  /// Builds (or reuses) the replay audio with the current reverb setting.
-  Future<String> _mix() {
-    final services = context.read<AppServices>();
-    final st = services.settings;
-    return ensureReplayMix(
-      services.sidecars,
-      takeDir: widget.take.dir,
-      voiceWav: widget.take.wav,
-      backingWav: _backing,
-      offsetSeconds: _offset,
-      pitchShift: _pitchShift,
-      reverbMix: st.reverbOn ? st.reverbMix : 0,
-      renderReverb: (i, o, mix) => services.engine.renderReverb(i, o, mix: mix),
-    );
-  }
-
-  /// Re-renders the mix after the reverb panel closed with a change.
-  Future<void> _applyReverb() async {
-    final s = _session;
-    if (s == null || _remixing) return;
-    setState(() => _remixing = true);
-    try {
-      final wav = await _mix();
-      if (mounted && _session == s) s.reload(wav);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('${tr('error')}: $e')));
-    } finally {
-      if (mounted) setState(() => _remixing = false);
     }
   }
 
@@ -342,10 +314,9 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
             icon: Icon(s.playing ? Icons.pause : Icons.play_arrow),
           ),
           IconButton(tooltip: tr('sing.restart'), onPressed: () => s.seek(0), icon: const Icon(Icons.replay)),
-          if (_remixing)
-            const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-          else
-            VoiceFxButton(showReturn: false, offColor: theme.colorScheme.onSurfaceVariant, onClosed: _applyReverb),
+          // The engine reverberates the voice live: every change is heard at once.
+          VoiceFxButton(showReturn: false, offColor: theme.colorScheme.onSurfaceVariant, onPreview: s.setReverb),
+          if (s.hasVoice) _BalanceSlider(session: s),
           const SizedBox(width: 8),
           ValueListenableBuilder<double>(
             valueListenable: s.position,
@@ -366,6 +337,79 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           ),
         ]),
       ),
+    );
+  }
+}
+
+/// MIX: the balance between the music (left) and the voice (right), heard
+/// while dragging; clicking MIX puts it back in the middle (as mixed).
+class _BalanceSlider extends StatefulWidget {
+  const _BalanceSlider({required this.session});
+  final ReplaySession session;
+
+  @override
+  State<_BalanceSlider> createState() => _BalanceSliderState();
+}
+
+class _BalanceSliderState extends State<_BalanceSlider> {
+  double? _drag;
+
+  String _label(double b) {
+    final (music, voice) = replayStemGains(b);
+    return tr('replay.balanceLevels', {'voice': '${(voice * 100).round()}', 'music': '${(music * 100).round()}'});
+  }
+
+  void _set(double b) {
+    setState(() => _drag = null);
+    context.read<AppSettings>().setReplayBalance(b);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final saved = context.watch<AppSettings>().replayBalance;
+    final b = _drag ?? saved;
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Tooltip(
+      message: '${tr('replay.balanceTip')}\n${_label(b)}',
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(4),
+          onTap: b == 0 ? null : () {
+            widget.session.setBalance(0);
+            _set(0);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Text('MIX',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: b == 0 ? muted.withValues(alpha: 0.45) : theme.colorScheme.primary,
+                )),
+          ),
+        ),
+        Icon(Icons.music_note, size: 16, color: muted),
+        SizedBox(
+          width: 140,
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(showValueIndicator: ShowValueIndicator.onDrag),
+            child: Slider(
+              value: b,
+              min: -1,
+              max: 1,
+              label: _label(b),
+              onChanged: (v) {
+                // Snaps to the middle near it, so "as mixed" is easy to find.
+                final x = v.abs() < 0.05 ? 0.0 : v;
+                setState(() => _drag = x);
+                widget.session.setBalance(x);
+              },
+              onChangeEnd: (v) => _set(v.abs() < 0.05 ? 0.0 : v),
+            ),
+          ),
+        ),
+        Icon(Icons.mic, size: 16, color: muted),
+      ]),
     );
   }
 }

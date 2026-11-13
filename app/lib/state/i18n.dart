@@ -592,6 +592,12 @@ const Map<String, (String, String, String)> _table = {
   'voiceFx.button': ('人聲：返送與殘響', 'Voice: return and reverb', 'ボーカル：リターンとリバーブ'),
   'voiceFx.returnShort': ('從輸出聽到自己的聲音（請戴耳機）', 'Hear yourself in the output (use headphones)', '出力で自分の声を聴く（ヘッドホン推奨）'),
   'voiceFx.mix': ('混合比例', 'Mix', 'ミックス'),
+  'replay.balanceTip': (
+    'MIX：往左音樂較大、往右人聲較大；點 MIX 回到中間（原始比例）',
+    'MIX: left for more music, right for more voice; click MIX to go back to the middle (as mixed)',
+    'MIX：左で音楽を大きく、右で声を大きく。MIX をクリックで中央（元のバランス）に戻ります',
+  ),
+  'replay.balanceLevels': ('人聲 {voice}% · 音樂 {music}%', 'Voice {voice}% · Music {music}%', '声 {voice}% · 音楽 {music}%'),
   'voiceFx.reverbHint': (
     '套用在人聲返送與回放；匯出的重播檔只保留乾聲。',
     'Applies to the vocal return and to replays; exported replay files keep the dry voice.',

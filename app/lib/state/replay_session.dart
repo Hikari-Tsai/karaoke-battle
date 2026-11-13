@@ -1,8 +1,10 @@
-// Plays a take replay (replay.wav) through the audio engine and exposes its
-// clock for the video, roll and lyrics.
+// Plays a take replay (the backing and voice stems) through the audio engine
+// and exposes its clock for the video, roll and lyrics. The hall reverb on the
+// voice follows the settings live, while it plays.
 import 'package:flutter/foundation.dart';
 
 import '../engine/engine.dart';
+import '../services/replay_mix.dart';
 import '../services/settings.dart';
 import 'playback_clock.dart';
 
@@ -18,7 +20,7 @@ class ReplaySession extends ChangeNotifier implements PlaybackClock {
   bool playing = false;
   double duration = 0;
 
-  Future<void> open(String wav) async {
+  Future<void> open(String backing, {String? voice}) async {
     final l = LiveAudio.create(
       engine,
       captureDevice: settings.captureDeviceId,
@@ -26,24 +28,36 @@ class ReplaySession extends ChangeNotifier implements PlaybackClock {
       sampleRate: settings.sampleRate,
     );
     _live = l;
-    l.loadTrack(wav);
+    l.loadTrack(backing, voice: voice);
     duration = l.trackDuration;
+    hasVoice = voice != null;
+    _applySettings();
+    settings.addListener(_applySettings);
     notifyListeners();
   }
 
-  /// Swaps in a re-rendered mix, keeping the position and play state.
-  void reload(String wav) {
-    final l = _live;
-    if (l == null) return;
-    final pos = position.value;
-    final wasPlaying = l.isPlaying;
-    if (wasPlaying) l.pause();
-    l.loadTrack(wav);
-    duration = l.trackDuration;
-    l.seek(pos.clamp(0.0, duration > 0 ? duration : pos));
-    if (wasPlaying) l.play();
-    tick();
-    notifyListeners();
+  /// False for a replay shared without its recording (nothing to balance).
+  bool hasVoice = false;
+
+  void _applySettings() {
+    setReverb(settings.reverbOn, settings.reverbMix);
+    setBalance(settings.replayBalance);
+  }
+
+  /// Music (-1) to voice (+1) balance, heard at once (see [replayStemGains]).
+  void setBalance(double balance) {
+    final (music, voice) = replayStemGains(balance);
+    try {
+      _live?.setStemGains(music, voice);
+    } catch (_) {}
+  }
+
+  /// Reverb on the voice, heard at once (also while a slider is dragged,
+  /// before the setting is saved).
+  void setReverb(bool on, double mix) {
+    try {
+      _live?.setReverb(on, mix);
+    } catch (_) {}
   }
 
   void tick() {
@@ -77,6 +91,7 @@ class ReplaySession extends ChangeNotifier implements PlaybackClock {
 
   @override
   void dispose() {
+    settings.removeListener(_applySettings);
     final l = _live;
     _live = null;
     if (l != null) {

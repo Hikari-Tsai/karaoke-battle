@@ -108,6 +108,8 @@ class EngineBindings {
             'ke_audio_set_click_gain'),
         audioSetVocalReturn = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Int32), int Function(Pointer<KeAudio>, int)>(
             'ke_audio_set_vocal_return'),
+        audioSetStemGains = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Float, Float), int Function(Pointer<KeAudio>, double, double)>(
+            'ke_audio_set_stem_gains'),
         audioSetReverb = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Int32, Float), int Function(Pointer<KeAudio>, int, double)>(
             'ke_audio_set_reverb'),
         audioSetTone = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Float, Float), int Function(Pointer<KeAudio>, double, double)>(
@@ -126,6 +128,8 @@ class EngineBindings {
             int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Double>)>('ke_audio_get_latency'),
         audioLoadTrack = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Pointer<Utf8>),
             int Function(Pointer<KeAudio>, Pointer<Utf8>)>('ke_audio_load_track'),
+        audioLoadTrackWithVoice = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>),
+            int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>)>('ke_audio_load_track_with_voice'),
         audioUnloadTrack =
             lib.lookupFunction<Int32 Function(Pointer<KeAudio>), int Function(Pointer<KeAudio>)>('ke_audio_unload_track'),
         audioTrackDuration =
@@ -193,6 +197,7 @@ class EngineBindings {
   final int Function(Pointer<KeAudio>, double) audioSetClickGain;
   final int Function(Pointer<KeAudio>, int) audioSetVocalReturn;
   final int Function(Pointer<KeAudio>, int, double) audioSetReverb;
+  final int Function(Pointer<KeAudio>, double, double) audioSetStemGains;
   final int Function(Pointer<Utf8>, Pointer<Utf8>, double, double) reverbRenderWav;
   final int Function(Pointer<KeAudio>, double, double) audioSetTone;
 
@@ -201,6 +206,7 @@ class EngineBindings {
   final void Function(Pointer<KeAudio>) audioDestroy;
   final int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Double>) audioGetLatency;
   final int Function(Pointer<KeAudio>, Pointer<Utf8>) audioLoadTrack;
+  final int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>) audioLoadTrackWithVoice;
   final int Function(Pointer<KeAudio>) audioUnloadTrack;
   final double Function(Pointer<KeAudio>) audioTrackDuration;
   final int Function(Pointer<KeAudio>) audioPlay;

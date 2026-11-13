@@ -41,9 +41,9 @@ Future<void> toggleVocalReturn(BuildContext context) async {
 /// The voice button over the stage: one mic icon (yellow while the return
 /// or the reverb is on) that opens a panel with the vocal return switch, the
 /// reverb switch and the mix. [onPreview] gets every reverb change (instant
-/// feedback); [onClosed] runs when the panel closes after a change (the
-/// replay screen re-renders its mix then). Replays have no microphone, so
-/// [showReturn] hides the return there.
+/// feedback); [onClosed] runs when the panel closes after a change. Replays
+/// have no microphone, so [showReturn] hides the return there and the button
+/// shows the reverb's wave icon instead of the mic.
 class VoiceFxButton extends StatefulWidget {
   const VoiceFxButton({super.key, this.onPreview, this.onClosed, this.showReturn = true, this.offColor = Colors.white});
   final void Function(bool on, double mix)? onPreview;
@@ -84,7 +84,10 @@ class _VoiceFxButtonState extends State<VoiceFxButton> {
       builder: (context, controller, _) => IconButton(
         tooltip: tr(widget.showReturn ? 'voiceFx.button' : 'voiceFx.reverb'),
         onPressed: () => controller.isOpen ? controller.close() : controller.open(),
-        icon: Icon(active ? Icons.mic : Icons.mic_none, color: active ? _onColor : widget.offColor),
+        icon: Icon(
+          widget.showReturn ? (active ? Icons.mic : Icons.mic_none) : Icons.waves,
+          color: active ? _onColor : widget.offColor,
+        ),
       ),
     );
   }

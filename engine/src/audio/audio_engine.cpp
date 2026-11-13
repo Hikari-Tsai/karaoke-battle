@@ -97,6 +97,11 @@ struct Track {
     std::vector<float> left, right;
     int64_t frames = 0;
     int sample_rate = 0;
+    // Replays: the recorded voice on the track timeline (mono, `frames` long;
+    // empty = none), mixed in through its own hall reverb so the reverb
+    // switch and mix apply while it plays.
+    std::vector<float> voice;
+    std::unique_ptr<ke::HallReverb> voice_reverb;
 };
 
 // Metronome clicks in track frames (sorted), with an accent flag per click.
@@ -162,6 +167,8 @@ struct ke_audio {
     std::atomic<bool> playing{false};
     std::atomic<int64_t> seek_request{-1};
     std::atomic<float> volume{1.f};
+    std::atomic<float> track_gain{1.f};           // replays: music vs voice balance
+    std::atomic<float> voice_gain{1.f};
     std::atomic<float> pitch_semitones{0.f};
     std::atomic<int64_t> audible_frame{0};        // playback clock (frame at device output)
     std::atomic<Clicks*> clicks{nullptr};         // metronome (owned; swapped by the API)
@@ -174,6 +181,7 @@ struct ke_audio {
     // callback-local
     float vr_gain = 0.f;                          // smoothed 0..1 (fades the return in/out)
     float vr_mix = 0.f;                           // smoothed wet mix actually applied
+    float voice_mix = 0.f;                        // same, for a replay's voice track
     int64_t reverb_flush = 0;                     // frames of silent input still to feed after the return stops
     std::vector<float> vr_dry, vr_wl, vr_wr;
     // ---- preview tone (sine, e.g. while dragging a note in the editor) ------------
@@ -186,6 +194,7 @@ struct ke_audio {
     // callback-local state
     int64_t cursor = 0;                           // next track frame to feed
     float applied_gain = 1.f;
+    float applied_track = 1.f, applied_voice = 1.f;
     bool stretch_active = false;
     float stretch_semitones = 0.f;
     signalsmith::stretch::SignalsmithStretch<float> stretch;
@@ -259,6 +268,7 @@ struct ke_audio {
     void mix_clicks(float* out, ma_uint32 frames, int64_t base);
     void mix_vocal_return(float* out, const float* in, ma_uint32 frames);
     void mix_tone(float* out, ma_uint32 frames);
+    void mix_voice(Track* t, float* out, ma_uint32 frames, int64_t base, float g0, float gstep);
     void set_stretch(bool enable);
     void dsp_worker();
     void model_worker();
@@ -323,11 +333,15 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
     const float target_gain = volume.load(std::memory_order_relaxed);
     const float g0 = applied_gain;
     const float gstep = (target_gain - g0) / static_cast<float>(frames);
+    // The track's own gain (a replay's music level) ramps the same way.
+    const float tg_target = track_gain.load(std::memory_order_relaxed);
+    const float tg0 = applied_track;
+    const float tgstep = (tg_target - tg0) / static_cast<float>(frames);
 
     if (!stretch_active) {
         const int64_t base = cursor;
         for (ma_uint32 i = 0; i < frames; ++i) {
-            const float g = g0 + gstep * static_cast<float>(i);
+            const float g = (g0 + gstep * static_cast<float>(i)) * (tg0 + tgstep * static_cast<float>(i));
             if (cursor < t->frames) {
                 out[2 * i] = t->left[static_cast<size_t>(cursor)] * g;
                 out[2 * i + 1] = t->right[static_cast<size_t>(cursor)] * g;
@@ -336,6 +350,7 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
                 out[2 * i] = out[2 * i + 1] = 0.f;
             }
         }
+        if (!t->voice.empty()) mix_voice(t, out, frames, base, g0, gstep);
         mix_clicks(out, frames, base);
         if (cursor >= t->frames) playing.store(false, std::memory_order_release);
         audible_frame.store(cursor, std::memory_order_release);
@@ -350,7 +365,7 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
         float* outs[2] = {st_out_l.data(), st_out_r.data()};
         stretch.process(ins, static_cast<int>(frames), outs, static_cast<int>(frames));
         for (ma_uint32 i = 0; i < frames; ++i) {
-            const float g = g0 + gstep * static_cast<float>(i);
+            const float g = (g0 + gstep * static_cast<float>(i)) * (tg0 + tgstep * static_cast<float>(i));
             out[2 * i] = st_out_l[i] * g;
             out[2 * i + 1] = st_out_r[i] * g;
         }
@@ -362,6 +377,7 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
         audible_frame.store(std::min<int64_t>(audible, t->frames), std::memory_order_release);
     }
     applied_gain = target_gain;
+    applied_track = tg_target;
 }
 
 // Vocal return: the microphone mixed into the output (dry, plus the hall
@@ -432,6 +448,43 @@ void ke_audio::mix_tone(float* out, ma_uint32 frames) {
         out[2 * i] += v;
         out[2 * i + 1] += v;
     }
+}
+
+// Adds a replay's voice track (track frames base .. base + frames) to the
+// output: dry plus the hall reverb at the current switch and mix, ramped per
+// block like the vocal return so changes apply at once without clicks. The
+// reverb keeps running while it is off, so switching it on is seamless. The
+// sum is soft-limited (the old offline mix used a limiter too). Not used
+// while the pitch shifter runs (replays are rendered in their key).
+void ke_audio::mix_voice(Track* t, float* out, ma_uint32 frames, int64_t base, float g0, float gstep) {
+    const float vg_target = voice_gain.load(std::memory_order_relaxed);
+    const float vg0 = applied_voice, vgstep = (vg_target - vg0) / static_cast<float>(frames);
+    for (ma_uint32 i = 0; i < frames; ++i) {
+        const int64_t f = base + static_cast<int64_t>(i);
+        const float g = (g0 + gstep * static_cast<float>(i)) * (vg0 + vgstep * static_cast<float>(i));
+        vr_dry[i] = f >= 0 && f < t->frames ? t->voice[static_cast<size_t>(f)] * g : 0.f;
+    }
+    applied_voice = vg_target;
+    ke::HallReverb* rv = t->voice_reverb.get();
+    const float target = rv && reverb_on.load(std::memory_order_relaxed)
+                             ? std::clamp(reverb_mix.load(std::memory_order_relaxed), 0.f, 1.f)
+                             : 0.f;
+    if (rv) rv->process_wet(vr_dry.data(), vr_wl.data(), vr_wr.data(), static_cast<int>(frames));
+    const float m0 = voice_mix, ms = (target - m0) / static_cast<float>(frames);
+    auto soft = [](float x) {
+        const float a = std::fabs(x);
+        if (a <= 0.9f) return x;
+        return std::copysign(0.9f + 0.1f * std::tanh((a - 0.9f) / 0.1f), x);
+    };
+    for (ma_uint32 i = 0; i < frames; ++i) {
+        const float m = m0 + ms * static_cast<float>(i);
+        const float d = vr_dry[i] * ke::reverb_dry_gain(m);
+        const float wl = rv ? vr_wl[i] * ke::reverb_wet_gain(m) : 0.f;
+        const float wr = rv ? vr_wr[i] * ke::reverb_wet_gain(m) : 0.f;
+        out[2 * i] = soft(out[2 * i] + d + wl);
+        out[2 * i + 1] = soft(out[2 * i + 1] + d + wr);
+    }
+    voice_mix = target;
 }
 
 // Adds metronome clicks to an output block whose sample i plays track frame
@@ -908,6 +961,10 @@ KE_API int ke_audio_get_latency(ke_audio* a, double* in, double* out) {
 // ---- track ----
 
 KE_API int ke_audio_load_track(ke_audio* a, const char* wav_path) {
+    return ke_audio_load_track_with_voice(a, wav_path, nullptr);
+}
+
+KE_API int ke_audio_load_track_with_voice(ke_audio* a, const char* wav_path, const char* voice_wav_path) {
     if (!a || !wav_path) return ke::fail(KE_ERR_INVALID_ARG, "ke_audio_load_track: null argument");
     ke::AudioBuffer buf;
     int rc = ke::read_wav(wav_path, buf);
@@ -920,6 +977,17 @@ KE_API int ke_audio_load_track(ke_audio* a, const char* wav_path) {
     t->right = buf.sample_rate == a->sr ? std::move(st.planes[1]) : ke::resample(st.planes[1], buf.sample_rate, a->sr);
     t->frames = static_cast<int64_t>(std::min(t->left.size(), t->right.size()));
     KE_LOGI("audio: loaded %s (%d Hz, %d ch, %.2f s) -> %d Hz", wav_path, buf.sample_rate, buf.channels, buf.duration(), a->sr);
+    if (voice_wav_path) {
+        ke::AudioBuffer vb;
+        rc = ke::read_wav(voice_wav_path, vb);
+        if (rc != KE_OK) return rc;
+        ke::AudioBuffer mono = ke::with_channels(vb, 1);
+        t->voice = vb.sample_rate == a->sr ? std::move(mono.planes[0]) : ke::resample(mono.planes[0], vb.sample_rate, a->sr);
+        t->voice.resize(static_cast<size_t>(t->frames), 0.f);
+        if (a->sr <= ke::HallReverb::kMaxSampleRate) t->voice_reverb = std::make_unique<ke::HallReverb>(a->sr);
+        KE_LOGI("audio: voice %s (%d Hz, %.2f s)%s", voice_wav_path, vb.sample_rate, vb.duration(),
+                t->voice_reverb ? "" : " (no reverb above 48 kHz)");
+    }
     std::lock_guard<std::mutex> lock(a->api_mutex);
     return a->swap_track(t.release());
 }
@@ -1029,6 +1097,15 @@ KE_API int ke_audio_set_click_gain(ke_audio* a, float gain) {
 KE_API int ke_audio_set_vocal_return(ke_audio* a, int on) {
     if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
     a->vocal_return.store(on != 0, std::memory_order_relaxed);
+    return KE_OK;
+}
+
+KE_API int ke_audio_set_stem_gains(ke_audio* a, float track, float voice) {
+    if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
+    if (!(track >= 0.f && track <= 4.f) || !(voice >= 0.f && voice <= 4.f))
+        return ke::fail(KE_ERR_INVALID_ARG, "stem gains out of range");
+    a->track_gain.store(track, std::memory_order_relaxed);
+    a->voice_gain.store(voice, std::memory_order_relaxed);
     return KE_OK;
 }
 
