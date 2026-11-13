@@ -1,12 +1,14 @@
 // Piano keyboard on the sing screen's dashboard.
 //
-// While recording it shows, live, the note the score asks for (blue, the
-// colour of the note bars) and the note being sung (orange, with a marker at
-// the exact pitch). Before recording it shows the melody's range on the keys
-// (the tessitura as a thick bar, the extremes as a thin line) next to the
-// comfortable male and female ranges, says which voice the key suits, and
-// offers "AI 移調" to move the song into the chosen voice's range. The range
-// bar slides to the new key when the key changes.
+// The song's range is filled in on the keys (deeper where most of the
+// singing is, lighter out to the lowest and highest note), with a bar above
+// and the comfortable male and female ranges on top; it slides to a new key.
+// The note the score asks for lights blue (the colour of the note bars) and
+// the note being sung orange, with a caret at the exact pitch: while
+// recording (folded to the score's octave, like the roll) and before it (in
+// its real octave), when the microphone is already analysed. Before
+// recording the keys the singer has held get an orange dot: their range,
+// next to the song's. Below: which voice the key suits and "AI 移調".
 import 'package:flutter/material.dart';
 
 import '../../state/i18n.dart';
@@ -52,21 +54,24 @@ class VoiceKeyboardSection extends StatelessWidget {
               duration: const Duration(milliseconds: 320),
               curve: Curves.easeOutCubic,
               builder: (context, shift, _) => ListenableBuilder(
-                listenable: Listenable.merge([s.position, s.hud]),
+                listenable: Listenable.merge([s.position, s.hud, s.reachedKeys]),
                 builder: (context, _) {
                   final ref = s.notes.pitchAt(s.position.value);
                   final hud = s.hud.value;
+                  final sung = s.recording ? hud.midi : hud.rawMidi;
                   return VoiceKeyboard(
                     range: range,
                     shift: shift,
                     refMidi: ref.isNaN ? null : ref + s.pitchShift,
-                    sungMidi: s.recording && hud.voiced && hud.midi.isFinite ? hud.midi : null,
+                    sungMidi: hud.voiced && sung.isFinite ? sung : null,
+                    reached: s.recording ? const {} : s.reachedKeys.value,
                   );
                 },
               ),
             ),
             const SizedBox(height: 2),
             _KeyStepper(session: s),
+            if (!s.recording) _ReachedRange(session: s),
             if (!s.recording && !range.isEmpty) ...[
               const SizedBox(height: 2),
               _Verdicts(range: range, shift: s.pitchShift),
@@ -95,8 +100,43 @@ class VoiceKeyboardSection extends StatelessWidget {
   }
 }
 
+/// "你唱到的音域": the singer's range found so far, with a reset.
+class _ReachedRange extends StatelessWidget {
+  const _ReachedRange({required this.session});
+  final SingSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ValueListenableBuilder<Set<int>>(
+      valueListenable: session.reachedKeys,
+      builder: (context, keys, _) {
+        final text = keys.isEmpty
+            ? tr('keyboard.reachedNone')
+            : tr('keyboard.reached', {
+                'low': noteName(keys.reduce((a, b) => a < b ? a : b).toDouble()),
+                'high': noteName(keys.reduce((a, b) => a > b ? a : b).toDouble()),
+              });
+        return Row(children: [
+          const Icon(Icons.mic, size: 14, color: sungKeyColor),
+          const SizedBox(width: 4),
+          Expanded(child: Text(text, style: theme.textTheme.bodySmall)),
+          if (keys.isNotEmpty)
+            IconButton(
+              tooltip: tr('keyboard.reachedClear'),
+              visualDensity: VisualDensity.compact,
+              iconSize: 16,
+              onPressed: session.clearReachedKeys,
+              icon: const Icon(Icons.clear),
+            ),
+        ]);
+      },
+    );
+  }
+}
+
 /// Key change one semitone at a time: the same as the -/+ under the stage
-/// (also while recording; only not while a take is being scored).
+/// (locked while recording and while a take is being scored).
 class _KeyStepper extends StatelessWidget {
   const _KeyStepper({required this.session});
   final SingSession session;
@@ -107,13 +147,20 @@ class _KeyStepper extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: s.processing,
       builder: (context, processing, _) {
-        final enabled = s.ready && processing == null;
+        final enabled = s.canChangeKey && processing == null;
         final theme = Theme.of(context);
+        final locked = s.recording ? tr('sing.keyLocked') : null;
+        // Locked: lock, label and value in the grey of the disabled buttons.
+        final grey = s.recording ? theme.colorScheme.onSurface.withValues(alpha: 0.38) : null;
         return Row(children: [
-          Text(tr('sing.pitchShift'), style: theme.textTheme.bodySmall),
+          if (s.recording) ...[
+            Icon(Icons.lock, size: 12, color: grey),
+            const SizedBox(width: 2),
+          ],
+          Text(tr('sing.pitchShift'), style: theme.textTheme.bodySmall?.copyWith(color: grey)),
           const Spacer(),
           IconButton(
-            tooltip: tr('keyboard.keyDown'),
+            tooltip: locked ?? tr('keyboard.keyDown'),
             visualDensity: VisualDensity.compact,
             onPressed: enabled && s.pitchShift > -SongRange.maxShift ? () => s.setPitchShift(s.pitchShift - 1) : null,
             icon: const Icon(Icons.remove, size: 18),
@@ -123,11 +170,11 @@ class _KeyStepper extends StatelessWidget {
             child: Text(
               '${s.pitchShift >= 0 ? '+' : ''}${s.pitchShift.toInt()}',
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleSmall,
+              style: theme.textTheme.titleSmall?.copyWith(color: grey),
             ),
           ),
           IconButton(
-            tooltip: tr('keyboard.keyUp'),
+            tooltip: locked ?? tr('keyboard.keyUp'),
             visualDensity: VisualDensity.compact,
             onPressed: enabled && s.pitchShift < SongRange.maxShift ? () => s.setPitchShift(s.pitchShift + 1) : null,
             icon: const Icon(Icons.add, size: 18),
@@ -203,7 +250,7 @@ class _AutoTransposeButton extends StatelessWidget {
       menuChildren: [
         for (final z in VoiceZone.all)
           Builder(builder: (context) {
-            final best = s.songRange.bestShift(z, current: s.pitchShift.round());
+            final best = s.songRange.bestShift(z);
             final who = tr(z.type == VoiceType.male ? 'keyboard.male' : 'keyboard.female');
             final current = best == s.pitchShift.round();
             return MenuItemButton(
@@ -230,10 +277,13 @@ class _AutoTransposeButton extends StatelessWidget {
 
 /// The keyboard itself (C2..C6).
 class VoiceKeyboard extends StatelessWidget {
-  const VoiceKeyboard({super.key, required this.range, required this.shift, this.refMidi, this.sungMidi});
+  const VoiceKeyboard({super.key, required this.range, required this.shift, this.refMidi, this.sungMidi, this.reached = const {}});
   final SongRange range;
   final double shift;
   final double? refMidi, sungMidi;
+
+  /// Keys the singer has held (orange dots).
+  final Set<int> reached;
 
   static const lowMidi = 36, highMidi = 84;
 
@@ -249,6 +299,7 @@ class VoiceKeyboard extends StatelessWidget {
             shift: shift,
             refMidi: refMidi,
             sungMidi: sungMidi,
+            reached: reached,
             textColor: Theme.of(context).colorScheme.onSurfaceVariant,
             rangeColor: Theme.of(context).colorScheme.primary,
           ),
@@ -264,12 +315,14 @@ class VoiceKeyboardPainter extends CustomPainter {
     required this.shift,
     required this.refMidi,
     required this.sungMidi,
+    this.reached = const {},
     required this.textColor,
     required this.rangeColor,
   });
   final SongRange range;
   final double shift;
   final double? refMidi, sungMidi;
+  final Set<int> reached;
   final Color textColor, rangeColor;
 
   static const _lo = VoiceKeyboard.lowMidi, _hi = VoiceKeyboard.highMidi;
@@ -339,10 +392,31 @@ class VoiceKeyboardPainter extends CustomPainter {
     }
 
     final ref = refMidi?.round(), sung = sungMidi?.round();
+    // The song's range filled in on the keys (after the key change).
+    double inRange(int m) {
+      if (range.isEmpty) return 0;
+      final p = m - shift;
+      if (p >= range.low - 0.5 && p <= range.high + 0.5) return 1;
+      if (p >= range.lowest - 0.5 && p <= range.highest + 0.5) return 0.5;
+      return 0;
+    }
+
     Color? fillOf(int m) {
       if (m == sung) return sungKeyColor;
       if (m == ref) return refKeyColor;
       return null;
+    }
+
+    Color whiteOf(int m) {
+      final r = inRange(m);
+      const base = Color(0xFFF4F5F7);
+      return r == 0 ? base : Color.lerp(base, rangeColor, r == 1 ? 0.8 : 0.35)!;
+    }
+
+    Color blackOf(int m) {
+      final r = inRange(m);
+      const base = Color(0xFF1C1E24);
+      return r == 0 ? base : Color.lerp(base, rangeColor, r == 1 ? 0.7 : 0.35)!;
     }
 
     // White keys.
@@ -353,7 +427,7 @@ class VoiceKeyboardPainter extends CustomPainter {
     for (var m = _lo, i = 0; m <= _hi; m++) {
       if (isBlack(m)) continue;
       final r = Rect.fromLTWH(i * whiteW, keysTop, whiteW, keysH);
-      paint.color = fillOf(m) ?? const Color(0xFFF4F5F7);
+      paint.color = fillOf(m) ?? whiteOf(m);
       canvas.drawRect(r, paint);
       canvas.drawRect(r, border);
       i++;
@@ -363,12 +437,19 @@ class VoiceKeyboardPainter extends CustomPainter {
     for (var m = _lo; m <= _hi; m++) {
       if (!isBlack(m)) continue;
       final cx = keyCenter(m, w);
-      paint.color = fillOf(m) ?? const Color(0xFF1C1E24);
+      paint.color = fillOf(m) ?? blackOf(m);
       canvas.drawRRect(
         RRect.fromLTRBAndCorners(cx - blackW / 2, keysTop, cx + blackW / 2, keysTop + blackH,
             bottomLeft: const Radius.circular(1.5), bottomRight: const Radius.circular(1.5)),
         paint,
       );
+    }
+    // Keys the singer has held: an orange dot near the bottom of each.
+    for (final m in reached) {
+      if (m < _lo || m > _hi || m == sung) continue;
+      final cx = keyCenter(m, w);
+      final y = isBlack(m) ? keysTop + blackH - 5 : keysTop + keysH - 5;
+      canvas.drawCircle(Offset(cx, y), 2.4, Paint()..color = sungKeyColor);
     }
     // When the singer is on the score's key, ring it so both stay visible.
     if (ref != null && ref == sung) {
@@ -410,5 +491,6 @@ class VoiceKeyboardPainter extends CustomPainter {
   @override
   bool shouldRepaint(VoiceKeyboardPainter old) =>
       old.shift != shift || old.refMidi?.round() != refMidi?.round() || old.sungMidi != sungMidi || old.range != range ||
+      old.reached != reached ||
       old.textColor != textColor || old.rangeColor != rangeColor;
 }

@@ -427,6 +427,19 @@ class _CalibResult {
   final double seconds;
 }
 
+/// Calibrates an already open device (by address) on a worker isolate.
+Future<_CalibResult> _spawnCalibrateOn(String libPath, int address) => Isolate.run<_CalibResult>(() {
+      final b = EngineBindings(DynamicLibrary.open(libPath));
+      final secs = calloc<Double>();
+      try {
+        final rc = b.audioCalibrateLatency(Pointer<KeAudio>.fromAddress(address), secs);
+        if (rc != KeError.ok) return _CalibResult(rc, 'ke_audio_calibrate_latency: ${b.lastErrorString()}', 0);
+        return _CalibResult(KeError.ok, '', secs.value);
+      } finally {
+        calloc.free(secs);
+      }
+    });
+
 Future<_CalibResult> _spawnCalibrate(String libPath, String? capture, String? playback, int sampleRate) {
   return Isolate.run<_CalibResult>(() => _calibrateEntry(libPath, capture, playback, sampleRate));
 }
@@ -570,10 +583,12 @@ class LiveAudio {
       _check(_b.audioSetStemGains(ptr, track.clamp(0.0, 4.0), voice.clamp(0.0, 4.0)), 'ke_audio_set_stem_gains');
   void setReverb(bool on, double mix) => _check(_b.audioSetReverb(ptr, on ? 1 : 0, mix.clamp(0.0, 1.0)), 'ke_audio_set_reverb');
 
-  void startCapture({EngineRuntime? runtime, String? swiftF0ModelPath, int mode = 0}) {
+  /// Starts analysing the microphone. [monitor]: pitch frames only, the
+  /// audio is not kept (nothing to save), for as long as needed.
+  void startCapture({EngineRuntime? runtime, String? swiftF0ModelPath, int mode = 0, bool monitor = false}) {
     final s = swiftF0ModelPath?.toNativeUtf8() ?? nullptr;
     try {
-      _check(_b.audioStartCapture(ptr, runtime?.ptr ?? nullptr, s, mode), 'ke_audio_start_capture');
+      _check(_b.audioStartCapture(ptr, runtime?.ptr ?? nullptr, s, mode | (monitor ? 4 : 0)), 'ke_audio_start_capture');
     } finally {
       if (s != nullptr) calloc.free(s);
     }
@@ -610,6 +625,15 @@ class LiveAudio {
   /// call blocks for up to ~3.5 s). Throws [EngineException] on failure.
   static Future<double> calibrateInBackground(Engine engine, {String? captureDevice, String? playbackDevice, int sampleRate = 48000}) async {
     final r = await _spawnCalibrate(engine.libraryPath, captureDevice, playbackDevice, sampleRate);
+    if (r.code != KeError.ok) throw EngineException(r.code, r.message);
+    return r.seconds;
+  }
+
+  /// Measures the round-trip latency on this (open) device, on a worker
+  /// isolate. Playback must be paused and capture stopped; do not dispose
+  /// this device until the future completes.
+  Future<double> calibrateOnThisDevice() async {
+    final r = await _spawnCalibrateOn(engine.libraryPath, ptr.address);
     if (r.code != KeError.ok) throw EngineException(r.code, r.message);
     return r.seconds;
   }

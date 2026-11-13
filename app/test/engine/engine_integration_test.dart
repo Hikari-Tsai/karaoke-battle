@@ -168,4 +168,49 @@ void main() {
       dir.deleteSync(recursive: true);
     }
   }, skip: available ? false : 'engine not built');
+
+  test('monitor capture: pitch frames without keeping the audio', () async {
+    final live = LiveAudio.create(Engine.instance, sampleRate: 48000);
+    try {
+      live.startCapture(mode: 0, monitor: true);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      final frames = live.readFrames();
+      expect(frames.where((f) => f.source == 0), isNotEmpty, reason: 'MPM frames flow');
+      live.stopCapture();
+      final dir = Directory.systemTemp.createTempSync('ke_monitor_');
+      final wav = p.join(dir.path, 'm.wav');
+      try {
+        live.saveCapture(wav);
+      } catch (_) {}
+      // Nothing was kept: no file, or an empty one.
+      expect(!File(wav).existsSync() || File(wav).lengthSync() < 1024, isTrue);
+      dir.deleteSync(recursive: true);
+      // A normal capture still works afterwards.
+      live.startCapture(mode: 0);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      live.stopCapture();
+    } finally {
+      live.dispose();
+    }
+  }, skip: available ? false : 'engine not built');
+
+  test('latency can be measured again on a device that is already open', () async {
+    final live = LiveAudio.create(Engine.instance, sampleRate: 48000);
+    try {
+      double? sec;
+      try {
+        sec = await live.calibrateOnThisDevice();
+      } on EngineException catch (e) {
+        // No mic hearing the speakers here: a clean failure is fine too.
+        expect(e.message, contains('ke_audio_calibrate_latency'));
+      }
+      if (sec != null) expect(sec, inInclusiveRange(0.0, 0.5));
+      // The device still works afterwards.
+      live.startCapture(mode: 0, monitor: true);
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      live.stopCapture();
+    } finally {
+      live.dispose();
+    }
+  }, skip: available ? false : 'engine not built');
 }

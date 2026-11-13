@@ -283,6 +283,9 @@ KE_API int    ke_audio_set_tone(ke_audio* a, float hz, float gain);
  *   mode: 0 = DSP only, 1 = SwiftF0 only, 2 = both (DSP frames flagged source=0, model frames source=1)
  * Frames are produced every ~10 ms (DSP) / 16 ms (SwiftF0).
  */
+/* mode | KE_CAPTURE_MONITOR: pitch (and onset) frames only; the audio is not
+ * kept, so it can run for as long as the screen is open (no save_capture). */
+#define KE_CAPTURE_MONITOR 4
 KE_API int  ke_audio_start_capture(ke_audio* a, ke_runtime* rt_or_null,
                                    const char* swiftf0_model_path_or_null, int mode);
 KE_API int  ke_audio_stop_capture(ke_audio* a);

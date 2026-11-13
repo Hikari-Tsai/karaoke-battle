@@ -7,8 +7,10 @@
 // "too high" and a long high chorus does.
 //
 // The key change follows the same rule as the verdict, so a key that "fits"
-// is never moved: keep the current key when it fits, else take the fitting
-// key closest to the original (ties: less time spent above the range, then
+// is never moved. It is always worked out from the original key (not from
+// wherever the key is now), so each voice always lands on the same key
+// whatever was picked before: the original key when it fits, else the
+// fitting key closest to the original (ties: less time spent above the range, then
 // below), and when no key in reach fits, the one that leaves the tessitura
 // least outside the range.
 import 'dart:math' as math;
@@ -108,11 +110,11 @@ class SongRange {
     return total > 0 ? (above / total, below / total) : (0.0, 0.0);
   }
 
-  /// The key change (-6..+6) for [zone] (see the header): [current] stays
-  /// when it already fits.
-  int bestShift(VoiceZone zone, {int current = 0}) {
-    if (isEmpty) return current;
-    if (verdict(zone, current.toDouble()).fit == RangeFit.fits) return current;
+  /// The key change (-6..+6) for [zone], from the original key (see the
+  /// header): 0 when the original key fits.
+  int bestShift(VoiceZone zone) {
+    if (isEmpty) return 0;
+    if (verdict(zone, 0).fit == RangeFit.fits) return 0;
     final fitting = [
       for (var s = -maxShift; s <= maxShift; s++)
         if (verdict(zone, s.toDouble()).fit == RangeFit.fits) s,

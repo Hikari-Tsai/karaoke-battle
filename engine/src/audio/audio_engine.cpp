@@ -217,6 +217,7 @@ struct ke_audio {
     uint64_t out_tail = 0;
     std::atomic<double> latency_comp{0.0};
     std::atomic<int> capture_mode{0};
+    std::atomic<bool> keep_audio{true};           // false: pitch frames only (monitoring)
     // worker statistics (logged at stop)
     std::atomic<int64_t> stat_detect_ns_max{0}, stat_detect_ns_total{0}, stat_detect_count{0};
     std::atomic<int64_t> stat_model_ns_max{0}, stat_model_ns_total{0}, stat_model_count{0};
@@ -700,7 +701,7 @@ void ke_audio::dsp_worker() {
             std::memcpy(chunk.data(), p, n * sizeof(float));
             ma_pcm_rb_commit_read(&rb, n);
             got = true;
-            {
+            if (keep_audio.load(std::memory_order_relaxed)) {
                 std::lock_guard<std::mutex> lock(capture_mutex);
                 capture_all.insert(capture_all.end(), chunk.begin(), chunk.begin() + n);
             }
@@ -1135,9 +1136,12 @@ KE_API int ke_audio_set_pitch_shift(ke_audio* a, float semitones) {
 
 // ---- capture ----
 
-KE_API int ke_audio_start_capture(ke_audio* a, ke_runtime* rt, const char* model_path, int mode) {
+KE_API int ke_audio_start_capture(ke_audio* a, ke_runtime* rt, const char* model_path, int mode_flags) {
     if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
-    if (mode < 0 || mode > 2) return ke::fail(KE_ERR_INVALID_ARG, "mode must be 0, 1 or 2");
+    const int mode = mode_flags & 3;
+    const bool monitor = (mode_flags & KE_CAPTURE_MONITOR) != 0;
+    if (mode > 2 || (mode_flags & ~(3 | KE_CAPTURE_MONITOR)) != 0)
+        return ke::fail(KE_ERR_INVALID_ARG, "mode must be 0, 1 or 2 (optionally | KE_CAPTURE_MONITOR)");
     std::lock_guard<std::mutex> lock(a->api_mutex);
     if (a->capturing.load()) return ke::fail(KE_ERR_STATE, "already capturing");
     if (a->calib_state.load() == 1) return ke::fail(KE_ERR_STATE, "calibration in progress");
@@ -1162,7 +1166,8 @@ KE_API int ke_audio_start_capture(ke_audio* a, ke_runtime* rt, const char* model
     {
         std::lock_guard<std::mutex> l1(a->capture_mutex);
         a->capture_all.clear();
-        a->capture_all.reserve(static_cast<size_t>(a->sr) * 60);
+        a->capture_all.shrink_to_fit();
+        if (!monitor) a->capture_all.reserve(static_cast<size_t>(a->sr) * 60);
         a->track_synced = false;
         a->track_start_offset = 0.0;
     }
@@ -1185,6 +1190,7 @@ KE_API int ke_audio_start_capture(ke_audio* a, ke_runtime* rt, const char* model
     a->sync_head.store(0);
     a->sync_tail = 0;
     a->capture_mode.store(mode);
+    a->keep_audio.store(!monitor);
     a->stat_detect_ns_max.store(0); a->stat_detect_ns_total.store(0); a->stat_detect_count.store(0);
     a->stat_model_ns_max.store(0); a->stat_model_ns_total.store(0); a->stat_model_count.store(0);
     a->stat_backlog_max.store(0);

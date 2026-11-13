@@ -29,8 +29,19 @@ import 'voice_range.dart';
 enum TrackKind { inst, mix }
 
 class SingHud {
-  const SingHud({this.noteName = '—', this.cents = double.nan, this.levelDb = -90, this.voiced = false, this.refNoteName = '—', this.midi = double.nan});
+  const SingHud({
+    this.noteName = '—',
+    this.cents = double.nan,
+    this.levelDb = -90,
+    this.voiced = false,
+    this.refNoteName = '—',
+    this.midi = double.nan,
+    this.rawMidi = double.nan,
+  });
   final String noteName;
+
+  /// The sung pitch in its real octave; NaN while unvoiced.
+  final double rawMidi;
 
   /// The sung pitch as drawn on the roll (folded to the reference's octave
   /// when octave align is on); NaN while unvoiced.
@@ -229,7 +240,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   /// "AI 移調": the key change that fits the melody into [voice]'s range.
   void autoTranspose(VoiceType voice) =>
-      setPitchShift(songRange.bestShift(VoiceZone.of(voice), current: pitchShift.round()).toDouble());
+      setPitchShift(songRange.bestShift(VoiceZone.of(voice)).toDouble());
   final F0Curve refF0;
 
   LiveAudio? _live;
@@ -301,6 +312,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     } catch (e) {
       initError = '$e';
     }
+    _startMonitor();
     notifyListeners();
     // Songs prepared before loudness was measured: measure now (a second or
     // two with ffmpeg) and apply it if the volume is still automatic.
@@ -367,7 +379,12 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     notifyListeners();
   }
 
+  /// The key is fixed for a take: scoring assumes one key per take and the
+  /// replay is rendered in the key saved with it.
+  bool get canChangeKey => ready && !recording;
+
   void setPitchShift(double semitones) {
+    if (recording) return;
     pitchShift = semitones.clamp(-6, 6).roundToDouble();
     _live?.pitchShift = pitchShift;
     judge?.pitchShift = pitchShift;
@@ -405,6 +422,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     if (recording) {
       _drainFrames(l, pos);
       judge?.update(pos);
+    } else if (_monitoring) {
+      _drainFrames(l, pos);
     }
     position.value = pos;
     // Throttled HUD update (~15 Hz).
@@ -413,7 +432,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       _lastHud = now;
       final level = l.inputLevelDb;
       final h = _pendingHud;
-      hud.value = SingHud(noteName: h.noteName, cents: h.cents, levelDb: level, voiced: h.voiced, refNoteName: h.refNoteName, midi: h.midi);
+      hud.value = SingHud(noteName: h.noteName, cents: h.cents, levelDb: level, voiced: h.voiced, refNoteName: h.refNoteName, midi: h.midi, rawMidi: h.rawMidi);
       _hudDirty = false;
     }
     // Track finished while recording. The engine stops playback by itself at
@@ -442,7 +461,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       // Live judgements use the engine's onset frames (source 2) only; their
       // confidence is the level the speakers played (to ignore leakage).
       if (f.source == 2) {
-        judge?.addFrame(f.time, onset: f.f0 > 0.5, levelDb: f.rmsDb, playbackDb: f.confidence);
+        if (recording) judge?.addFrame(f.time, onset: f.f0 > 0.5, levelDb: f.rmsDb, playbackDb: f.confidence);
         continue;
       }
       if (f.source != _wantedSource) continue;
@@ -465,13 +484,102 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         final a = cents.abs();
         cat = a <= 50 ? PitchCategory.good : (a <= 100 ? PitchCategory.near : PitchCategory.off);
       }
-      trace.add(f.time, midi, display, cents, cat);
-      _pendingHud = SingHud(noteName: noteName(midi), cents: cents, voiced: true, refNoteName: ref.isNaN ? '—' : noteName(ref), midi: display);
+      if (recording) trace.add(f.time, midi, display, cents, cat);
+      _pendingHud = SingHud(noteName: noteName(midi), cents: cents, voiced: true, refNoteName: ref.isNaN ? '—' : noteName(ref), midi: display, rawMidi: midi);
+      if (!recording) _noteReached(midi, f.time);
       _hudDirty = true;
     }
     if (!_hudDirty) {
       final refRaw = notes.pitchAt(pos);
-      _pendingHud = SingHud(noteName: _pendingHud.noteName, cents: _pendingHud.cents, voiced: _pendingHud.voiced, refNoteName: refRaw.isNaN ? '—' : noteName(refRaw + pitchShift), midi: _pendingHud.midi);
+      _pendingHud = SingHud(noteName: _pendingHud.noteName, cents: _pendingHud.cents, voiced: _pendingHud.voiced, refNoteName: refRaw.isNaN ? '—' : noteName(refRaw + pitchShift), midi: _pendingHud.midi, rawMidi: _pendingHud.rawMidi);
+    }
+  }
+
+  // ---- pitch monitor (before recording) -------------------------------------------
+  //
+  // Outside a take the microphone is still analysed (DSP pitch only, the
+  // audio is not kept), so the dashboard shows the note being sung and
+  // collects the notes the singer reaches: their range, next to the song's.
+
+  bool _monitoring = false;
+
+  void _startMonitor() {
+    final l = _live;
+    if (l == null || recording || _monitoring) return;
+    try {
+      if (l.isCapturing) return;
+      _wantedSource = 0;
+      l.startCapture(mode: 0, monitor: true);
+      _monitoring = true;
+    } catch (_) {}
+  }
+
+  void _stopMonitor() {
+    final l = _live;
+    if (!_monitoring) return;
+    _monitoring = false;
+    try {
+      if (l != null && l.isCapturing) l.stopCapture();
+    } catch (_) {}
+    _pendingHud = SingHud(refNoteName: _pendingHud.refNoteName);
+    _hudDirty = true;
+  }
+
+  /// Keys the singer held for at least [reachSeconds] outside a take, in
+  /// their real octave: their range as found so far.
+  final ValueNotifier<Set<int>> reachedKeys = ValueNotifier(const {});
+  static const reachSeconds = 0.25;
+  final Map<int, double> _keyTime = {};
+  double _lastReachFrame = double.nan;
+
+  void _noteReached(double midi, double t) {
+    final dt = _lastReachFrame.isNaN ? 0.01 : (t - _lastReachFrame).clamp(0.0, 0.05);
+    _lastReachFrame = t;
+    final k = midi.round();
+    if (k < 24 || k > 108) return;
+    final total = (_keyTime[k] ?? 0) + dt;
+    _keyTime[k] = total;
+    if (total >= reachSeconds && !reachedKeys.value.contains(k)) {
+      reachedKeys.value = {...reachedKeys.value, k};
+    }
+  }
+
+  void clearReachedKeys() {
+    _keyTime.clear();
+    reachedKeys.value = const {};
+  }
+
+  // ---- latency ------------------------------------------------------------------
+
+  /// A latency measurement is running (on this session's own device).
+  bool calibrating = false;
+  Future<void>? _calibration;
+
+  /// Measures the latency again on the open device (pauses playback, plays
+  /// a burst of clicks), then uses and saves it. Throws on failure.
+  Future<double> recalibrateLatency() async {
+    final l = _live;
+    if (l == null || recording || calibrating) throw StateError('busy');
+    if (l.isPlaying) pause();
+    _stopMonitor();
+    calibrating = true;
+    notifyListeners();
+    final run = l.calibrateOnThisDevice();
+    _calibration = run.then((_) {}, onError: (_) {});
+    try {
+      final sec = await run;
+      if (_live != l) return sec;
+      l.latencyCompensation = sec;
+      latencyCompensation = sec;
+      await services.settings.setLatencySeconds(sec);
+      return sec;
+    } finally {
+      calibrating = false;
+      _calibration = null;
+      if (_live == l) {
+        _startMonitor();
+        notifyListeners();
+      }
     }
   }
 
@@ -494,6 +602,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     } catch (_) {
       mode = 0;
     }
+    _stopMonitor();
     _wantedSource = mode == 0 ? 0 : 1;
     try {
       if (l.isPlaying) l.pause();
@@ -514,6 +623,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     } catch (e) {
       initError = '$e';
       recording = false;
+      _startMonitor();
     }
     notifyListeners();
   }
@@ -530,10 +640,14 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     final elapsed = l.captureElapsed;
     l.stopCapture();
     notifyListeners();
-    if (elapsed < 3) return null;
+    if (elapsed < 3) {
+      _startMonitor();
+      return null;
+    }
     processing.value = const TakeProcessing('sing.saving', 0);
     final take = await services.library.newTake(song);
     l.saveCapture(take.wav);
+    _startMonitor();
     await File(take.infoJson).writeAsString(const JsonEncoder.withIndent('  ').convert({
       'song_id': song.id,
       'pitch_shift': pitchShift,
@@ -641,11 +755,18 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         if (l.isCapturing) l.stopCapture();
         if (l.isPlaying) l.pause();
       } catch (_) {}
-      l.dispose();
+      // A measurement still running uses the device: close it afterwards.
+      final c = _calibration;
+      if (c != null) {
+        c.whenComplete(l.dispose);
+      } else {
+        l.dispose();
+      }
     }
     position.dispose();
     hud.dispose();
     processing.dispose();
+    reachedKeys.dispose();
     super.dispose();
   }
 }

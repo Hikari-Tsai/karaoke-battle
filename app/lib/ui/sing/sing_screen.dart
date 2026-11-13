@@ -1360,15 +1360,66 @@ class _HudPanel extends StatelessWidget {
                 const SizedBox(height: 4),
                 _GatedLevelMeter(level: level, levelDb: hud.levelDb),
                 const SizedBox(height: 8),
-                Text(
-                  '${tr('sing.latency')}: ${(session.latencyCompensation * 1000).toStringAsFixed(0)} ms',
-                  style: theme.textTheme.labelSmall,
-                ),
+                _LatencyRow(session: session),
               ],
             );
           },
         ),
       ),
+    );
+  }
+}
+
+/// "延遲補償: N ms" with a button that measures it again on this screen
+/// (before singing only: the button is gone while recording).
+class _LatencyRow extends StatelessWidget {
+  const _LatencyRow({required this.session});
+  final SingSession session;
+
+  Future<void> _measure(BuildContext context) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      final sec = await session.recalibrateLatency();
+      messenger?.showSnackBar(SnackBar(content: Text(tr('sing.latencyMeasured', {'ms': (sec * 1000).toStringAsFixed(0)}))));
+    } on StateError {
+      // Busy (recording or already measuring): the button is disabled then.
+    } catch (e) {
+      messenger?.showSnackBar(SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text('${tr('settings.calibFail.title')}：${calibrationAdvice(e)}'),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListenableBuilder(
+      listenable: session,
+      builder: (context, _) {
+        final s = session;
+        return Row(children: [
+          Expanded(
+            child: Text(
+              s.calibrating ? tr('settings.calibrating') : '${tr('sing.latency')}: ${(s.latencyCompensation * 1000).toStringAsFixed(0)} ms',
+              style: theme.textTheme.labelSmall,
+            ),
+          ),
+          // Only before singing: hidden while recording.
+          if (s.calibrating)
+            const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+          else if (!s.recording)
+            Tooltip(
+              message: '${tr('sing.latencyRemeasure')}\n${tr('settings.calibrateHint')}',
+              child: TextButton.icon(
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 6)),
+                onPressed: s.ready ? () => _measure(context) : null,
+                icon: const Icon(Icons.refresh, size: 14),
+                label: Text(tr('sing.latencyRemeasureShort'), style: theme.textTheme.labelSmall),
+              ),
+            ),
+        ]);
+      },
     );
   }
 }
@@ -1758,9 +1809,22 @@ class _Controls extends StatelessWidget {
                       : null,
                 ),
                 const SizedBox(width: 16),
-                Text(tr('sing.pitchShift')),
+                // Locked while recording: lock, label and value in the grey
+                // of the disabled -/+ buttons.
+                if (s.recording)
+                  Tooltip(
+                    message: tr('sing.keyLocked'),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.lock, size: 14, color: cs.onSurface.withValues(alpha: 0.38)),
+                      const SizedBox(width: 2),
+                      Text(tr('sing.pitchShift'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38))),
+                    ]),
+                  )
+                else
+                  Text(tr('sing.pitchShift')),
                 IconButton(
-                  onPressed: enabled
+                  tooltip: s.recording ? tr('sing.keyLocked') : null,
+                  onPressed: enabled && s.canChangeKey
                       ? () => s.setPitchShift(s.pitchShift - 1)
                       : null,
                   icon: const Icon(Icons.remove),
@@ -1770,10 +1834,12 @@ class _Controls extends StatelessWidget {
                   child: Text(
                     '${s.pitchShift >= 0 ? '+' : ''}${s.pitchShift.toInt()}',
                     textAlign: TextAlign.center,
+                    style: s.recording ? TextStyle(color: cs.onSurface.withValues(alpha: 0.38)) : null,
                   ),
                 ),
                 IconButton(
-                  onPressed: enabled
+                  tooltip: s.recording ? tr('sing.keyLocked') : null,
+                  onPressed: enabled && s.canChangeKey
                       ? () => s.setPitchShift(s.pitchShift + 1)
                       : null,
                   icon: const Icon(Icons.add),

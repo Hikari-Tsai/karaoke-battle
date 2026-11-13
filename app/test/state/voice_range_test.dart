@@ -57,9 +57,16 @@ void main() {
     final r = SongRange.of(melody([(60, 4), (64, 4), (67, 4), (75, 0.3), (65, 4)]));
     expect(r.verdict(VoiceZone.female, 0).fit, RangeFit.fits);
     expect(r.bestShift(VoiceZone.female), 0);
-    // Already moved by the user and still fitting: stays where it is.
-    expect(r.verdict(VoiceZone.female, -2).fit, RangeFit.fits);
-    expect(r.bestShift(VoiceZone.female, current: -2), -2);
+  });
+
+  test('the AI key does not depend on the key before (male then female = female)', () {
+    final r = SongRange.of(melody([(60, 4), (64, 4), (67, 4), (69, 4), (72, 1)]));
+    final female = r.bestShift(VoiceZone.female);
+    final male = r.bestShift(VoiceZone.male);
+    expect(male, isNot(female));
+    // The female key fits even from the male key, but AI still answers the same.
+    expect(r.verdict(VoiceZone.female, male.toDouble()).fit, RangeFit.fits);
+    expect(r.bestShift(VoiceZone.female), female);
   });
 
   test('when the key does not fit, AI takes the smallest change that fits', () {
