@@ -16,6 +16,7 @@ import '../services/model_registry.dart';
 import '../services/song_library.dart';
 import 'app_services.dart';
 import 'beat_grid.dart';
+import 'ghost_notes.dart';
 import 'playback_clock.dart';
 import 'live_judge.dart';
 import 'live_trace.dart';
@@ -23,12 +24,17 @@ import 'loudness.dart';
 import 'sing_settings.dart';
 import 'scoring_bridge.dart';
 import 'song_data.dart';
+import 'voice_range.dart';
 
 enum TrackKind { inst, mix }
 
 class SingHud {
-  const SingHud({this.noteName = '—', this.cents = double.nan, this.levelDb = -90, this.voiced = false, this.refNoteName = '—'});
+  const SingHud({this.noteName = '—', this.cents = double.nan, this.levelDb = -90, this.voiced = false, this.refNoteName = '—', this.midi = double.nan});
   final String noteName;
+
+  /// The sung pitch as drawn on the roll (folded to the reference's octave
+  /// when octave align is on); NaN while unvoiced.
+  final double midi;
   final double cents;
   final double levelDb;
   final bool voiced;
@@ -213,8 +219,17 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// Replaces the reference notes after a user edit (pitch / delete).
   void replaceNotes(NoteList n) {
     notes = n;
+    _songRange = null;
     notifyListeners();
   }
+
+  /// The melody's range in the original key (see voice_range.dart).
+  SongRange get songRange => _songRange ??= SongRange.of(notes);
+  SongRange? _songRange;
+
+  /// "AI 移調": the key change that fits the melody into [voice]'s range.
+  void autoTranspose(VoiceType voice) =>
+      setPitchShift(songRange.bestShift(VoiceZone.of(voice), current: pitchShift.round()).toDouble());
   final F0Curve refF0;
 
   LiveAudio? _live;
@@ -398,7 +413,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       _lastHud = now;
       final level = l.inputLevelDb;
       final h = _pendingHud;
-      hud.value = SingHud(noteName: h.noteName, cents: h.cents, levelDb: level, voiced: h.voiced, refNoteName: h.refNoteName);
+      hud.value = SingHud(noteName: h.noteName, cents: h.cents, levelDb: level, voiced: h.voiced, refNoteName: h.refNoteName, midi: h.midi);
       _hudDirty = false;
     }
     // Track finished while recording. The engine stops playback by itself at
@@ -451,12 +466,12 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         cat = a <= 50 ? PitchCategory.good : (a <= 100 ? PitchCategory.near : PitchCategory.off);
       }
       trace.add(f.time, midi, display, cents, cat);
-      _pendingHud = SingHud(noteName: noteName(midi), cents: cents, voiced: true, refNoteName: ref.isNaN ? '—' : noteName(ref));
+      _pendingHud = SingHud(noteName: noteName(midi), cents: cents, voiced: true, refNoteName: ref.isNaN ? '—' : noteName(ref), midi: display);
       _hudDirty = true;
     }
     if (!_hudDirty) {
       final refRaw = notes.pitchAt(pos);
-      _pendingHud = SingHud(noteName: _pendingHud.noteName, cents: _pendingHud.cents, voiced: _pendingHud.voiced, refNoteName: refRaw.isNaN ? '—' : noteName(refRaw + pitchShift));
+      _pendingHud = SingHud(noteName: _pendingHud.noteName, cents: _pendingHud.cents, voiced: _pendingHud.voiced, refNoteName: refRaw.isNaN ? '—' : noteName(refRaw + pitchShift), midi: _pendingHud.midi);
     }
   }
 
@@ -581,8 +596,11 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   static Future<ScoreData> _scoreSaved(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant) async {
     final settings = services.settings;
+    // The take keeps the notes it is scored against, so later edits or
+    // cleaning of the song's notes do not shift its results and replay.
+    await snapshotTakeNotes(files.notesJson, [take.dir]);
     final score = await ScoringBridge.scoreAndSave(
-      notesJsonPath: files.notesJson,
+      notesJsonPath: await take.notesFor(files.notesJson),
       refF0JsonPath: files.refF0Json,
       takeF0JsonPath: take.f0Json,
       scoreJsonPath: take.scoreJson,

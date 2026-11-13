@@ -131,6 +131,13 @@ class TakeInfo {
   String get f0Json => p.join(dir, 'take_f0.json');
   String get scoreJson => p.join(dir, 'score.json');
   String get infoJson => p.join(dir, 'take.json');
+
+  /// The notes this take was scored against (a copy of the song's notes.json
+  /// taken when it was scored); older takes may not have one.
+  String get notesJson => p.join(dir, 'notes.json');
+
+  /// [notesJson] when the take has its own copy, else the song's [songNotes].
+  Future<String> notesFor(String songNotes) async => await File(notesJson).exists() ? notesJson : songNotes;
 }
 
 class SongLibrary extends ChangeNotifier {

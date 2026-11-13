@@ -83,7 +83,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       final services = context.read<AppServices>();
       final files = services.library.files(widget.song);
       final score = widget.score ?? await ScoringBridge.load(widget.take.scoreJson);
-      final notes = await NoteList.load(files.notesJson);
+      final notes = await NoteList.load(await widget.take.notesFor(files.notesJson));
       final refF0 = await F0Curve.load(files.refF0Json, confidenceThreshold: 0.5);
       try {
         final info = jsonDecode(await File(widget.take.infoJson).readAsString()) as Map<String, dynamic>;

@@ -81,7 +81,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
       if (!await File(backing).exists()) backing = await File(files.instWav).exists() ? files.instWav : files.mixWav;
       final offset = await SingSession.takeTimeOffset(take);
 
-      final notesPath = widget.notesJsonPath ?? files.notesJson;
+      final notesPath = widget.notesJsonPath ?? await take.notesFor(files.notesJson);
       final notes = await NoteList.load(notesPath);
       final refF0 = await F0Curve.load(files.refF0Json, confidenceThreshold: 0.5);
       try {

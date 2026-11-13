@@ -311,7 +311,7 @@ class ReplayLibrary extends ChangeNotifier {
       pitchShift: pitchShift,
       track: track,
       timeOffset: start - latency,
-      notes: readJson(files.notesJson),
+      notes: readJson(await take.notesFor(files.notesJson)),
       takeF0: readJson(take.f0Json),
       score: upgradeScoreJson(readJson(take.scoreJson)),
       voiceFile: vocalName,

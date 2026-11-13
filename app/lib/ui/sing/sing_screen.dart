@@ -17,6 +17,7 @@ import '../../state/i18n.dart';
 import '../../state/beat_grid.dart';
 import '../../state/loudness.dart';
 import '../../state/lyrics.dart';
+import '../../state/ghost_notes.dart';
 import '../../state/note_edits.dart';
 import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
@@ -26,6 +27,7 @@ import '../lyrics/lyrics_actions.dart';
 import 'lyrics_overlay.dart';
 import 'tempo_dialog.dart';
 import 'video_pane.dart';
+import 'voice_keyboard.dart';
 import '../widgets/calibration.dart';
 import '../widgets/metronome_icon.dart';
 import '../widgets/judgement_popups.dart';
@@ -332,6 +334,9 @@ class _SingScreenState extends State<SingScreen>
       if (!mounted) return;
       final files = services.library.files(widget.song);
       _loadLyrics(files.lyricsJson);
+      // Once per song: drop ghost notes (see ghost_notes.dart); earlier takes
+      // keep a copy of the notes they were scored against.
+      await cleanSongGhostNotes(files.notesJson, [for (final t in await services.library.takes(widget.song)) t.dir]);
       final notes = await NoteList.load(files.notesJson);
       final refF0 = await F0Curve.load(
         files.refF0Json,
@@ -1086,13 +1091,15 @@ class _HudDrawer extends StatelessWidget {
       curve: Curves.easeOutCubic,
       left: shown ? 8 : -_width,
       top: 8,
+      bottom: 8,
       width: _width + 28,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Scrolls when the stage is shorter than the panel (small windows).
           SizedBox(
             width: _width,
-            child: _HudPanel(session: session),
+            child: SingleChildScrollView(child: _HudPanel(session: session)),
           ),
           // Pull tab
           Padding(
@@ -1346,6 +1353,8 @@ class _HudPanel extends StatelessWidget {
                       : '—',
                   style: theme.textTheme.titleMedium?.copyWith(color: color),
                 ),
+                const SizedBox(height: 12),
+                VoiceKeyboardSection(session: session),
                 const SizedBox(height: 12),
                 Text(tr('sing.mic'), style: theme.textTheme.labelSmall),
                 const SizedBox(height: 4),

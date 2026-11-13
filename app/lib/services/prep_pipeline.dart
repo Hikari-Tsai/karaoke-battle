@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../engine/engine.dart';
+import '../state/ghost_notes.dart';
 import '../state/i18n.dart';
 import '../state/loudness.dart';
 import '../state/lyrics.dart';
@@ -268,6 +269,7 @@ class PrepPipeline extends ChangeNotifier {
       );
       await _await(job, cancel, (pr) => _emit(song, PrepStage.transcribe, fraction: pr.fraction, message: pr.stage));
       song.gameModelId = m.id;
+      await cleanSongGhostNotes(f.notesJson, const []);
     }
     checkCancel();
 
