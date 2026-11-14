@@ -1029,7 +1029,8 @@ class _RollAreaState extends State<_RollArea> {
                                         revision: widget.revision,
                                         beatTimes: s.beatGrid.times,
                                         beatAccents: s.beatGrid.accents,
-                                        live: s.recording,
+                                        // Live drawing also in preview while it plays (the mic is analysed).
+                                        live: s.recording || s.playing,
                                         liveHoldSeconds: (s.latencyCompensation + 0.35).clamp(0.35, 1.2),
                                         keyboard: settings.rollKeyboard,
                                         sungMidi: s.sungMidi,

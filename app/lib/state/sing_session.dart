@@ -485,7 +485,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         final a = cents.abs();
         cat = a <= 50 ? PitchCategory.good : (a <= 100 ? PitchCategory.near : PitchCategory.off);
       }
-      if (recording) trace.add(f.time, midi, display, cents, cat);
+      // The pitch line: while recording, and in preview while the track
+      // plays (frame times are on the track clock then; paused, they are
+      // capture time and would land in the wrong place).
+      if (recording || playing) trace.add(f.time, midi, display, cents, cat);
       _pendingHud = SingHud(noteName: noteName(midi), cents: cents, voiced: true, refNoteName: ref.isNaN ? '—' : noteName(ref), midi: display, rawMidi: midi);
       if (!recording) _noteReached(midi, f.time);
       _hudDirty = true;
