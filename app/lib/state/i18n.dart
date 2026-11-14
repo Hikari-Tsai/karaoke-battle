@@ -553,9 +553,9 @@ const Map<String, (String, String, String)> _table = {
   'video.title': ('匯出影片', 'Export video', '動画を書き出す'),
   'video.copyrightTitle': ('版權提醒', 'About copyright', '著作権について'),
   'video.copyrightBody': (
-    '匯出的影片會包含原曲的音樂、伴奏與 MV 畫面（如果有），這些內容的著作權屬於原權利人。\n\n影片只會存在你的電腦，App 不會幫你上傳。如果要公開分享（例如上傳到 YouTube 或社群平台），請先確認你有權使用這些內容，或平台已取得授權；否則影片可能被判定侵權而遭到下架、靜音或封鎖。',
-    'The video contains the original song\'s music, backing track and music video (if any), which belong to their rights holders.\n\nThe video stays on your computer; the app uploads nothing. Before sharing it publicly (YouTube, social media), make sure you may use this material or the platform has a licence for it; otherwise the video may be taken down, muted or blocked.',
-    '書き出す動画には原曲の音楽・伴奏・MV 映像（あれば）が含まれ、その著作権は元の権利者にあります。\n\n動画はお使いのコンピューターにのみ保存され、アプリはアップロードしません。公開する場合（YouTube や SNS など）は、使用する権利があるか、プラットフォームが許諾を得ているかを確認してください。そうでないと削除・ミュート・ブロックされることがあります。',
+    '影片匯出可能會包含他人的版權物，如詞曲版權、錄音著作權與影像著作等等。如果您預計把影片上傳 YouTube 等公開平台，請自行處理版權事宜並留意紅黃標等版權警告的可能性。',
+    'The exported video may contain other people\'s copyrighted works, such as the song\'s lyrics and music, the sound recording and the video footage. If you plan to upload it to YouTube or another public platform, please handle the rights yourself and be aware that it may receive copyright claims or strikes.',
+    '書き出した動画には、作詞・作曲、録音、映像など他者の著作物が含まれる場合があります。YouTube などの公開プラットフォームにアップロードする予定の場合は、権利処理をご自身で行い、著作権の申し立てや警告を受ける可能性にご注意ください。',
   ),
   'video.agree': ('我了解，選擇儲存位置', 'I understand, choose where to save', '了解して保存先を選ぶ'),
   'video.saveTitle': ('儲存影片', 'Save video', '動画を保存'),
