@@ -104,7 +104,9 @@ class PianoRollPainter extends CustomPainter {
     this.traceUntilPlayhead = false,
     this.live = false,
     this.liveHoldSeconds = 0.45,
-  }) : super(repaint: position);
+    this.keyboard = false,
+    this.sungMidi,
+  }) : super(repaint: Listenable.merge([position, sungMidi]));
 
   final NoteList notes;
   final F0Curve refF0;
@@ -141,6 +143,15 @@ class PianoRollPainter extends CustomPainter {
   /// many seconds old (the latency, plus slack for the analysis window).
   final double liveHoldSeconds;
   final double pitchShift;
+
+  /// Draws a piano keyboard in the pitch gutter instead of note names: the
+  /// key the score asks for at the playhead lights blue, the key being sung
+  /// ([sungMidi], NaN when silent) orange.
+  final bool keyboard;
+  final ValueListenable<double>? sungMidi;
+
+  static const keyRef = Color(0xFF3D8BFF), keySung = Color(0xFFFF9F0A);
+
   /// When set, the painter is static and shows 0..totalDuration.
   final double? totalDuration;
   final double gutter;
@@ -196,11 +207,13 @@ class PianoRollPainter extends CustomPainter {
         canvas.drawRect(Rect.fromLTWH(gutter, yy - rowH / 2, plotW, rowH), altPaint);
       }
       canvas.drawLine(Offset(gutter, yy + rowH / 2), Offset(w, yy + rowH / 2), pc == 11 ? octPaint : gridPaint);
-      if (labelEvery == 1 || pc == 0) {
+      if (!keyboard && (labelEvery == 1 || pc == 0)) {
         final tp = _label(noteName(m.toDouble()), pc == 0 ? colors.label.withValues(alpha: 0.95) : colors.label, rowH >= 14 ? 11 : 9);
         tp.paint(canvas, Offset(gutter - tp.width - 4, yy - tp.height / 2));
       }
     }
+
+    if (keyboard) _paintKeyboard(canvas, h, rowH, y, isStatic ? double.nan : (position?.value ?? 0));
 
     // Time grid: beat / bar lines when a beat grid is known (live roll),
     // else 1 s lines with labels.
@@ -414,6 +427,69 @@ class PianoRollPainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// The keyboard in the gutter: one row per semitone like a DAW's piano
+  /// roll (black keys 62 % of the width), C keys named, the score's key at
+  /// the playhead and the sung key lit.
+  void _paintKeyboard(Canvas canvas, double h, double rowH, double Function(double) y, double pos) {
+    const black = {1, 3, 6, 8, 10};
+    final g = gutter - 2;
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(0, 0, g, h));
+    canvas.drawRect(Rect.fromLTWH(0, 0, g, h), Paint()..color = const Color(0xFFE9EBF0));
+    final ref = pos.isNaN ? null : notes.pitchAt(pos);
+    final refKey = ref == null || ref.isNaN ? null : (ref + pitchShift).round();
+    var s = sungMidi?.value;
+    // Replays: the take's own pitch at the playhead (the line drawn so far).
+    final tr = trace;
+    if (s == null && traceUntilPlayhead && tr != null && !tr.isEmpty && !pos.isNaN) {
+      final k = tr.lowerBound(pos + 1e-6) - 1;
+      if (k >= 0 && pos - tr.timeAt(k) <= 0.12) s = tr.displayAt(k);
+    }
+    final sungKey = s == null || s.isNaN ? null : s.round();
+    final line = Paint()
+      ..color = const Color(0xFF9AA0AE)
+      ..strokeWidth = 0.7;
+    final blackW = g * 0.62;
+    for (var m = minMidi.floor() - 1; m <= maxMidi.ceil() + 1; m++) {
+      final yy = y(m.toDouble());
+      final pc = ((m % 12) + 12) % 12;
+      final top = yy - rowH / 2;
+      final isBlack = black.contains(pc);
+      final lit = m == sungKey ? keySung : (m == refKey ? keyRef : null);
+      if (isBlack) {
+        if (lit != null) canvas.drawRect(Rect.fromLTWH(blackW, top, g - blackW, rowH), Paint()..color = lit.withValues(alpha: 0.35));
+        canvas.drawRRect(
+          RRect.fromRectAndCorners(Rect.fromLTWH(0, top + 0.5, blackW, rowH - 1),
+              topRight: const Radius.circular(2), bottomRight: const Radius.circular(2)),
+          Paint()..color = lit ?? const Color(0xFF1C1E24),
+        );
+      } else {
+        if (lit != null) canvas.drawRect(Rect.fromLTWH(0, top, g, rowH), Paint()..color = lit);
+        // White keys end where there is no black key between them (B|C, E|F).
+        if (pc == 0 || pc == 5) {
+          canvas.drawLine(Offset(0, top + rowH), Offset(g, top + rowH), line);
+        } else {
+          canvas.drawLine(Offset(blackW, top + rowH), Offset(g, top + rowH), line);
+        }
+      }
+      if (m == refKey && m == sungKey) {
+        // On the score's key: a blue edge keeps both visible.
+        canvas.drawRect(
+            Rect.fromLTWH(1, top + 1, g - 2, rowH - 2),
+            Paint()
+              ..color = keyRef
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2);
+      }
+      if (pc == 0 && rowH >= 6) {
+        final tp = _label(noteName(m.toDouble()), lit != null ? Colors.white : const Color(0xFF3A3F4B), rowH >= 14 ? 10 : 8);
+        tp.paint(canvas, Offset(g - tp.width - 3, yy - tp.height / 2));
+      }
+    }
+    canvas.restore();
+    canvas.drawLine(Offset(g + 1, 0), Offset(g + 1, h), Paint()..color = const Color(0xFF3A3F4B)..strokeWidth = 2);
+  }
+
   /// A hit stretch is extended by one frame, and broken by a gap longer than
   /// [_hitGap] (an unvoiced stretch; unvoiced frames are not stored).
   static const _hitFrame = 0.02, _hitGap = 0.08;
@@ -485,6 +561,8 @@ class PianoRollPainter extends CustomPainter {
       old.beatTimes != beatTimes ||
       old.live != live ||
       old.liveHoldSeconds != liveHoldSeconds ||
+      old.keyboard != keyboard ||
+      old.sungMidi != sungMidi ||
       old.colors != colors;
 }
 
@@ -624,7 +702,13 @@ class PianoRollView extends StatelessWidget {
     this.traceUntilPlayhead = false,
     this.live = false,
     this.liveHoldSeconds = 0.45,
+    this.keyboard = false,
+    this.sungMidi,
   });
+
+  /// See [PianoRollPainter.keyboard].
+  final bool keyboard;
+  final ValueListenable<double>? sungMidi;
 
   final NoteList notes;
   final F0Curve refF0;
@@ -672,6 +756,8 @@ class PianoRollView extends StatelessWidget {
             traceUntilPlayhead: traceUntilPlayhead,
             live: live,
             liveHoldSeconds: liveHoldSeconds,
+            keyboard: keyboard,
+            sungMidi: sungMidi,
           ),
           child: const SizedBox.expand(),
         ),

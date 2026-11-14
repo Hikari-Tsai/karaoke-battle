@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/song_library.dart';
+import '../../services/settings.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../rules/rules_screen.dart';
@@ -233,6 +234,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                         maxMidi: range.max,
                                         pitchShift: _pitchShift,
                                         totalDuration: _duration > 0 ? _duration : 1,
+                                        keyboard: context.watch<AppSettings>().rollKeyboard,
                                       );
                                     }),
                                   ),

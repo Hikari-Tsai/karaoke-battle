@@ -204,6 +204,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           pitchShift: _pitchShift,
           overlay: hasVideo,
           traceUntilPlayhead: true,
+          keyboard: context.watch<AppSettings>().rollKeyboard,
         ),
         if (_lyrics != null)
           Positioned(
@@ -244,6 +245,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
             icon: Icon(s.playing ? Icons.pause : Icons.play_arrow),
           ),
           IconButton(tooltip: tr('sing.restart'), onPressed: () => s.seek(0), icon: const Icon(Icons.replay)),
+          const _KeyboardToggle(),
           // The engine reverberates the voice live: every change is heard at once.
           VoiceFxButton(showReturn: false, offColor: theme.colorScheme.onSurfaceVariant, onPreview: s.setReverb),
           if (s.hasVoice) _BalanceSlider(session: s),
@@ -340,6 +342,24 @@ class _BalanceSliderState extends State<_BalanceSlider> {
         ),
         Icon(Icons.mic, size: 16, color: muted),
       ]),
+    );
+  }
+}
+
+/// Piano keyboard in the roll's pitch column: on / off (shared with the
+/// sing screen).
+class _KeyboardToggle extends StatelessWidget {
+  const _KeyboardToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<AppSettings>();
+    final cs = Theme.of(context).colorScheme;
+    final on = settings.rollKeyboard;
+    return IconButton(
+      tooltip: tr(on ? 'sing.keyboardOn' : 'sing.keyboardOff'),
+      onPressed: () => settings.setRollKeyboard(!on),
+      icon: Icon(Icons.piano, color: on ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.5)),
     );
   }
 }

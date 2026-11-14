@@ -433,6 +433,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       final level = l.inputLevelDb;
       final h = _pendingHud;
       hud.value = SingHud(noteName: h.noteName, cents: h.cents, levelDb: level, voiced: h.voiced, refNoteName: h.refNoteName, midi: h.midi, rawMidi: h.rawMidi);
+      sungMidi.value = h.voiced ? h.midi : double.nan;
       _hudDirty = false;
     }
     // Track finished while recording. The engine stops playback by itself at
@@ -524,6 +525,9 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     _pendingHud = SingHud(refNoteName: _pendingHud.refNoteName);
     _hudDirty = true;
   }
+
+  /// The sung pitch as drawn on the roll (NaN while silent), ~15 Hz.
+  final ValueNotifier<double> sungMidi = ValueNotifier(double.nan);
 
   /// Keys the singer held for at least [reachSeconds] outside a take, in
   /// their real octave: their range as found so far.
@@ -767,6 +771,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     hud.dispose();
     processing.dispose();
     reachedKeys.dispose();
+    sungMidi.dispose();
     super.dispose();
   }
 }

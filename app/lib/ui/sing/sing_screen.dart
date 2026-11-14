@@ -858,6 +858,23 @@ class _RollAreaState extends State<_RollArea> {
             waitDuration: const Duration(milliseconds: 500),
             child: Column(
               children: [
+                // Piano keyboard in the pitch column: on / off.
+                Tooltip(
+                  message: tr(settings.rollKeyboard ? 'sing.keyboardOn' : 'sing.keyboardOff'),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: () => settings.setRollKeyboard(!settings.rollKeyboard),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.piano,
+                        size: 18,
+                        color: settings.rollKeyboard ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
                 Icon(
                   Icons.zoom_in,
                   size: 16,
@@ -1014,6 +1031,8 @@ class _RollAreaState extends State<_RollArea> {
                                         beatAccents: s.beatGrid.accents,
                                         live: s.recording,
                                         liveHoldSeconds: (s.latencyCompensation + 0.35).clamp(0.35, 1.2),
+                                        keyboard: settings.rollKeyboard,
+                                        sungMidi: s.sungMidi,
                                       );
                                       final judge = s.judge;
                                       if (judge == null ||

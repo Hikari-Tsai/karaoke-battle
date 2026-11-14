@@ -492,6 +492,8 @@ const Map<String, (String, String, String)> _table = {
   'sing.refNote': ('參考音', 'Ref', '基準音'),
   'sing.cents': ('偏差', 'Cents', 'ずれ'),
   'sing.latency': ('延遲補償', 'Latency', '遅延補正'),
+  'sing.keyboardOn': ('音高鍵盤：開（點一下關閉）', 'Pitch keyboard: on (click to turn off)', '音程キーボード：オン（クリックでオフ）'),
+  'sing.keyboardOff': ('音高鍵盤：關（點一下開啟）', 'Pitch keyboard: off (click to turn on)', '音程キーボード：オフ（クリックでオン）'),
   'sing.latencyRemeasureShort': ('重新量測', 'Measure', '再測定'),
   'sing.latencyRemeasure': ('重新量測延遲（會暫停播放，播放幾聲咔嗒聲）', 'Measure the latency again (pauses playback and plays a few clicks)', '遅延を測り直す（再生を止めてクリック音を鳴らします）'),
   'sing.latencyMeasured': ('延遲已更新為 {ms} ms', 'Latency set to {ms} ms', '遅延を {ms} ms に更新しました'),

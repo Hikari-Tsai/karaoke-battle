@@ -125,6 +125,10 @@ class AppSettings extends ChangeNotifier {
   double get rollZoom => (_prefs.getDouble('roll_zoom') ?? 0).clamp(0.0, 1.0);
   Future<void> setRollZoom(double z) => _set('roll_zoom', z.clamp(0.0, 1.0).toDouble());
 
+  /// Sing screen: a piano keyboard in the roll's pitch column.
+  bool get rollKeyboard => _get('roll_keyboard', true);
+  Future<void> setRollKeyboard(bool v) => _set('roll_keyboard', v);
+
   /// Sing screen: the meter panel is slid in.
   bool get hudVisible => _get('hud_visible', true);
   Future<void> setHudVisible(bool v) => _set('hud_visible', v);
