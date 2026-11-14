@@ -52,23 +52,29 @@ A scrolling piano roll shows every note of the original singer, and your pitch i
 
 <p align="center"><img src="docs/media/sing.gif" width="720" alt="Singing screen: scrolling piano roll, live pitch line, judgements and lyrics"></p>
 
+### AI range keyboard and one-click key change
+
+A piano keyboard on the dashboard fills in the song's range right on the keys, next to the comfortable male and female ranges, and tells you whom the key suits and whether it is too high or too low. Before you record, sing a few notes into the mic: every note you can hold leaves an orange dot, so your own range sits right next to the song's. "AI key" moves the backing, the notes and the keyboard into a male or a female range in one click. While you record, the keyboard lights the score's note (blue) and the note you sing (orange).
+
+<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="Range keyboard: a sung scale finds your range, then AI key moves the song into a male or female range"></p>
+
 ### Key shift and vocal return
 
-Key moves the accompaniment and the reference notes together. The vocal return at the top right sends your voice to the headphones along with the music (and to the stream when OBS captures the app's audio), with an optional hall reverb.
+Key moves the accompaniment and the reference notes together (it is locked while you record: one take, one key). The vocal return at the top right sends your voice to the headphones along with the music (and to the stream when OBS captures the app's audio), with an optional hall reverb.
 
 <p align="center"><img src="docs/media/key-voice.gif" width="720" alt="Key shift, vocal return and hall reverb"></p>
 
 ### Scores and share cards
 
-Right after you sing you get a 0–100 score, a rank from D to SSS and six sub-scores: staying in tune and on the beat gets you around 80, an S (91+) takes steady pitch and rhythm throughout, and wrong words cost nothing. and one click turns it into a share card for X, Instagram or Threads. Every take stays in the library, with your best score on top.
+Right after you sing you get a 0–100 score, a rank from D to SSS and six sub-scores: staying in tune and on the beat gets you around 80, an S (91+) takes steady pitch and rhythm throughout, and wrong words cost nothing. One click turns it into a share card for X, Instagram or Threads. The ⓘ next to each sub-score explains how it is scored, with tips to improve. You can also export a 1080p video of your take: the music video behind the scrolling notes, your pitch line, lyrics and judgements, ending on your score. Every take stays in the library, with your best score on top.
 
-<p align="center"><img src="docs/media/results.gif" width="720" alt="Results: total score, rank, sub-scores and the share card"></p>
+<p align="center"><img src="docs/media/results.gif" width="720" alt="Results: the share card, total score and sub-scores, and how a sub-score is scored"></p>
 
 ### Rhythm-game style judgements
 
-While you sing and in the replay, PERFECT / GREAT / GOOD / MISS judgements pop up at the playhead, rhythm-game style. While you sing they judge timing only, so they pop up the moment you come in, tagged FAST / LATE; in the replay they weigh timing and pitch together and add HIGH / LOW, so you can see at a glance whether a note was early, late, sharp or flat. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take.
+While you sing and in the replay, PERFECT / GREAT / GOOD / MISS judgements pop up at the playhead, rhythm-game style. While you sing they judge timing only, so they pop up the moment you come in, tagged FAST / LATE; in the replay they weigh timing and pitch together and add HIGH / LOW, so you can see at a glance whether a note was early, late, sharp or flat. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take. In the replay you can switch the reverb and its mix live, and the MIX slider balances your voice against the music.
 
-<p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT, GREAT, GOOD and MISS judgements popping up"></p>
+<p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT, GREAT, GOOD and MISS judgements, adjusting the reverb and MIX live"></p>
 
 ### Fix notes by hand
 
