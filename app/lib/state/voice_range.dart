@@ -1,5 +1,5 @@
-// How a song's melody sits for a male or a female voice, and the key change
-// ("AI 移調") that moves it into each voice's comfortable range.
+// How a song's melody sits for a male or a female voice, or for the singer's
+// own range, and the key change ("AI 移調") that moves it into each.
 //
 // The song's range is weighted by how long each note is held: the
 // tessitura (where most of the singing is, 10th..90th percentile of sung
@@ -17,10 +17,11 @@ import 'dart:math' as math;
 
 import 'song_data.dart';
 
-enum VoiceType { male, female }
+enum VoiceType { male, female, you }
 
-/// Comfortable singing range of an untrained voice (MIDI, inclusive):
-/// male A2..F4, female F3..C5.
+/// A singing range (MIDI, inclusive): the comfortable range of an untrained
+/// male (A2..F4) or female (F3..C5) voice, or the singer's own range, found
+/// from the keys they held on the microphone.
 class VoiceZone {
   const VoiceZone(this.type, this.low, this.high);
   final VoiceType type;
@@ -30,7 +31,21 @@ class VoiceZone {
   static const female = VoiceZone(VoiceType.female, 53, 72);
   static const all = [male, female];
 
+  /// The male or female zone ([VoiceType.you] has no fixed one).
   static VoiceZone of(VoiceType t) => t == VoiceType.male ? male : female;
+
+  /// A range found from fewer semitones than this is too narrow to fit a
+  /// song into (a few notes tried, not the singer's range yet).
+  static const minOwnSpan = 5;
+
+  /// The singer's range from the keys they held (lowest to highest), or
+  /// null while it spans less than [minOwnSpan] semitones.
+  static VoiceZone? ofReached(Set<int> keys) {
+    if (keys.isEmpty) return null;
+    final lo = keys.reduce(math.min), hi = keys.reduce(math.max);
+    if (hi - lo < minOwnSpan) return null;
+    return VoiceZone(VoiceType.you, lo.toDouble(), hi.toDouble());
+  }
 }
 
 enum RangeFit { fits, high, low, wide }

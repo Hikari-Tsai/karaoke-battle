@@ -19,6 +19,7 @@ import 'beat_grid.dart';
 import 'ghost_notes.dart';
 import 'playback_clock.dart';
 import 'live_judge.dart';
+import 'range_finder.dart';
 import 'live_trace.dart';
 import 'loudness.dart';
 import 'sing_settings.dart';
@@ -239,8 +240,15 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   SongRange? _songRange;
 
   /// "AI 移調": the key change that fits the melody into [voice]'s range.
-  void autoTranspose(VoiceType voice) =>
-      setPitchShift(songRange.bestShift(VoiceZone.of(voice)).toDouble());
+  /// The singer's own range from the keys held so far (null until it spans
+  /// [VoiceZone.minOwnSpan] semitones).
+  VoiceZone? get ownRange => VoiceZone.ofReached(reachedKeys.value);
+
+  /// AI key change into a male or female range, or the singer's own.
+  void autoTranspose(VoiceType voice) {
+    final zone = voice == VoiceType.you ? ownRange : VoiceZone.of(voice);
+    if (zone != null) setPitchShift(songRange.bestShift(zone).toDouble());
+  }
   final F0Curve refF0;
 
   LiveAudio? _live;
@@ -582,28 +590,30 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// The sung pitch as drawn on the roll (NaN while silent), ~15 Hz.
   final ValueNotifier<double> sungMidi = ValueNotifier(double.nan);
 
-  /// Keys the singer held for at least [reachSeconds] outside a take, in
-  /// their real octave: their range as found so far.
-  final ValueNotifier<Set<int>> reachedKeys = ValueNotifier(const {});
-  static const reachSeconds = 0.25;
-  final Map<int, double> _keyTime = {};
-  double _lastReachFrame = double.nan;
+  /// Keys the singer held for at least [RangeFinder.reachSeconds] outside a
+  /// take, in their real octave: their range as found so far. Kept in the
+  /// settings, so every song (and the check in Settings) shares it.
+  late final RangeFinder _range = RangeFinder(services.settings.ownRangeKeys);
+  ValueNotifier<Set<int>> get reachedKeys => _range.keys;
+  bool _rangeListening = false;
 
   void _noteReached(double midi, double t) {
-    final dt = _lastReachFrame.isNaN ? 0.01 : (t - _lastReachFrame).clamp(0.0, 0.05);
-    _lastReachFrame = t;
-    final k = midi.round();
-    if (k < 24 || k > 108) return;
-    final total = (_keyTime[k] ?? 0) + dt;
-    _keyTime[k] = total;
-    if (total >= reachSeconds && !reachedKeys.value.contains(k)) {
-      reachedKeys.value = {...reachedKeys.value, k};
+    if (!_rangeListening) {
+      // Follow a reset made elsewhere (Settings) too.
+      _rangeListening = true;
+      services.settings.addListener(_syncRange);
     }
+    if (_range.add(midi, t)) services.settings.setOwnRangeKeys(_range.keys.value);
+  }
+
+  void _syncRange() {
+    final saved = services.settings.ownRangeKeys;
+    if (!setEquals(saved, _range.keys.value)) _range.reset(saved);
   }
 
   void clearReachedKeys() {
-    _keyTime.clear();
-    reachedKeys.value = const {};
+    _range.reset();
+    services.settings.setOwnRangeKeys(const {});
   }
 
   // ---- latency ------------------------------------------------------------------
@@ -813,7 +823,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     position.dispose();
     hud.dispose();
     processing.dispose();
-    reachedKeys.dispose();
+    if (_rangeListening) services.settings.removeListener(_syncRange);
+    _range.dispose();
     sungMidi.dispose();
     super.dispose();
   }

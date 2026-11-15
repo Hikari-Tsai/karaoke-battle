@@ -29,6 +29,7 @@ import 'tempo_dialog.dart';
 import 'video_pane.dart';
 import 'voice_keyboard.dart';
 import '../widgets/calibration.dart';
+import '../settings/range_detect_dialog.dart';
 import '../widgets/metronome_icon.dart';
 import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
@@ -331,6 +332,9 @@ class _SingScreenState extends State<SingScreen>
       await Future<void>.delayed(Duration.zero);
       if (!mounted) return;
       await showCalibrationPromptIfNeeded(context, services);
+      if (!mounted) return;
+      // Then, once, the singer's range (for the range keyboard and AI key).
+      await showRangePromptIfNeeded(context, services);
       if (!mounted) return;
       final files = services.library.files(widget.song);
       _loadLyrics(files.lyricsJson);

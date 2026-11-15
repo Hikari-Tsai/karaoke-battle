@@ -114,6 +114,10 @@ class AppSettings extends ChangeNotifier {
   bool get calibrationPromptDismissed => _get('calib_prompt_dismissed', false);
   Future<void> setCalibrationPromptDismissed(bool v) => _set('calib_prompt_dismissed', v);
 
+  /// The user ticked "don't ask again" on the first-use range check.
+  bool get rangePromptDismissed => _get('range_prompt_dismissed', false);
+  Future<void> setRangePromptDismissed(bool v) => _set('range_prompt_dismissed', v);
+
   /// Show romaji under Japanese lyrics.
   bool get showRomaji => _get('show_romaji', true);
   Future<void> setShowRomaji(bool v) => _set('show_romaji', v);
@@ -161,6 +165,24 @@ class AppSettings extends ChangeNotifier {
   /// Rhythm-game judgement pop-ups while recording.
   bool get liveJudgements => _get('live_judgements', true);
   Future<void> setLiveJudgements(bool v) => _set('live_judgements', v);
+
+  /// The singer's range: the keys (MIDI) they have held on the microphone,
+  /// found on the sing screen or by the check in Settings; shared by every
+  /// song. Empty until found.
+  Set<int> get ownRangeKeys {
+    final v = _prefs.getString('own_range_keys');
+    if (v == null || v.isEmpty) return const {};
+    return {for (final p in v.split(',')) ?int.tryParse(p)};
+  }
+
+  Future<void> setOwnRangeKeys(Set<int> keys) async {
+    if (keys.isEmpty) {
+      await _prefs.remove('own_range_keys');
+      notifyListeners();
+      return;
+    }
+    await _set('own_range_keys', (keys.toList()..sort()).join(','));
+  }
 
   /// Live judgements also judge the pitch (HIGH / LOW), ~0.15 s later. Display
   /// only: the score is computed after the take either way.

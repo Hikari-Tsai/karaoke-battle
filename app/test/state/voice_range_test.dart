@@ -80,4 +80,24 @@ void main() {
     final r = SongRange.of(melody([(74, 4), (77, 4), (79, 4)])); // far too high for a male voice
     expect(r.bestShift(VoiceZone.male), -SongRange.maxShift);
   });
+
+  test('your own range: found from the keys held, once it spans 5 semitones', () {
+    expect(VoiceZone.ofReached(const {}), isNull);
+    expect(VoiceZone.ofReached(const {60, 62, 64}), isNull, reason: 'a few notes, not a range yet');
+    final own = VoiceZone.ofReached(const {50, 52, 55, 57, 59, 62})!;
+    expect((own.type, own.low, own.high), (VoiceType.you, 50.0, 62.0));
+  });
+
+  test('AI moves a song into your own range like into the male or female one', () {
+    // A female pop melody (tessitura about A3..A4) for a singer who holds D3..D4.
+    final r = SongRange.of(melody([(57, 2), (60, 4), (64, 4), (67, 4), (69, 3), (72, 1)]));
+    final own = VoiceZone.ofReached(const {50, 52, 55, 57, 59, 62})!;
+    expect(r.verdict(own, 0).fit, RangeFit.high);
+    final s = r.bestShift(own);
+    expect(s, lessThan(0));
+    expect(r.verdict(own, s.toDouble()).fit, RangeFit.fits);
+    // A range that already fits is left alone.
+    final wide = VoiceZone.ofReached(const {55, 60, 65, 70, 74})!;
+    expect(r.bestShift(wide), 0);
+  });
 }

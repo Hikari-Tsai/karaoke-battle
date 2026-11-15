@@ -2,13 +2,16 @@
 //
 // The song's range is filled in on the keys (deeper where most of the
 // singing is, lighter out to the lowest and highest note), with a bar above
-// and the comfortable male and female ranges on top; it slides to a new key.
+// and the comfortable male and female ranges on top, with the singer's own
+// range (the keys held on the mic, updated live) under them; it slides to a
+// new key.
 // The note the score asks for lights blue (the colour of the note bars) and
 // the note being sung orange, with a caret at the exact pitch: while
 // recording (folded to the score's octave, like the roll) and before it (in
 // its real octave), when the microphone is already analysed. Before
 // recording the keys the singer has held get an orange dot: their range,
-// next to the song's. Below: which voice the key suits and "AI 移調".
+// next to the song's. Below: which voice the key suits (male, female, the
+// singer's own range) and "AI 移調" into any of them.
 import 'package:flutter/material.dart';
 
 import '../../state/i18n.dart';
@@ -20,6 +23,7 @@ const refKeyColor = Color(0xFF3D8BFF);
 const sungKeyColor = Color(0xFFFF9F0A);
 const maleZoneColor = Color(0xFF5AC8FA);
 const femaleZoneColor = Color(0xFFFF6FAE);
+const ownZoneColor = sungKeyColor;
 
 /// The dashboard section: keyboard plus, before recording, the verdict and
 /// the AI key change.
@@ -59,12 +63,14 @@ class VoiceKeyboardSection extends StatelessWidget {
                   final ref = s.notes.pitchAt(s.position.value);
                   final hud = s.hud.value;
                   final sung = s.recording ? hud.midi : hud.rawMidi;
+                  final keys = s.reachedKeys.value;
                   return VoiceKeyboard(
                     range: range,
                     shift: shift,
                     refMidi: ref.isNaN ? null : ref + s.pitchShift,
                     sungMidi: hud.voiced && sung.isFinite ? sung : null,
-                    reached: s.recording ? const {} : s.reachedKeys.value,
+                    reached: s.recording ? const {} : keys,
+                    own: keys.isEmpty ? null : (keys.reduce((a, b) => a < b ? a : b), keys.reduce((a, b) => a > b ? a : b)),
                   );
                 },
               ),
@@ -74,7 +80,11 @@ class VoiceKeyboardSection extends StatelessWidget {
             if (!s.recording) _ReachedRange(session: s),
             if (!s.recording && !range.isEmpty) ...[
               const SizedBox(height: 2),
-              _Verdicts(range: range, shift: s.pitchShift),
+              // Live: the own-range line follows the keys being found.
+              ValueListenableBuilder<Set<int>>(
+                valueListenable: s.reachedKeys,
+                builder: (context, keys, _) => _Verdicts(range: range, shift: s.pitchShift, reached: keys),
+              ),
               const SizedBox(height: 4),
               Row(children: [
                 Expanded(child: _AutoTransposeButton(session: s)),
@@ -186,25 +196,44 @@ class _KeyStepper extends StatelessWidget {
 }
 
 class _Verdicts extends StatelessWidget {
-  const _Verdicts({required this.range, required this.shift});
+  const _Verdicts({required this.range, required this.shift, required this.reached});
   final SongRange range;
   final double shift;
+  final Set<int> reached;
+
+  static String whoOf(VoiceType t) => tr(switch (t) {
+        VoiceType.male => 'keyboard.male',
+        VoiceType.female => 'keyboard.female',
+        VoiceType.you => 'keyboard.you',
+      });
+
+  static Color colorOf(VoiceType t) => switch (t) {
+        VoiceType.male => maleZoneColor,
+        VoiceType.female => femaleZoneColor,
+        VoiceType.you => ownZoneColor,
+      };
+
+  static IconData iconOf(VoiceType t) => switch (t) {
+        VoiceType.male => Icons.male,
+        VoiceType.female => Icons.female,
+        VoiceType.you => Icons.mic,
+      };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     Widget line(VoiceZone z) {
       final v = range.verdict(z, shift);
-      final who = tr(z.type == VoiceType.male ? 'keyboard.male' : 'keyboard.female');
+      final who = whoOf(z.type);
       final text = switch (v.fit) {
         RangeFit.fits => tr('keyboard.fits', {'who': who}),
         RangeFit.high => tr('keyboard.high', {'who': who, 'n': '${v.bySemitones}'}),
         RangeFit.low => tr('keyboard.low', {'who': who, 'n': '${v.bySemitones}'}),
         RangeFit.wide => tr('keyboard.wide', {'who': who}),
       };
-      final color = z.type == VoiceType.male ? maleZoneColor : femaleZoneColor;
+      final color = colorOf(z.type);
       return Row(children: [
-        Icon(z.type == VoiceType.male ? Icons.male : Icons.female, size: 16, color: color),
+        Icon(iconOf(z.type), size: 16, color: color),
         const SizedBox(width: 4),
         Expanded(
           child: Text(
@@ -229,6 +258,18 @@ class _Verdicts extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         line(VoiceZone.male),
         line(VoiceZone.female),
+        if (VoiceZone.ofReached(reached) case final own?)
+          line(own)
+        else if (reached.isNotEmpty)
+          // A few keys so far: not a range to fit the song into yet.
+          Row(children: [
+            Icon(Icons.mic, size: 16, color: ownZoneColor.withValues(alpha: 0.5)),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(tr('keyboard.ownNarrow', {'n': '${VoiceZone.minOwnSpan}'}),
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            ),
+          ]),
       ]),
     );
   }
@@ -251,16 +292,31 @@ class _AutoTransposeButton extends StatelessWidget {
         for (final z in VoiceZone.all)
           Builder(builder: (context) {
             final best = s.songRange.bestShift(z);
-            final who = tr(z.type == VoiceType.male ? 'keyboard.male' : 'keyboard.female');
             final current = best == s.pitchShift.round();
             return MenuItemButton(
-              leadingIcon: Icon(z.type == VoiceType.male ? Icons.male : Icons.female,
-                  color: z.type == VoiceType.male ? maleZoneColor : femaleZoneColor),
+              leadingIcon: Icon(_Verdicts.iconOf(z.type), color: _Verdicts.colorOf(z.type)),
               trailingIcon: current ? const Icon(Icons.check, size: 16) : null,
               onPressed: () => s.autoTranspose(z.type),
-              child: Text(tr('keyboard.autoFor', {'who': who, 'key': _signed(best)})),
+              child: Text(tr('keyboard.autoFor', {'who': _Verdicts.whoOf(z.type), 'key': _signed(best)})),
             );
           }),
+        // The singer's own range, once found (else greyed with a hint).
+        Builder(builder: (context) {
+          final own = s.ownRange;
+          final best = own == null ? null : s.songRange.bestShift(own);
+          return MenuItemButton(
+            leadingIcon: Icon(Icons.mic, color: own == null ? null : ownZoneColor),
+            trailingIcon: best != null && best == s.pitchShift.round() ? const Icon(Icons.check, size: 16) : null,
+            onPressed: own == null ? null : () => s.autoTranspose(VoiceType.you),
+            child: Text(best == null
+                ? tr('keyboard.autoForOwnNone')
+                : tr('keyboard.autoForOwn', {
+                    'low': noteName(own!.low),
+                    'high': noteName(own.high),
+                    'key': _signed(best),
+                  })),
+          );
+        }),
       ],
       builder: (context, controller, _) => Tooltip(
         message: tr('keyboard.autoTip'),
@@ -277,13 +333,17 @@ class _AutoTransposeButton extends StatelessWidget {
 
 /// The keyboard itself (C2..C6).
 class VoiceKeyboard extends StatelessWidget {
-  const VoiceKeyboard({super.key, required this.range, required this.shift, this.refMidi, this.sungMidi, this.reached = const {}});
+  const VoiceKeyboard({super.key, required this.range, required this.shift, this.refMidi, this.sungMidi, this.reached = const {}, this.own});
   final SongRange range;
   final double shift;
   final double? refMidi, sungMidi;
 
   /// Keys the singer has held (orange dots).
   final Set<int> reached;
+
+  /// The singer's range so far (lowest, highest held key): a bar under the
+  /// male and female ones.
+  final (int, int)? own;
 
   static const lowMidi = 36, highMidi = 84;
 
@@ -292,7 +352,7 @@ class VoiceKeyboard extends StatelessWidget {
     return RepaintBoundary(
       child: SizedBox(
         width: double.infinity,
-        height: 84,
+        height: 91,
         child: CustomPaint(
           painter: VoiceKeyboardPainter(
             range: range,
@@ -300,6 +360,7 @@ class VoiceKeyboard extends StatelessWidget {
             refMidi: refMidi,
             sungMidi: sungMidi,
             reached: reached,
+            own: own,
             textColor: Theme.of(context).colorScheme.onSurfaceVariant,
             rangeColor: Theme.of(context).colorScheme.primary,
           ),
@@ -316,6 +377,7 @@ class VoiceKeyboardPainter extends CustomPainter {
     required this.refMidi,
     required this.sungMidi,
     this.reached = const {},
+    this.own,
     required this.textColor,
     required this.rangeColor,
   });
@@ -323,6 +385,7 @@ class VoiceKeyboardPainter extends CustomPainter {
   final double shift;
   final double? refMidi, sungMidi;
   final Set<int> reached;
+  final (int, int)? own;
   final Color textColor, rangeColor;
 
   static const _lo = VoiceKeyboard.lowMidi, _hi = VoiceKeyboard.highMidi;
@@ -361,7 +424,7 @@ class VoiceKeyboardPainter extends CustomPainter {
     final w = size.width;
     if (w < 60) return;
     const zoneTop = 0.0, zoneH = 5.0, zoneGap = 2.0;
-    const rangeTop = zoneTop + 2 * (zoneH + zoneGap) + 1, rangeH = 8.0;
+    const rangeTop = zoneTop + 3 * (zoneH + zoneGap) + 1, rangeH = 8.0;
     const keysTop = rangeTop + rangeH + 3, keysH = 40.0;
     final whiteW = w / whiteCount;
     final paint = Paint();
@@ -375,6 +438,10 @@ class VoiceKeyboardPainter extends CustomPainter {
 
     zone(VoiceZone.male, zoneTop, maleZoneColor);
     zone(VoiceZone.female, zoneTop + zoneH + zoneGap, femaleZoneColor);
+    // The singer's own range (its row stays reserved while empty).
+    if (own case (final lo, final hi)) {
+      zone(VoiceZone(VoiceType.you, lo.toDouble(), hi.toDouble()), zoneTop + 2 * (zoneH + zoneGap), ownZoneColor);
+    }
 
     // The melody: extremes as a thin line, tessitura as a thick bar.
     if (!range.isEmpty) {
@@ -492,5 +559,6 @@ class VoiceKeyboardPainter extends CustomPainter {
   bool shouldRepaint(VoiceKeyboardPainter old) =>
       old.shift != shift || old.refMidi?.round() != refMidi?.round() || old.sungMidi != sungMidi || old.range != range ||
       old.reached != reached ||
+      old.own != own ||
       old.textColor != textColor || old.rangeColor != rangeColor;
 }

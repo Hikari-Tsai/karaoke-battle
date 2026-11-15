@@ -22,7 +22,7 @@ void main() {
       home: Scaffold(
         body: SizedBox(
           width: 256,
-          child: VoiceKeyboard(range: SongRange.of(notes), shift: -2, refMidi: 60, sungMidi: 61.3),
+          child: VoiceKeyboard(range: SongRange.of(notes), shift: -2, refMidi: 60, sungMidi: 61.3, reached: const {50, 55, 62}, own: (50, 62)),
         ),
       ),
     ));

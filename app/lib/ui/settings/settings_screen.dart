@@ -12,6 +12,8 @@ import '../../services/backend_manager.dart';
 import '../../services/model_registry.dart';
 import '../../services/settings.dart';
 import '../../services/sidecars.dart';
+import '../../state/song_data.dart' show noteName;
+import 'range_detect_dialog.dart';
 import '../../services/update_checker.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
@@ -491,6 +493,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Switch(value: settings.liveJudgePitch, onChanged: settings.setLiveJudgePitch),
                 ],
               ),
+              const SizedBox(height: 8),
+              // The singer's range, shared by every song: reset, or detect it
+              // again here (the sing screen also adds to it before a take).
+              Builder(builder: (context) {
+                final keys = settings.ownRangeKeys;
+                final text = keys.isEmpty
+                    ? tr('ownRange.none')
+                    : '${noteName(keys.reduce((a, b) => a < b ? a : b).toDouble())}–${noteName(keys.reduce((a, b) => a > b ? a : b).toDouble())}';
+                return Row(
+                  children: [
+                    Text(tr('ownRange.title')),
+                    InfoTip(sections: [(tr('ownRange.title'), tr('ownRange.info'))]),
+                    const SizedBox(width: 8),
+                    Text(text, style: theme.textTheme.titleSmall),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => showRangeDetectDialog(context),
+                      icon: const Icon(Icons.mic, size: 18),
+                      label: Text(tr('ownRange.detect')),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: keys.isEmpty ? null : () => settings.setOwnRangeKeys(const {}),
+                      icon: const Icon(Icons.restart_alt, size: 18),
+                      label: Text(tr('ownRange.reset')),
+                    ),
+                  ],
+                );
+              }),
             ],
           ),
           _Section(
