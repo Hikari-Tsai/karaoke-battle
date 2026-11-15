@@ -19,10 +19,9 @@ performs vocal separation, melody transcription and reference pitch extraction l
 sing, a scrolling piano roll shows the reference melody alongside your live F0 curve; when you finish, you get
 quantitative scores for pitch, rhythm, stability, vibrato, expression and long tone.
 
-<p align="center"><img src="docs/media/demo.gif" width="720" alt="Singing "冬天．我們不說再見": the live pitch line, PERFECT judgement cards and lyrics coloured word by word"></p>
-<p align="center"><sub>Demo song: 多帕 Topa, "冬天．我們不說再見" · the video below has sound</sub></p>
-
 https://github.com/user-attachments/assets/68ab9d12-b78b-4cc4-96fc-53717ae136c2
+
+<p align="center"><sub>Demo song: 多帕 Topa, "冬天．我們不說再見"</sub></p>
 
 * macOS (Universal, Apple Silicon + Intel) and Windows x64; a Flutter desktop app with a native C++ engine.
 * All models are downloaded from Hugging Face `aaatmy/*` on first run and verified with SHA-256; the installer does not bundle any models. Every launch checks that the models are complete; anything missing or damaged has to be downloaded again before the library opens.
