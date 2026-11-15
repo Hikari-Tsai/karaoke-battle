@@ -13,7 +13,7 @@ body:
     attributes:
       label: 版本 / Version / バージョン
       description: 「關於」頁的版本 / The version on the About page / 「このアプリについて」のバージョン
-      placeholder: "0.6.0"
+      placeholder: "1.0.0"
     validations:
       required: true
   - type: input
