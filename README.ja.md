@@ -17,7 +17,7 @@
 ボーカル分離、メロディの採譜、参照ピッチの抽出を行います。歌唱中はスクロール式のピアノロールに参照メロディとリアルタイムの
 F0 曲線を表示し、歌い終わると音程、リズム、安定感、ビブラート、抑揚、ロングトーンに基づいて定量的なスコアを出します。
 
-https://github.com/user-attachments/assets/68ab9d12-b78b-4cc4-96fc-53717ae136c2
+https://github.com/user-attachments/assets/f43cf87a-531c-4867-adb6-849f5c2723e6
 
 <p align="center"><sub>デモ曲：多帕 Topa「冬天．我們不說再見」</sub></p>
 
