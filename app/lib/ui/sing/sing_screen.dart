@@ -1813,24 +1813,37 @@ class _Controls extends StatelessWidget {
                         ),
                 ),
                 const SizedBox(width: 8),
-                SegmentedButton<TrackKind>(
-                  segments: [
-                    ButtonSegment(
-                      value: TrackKind.inst,
-                      label: Text(tr('sing.inst')),
-                      enabled: s.hasInst,
+                // Locked while recording, like the key: a switch reloads the
+                // track (~2 s of silence) while the mic keeps recording.
+                Tooltip(
+                  message: s.recording ? tr('sing.trackLocked') : '',
+                  child: SegmentedButton<TrackKind>(
+                    segments: [
+                      ButtonSegment(
+                        value: TrackKind.inst,
+                        label: Text(tr('sing.inst')),
+                        enabled: s.hasInst,
+                      ),
+                      ButtonSegment(
+                        value: TrackKind.mix,
+                        label: Text(tr('sing.original')),
+                        enabled: s.hasMix,
+                      ),
+                    ],
+                    selected: {s.track},
+                    showSelectedIcon: false,
+                    // Locked, the playing track stays marked.
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStateProperty.resolveWith(
+                        (st) => st.contains(WidgetState.disabled) && st.contains(WidgetState.selected)
+                            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12)
+                            : null,
+                      ),
                     ),
-                    ButtonSegment(
-                      value: TrackKind.mix,
-                      label: Text(tr('sing.original')),
-                      enabled: s.hasMix,
-                    ),
-                  ],
-                  selected: {s.track},
-                  showSelectedIcon: false,
-                  onSelectionChanged: enabled
-                      ? (v) => s.setTrack(v.first)
-                      : null,
+                    onSelectionChanged: enabled && !s.recording
+                        ? (v) => s.setTrack(v.first)
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 // Locked while recording: lock, label and value in the grey

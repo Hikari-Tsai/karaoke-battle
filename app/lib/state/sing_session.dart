@@ -360,9 +360,12 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   void restart() => seek(0);
 
+  /// Not while recording: loading the other track stops the music for a
+  /// couple of seconds while the capture keeps running, and a take is
+  /// aligned to the track with one offset, so the rest would be scored late.
   void setTrack(TrackKind t) {
     final l = _live;
-    if (t == track || l == null) return;
+    if (t == track || l == null || recording) return;
     final pos = l.position;
     final wasPlaying = l.isPlaying;
     try {
