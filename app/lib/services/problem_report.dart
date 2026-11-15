@@ -30,11 +30,33 @@ Uri problemReportUri({String? version, String? os, String? backend, String? gpu,
       if (logs != null && logs.isNotEmpty) 'logs': logs,
     });
 
-/// Longest form URL we open (GitHub refuses much longer ones).
-const maxReportUrlLength = 7000;
+/// Longest form URL we open. Signed out, GitHub first redirects to the
+/// sign-in page with the whole URL in it, and that fails (HTTP 500) from
+/// about 6900 characters, or about 5400 when the text is mostly Chinese or
+/// Japanese (measured 2026-11).
+const maxReportUrlLength = 5000;
+
+/// The error may use at most this much of [maxReportUrlLength]; the log
+/// gets the rest.
+const maxReportErrorUrlLength = 2500;
 
 /// Longest error message put in the form.
 const maxReportErrorChars = 1500;
+
+/// [text] cut (with "…") until [urlWith] of it is at most [maxUrl] long.
+String shortenToFit(String text, Uri Function(String text) urlWith, {int maxUrl = maxReportErrorUrlLength}) {
+  if (urlWith(text).toString().length <= maxUrl) return text;
+  var lo = 0, hi = text.length;
+  while (lo < hi) {
+    final mid = (lo + hi + 1) ~/ 2;
+    if (urlWith('${text.substring(0, mid)}…').toString().length <= maxUrl) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return '${text.substring(0, lo)}…';
+}
 
 /// The last of [lines] that fit in the form next to [base] (a URL without
 /// logs) within [maxUrl] characters, oldest first. [note] (when given) goes on
@@ -103,7 +125,8 @@ Future<void> openProblemReport(BuildContext context, {Object? error}) async {
     await launchUrl(problemReportUri(version: version, os: os, backend: backend, gpu: gpu));
     return;
   }
-  final base = problemReportUri(version: version, os: os, backend: backend, gpu: gpu, error: reportErrorText(error));
+  Uri withError(String e) => problemReportUri(version: version, os: os, backend: backend, gpu: gpu, error: e);
+  final base = withError(shortenToFit(reportErrorText(error), withError));
   final snapshot = await AppLog.writeSnapshot();
   final lines = AppLog.recent;
   final fit = fitReportLogs(

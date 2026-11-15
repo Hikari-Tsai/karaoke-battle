@@ -63,6 +63,26 @@ void main() {
     expect(long, endsWith('…'));
   });
 
+  test('shortens a long error so the log still has room', () {
+    Uri withError(String e) => problemReportUri(version: '1.1.3', os: 'macOS 26', error: e);
+    final cjk = '找不到檔案：${'冬天我們不說再見' * 100}';
+    final short = shortenToFit(cjk, withError);
+    expect(short, endsWith('…'));
+    expect(withError(short).toString().length, lessThanOrEqualTo(maxReportErrorUrlLength));
+    expect(withError('${cjk.substring(0, short.length)}…').toString().length, greaterThan(maxReportErrorUrlLength));
+    expect(shortenToFit('boom', withError), 'boom');
+  });
+
+  test('stays under the length GitHub accepts signed out, even for Chinese logs', () {
+    Uri withError(String e) => problemReportUri(version: '1.1.3', os: 'macOS 26', error: e);
+    final base = withError(shortenToFit('錯誤' * 2000, withError));
+    final lines = [for (var i = 0; i < 500; i++) '12:00:00.000 E 無法開啟「冬天．我們不說再見」第 $i 行'];
+    final r = fitReportLogs(base, lines, note: (n) => '（只附最後 $n 行）');
+    expect(r.kept, greaterThan(0));
+    final url = base.replace(queryParameters: {...base.queryParameters, 'logs': r.text}).toString();
+    expect(url.length, lessThanOrEqualTo(maxReportUrlLength));
+  });
+
   test('leaves unknown fields out', () {
     expect(problemReportUri(version: '', backend: null).queryParameters, {'template': 'bug_report.yml'});
   });
