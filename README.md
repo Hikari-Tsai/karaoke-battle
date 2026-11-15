@@ -18,7 +18,7 @@
 人聲分離、旋律轉譜與參考音高抽取；演唱時以捲簾式鋼琴卷軸顯示參考旋律與即時
 F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音給出量化分數。
 
-https://github.com/user-attachments/assets/f43cf87a-531c-4867-adb6-849f5c2723e6
+<p align="center"><img src="docs/media/guide.gif" width="720" alt="開導唱演唱：捲簾式鋼琴卷軸上的參考旋律與即時音高曲線"></p>
 
 <p align="center"><sub>示範歌曲：多帕 Topa〈冬天．我們不說再見〉</sub></p>
 

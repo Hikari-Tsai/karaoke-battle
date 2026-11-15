@@ -19,7 +19,7 @@ performs vocal separation, melody transcription and reference pitch extraction l
 sing, a scrolling piano roll shows the reference melody alongside your live F0 curve; when you finish, you get
 quantitative scores for pitch, rhythm, stability, vibrato, expression and long tone.
 
-https://github.com/user-attachments/assets/f43cf87a-531c-4867-adb6-849f5c2723e6
+<p align="center"><img src="docs/media/guide.gif" width="720" alt="Singing with the guide vocal: reference melody and live pitch curve on the scrolling piano roll"></p>
 
 <p align="center"><sub>Demo song: 多帕 Topa, "冬天．我們不說再見"</sub></p>
 
