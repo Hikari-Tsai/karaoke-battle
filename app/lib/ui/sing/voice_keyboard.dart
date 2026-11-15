@@ -127,7 +127,7 @@ class _ReachedRange extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               iconSize: 16,
               onPressed: session.clearReachedKeys,
-              icon: const Icon(Icons.clear),
+              icon: const Icon(Icons.refresh),
             ),
         ]);
       },
