@@ -1,5 +1,5 @@
 // How a song's melody sits for a male or a female voice, or for the singer's
-// own range, and the key change ("AI 移調") that moves it into each.
+// own range, and the key change ("一鍵移調") that moves it into each.
 //
 // The song's range is weighted by how long each note is held: the
 // tessitura (where most of the singing is, 10th..90th percentile of sung

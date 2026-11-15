@@ -239,7 +239,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   SongRange get songRange => _songRange ??= SongRange.of(notes);
   SongRange? _songRange;
 
-  /// "AI 移調": the key change that fits the melody into [voice]'s range.
+  /// "一鍵移調": the key change that fits the melody into [voice]'s range.
   /// The singer's own range from the keys held so far (null until it spans
   /// [VoiceZone.minOwnSpan] semitones).
   VoiceZone? get ownRange => VoiceZone.ofReached(reachedKeys.value);

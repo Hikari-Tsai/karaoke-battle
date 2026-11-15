@@ -11,7 +11,7 @@
 // its real octave), when the microphone is already analysed. Before
 // recording the keys the singer has held get an orange dot: their range,
 // next to the song's. Below: which voice the key suits (male, female, the
-// singer's own range) and "AI 移調" into any of them.
+// singer's own range) and "一鍵移調" into any of them.
 import 'package:flutter/material.dart';
 
 import '../../state/i18n.dart';
@@ -275,7 +275,7 @@ class _Verdicts extends StatelessWidget {
   }
 }
 
-/// "AI 移調": a menu with the key change for each voice; picking one moves
+/// "一鍵移調": a menu with the key change for each voice; picking one moves
 /// the key (and the keyboard follows).
 class _AutoTransposeButton extends StatelessWidget {
   const _AutoTransposeButton({required this.session});

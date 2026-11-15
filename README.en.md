@@ -58,9 +58,9 @@ A scrolling piano roll shows every note of the original singer, and your pitch i
 
 ### AI range keyboard and one-click key change
 
-A piano keyboard on the dashboard fills in the song's range right on the keys, next to the comfortable male and female ranges, and tells you whom the key suits and whether it is too high or too low. Before you record, sing a few notes into the mic: every note you can hold leaves an orange dot, so your own range sits right next to the song's. "AI key" moves the backing, the notes and the keyboard into a male or a female range in one click. While you record, the keyboard lights the score's note (blue) and the note you sing (orange).
+A piano keyboard on the dashboard fills in the song's range right on the keys, next to the comfortable male and female ranges, and tells you whom the key suits and whether it is too high or too low. Before you record, sing a few notes into the mic: every note you can hold leaves an orange dot, so your own range sits right next to the song's. "One-click key" moves the backing, the notes and the keyboard into a male, a female or your own range. While you record, the keyboard lights the score's note (blue) and the note you sing (orange).
 
-<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="Range keyboard: a sung scale finds your range, then AI key moves the song into a male, female or your own range"></p>
+<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="Range keyboard: a sung scale finds your range, then One-click key moves the song into a male, female or your own range"></p>
 
 ### Key shift and vocal return
 
