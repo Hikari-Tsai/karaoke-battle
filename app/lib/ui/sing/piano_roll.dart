@@ -450,38 +450,52 @@ class PianoRollPainter extends CustomPainter {
       ..color = const Color(0xFF9AA0AE)
       ..strokeWidth = 0.7;
     final blackW = g * 0.62;
-    for (var m = minMidi.floor() - 1; m <= maxMidi.ceil() + 1; m++) {
-      final yy = y(m.toDouble());
-      final pc = ((m % 12) + 12) % 12;
-      final top = yy - rowH / 2;
-      final isBlack = black.contains(pc);
-      final lit = m == sungKey ? keySung : (m == refKey ? keyRef : null);
-      if (isBlack) {
-        if (lit != null) canvas.drawRect(Rect.fromLTWH(blackW, top, g - blackW, rowH), Paint()..color = lit.withValues(alpha: 0.35));
-        canvas.drawRRect(
-          RRect.fromRectAndCorners(Rect.fromLTWH(0, top + 0.5, blackW, rowH - 1),
-              topRight: const Radius.circular(2), bottomRight: const Radius.circular(2)),
-          Paint()..color = lit ?? const Color(0xFF1C1E24),
-        );
-      } else {
-        if (lit != null) canvas.drawRect(Rect.fromLTWH(0, top, g, rowH), Paint()..color = lit);
-        // White keys end where there is no black key between them (B|C, E|F).
-        if (pc == 0 || pc == 5) {
-          canvas.drawLine(Offset(0, top + rowH), Offset(g, top + rowH), line);
-        } else {
-          canvas.drawLine(Offset(blackW, top + rowH), Offset(g, top + rowH), line);
-        }
+    final lo = minMidi.floor() - 2, hi = maxMidi.ceil() + 2;
+    bool isBlack(int m) => black.contains(((m % 12) + 12) % 12);
+    Color? litOf(int m) => m == sungKey ? keySung : (m == refKey ? keyRef : null);
+    // White keys first, like a real keyboard: one semitone row each, plus half
+    // of a black key's row on either side to the right of the black keys, so
+    // the black keys sit across the line between two white keys.
+    for (var m = lo; m <= hi; m++) {
+      if (isBlack(m)) continue;
+      final top = y(m.toDouble()) - rowH / 2, bottom = top + rowH;
+      final up = isBlack(m + 1) ? rowH / 2 : 0.0, down = isBlack(m - 1) ? rowH / 2 : 0.0;
+      final lit = litOf(m);
+      if (lit != null) {
+        canvas.drawRect(Rect.fromLTRB(0, top, g, bottom), Paint()..color = lit);
+        canvas.drawRect(Rect.fromLTRB(blackW, top - up, g, bottom + down), Paint()..color = lit);
       }
+      // The line below this key: across the black key below (in its middle),
+      // or the full width where two white keys meet (B|C, E|F).
+      if (down > 0) {
+        canvas.drawLine(Offset(blackW, bottom + down), Offset(g, bottom + down), line);
+      } else {
+        canvas.drawLine(Offset(0, bottom), Offset(g, bottom), line);
+      }
+    }
+    for (var m = lo; m <= hi; m++) {
+      if (!isBlack(m)) continue;
+      final top = y(m.toDouble()) - rowH / 2;
+      canvas.drawRRect(
+        RRect.fromRectAndCorners(Rect.fromLTWH(0, top + 0.5, blackW, rowH - 1),
+            topRight: const Radius.circular(2), bottomRight: const Radius.circular(2)),
+        Paint()..color = litOf(m) ?? const Color(0xFF1C1E24),
+      );
+    }
+    for (var m = lo; m <= hi; m++) {
+      final yy = y(m.toDouble());
+      final top = yy - rowH / 2;
+      final lit = litOf(m);
       if (m == refKey && m == sungKey) {
         // On the score's key: a blue edge keeps both visible.
         canvas.drawRect(
-            Rect.fromLTWH(1, top + 1, g - 2, rowH - 2),
+            Rect.fromLTWH(1, top + 1, (isBlack(m) ? blackW : g) - 2, rowH - 2),
             Paint()
               ..color = keyRef
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2);
       }
-      if (pc == 0 && rowH >= 6) {
+      if (m % 12 == 0 && rowH >= 6) {
         final tp = _label(noteName(m.toDouble()), lit != null ? Colors.white : const Color(0xFF3A3F4B), rowH >= 14 ? 10 : 8);
         tp.paint(canvas, Offset(g - tp.width - 3, yy - tp.height / 2));
       }
