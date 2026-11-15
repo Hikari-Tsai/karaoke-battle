@@ -142,4 +142,99 @@ void main() {
       expect(j.marks.first.fast, isFalse);
     });
   });
+
+  group('legato (no new syllable): judged from the pitch', () {
+    /// Sings from 0.95 s to 2.6 s with one onset at 0.95 s; [pitch] is the
+    /// sung MIDI at time t (NaN = unvoiced). Pitch frames every 10 ms reach
+    /// the judge [lag] seconds late (SwiftF0 is ~0.2 s behind).
+    LiveJudge legato(double Function(double t) pitch, {double lag = 0, NoteList? n}) {
+      final j = LiveJudge(notes: n ?? notes(), windows: RhythmWindows.forTempo(120));
+      var nextPitch = 0.0;
+      for (var t = 0.0; t <= 3.5; t += hop) {
+        final sing = t >= 0.95 && t < 2.6;
+        j.addFrame(t, onset: near(t, 0.95), levelDb: sing ? -20 : -80);
+        while (nextPitch <= t - lag) {
+          j.addPitch(nextPitch, nextPitch >= 0.95 && nextPitch < 2.6 ? pitch(nextPitch) : double.nan);
+          nextPitch += 0.01;
+        }
+        j.update(t);
+      }
+      return j;
+    }
+
+    test('gliding onto the next note on time is PERFECT, with DSP or late SwiftF0 frames', () {
+      for (final lag in [0.0, 0.25]) {
+        final j = legato((t) => t < 2.02 ? 60 : 64, lag: lag);
+        expect(j.marks.map((m) => m.tier), ['perfect', 'perfect'], reason: 'lag $lag');
+        expect(j.marks.last.anchor, 2.0);
+      }
+    });
+
+    test('reaching the note late is LATE; an octave lower still counts', () {
+      final late = legato((t) => t < 2.12 ? 60 : 64);
+      expect(late.marks.last.tier, 'good');
+      expect(late.marks.last.fast, isFalse);
+      expect(legato((t) => t < 2.0 ? 60 : 52).marks.last.tier, 'perfect');
+    });
+
+    test('never reaching the note, or a pitch blip, gives no pop-up', () {
+      expect(legato((t) => 60).marks.length, 1);
+      expect(legato((t) => (t > 2.0 && t < 2.02) ? 64 : 60).marks.length, 1, reason: '20 ms is too short');
+    });
+
+    test('a note on the same pitch held over is not a new arrival', () {
+      final same = NoteList(Float64List.fromList([1.0, 2.0]), Float64List.fromList([1.6, 2.6]), Float64List.fromList([60, 60]));
+      expect(legato((t) => 60, n: same).marks.length, 1);
+    });
+  });
+
+  group('pitch judging (setting)', () {
+    /// Onsets on time at 1.0 and 2.0 s, singing [pitch] (MIDI at t); pitch
+    /// frames every 10 ms arrive [lag] s late.
+    LiveJudge sung(double Function(double t) pitch, {bool judgePitch = true, double lag = 0}) {
+      final j = LiveJudge(notes: notes(), windows: RhythmWindows.forTempo(120), judgePitch: judgePitch);
+      var nextPitch = 0.0;
+      for (var t = 0.0; t <= 3.5; t += hop) {
+        final sing = (t >= 1.0 && t < 1.6) || (t >= 2.0 && t < 2.6);
+        j.addFrame(t, onset: near(t, 1.0) || near(t, 2.0), levelDb: sing ? -20 : -80);
+        while (nextPitch <= t - lag) {
+          final on = (nextPitch >= 1.0 && nextPitch < 1.6) || (nextPitch >= 2.0 && nextPitch < 2.6);
+          j.addPitch(nextPitch, on ? pitch(nextPitch) : double.nan);
+          nextPitch += 0.01;
+        }
+        j.update(t);
+      }
+      return j;
+    }
+
+    test('in tune stays PERFECT; sharp and flat drop the tier and tag HIGH / LOW', () {
+      final inTune = sung((t) => t < 1.8 ? 60.05 : 64);
+      expect(inTune.marks.map((m) => m.tier), ['perfect', 'perfect']);
+      expect(inTune.marks.every((m) => m.high == null), isTrue);
+      final off = sung((t) => t < 1.8 ? 60.4 : 63.75);
+      expect(off.marks.map((m) => m.tier), ['good', 'great']);
+      expect(off.marks.map((m) => m.high), [true, false]);
+    });
+
+    test('waits for the pitch: the pop-up comes after the read span, also with late frames', () {
+      for (final lag in [0.0, 0.25]) {
+        final j = sung((t) => t < 1.8 ? 61 : 64, lag: lag);
+        expect(j.marks.first.tier, 'miss', reason: 'a semitone off (lag $lag)');
+        expect(j.marks.first.high, isTrue);
+        expect(j.marks.first.time, greaterThanOrEqualTo(1.0 + LiveJudge.pitchSkipSeconds + LiveJudge.pitchWindowSeconds + lag - 0.01));
+        expect(j.marks.first.anchor, 1.0);
+      }
+    });
+
+    test('an octave off is in tune when folded; off, timing only without the setting', () {
+      expect(sung((t) => t < 1.8 ? 48 : 52).marks.map((m) => m.tier), ['perfect', 'perfect']);
+      final timingOnly = sung((t) => 61, judgePitch: false);
+      expect(timingOnly.marks.map((m) => m.tier), ['perfect', 'perfect']);
+      expect(timingOnly.marks.first.time, closeTo(1.0, 0.006));
+    });
+
+    test('too little voiced pitch: judged on timing alone', () {
+      expect(sung((t) => double.nan).marks.map((m) => m.tier), ['perfect', 'perfect']);
+    });
+  });
 }

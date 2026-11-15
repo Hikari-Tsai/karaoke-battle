@@ -339,7 +339,11 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     notifyListeners();
   }
 
+  /// Not while recording: the capture keeps running through a pause, and a
+  /// take is aligned to the track with one offset, so everything sung after
+  /// it would be scored and replayed late. Stop the take instead.
   void pause() {
+    if (recording) return;
     _live?.pause();
     notifyListeners();
   }
@@ -402,6 +406,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   void setOctaveAlign(bool v) {
     octaveAlign = v;
+    judge?.foldOctave = v || _octaveInvariant;
     _saveSoon();
     notifyListeners();
   }
@@ -462,18 +467,22 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       // Live judgements use the engine's onset frames (source 2) only; their
       // confidence is the level the speakers played (to ignore leakage).
       if (f.source == 2) {
-        if (recording) judge?.addFrame(f.time, onset: f.f0 > 0.5, levelDb: f.rmsDb, playbackDb: f.confidence);
+        if (recording && playing) judge?.addFrame(f.time, onset: f.f0 > 0.5, levelDb: f.rmsDb, playbackDb: f.confidence);
         continue;
       }
       if (f.source != _wantedSource) continue;
       final voiced = f.f0 > 0 && (f.source == 0 || f.confidence >= 0.5) && (!gateOn || f.rmsDb >= gateDb);
+      // Legato notes (no new syllable) are judged from the pitch.
+      if (recording && playing) judge?.addPitch(f.time, voiced ? hzToMidi(f.f0) : double.nan);
       if (!voiced) {
         _pendingHud = SingHud(noteName: '—', cents: double.nan, voiced: false, refNoteName: _pendingHud.refNoteName);
         _hudDirty = true;
         continue;
       }
       final midi = hzToMidi(f.f0);
-      final refRaw = notes.pitchAt(f.time);
+      // Paused (preview or a take), frame times are capture time, not track
+      // time: compare with the note at the playhead instead.
+      final refRaw = notes.pitchAt(playing ? f.time : pos);
       final ref = refRaw.isNaN ? double.nan : refRaw + pitchShift;
       double display = midi;
       double cents = double.nan;
@@ -485,10 +494,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         final a = cents.abs();
         cat = a <= 50 ? PitchCategory.good : (a <= 100 ? PitchCategory.near : PitchCategory.off);
       }
-      // The pitch line: while recording, and in preview while the track
-      // plays (frame times are on the track clock then; paused, they are
-      // capture time and would land in the wrong place).
-      if (recording || playing) trace.add(f.time, midi, display, cents, cat);
+      // The pitch line, while the track plays (recording or preview): frame
+      // times are on the track clock then. Paused, they are capture time and
+      // the line would run on ahead of the stopped playhead.
+      if (playing) trace.add(f.time, midi, display, cents, cat);
       _pendingHud = SingHud(noteName: noteName(midi), cents: cents, voiced: true, refNoteName: ref.isNaN ? '—' : noteName(ref), midi: display, rawMidi: midi);
       if (!recording) _noteReached(midi, f.time);
       _hudDirty = true;
@@ -507,21 +516,59 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   bool _monitoring = false;
 
-  void _startMonitor() {
+  /// Bumped by every monitor start and stop, so a start still loading the
+  /// model gives up when it was stopped (or restarted) meanwhile.
+  int _monitorGen = 0;
+
+  /// The live pitch source from the settings: 0 = DSP (MPM), 1 = SwiftF0 with
+  /// its runtime and model, or DSP when the model is missing or fails to load.
+  Future<(int, EngineRuntime?, String?)> _livePitchSource() async {
+    if (services.settings.livePitchMode == 0) return (0, null, null);
+    try {
+      final model = services.swiftF0ModelPath;
+      if (!await File(model).exists()) return (0, null, null);
+      return (1, await services.backend.runtime(), model);
+    } catch (_) {
+      return (0, null, null);
+    }
+  }
+
+  /// Pitch detection outside a take (preview), with the same source as a
+  /// take so the line behaves the same: pitch frames only, no recording.
+  Future<void> _startMonitor() async {
     final l = _live;
     if (l == null || recording || _monitoring) return;
+    _monitoring = true;
+    final gen = ++_monitorGen;
+    final (mode, rt, model) = await _livePitchSource();
+    if (gen != _monitorGen) return; // stopped or restarted meanwhile
+    if (_live != l || recording) {
+      _monitoring = false;
+      return;
+    }
     try {
-      if (l.isCapturing) return;
-      _wantedSource = 0;
-      l.startCapture(mode: 0, monitor: true);
-      _monitoring = true;
-    } catch (_) {}
+      if (l.isCapturing) {
+        _monitoring = false;
+        return;
+      }
+      _wantedSource = mode;
+      l.startCapture(runtime: rt, swiftF0ModelPath: model, mode: mode, monitor: true);
+    } catch (_) {
+      // The model failed to start: fall back to DSP.
+      try {
+        _wantedSource = 0;
+        l.startCapture(mode: 0, monitor: true);
+      } catch (_) {
+        _monitoring = false;
+      }
+    }
   }
 
   void _stopMonitor() {
     final l = _live;
     if (!_monitoring) return;
     _monitoring = false;
+    _monitorGen++;
     try {
       if (l != null && l.isCapturing) l.stopCapture();
     } catch (_) {}
@@ -596,19 +643,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     final l = _live;
     if (l == null || recording) return;
     final settings = services.settings;
-    EngineRuntime? rt;
-    String? model;
-    var mode = settings.livePitchMode;
-    try {
-      if (mode != 0 && await File(services.swiftF0ModelPath).exists()) {
-        rt = await services.backend.runtime();
-        model = services.swiftF0ModelPath;
-      } else {
-        mode = 0;
-      }
-    } catch (_) {
-      mode = 0;
-    }
+    final (mode, rt, model) = await _livePitchSource();
     _stopMonitor();
     _wantedSource = mode == 0 ? 0 : 1;
     try {
@@ -621,6 +656,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         windows: RhythmWindows.forTempo(beatGrid.bpm),
         pitchShift: pitchShift,
         levelFloorDb: settings.noiseGateEnabled ? settings.noiseGateDb : -50,
+        judgePitch: settings.liveJudgePitch,
+        foldOctave: octaveAlign || _octaveInvariant,
       );
       // The engine's onset frames (source 2) come with every capture mode.
       l.startCapture(runtime: rt, swiftF0ModelPath: model, mode: mode == 0 ? 0 : 1);

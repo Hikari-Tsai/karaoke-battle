@@ -82,10 +82,13 @@ class AppSettings extends ChangeNotifier {
   double? get latencySeconds => _prefs.getDouble('latency_seconds');
   Future<void> setLatencySeconds(double s) => _set('latency_seconds', s);
 
-  /// Live pitch source: 0 = DSP, 1 = SwiftF0, 2 = both.
-  /// 0 = DSP, 1 = SwiftF0 (default). The former 2 ("both") displayed SwiftF0
-  /// only, so saved 2s read as 1.
-  int get livePitchMode => _get('live_pitch_mode', 1) == 0 ? 0 : 1;
+  /// Live pitch source (preview and singing): 0 = DSP (default), 1 = SwiftF0.
+  /// The former 2 ("both") displayed SwiftF0 only, so saved 2s read as 1.
+  /// Scoring re-analyses the take with SwiftF0 whatever this is.
+  int get livePitchMode {
+    final v = _get('live_pitch_mode', 0);
+    return v == 1 || v == 2 ? 1 : 0;
+  }
   Future<void> setLivePitchMode(int m) => _set('live_pitch_mode', m == 0 ? 0 : 1);
 
   bool get dismissedBackendDialog => _get('dismissed_backend_dialog', false);
@@ -158,6 +161,11 @@ class AppSettings extends ChangeNotifier {
   /// Rhythm-game judgement pop-ups while recording.
   bool get liveJudgements => _get('live_judgements', true);
   Future<void> setLiveJudgements(bool v) => _set('live_judgements', v);
+
+  /// Live judgements also judge the pitch (HIGH / LOW), ~0.15 s later. Display
+  /// only: the score is computed after the take either way.
+  bool get liveJudgePitch => _get('live_judge_pitch', false);
+  Future<void> setLiveJudgePitch(bool v) => _set('live_judge_pitch', v);
 
   /// Name written into exported replay files.
   String get playerName => _prefs.getString('player_name') ?? '';

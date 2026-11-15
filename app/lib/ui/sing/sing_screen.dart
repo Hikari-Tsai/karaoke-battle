@@ -229,7 +229,7 @@ class _SingScreenState extends State<SingScreen>
     final k = ev.logicalKey;
     final hw = HardwareKeyboard.instance;
     final cmd = hw.isMetaPressed || hw.isControlPressed;
-    // Play / pause (space, K like YouTube).
+    // Play / pause (space, K like YouTube); no pausing while recording.
     if (k == LogicalKeyboardKey.space || k == LogicalKeyboardKey.keyK) {
       if (ev is KeyDownEvent) s.togglePlay();
       return KeyEventResult.handled;
@@ -1782,8 +1782,12 @@ class _Controls extends StatelessWidget {
             Row(
               children: [
                 IconButton.filledTonal(
-                  tooltip: s.playing ? tr('sing.pause') : tr('sing.play'),
-                  onPressed: enabled ? s.togglePlay : null,
+                  tooltip: s.recording
+                      ? tr('sing.pauseLocked')
+                      : s.playing
+                          ? tr('sing.pause')
+                          : tr('sing.play'),
+                  onPressed: enabled && !s.recording ? s.togglePlay : null,
                   icon: Icon(s.playing ? Icons.pause : Icons.play_arrow),
                 ),
                 IconButton(

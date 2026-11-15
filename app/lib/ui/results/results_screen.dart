@@ -194,6 +194,25 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                             ),
                                             if (score.placeholder) Text(tr('results.placeholder'), style: theme.textTheme.labelSmall),
                                             Text('${tr('results.shift')}: ${score.shift} (${score.octaveExactShift >= 0 ? '+' : ''}${score.octaveExactShift})', style: theme.textTheme.labelSmall),
+                                            const SizedBox(height: 6),
+                                            // Where the score comes from (not the live pop-ups); tap for the guide.
+                                            InkWell(
+                                              borderRadius: BorderRadius.circular(4),
+                                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RulesScreen())),
+                                              child: Row(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(top: 1, right: 4),
+                                                    child: Icon(Icons.info_outline, size: 14, color: cs.onSurfaceVariant),
+                                                  ),
+                                                  Expanded(
+                                                    child: Text(tr('results.scoredFrom'),
+                                                        style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                             const SizedBox(height: 16),
                                             for (final k in ScoreData.subScoreKeys) ...[
                                               _SubScoreBar(label: tr('results.${_camel(k)}'), value: score.subScores[k], tipKey: _camel(k)),

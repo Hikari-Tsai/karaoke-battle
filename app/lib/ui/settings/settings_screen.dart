@@ -476,6 +476,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(tr('settings.liveJudgePitch')),
+                  InfoTip(
+                    sections: [
+                      (tr('settings.liveJudgePitch.off'), tr('info.liveJudgePitch.off')),
+                      (tr('settings.liveJudgePitch.on'), tr('info.liveJudgePitch.on')),
+                    ],
+                    footer: tr('info.liveJudgePitch.footer'),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(value: settings.liveJudgePitch, onChanged: settings.setLiveJudgePitch),
+                ],
+              ),
             ],
           ),
           _Section(

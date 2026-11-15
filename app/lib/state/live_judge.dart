@@ -3,17 +3,20 @@
 // source = 2 frames) reports when the singer starts a syllable, and each
 // reference note is judged on timing alone (PERFECT / GREAT / GOOD with
 // FAST / LATE). No pitch estimate is waited for, so the pop-up comes up
-// about one analysis window after the sound instead of ~0.2 s. HIGH / LOW is
-// left to the replay, which judges from the scored recording.
+// about one analysis window after the sound instead of ~0.2 s. With the
+// pitch setting on, the pop-up also judges the pitch (HIGH / LOW) from the
+// live pitch just after the onset, and comes ~0.15 s later.
 //
 // For each reference note:
 // * its search window runs from the note onset minus the GOOD window to the
 //   onset plus the GOOD window, cut halfway to the neighbouring notes' onsets
 //   so one sung onset is not claimed by two notes;
 // * the first detected onset inside the window judges the note at once;
+// * a note sung legato from the previous one (no new syllable, so no onset)
+//   is judged from the live pitch instead: the moment the voice settles on
+//   the new note's pitch (any octave) for [legatoHoldSeconds];
 // * with no onset by the end of the window it is a MISS when the singer was
-//   silent, and no pop-up when they were singing (a note joined to the
-//   previous one without a new syllable has no onset to detect).
+//   silent, and no pop-up when they were singing without reaching the note.
 //
 // Only the singer counts. With speakers the track leaks into the mic and its
 // onsets fall right on the notes, so a silent singer used to collect PERFECTs.
@@ -36,7 +39,29 @@ import '../ui/widgets/judgement_popups.dart';
 import 'song_data.dart';
 
 class LiveJudge {
-  LiveJudge({required this.notes, required this.windows, this.pitchShift = 0, this.levelFloorDb = -50});
+  LiveJudge({
+    required this.notes,
+    required this.windows,
+    this.pitchShift = 0,
+    this.levelFloorDb = -50,
+    this.judgePitch = false,
+    this.foldOctave = true,
+  });
+
+  /// Also judge the pitch (a setting): after the onset, the median of the
+  /// live pitch over [pitchWindowSeconds] against the note, with the replay's
+  /// cents tiers and HIGH / LOW tags. The pop-up then comes that much later.
+  /// Display only: the score is computed after the take either way.
+  bool judgePitch;
+
+  /// Compare the pitch in the note's octave (singing an octave off is fine).
+  bool foldOctave;
+
+  /// The pitch is read over this span after the onset (skipping the first
+  /// [pitchSkipSeconds] of the attack), and needs [pitchMinFrames] voiced
+  /// frames; with fewer, the pop-up is judged on timing alone.
+  static const pitchWindowSeconds = 0.15, pitchSkipSeconds = 0.03;
+  static const pitchMinFrames = 3;
 
   final NoteList notes;
   final RhythmWindows windows;
@@ -64,11 +89,19 @@ class LiveJudge {
   /// Pop-ups so far, sorted by time.
   final List<JudgementMark> marks = [];
 
+  /// A legato arrival: within this many semitones of the note (folded to its
+  /// octave) and held this long, coming from another pitch or from silence
+  /// (already on the pitch before the window is the same note held on).
+  static const legatoTolerance = 0.6, legatoHoldSeconds = 0.04;
+
   /// How long to wait for late frames (they lag the playback by the audio
   /// latency plus one analysis window) before judging with what has arrived.
   static const maxLagSeconds = 0.6;
 
   final _onsets = <double>[];
+  final _pitchTime = <double>[];
+  final _pitchMidi = <double>[]; // NaN = unvoiced
+  double _lastPitch = double.negativeInfinity;
   final _levelTime = <double>[];
   final _sing = <bool>[];
   double _lastFrame = double.negativeInfinity;
@@ -86,6 +119,15 @@ class LiveJudge {
     if (onset) _onsets.add(time);
     _levelTime.add(time);
     _sing.add(_isSinging(time, levelDb, playbackDb));
+  }
+
+  /// One live pitch frame in track time (DSP or SwiftF0, whichever is shown);
+  /// [midi] is NaN when unvoiced. Used only for legato notes.
+  void addPitch(double time, double midi) {
+    if (time <= _lastPitch) return;
+    _lastPitch = time;
+    _pitchTime.add(time);
+    _pitchMidi.add(midi);
   }
 
   bool _isSinging(double time, double levelDb, double playbackDb) {
@@ -134,9 +176,22 @@ class LiveJudge {
       final i = _next;
       final from = _searchFrom(i), to = _searchTo(i);
       final timedOut = pos >= to + maxLagSeconds;
-      final (found, pending) = _firstSungOnset(from, to, timedOut);
+      var (found, pending) = _firstSungOnset(from, to, timedOut);
       if (pending || (found == null && _lastFrame < to && !timedOut)) break;
-      final mark = _judge(i, found, math.max(found ?? to, pos), from, to);
+      if (found == null && _sangDuring(from, to)) {
+        // No new syllable: when did the voice reach the note? Pitch frames
+        // come later than onset frames (SwiftF0 by ~0.2 s): wait for them.
+        if (_lastPitch < to + legatoHoldSeconds && !timedOut) break;
+        found = _pitchArrival(i, from, to);
+      }
+      double? cents;
+      if (judgePitch && found != null) {
+        final (a, b) = _pitchSpan(i, found);
+        // Wait for the pitch frames of that span (SwiftF0 ones come late).
+        if (_lastPitch < b && pos < b + maxLagSeconds) break;
+        cents = _medianCents(i, a, b);
+      }
+      final mark = _judge(i, found, math.max(found ?? to, pos), from, to, cents);
       if (mark != null) {
         _insert(mark);
         added = true;
@@ -170,7 +225,48 @@ class LiveJudge {
     return (null, false);
   }
 
-  JudgementMark? _judge(int i, double? found, double shownAt, double from, double to) {
+  /// The first time in [from, to] the voice moved onto note [i]'s pitch and
+  /// stayed there for [legatoHoldSeconds]; null when it never did.
+  double? _pitchArrival(int i, double from, double to) {
+    final target = notes.pitch[i] + pitchShift;
+    double? runStart;
+    for (var k = _lowerBound(_pitchTime, from - legatoHoldSeconds); k < _pitchTime.length; k++) {
+      final t = _pitchTime[k], m = _pitchMidi[k];
+      if (runStart == null && t > to) break;
+      final on = !m.isNaN && (foldToOctaveOf(m, target) - target).abs() <= legatoTolerance;
+      if (!on) {
+        runStart = null;
+        continue;
+      }
+      // Already on this pitch before the window: not an arrival at this note.
+      if (runStart == null && t < from) return null;
+      runStart ??= t;
+      if (t - runStart >= legatoHoldSeconds) return runStart;
+    }
+    return null;
+  }
+
+  /// Where the pitch of note [i] sung from [onset] is read.
+  (double, double) _pitchSpan(int i, double onset) {
+    final a = onset + pitchSkipSeconds;
+    final end = math.max(notes.offset[i], a + 0.04);
+    return (a, math.min(onset + pitchSkipSeconds + pitchWindowSeconds, end));
+  }
+
+  /// The median deviation (cents, + = sharp) of the voiced pitch in [a, b]
+  /// from note [i]; null with too few voiced frames.
+  double? _medianCents(int i, double a, double b) {
+    final target = notes.pitch[i] + pitchShift;
+    final c = <double>[
+      for (var k = _lowerBound(_pitchTime, a); k < _pitchTime.length && _pitchTime[k] <= b; k++)
+        if (!_pitchMidi[k].isNaN) ((foldOctave ? foldToOctaveOf(_pitchMidi[k], target) : _pitchMidi[k]) - target) * 100,
+    ];
+    if (c.length < pitchMinFrames) return null;
+    c.sort();
+    return c[c.length ~/ 2];
+  }
+
+  JudgementMark? _judge(int i, double? found, double shownAt, double from, double to, double? cents) {
     final midi = notes.pitch[i] + pitchShift;
     if (found == null) {
       if (_sangDuring(from, math.max(to, notes.onset[i]))) return null;
@@ -182,6 +278,7 @@ class LiveJudge {
       midi: midi,
       timing: windows.classify(err.abs()).name,
       onsetErrorMs: err * 1000,
+      cents: cents,
       anchor: notes.onset[i],
     );
   }
@@ -207,9 +304,16 @@ class LiveJudge {
       _onsets.clear();
       _levelTime.clear();
       _sing.clear();
+      _pitchTime.clear();
+      _pitchMidi.clear();
       return;
     }
     final keepFrom = _searchFrom(_next) - 0.1;
+    final pk = _lowerBound(_pitchTime, keepFrom);
+    if (pk > 1024) {
+      _pitchTime.removeRange(0, pk);
+      _pitchMidi.removeRange(0, pk);
+    }
     final k = _lowerBound(_levelTime, keepFrom);
     if (k > 1024) {
       _levelTime.removeRange(0, k);

@@ -194,6 +194,21 @@ void main() {
     }
   }, skip: available ? false : 'engine not built');
 
+  // The preview follows the live pitch setting: SwiftF0 runs in monitor mode too.
+  test('monitor capture with SwiftF0: model frames without keeping the audio', () async {
+    final rt = Engine.instance.createRuntime(ortLibraryPath: EngineLocator.ortLibraryPath(), ep: KeEp.cpu);
+    final live = LiveAudio.create(Engine.instance, sampleRate: 48000);
+    try {
+      live.startCapture(runtime: rt, swiftF0ModelPath: swiftF0, mode: 1, monitor: true);
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      expect(live.readFrames().where((f) => f.source == 1), isNotEmpty, reason: 'SwiftF0 frames flow');
+      live.stopCapture();
+    } finally {
+      live.dispose();
+      rt.dispose();
+    }
+  }, skip: (available && swiftF0 != null) ? false : 'KE_TEST_SWIFTF0 not set');
+
   test('latency can be measured again on a device that is already open', () async {
     final live = LiveAudio.create(Engine.instance, sampleRate: 48000);
     try {
