@@ -5,6 +5,7 @@ import '../../engine/engine.dart';
 import '../../engine/engine_bindings.dart' show KeError;
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import 'error_report.dart';
 
 /// Maps a calibration failure to a localized explanation with a fix.
 String calibrationAdvice(Object e) {
@@ -68,6 +69,14 @@ class CalibrationErrorPanel extends StatelessWidget {
                     child: SelectableText(details!, style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', color: cs.onErrorContainer)),
                   ),
                 ],
+              ),
+            ),
+          if (details != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButtonTheme(
+                data: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: cs.onErrorContainer)),
+                child: ReportBugButton(error: details!, where: 'calibration'),
               ),
             ),
         ],

@@ -5,6 +5,7 @@
 //   <support>/cuda_pack/                  Windows only
 //   <support>/songs/<song-id>/...         see docs/ARCHITECTURE.md
 //   <support>/cache/                      temporary downloads
+//   <support>/logs/app.log                app log (app.1.log: the previous one)
 import 'dart:convert';
 import 'dart:io';
 

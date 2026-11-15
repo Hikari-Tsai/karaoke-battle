@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../engine/engine.dart';
+import '../services/app_log.dart';
 import '../services/app_paths.dart';
 import '../services/backend_manager.dart';
 import '../services/model_registry.dart';
@@ -59,8 +61,11 @@ class EngineLoadError implements Exception {
   String toString() => 'EngineLoadError($path): $cause';
 }
 
+bool _engineLogged = false;
+
 Future<AppServices> bootstrapServices() async {
   final paths = await AppPaths.init();
+  await AppLog.init(paths.logs, header: await _logHeader());
   final settings = await AppSettings.load();
   I18n.notifier.value = settings.uiLanguage ?? I18n.fromLocale(Platform.localeName);
   I18n.onChanged = (lang) => settings.setUiLanguage(lang);
@@ -70,6 +75,12 @@ Future<AppServices> bootstrapServices() async {
     engine = Engine.instance;
   } catch (e) {
     throw EngineLoadError(EngineLocator.engineLibraryPath(), e);
+  }
+  // Once: a retried bootstrap gets the same engine.
+  if (!_engineLogged) {
+    _engineLogged = true;
+    engine.logs.listen(AppLog.engine);
+    AppLog.info('engine ${engine.version}');
   }
 
   final models = ModelStore(paths);
@@ -101,6 +112,16 @@ Future<AppServices> bootstrapServices() async {
     pipeline: pipeline,
     replays: replays,
   );
+}
+
+/// First line of a run in the log: app version and OS.
+Future<String> _logHeader() async {
+  var version = '?';
+  try {
+    final info = await PackageInfo.fromPlatform();
+    version = '${info.version}+${info.buildNumber}';
+  } catch (_) {}
+  return 'Karaoke Battle $version, ${Platform.operatingSystem} ${Platform.operatingSystemVersion}';
 }
 
 /// Reveals a folder or file in Finder / Explorer; falls back to a file: URL.

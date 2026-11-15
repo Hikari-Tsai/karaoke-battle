@@ -12,6 +12,7 @@ import 'state/app_services.dart';
 import 'state/i18n.dart';
 import 'state/setup_controller.dart';
 import 'ui/shell.dart';
+import 'ui/widgets/error_report.dart';
 
 class KaraokeApp extends StatefulWidget {
   const KaraokeApp({super.key});
@@ -135,7 +136,11 @@ class StartupErrorPage extends StatelessWidget {
                   ] else
                     SelectableText('$e'),
                   const SizedBox(height: 20),
-                  Align(alignment: Alignment.centerRight, child: FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: Text(tr('retry')))),
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    ReportBugButton(error: e, where: 'startup'),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: Text(tr('retry'))),
+                  ]),
                 ],
               ),
             ),

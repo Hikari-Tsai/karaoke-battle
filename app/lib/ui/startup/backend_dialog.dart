@@ -6,6 +6,7 @@ import '../../services/backend_manager.dart';
 import '../../services/settings.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../widgets/error_report.dart';
 
 /// Dialogs about a missing CUDA path (pack not downloaded, driver too old or
 /// a failed self-test) come up on every launch; the others can be turned off.
@@ -154,6 +155,7 @@ class _BackendDialogState extends State<_BackendDialog> {
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+              ReportBugButton(error: _error!, where: 'install backend'),
             ],
             const SizedBox(height: 8),
             if (!backendDialogAlwaysShown(d.dialog))

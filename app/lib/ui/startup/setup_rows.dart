@@ -8,6 +8,7 @@ import '../../services/sidecars.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
+import '../widgets/error_report.dart';
 import 'ytdlp_dialog.dart';
 
 /// One model with state + install/remove controls (shared with Settings).
@@ -80,8 +81,8 @@ class SidecarRow extends StatelessWidget {
       final files = await FilePicker.pickFiles(dialogTitle: tr('sidecar.pickTitle', {'name': nameOf(kind)}));
       final path = files.isEmpty ? null : files.first.path;
       if (path != null) await setup.useExecutable(kind, path);
-    } catch (e) {
-      messenger?.showSnackBar(SnackBar(content: Text('${tr('error')}: $e')));
+    } catch (e, st) {
+      if (context.mounted) showErrorSnack(context, e, stack: st, where: 'pick ${nameOf(kind)}', messenger: messenger);
     }
   }
 

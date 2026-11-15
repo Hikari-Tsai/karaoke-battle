@@ -24,6 +24,7 @@ import '../sing/video_pane.dart';
 import '../widgets/rank.dart';
 import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
+import '../widgets/error_report.dart';
 import 'replay_data.dart';
 
 class ReplayScreen extends StatefulWidget {
@@ -149,7 +150,16 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
             ],
           ),
           body: _error != null
-              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: SelectableText('${tr('error')}: $_error')))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      SelectableText('${tr('error')}: $_error'),
+                      const SizedBox(height: 12),
+                      ReportBugButton(error: _error!, where: 'open replay'),
+                    ]),
+                  ),
+                )
               : s == null
                   ? Center(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [

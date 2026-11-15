@@ -17,6 +17,7 @@ import '../../state/range_finder.dart';
 import '../../state/song_data.dart';
 import '../../state/voice_range.dart';
 import '../sing/voice_keyboard.dart';
+import '../widgets/error_report.dart';
 
 Future<void> showRangeDetectDialog(BuildContext context) =>
     showDialog<void>(context: context, barrierDismissible: false, builder: (_) => const RangeDetectDialog());
@@ -126,7 +127,10 @@ class _RangeDetectDialogState extends State<RangeDetectDialog> with SingleTicker
             Text(tr('ownRange.detectHint'), style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
             if (_error != null)
-              Text(tr('ownRange.micError', {'error': _error!}), style: TextStyle(color: theme.colorScheme.error))
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(tr('ownRange.micError', {'error': _error!}), style: TextStyle(color: theme.colorScheme.error)),
+                ReportBugButton(error: _error!, where: 'range check'),
+              ])
             else
               ListenableBuilder(
                 listenable: Listenable.merge([_finder.keys, _sung]),

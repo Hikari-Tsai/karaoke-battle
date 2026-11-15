@@ -13,6 +13,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
 import '../startup/setup_rows.dart';
+import '../widgets/error_report.dart';
 
 /// What to do: recognise with Whisper, or time [pasted] lyrics (with
 /// Whisper when [useWhisper], else from the notes).
@@ -302,7 +303,10 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
         ];
       case _Phase.failed:
         body = [SelectableText(_error, style: TextStyle(color: theme.colorScheme.error))];
-        actions = [TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(tr('close')))];
+        actions = [
+          ReportBugButton(error: _error, where: widget.request.pasted != null ? 'align lyrics' : 'recognize lyrics'),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(tr('close'))),
+        ];
     }
     return AlertDialog(
       icon: Icon(widget.request.pasted != null ? Icons.format_align_left : Icons.graphic_eq),

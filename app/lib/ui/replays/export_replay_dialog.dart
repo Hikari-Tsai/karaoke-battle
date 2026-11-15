@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../widgets/error_report.dart';
 
 /// Base name for the exported files: `<title> <score>` without characters
 /// file systems reject (and no leading or doubled dots).
@@ -123,6 +124,7 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
         ),
       ),
       actions: [
+        if (_error != null && !_busy) ReportBugButton(error: _error!, where: 'export replay'),
         TextButton(onPressed: _busy ? null : () => Navigator.of(context).pop(), child: Text(tr('cancel'))),
         FilledButton.icon(
           onPressed: _busy ? null : _export,

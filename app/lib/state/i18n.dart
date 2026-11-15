@@ -66,6 +66,12 @@ const Map<String, (String, String, String)> _table = {
   'nav.star': ('賞我星星', 'Star on GitHub', 'スターをください'),
   'nav.update': ('有更新', 'Update', '更新あり'),
   'nav.report': ('回報問題', 'Report a problem', '問題を報告'),
+  'report.bug': ('回報 Bug', 'Report bug', 'バグを報告'),
+  'report.logTrimmed': (
+    '（log 太長，這裡只附最後 {n} 行；完整 log 已存成 {file} 並在 Finder／檔案總管中選取，可直接拖進下方「截圖」欄位）',
+    '(The log is too long: only the last {n} lines are here. The full log was saved as {file} and is selected in your file manager; drag it into the screenshots field below.)',
+    '（ログが長いため最後の {n} 行のみ添付しています。完全なログは {file} に保存し、ファイルマネージャーで選択しています。下の「スクリーンショット」欄にドラッグしてください）',
+  ),
   'nav.about': ('關於', 'About', 'このアプリについて'),
   // generic
   'ok': ('確定', 'OK', 'OK'),

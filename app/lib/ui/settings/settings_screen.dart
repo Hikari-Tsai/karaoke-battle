@@ -25,6 +25,7 @@ import '../startup/setup_rows.dart';
 import '../startup/ytdlp_dialog.dart';
 import '../widgets/brand.dart';
 import '../widgets/voice_fx.dart';
+import '../widgets/error_report.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -105,8 +106,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final String? picked;
       try {
         picked = await FilePicker.getDirectoryPath(dialogTitle: tr('folder.pickTitle'));
-      } catch (e) {
-        _snack('${tr('error')}: $e');
+      } catch (e, st) {
+        if (mounted) showErrorSnack(context, e, stack: st, where: 'pick folder');
         return;
       }
       if (picked == null || !mounted) return;
@@ -146,9 +147,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
       try {
         await DataLocation.move(paths.root, dest, onProgress: (v) => progress.value = v);
-      } catch (e) {
+      } catch (e, st) {
         if (mounted) Navigator.of(context).pop();
-        _snack(e is StateError && '$e'.contains('not empty') ? tr('folder.notEmpty') : '${tr('error')}: $e');
+        if (e is StateError && '$e'.contains('not empty')) {
+          _snack(tr('folder.notEmpty'));
+        } else if (mounted) {
+          showErrorSnack(context, e, stack: st, where: 'move data folder');
+        }
         return;
       }
       if (mounted) Navigator.of(context).pop();

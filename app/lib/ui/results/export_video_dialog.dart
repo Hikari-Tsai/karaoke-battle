@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../widgets/error_report.dart';
 import '../replays/export_replay_dialog.dart' show replayBaseName;
 import 'video_export.dart';
 
@@ -161,6 +162,7 @@ class _ExportVideoDialogState extends State<_ExportVideoDialog> {
             child: Text(_cancel.isCompleted ? tr('library.cancelling') : tr('cancel')),
           )
         else ...[
+          if (_error != null) ReportBugButton(error: _error!, where: 'export video'),
           if (_done) TextButton.icon(onPressed: _reveal, icon: const Icon(Icons.folder_open), label: Text(tr('video.reveal'))),
           FilledButton(onPressed: () => Navigator.of(context).pop(), child: Text(tr('close'))),
         ],

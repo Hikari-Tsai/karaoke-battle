@@ -20,6 +20,7 @@ import '../state/i18n.dart';
 import '../state/loudness.dart';
 import '../state/lyrics.dart';
 import '../state/romaji.dart';
+import 'app_log.dart';
 import 'backend_manager.dart';
 import 'model_registry.dart';
 import 'settings.dart';
@@ -122,8 +123,9 @@ class PrepPipeline extends ChangeNotifier {
         final finished = _finished[id] = Completer<void>();
         try {
           await _run(song, cancel.future);
-        } catch (e) {
+        } catch (e, st) {
           final message = cancel.isCompleted ? tr('library.cancelled') : '$e';
+          if (!cancel.isCompleted) AppLog.error(e, st, 'prepare "${song.title}"');
           song.stage = PrepStage.failed;
           song.error = message;
           // Not when the song was deleted meanwhile: saving would bring its

@@ -20,6 +20,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/scoring_bridge.dart';
 import '../widgets/rank.dart';
+import '../widgets/error_report.dart';
 
 /// Download page linked from every share ("come and play").
 const kShareDownloadUrl = '${UpdateChecker.repoUrl}/releases/latest';
@@ -99,8 +100,8 @@ class _NewRecordDialogState extends State<_NewRecordDialog> {
     setState(() => _busy = true);
     try {
       await body();
-    } catch (e) {
-      _snack('${tr('error')}: $e');
+    } catch (e, st) {
+      if (mounted) showErrorSnack(context, e, stack: st, where: 'share result');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

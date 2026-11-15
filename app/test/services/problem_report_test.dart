@@ -28,6 +28,41 @@ void main() {
     expect(gpuSummary([]), isNull);
   });
 
+  test('carries the error and the log', () {
+    final u = problemReportUri(version: '1.1.2', error: 'boom', logs: 'a\nb');
+    expect(u.queryParameters['error'], 'boom');
+    expect(u.queryParameters['logs'], 'a\nb');
+  });
+
+  test('keeps the whole log when it fits', () {
+    final base = problemReportUri(version: '1.1.2');
+    final r = fitReportLogs(base, ['one', 'two', 'three']);
+    expect(r.text, 'one\ntwo\nthree');
+    expect(r.kept, 3);
+  });
+
+  test('keeps the last lines that fit, with the note in front', () {
+    final base = problemReportUri(version: '1.1.2', error: 'boom');
+    final lines = [for (var i = 0; i < 2000; i++) '12:00:00.000 I line $i with some text in it'];
+    final r = fitReportLogs(base, lines, note: (n) => '(last $n lines)');
+    expect(r.kept, greaterThan(10));
+    expect(r.kept, lessThan(lines.length));
+    expect(r.text, startsWith('(last ${r.kept} lines)\n'));
+    expect(r.text, endsWith('line 1999 with some text in it'));
+    final url = base.replace(queryParameters: {...base.queryParameters, 'logs': r.text}).toString();
+    expect(url.length, lessThanOrEqualTo(maxReportUrlLength));
+    // One more line would not have fitted.
+    final more = '(last ${r.kept + 1} lines)\n${lines.sublist(lines.length - r.kept - 1).join('\n')}';
+    expect(base.replace(queryParameters: {...base.queryParameters, 'logs': more}).toString().length, greaterThan(maxReportUrlLength));
+  });
+
+  test('shortens long errors and hides the home folder', () {
+    expect(reportErrorText(StateError('cannot open /Users/alice/Music/a.wav')), 'Bad state: cannot open ~/Music/a.wav');
+    final long = reportErrorText('x' * 5000);
+    expect(long.length, maxReportErrorChars + 1);
+    expect(long, endsWith('…'));
+  });
+
   test('leaves unknown fields out', () {
     expect(problemReportUri(version: '', backend: null).queryParameters, {'template': 'bug_report.yml'});
   });

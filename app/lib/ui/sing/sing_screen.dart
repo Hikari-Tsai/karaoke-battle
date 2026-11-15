@@ -33,6 +33,7 @@ import '../settings/range_detect_dialog.dart';
 import '../widgets/metronome_icon.dart';
 import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
+import '../widgets/error_report.dart';
 
 class SingScreen extends StatefulWidget {
   const SingScreen({super.key, required this.song});
@@ -438,23 +439,9 @@ class _SingScreenState extends State<SingScreen>
           ),
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
       s.processing.value = null;
-      if (mounted) {
-        await showDialog<void>(
-          context: context,
-          builder: (c) => AlertDialog(
-            title: Text(tr('error')),
-            content: SelectableText('$e'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(c),
-                child: Text(tr('ok')),
-              ),
-            ],
-          ),
-        );
-      }
+      if (mounted) await showErrorDialog(context, e, stack: st, where: 'score take');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -506,7 +493,14 @@ class _SingScreenState extends State<SingScreen>
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: SelectableText('${tr('error')}: $_loadError'),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SelectableText('${tr('error')}: $_loadError'),
+                    const SizedBox(height: 12),
+                    ReportBugButton(error: _loadError!, where: 'open sing screen'),
+                  ],
+                ),
               ),
             )
           : s == null

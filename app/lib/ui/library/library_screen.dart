@@ -21,6 +21,7 @@ import '../results/results_screen.dart';
 import '../sing/sing_screen.dart';
 import '../widgets/rank.dart';
 import '../widgets/brand.dart';
+import '../widgets/error_report.dart';
 import 'add_song_dialog.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -220,6 +221,7 @@ class _SongCardState extends State<_SongCard> {
       ),
     );
     Object? error;
+    StackTrace? stack;
     try {
       await SingSession.scoreTake(
         services: services,
@@ -228,22 +230,16 @@ class _SongCardState extends State<_SongCard> {
         octaveInvariant: services.settings.octaveInvariant,
         onProgress: (p) => progress.value = p,
       );
-    } catch (e) {
+    } catch (e, st) {
       error = e;
+      stack = st;
     } finally {
       nav.pop();
       progress.dispose();
     }
     if (!mounted) return;
     if (error != null) {
-      await showDialog<void>(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: Text(tr('error')),
-          content: SelectableText('$error'),
-          actions: [TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('close')))],
-        ),
-      );
+      await showErrorDialog(context, error, stack: stack, where: 'score take');
       return;
     }
     await _loadTakes();
@@ -441,6 +437,9 @@ class _SongCardState extends State<_SongCard> {
             if (song.error != null && song.stage == PrepStage.failed) ...[
               const SizedBox(height: 6),
               SelectableText(song.error!, style: theme.textTheme.bodySmall?.copyWith(color: cs.error), maxLines: 3),
+              // Logged by the pipeline when it failed.
+              if (song.error != tr('library.cancelled'))
+                Align(alignment: Alignment.centerLeft, child: ReportBugButton(error: song.error!, log: false)),
             ],
             if (_expanded) ...[
               const Divider(),

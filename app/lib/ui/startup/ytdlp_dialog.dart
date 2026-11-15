@@ -9,6 +9,7 @@ import '../../services/sidecars.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
+import '../widgets/error_report.dart';
 
 enum YtDlpIssue { broken, pathOnly, failed }
 
@@ -82,6 +83,7 @@ class _YtDlpDialogState extends State<_YtDlpDialog> {
             if (error != null && error.isNotEmpty) ...[
               const SizedBox(height: 8),
               SelectableText(error, maxLines: 6, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error)),
+              ReportBugButton(error: error, where: 'yt-dlp'),
             ],
             if (busy) ...[
               const SizedBox(height: 12),

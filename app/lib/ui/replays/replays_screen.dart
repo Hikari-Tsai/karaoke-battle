@@ -20,6 +20,7 @@ import '../results/new_record_dialog.dart';
 import '../results/replay_screen.dart';
 import '../widgets/brand.dart';
 import '../widgets/rank.dart';
+import '../widgets/error_report.dart';
 
 /// File types the import accepts: the exported .zip, or an unzipped .json
 /// (its vocal .mp3 is read from beside it).
@@ -92,8 +93,8 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
         final song = await services.pipeline.addUrl(url, language: language);
         await services.replays.link(r, song.id);
         // Other replays of the same video find the song by its id.
-      } catch (e) {
-        _snack('${tr('error')}: $e');
+      } catch (e, st) {
+        if (mounted) showErrorSnack(context, e, stack: st, where: 'add replay song');
       }
     }
   }
@@ -208,8 +209,8 @@ class _ReplayCardState extends State<_ReplayCard> {
     setState(() => _busy = true);
     try {
       await body();
-    } catch (e) {
-      _snack('${tr('error')}: $e');
+    } catch (e, st) {
+      if (mounted) showErrorSnack(context, e, stack: st, where: 'replay');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

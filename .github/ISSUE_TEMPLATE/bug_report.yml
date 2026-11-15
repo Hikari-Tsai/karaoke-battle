@@ -50,6 +50,21 @@ body:
         1.
         2.
         3.
+  - type: textarea
+    id: error
+    attributes:
+      label: 錯誤訊息 / Error message / エラーメッセージ
+      description: 從錯誤訊息的「回報 Bug」開啟時會自動填入 / Filled in when you use "Report bug" on an error / エラーの「バグを報告」から開くと自動で入ります
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log / ログ
+      description: |
+        從「回報 Bug」開啟時會附上最近的 log（家目錄已改寫為 ~），送出前請確認沒有不想公開的內容。完整 log 在資料夾的 logs/app.log。
+        "Report bug" adds the recent log (home folders shown as ~); check it before submitting. The full log is logs/app.log in the data folder.
+        「バグを報告」から開くと最近のログが入ります（ホームフォルダは ~ に置き換え済み）。送信前に内容を確認してください。完全なログはデータフォルダの logs/app.log です。
+      render: text
   - type: input
     id: song
     attributes:
