@@ -18,6 +18,9 @@
 人聲分離、旋律轉譜與參考音高抽取；演唱時以捲簾式鋼琴卷軸顯示參考旋律與即時
 F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音給出量化分數。
 
+<p align="center"><img src="docs/media/demo.gif" width="720" alt="演唱〈冬天．我們不說再見〉：即時音高曲線、PERFECT 判定字卡與逐字上色的歌詞"></p>
+<p align="center"><sub>示範歌曲：多帕 Topa〈冬天．我們不說再見〉 · <a href="docs/media/demo.mp4">含音樂的 MP4</a></sub></p>
+
 * macOS（Universal, Apple Silicon + Intel）與 Windows x64，Flutter 桌面 App + C++ 原生引擎。
 * 所有模型在首次執行時從 Hugging Face `aaatmy/*` 下載並以 SHA-256 驗證，安裝包不含模型。每次啟動都會檢查模型是否完整，缺少或損壞時要先補下載才能進入曲庫。
 * Windows 以 CUDA 為主要加速路徑（自動偵測、缺漏時提示安裝驅動並下載 CUDA 執行環境），
