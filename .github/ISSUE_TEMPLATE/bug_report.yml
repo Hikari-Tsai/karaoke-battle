@@ -1,5 +1,5 @@
 name: 回報問題 / Report a problem / 問題を報告
-description: 直播或使用中遇到的問題 / Something went wrong on stream or in use / 配信中や使用中の問題
+description: 使用中遇到的問題 / Something went wrong / 使用中の問題
 labels: [bug]
 body:
   - type: markdown
@@ -58,5 +58,5 @@ body:
   - type: textarea
     id: media
     attributes:
-      label: 截圖、影片或直播時間點 / Screenshots, clips or VOD timestamp / スクリーンショット、録画、アーカイブの時刻
+      label: 截圖、影片或時間點 / Screenshots, clips or timestamps / スクリーンショット、録画、時刻
       description: 可直接拖曳檔案進來；評分有疑問可附重播檔 zip（含演唱錄音，請自行決定）/ Drag files in; a replay zip helps with score questions (it contains your singing) / ファイルはドラッグで添付できます。採点の疑問にはリプレイ zip が役立ちます（歌声を含みます）

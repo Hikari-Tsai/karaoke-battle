@@ -14,7 +14,7 @@
 
 <p align="center"><b>中文</b> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a></p>
 
-給直播主的卡拉 OK 評分系統。貼上 YouTube 連結或拖入影音檔，App 會在本機完成
+在本機執行的卡拉 OK 評分系統。貼上 YouTube 連結或拖入影音檔，App 會在本機完成
 人聲分離、旋律轉譜與參考音高抽取；演唱時以捲簾式鋼琴卷軸顯示參考旋律與即時
 F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音給出量化分數。
 
@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/68ab9d12-b78b-4cc4-96fc-53717ae136c2
 
 <p align="center"><sub>macOS：打開 DMG 拖到「應用程式」，第一次請在 App 上按右鍵 →「打開」。<br>Windows：解壓縮後執行 <code>karaoke_battle.exe</code>。首次啟動會自動下載模型（約 500 MB）。</sub></p>
 
-## 給直播主的功能
+## 功能
 
 以下畫面都是實際操作 App 錄下來的（示範歌曲為 Josh Woodward 的〈Swansong〉，CC BY 授權）。GIF 沒有聲音。
 
@@ -51,7 +51,7 @@ https://github.com/user-attachments/assets/68ab9d12-b78b-4cc4-96fc-53717ae136c2
 
 ### 即時看到自己哪裡走音
 
-鋼琴卷軸捲動顯示原唱的每個音符，你唱的音高即時畫成曲線：綠色是準、黃色差一點、紅色偏掉了，觀眾一看就懂。每個音唱下去就會像音遊一樣跳出 PERFECT／GREAT／GOOD／MISS 字卡（右上的星星按鈕可關閉）。
+鋼琴卷軸捲動顯示原唱的每個音符，你唱的音高即時畫成曲線：綠色是準、黃色差一點、紅色偏掉了，一看就懂。每個音唱下去就會像音遊一樣跳出 PERFECT／GREAT／GOOD／MISS 字卡（右上的星星按鈕可關閉）。
 
 <p align="center"><img src="docs/media/sing.gif" width="720" alt="演唱畫面：捲動的鋼琴卷軸、即時音高曲線、判定字卡與歌詞"></p>
 
@@ -59,7 +59,7 @@ https://github.com/user-attachments/assets/68ab9d12-b78b-4cc4-96fc-53717ae136c2
 
 儀表板上的鋼琴鍵盤直接把這首歌的音域填在琴鍵上，並標出男生、女生的舒適音域，告訴你這個 key 適合誰、偏高還是偏低。還沒開始錄，對著麥克風唱幾個音，唱得到的音就會在鍵盤上留下橘點，自己的音域和歌曲一比就知道。按「AI 移調」選男生或女生，伴奏、音符和鍵盤一起滑到適合的 key；錄製時鍵盤即時亮出樂譜的音（藍）和你唱的音（橘）。
 
-<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="音域鍵盤：唱一段音階偵測出自己的音域，再用 AI 移調移到男生或女生的音域"></p>
+<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="音域鍵盤：唱一段音階偵測出自己的音域，再用 AI 移調移到男生、女生或你自己的音域"></p>
 
 ### 升降 Key 與人聲返送
 
@@ -178,13 +178,13 @@ cd app && flutter pub get && flutter run -d macos
 
 ## 回報問題與參與
 
-最主要的測試方式是直接在直播中使用。遇到問題請按 App 左側導覽列最下方的「回報問題」，或到 [Issues](https://github.com/Hikari-Tsai/karaoke-battle/issues) 回報；需要附哪些資訊與如何貢獻程式碼，見 [CONTRIBUTING.md](CONTRIBUTING.md)。
+最主要的測試方式就是實際拿來唱。遇到問題請按 App 左側導覽列最下方的「回報問題」，或到 [Issues](https://github.com/Hikari-Tsai/karaoke-battle/issues) 回報；需要附哪些資訊與如何貢獻程式碼，見 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 致謝
 
 ### 早期測試者
 
-感謝在正式版之前參與測試、回報問題的主播與朋友們：
+感謝在正式版之前參與測試、回報問題的朋友們：
 
 * **天櫻咲樂**：測試 50XX 系列顯示卡；發現 GPU 張量運算的錯誤、CPU／GPU 切換的錯誤與錄製時的字卡錯誤；提供編輯模式的 UI 建議、評分演算法建議與排行榜的靈感；直播實測。
 * **多帕**：發現 yt-dlp 的錯誤；測試 30XX 與 50XX 系列顯示卡；提供評分演算法與最高分刷新時機的建議，以及自動對齊字幕的想法；直播實測。

@@ -14,7 +14,7 @@
 
 <p align="center"><a href="README.md">中文</a> · <b>English</b> · <a href="README.ja.md">日本語</a></p>
 
-A karaoke scoring system for streamers. Paste a YouTube link or drop in an audio or video file, and the app
+A karaoke scoring system that runs on your own machine. Paste a YouTube link or drop in an audio or video file, and the app
 performs vocal separation, melody transcription and reference pitch extraction locally on your machine. While you
 sing, a scrolling piano roll shows the reference melody alongside your live F0 curve; when you finish, you get
 quantitative scores for pitch, rhythm, stability, vibrato, expression and long tone.
@@ -40,7 +40,7 @@ https://github.com/user-attachments/assets/68ab9d12-b78b-4cc4-96fc-53717ae136c2
 
 <p align="center"><sub>macOS: open the DMG and drag the app to Applications; the first time, right-click the app and choose Open.<br>Windows: unzip and run <code>karaoke_battle.exe</code>. The models (about 500 MB) download on first launch.</sub></p>
 
-## Features for streamers
+## Features
 
 Every clip below was recorded from the running app (demo song: "Swansong" by Josh Woodward, CC BY). The GIFs have no sound.
 
@@ -52,7 +52,7 @@ Paste a YouTube link or drop in a media file. In the background the app separate
 
 ### See exactly which notes went off
 
-A scrolling piano roll shows every note of the original singer, and your pitch is drawn live on top of it: green is on pitch, yellow is close, red is off. Viewers get it at a glance. Each note also pops a rhythm-game PERFECT / GREAT / GOOD / MISS judgement as you sing it (the star button at the top right turns them off).
+A scrolling piano roll shows every note of the original singer, and your pitch is drawn live on top of it: green is on pitch, yellow is close, red is off, readable at a glance. Each note also pops a rhythm-game PERFECT / GREAT / GOOD / MISS judgement as you sing it (the star button at the top right turns them off).
 
 <p align="center"><img src="docs/media/sing.gif" width="720" alt="Singing screen: scrolling piano roll, live pitch line, judgements and lyrics"></p>
 
@@ -60,7 +60,7 @@ A scrolling piano roll shows every note of the original singer, and your pitch i
 
 A piano keyboard on the dashboard fills in the song's range right on the keys, next to the comfortable male and female ranges, and tells you whom the key suits and whether it is too high or too low. Before you record, sing a few notes into the mic: every note you can hold leaves an orange dot, so your own range sits right next to the song's. "AI key" moves the backing, the notes and the keyboard into a male or a female range in one click. While you record, the keyboard lights the score's note (blue) and the note you sing (orange).
 
-<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="Range keyboard: a sung scale finds your range, then AI key moves the song into a male or female range"></p>
+<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="Range keyboard: a sung scale finds your range, then AI key moves the song into a male, female or your own range"></p>
 
 ### Key shift and vocal return
 
@@ -167,13 +167,13 @@ In development mode, the app automatically looks for the engine in `engine/build
 
 ## Reporting problems and contributing
 
-The main way to test is to use the app live on stream. If something goes wrong, press "Report a problem" at the bottom of the app's navigation bar or open an [issue](https://github.com/Hikari-Tsai/karaoke-battle/issues). See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for what to include and how to contribute code.
+The main way to test is simply to sing with it. If something goes wrong, press "Report a problem" at the bottom of the app's navigation bar or open an [issue](https://github.com/Hikari-Tsai/karaoke-battle/issues). See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for what to include and how to contribute code.
 
 ## Acknowledgments
 
 ### Early testers
 
-Thanks to the streamers and friends who tested the app and reported problems before the official release:
+Thanks to the friends who tested the app and reported problems before the official release:
 
 * **天櫻咲樂**: tested 50XX-series GPUs; found the GPU tensor-operation bug, the CPU/GPU switching bug and the on-screen card bug while recording; suggested edit-mode UI and scoring changes and inspired the leaderboard; tested it live on stream.
 * **多帕**: found the yt-dlp error; tested 30XX- and 50XX-series GPUs; suggested scoring changes and when the best score should refresh, and proposed automatic lyric alignment; tested it live on stream.

@@ -2,19 +2,19 @@
 
 [中文](CONTRIBUTING.md) · **English** · [日本語](CONTRIBUTING.ja.md)
 
-Thank you for helping! Karaoke Battle is a singing-score app made for streamers, so the main way to test it is simple: **use it live on your stream, and report anything that goes wrong in [Issues](https://github.com/Hikari-Tsai/karaoke-battle/issues)**.
+Thank you for helping! Karaoke Battle is a singing-score app, and the main way to test it is simple: **sing with it, and report anything that goes wrong in [Issues](https://github.com/Hikari-Tsai/karaoke-battle/issues)**.
 
-## Testing on stream
+## Testing by using it
 
 1. Download the latest version from [Releases](https://github.com/Hikari-Tsai/karaoke-battle/releases/latest); see the [install guide](docs/INSTALL.md).
-2. Use it the way you normally stream: add songs, preview, record, check results and replays, export replays, make share images, capture the window in OBS.
-3. No test script needed. Anything that feels off on stream is worth reporting, for example:
+2. Use it the way you normally sing: add songs, preview, record, check results and replays, export replays, make share images; if you stream, capturing the window in OBS is worth testing too.
+3. No test script needed. Anything that feels off is worth reporting, for example:
    * song preparation fails or hangs, or the app crashes or stops responding;
    * the score, judgement pop-ups or pitch line clearly disagree with what you heard;
    * pop-ups, lyrics or the backing track are out of sync with the screen;
-   * something is hard to read at stream quality, or viewers can't follow it;
-   * anything awkward to use while you are live.
-4. If the stream is recorded (VOD), note the time it happened; a link with the timestamp helps the most.
+   * something is hard to read, or it is unclear what it shows;
+   * anything awkward to use.
+4. If you recorded it, note the time it happened; a clip or a link with the timestamp helps the most.
 
 ## Reporting a problem
 
@@ -33,7 +33,7 @@ Please include as much as you can:
 | What happened | What you did, what you expected and what you saw |
 | Steps | Steps to reproduce if you can; please report it even if it happened only once |
 | Song | The YouTube link, or the kind of local file (mp3, mp4…) |
-| Screen | Screenshots, a clip, or a VOD link with the timestamp |
+| Screen | Screenshots, a clip, or a video link with the timestamp |
 | Replay file (optional) | If a score looks wrong, the exported replay zip of that take |
 
 Please note:
@@ -44,7 +44,7 @@ Please note:
 
 ## Feature requests
 
-Ideas are welcome as issues too. Describe what you want to do on stream and what stops you today.
+Ideas are welcome as issues too. Describe what you want to do and what stops you today.
 
 ## Contributing code
 
