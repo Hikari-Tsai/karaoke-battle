@@ -181,6 +181,8 @@ Thanks to the friends who tested the app and reported problems before the offici
 * **妮亞露**: tested 30XX-series GPUs; found songs whose setup could be blocked, the felt latency while recording, and "Sing again" resetting the settings; proposed showing where imported lyrics come from, confirming permanent deletes and a visible "Download again" button after a failed download; found the large loudness differences between downloaded songs and proposed mastering them in the background.
 * **貝拉子**: found the FFmpeg download version and path problems.
 * **東爺**: found the bug with Chinese characters in paths.
+* **あはあは**: volume adjustment in replays, the keyboard on the left of the piano roll, and pitch detection with practice in preview.
+* **皮卡**: backtesting with the original song, and feedback detection.
 
 ### Models and libraries
 
