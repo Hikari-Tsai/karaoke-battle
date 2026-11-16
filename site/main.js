@@ -23,3 +23,18 @@
   }, { threshold: 0.35 });
   loops.forEach(function (v) { io.observe(v); });
 })();
+
+// The score bars grow to the right the first time they scroll into view.
+// Without JavaScript, or with reduced motion, they are simply full.
+(function () {
+  var list = document.querySelector(".scores");
+  if (!list || !("IntersectionObserver" in window)) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  list.classList.add("anim");
+  var io = new IntersectionObserver(function (entries) {
+    if (!entries[0].isIntersecting) return;
+    list.classList.add("in");
+    io.disconnect();
+  }, { threshold: 0.4 });
+  io.observe(list);
+})();

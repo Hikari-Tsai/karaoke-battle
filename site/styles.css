@@ -135,7 +135,16 @@ h1 { font-size: clamp(44px, 8.2vw, 104px); font-weight: 900; letter-spacing: 0.0
 .scores li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; padding: 14px 0; }
 .scores b { font-size: 20px; }
 .scores em { font-style: normal; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
-.scores i { grid-column: 1 / -1; height: 10px; border-radius: 5px; background: linear-gradient(to right, var(--lav) var(--w), rgba(255, 255, 255, 0.1) var(--w)); }
+.scores i { grid-column: 1 / -1; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.scores i::after { content: ""; display: block; width: var(--w); height: 100%; border-radius: 5px; background: var(--lav); transform-origin: 0 50%; }
+/* main.js adds .anim, then .in once the list scrolls into view: the bars grow to the right. */
+.scores.anim i::after { transform: scaleX(0); }
+.scores.anim.in i::after { transform: scaleX(1); transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1); }
+.scores.anim.in li:nth-child(2) i::after { transition-delay: 0.08s; }
+.scores.anim.in li:nth-child(3) i::after { transition-delay: 0.16s; }
+.scores.anim.in li:nth-child(4) i::after { transition-delay: 0.24s; }
+.scores.anim.in li:nth-child(5) i::after { transition-delay: 0.32s; }
+.scores.anim.in li:nth-child(6) i::after { transition-delay: 0.4s; }
 .scores span { grid-column: 1 / -1; color: var(--muted); font-size: 15px; }
 .points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 56px; }
 .points div { border-top: 3px solid var(--magenta); padding-top: 18px; }
