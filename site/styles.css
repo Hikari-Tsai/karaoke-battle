@@ -18,6 +18,10 @@
   --font: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Heiti TC", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* 日文與英文用各自的字型順序；英文標題字較長，縮小一級 */
+:root:lang(ja) { --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, system-ui, sans-serif; }
+:root:lang(en) { --font: system-ui, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif; }
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 76px; }
 body {
@@ -59,6 +63,16 @@ p { margin: 0; text-wrap: pretty; }
 .nav a { color: var(--muted); text-decoration: none; font-size: 15px; padding: 6px 2px; }
 .nav a:hover { color: #fff; }
 
+/* 語言切換 */
+.lang { display: flex; background: rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 3px; }
+.lang button {
+  font: inherit; font-size: 14px; font-weight: 700; line-height: 1;
+  color: var(--muted); background: none; border: 0; border-radius: 8px;
+  padding: 7px 11px; cursor: pointer; white-space: nowrap;
+}
+.lang button:hover { color: #fff; }
+.lang button[aria-pressed="true"] { background: var(--lav); color: var(--ink); }
+
 /* 按鈕 */
 .btn {
   display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
@@ -76,6 +90,10 @@ p { margin: 0; text-wrap: pretty; }
 .hero-text { text-align: left; padding-bottom: 48px; }
 .eyebrow { font-weight: 700; color: #ffd9ec; font-size: 16px; margin-bottom: 14px; }
 h1 { font-size: clamp(44px, 8.2vw, 104px); font-weight: 900; letter-spacing: 0.02em; }
+:lang(en) h1 { font-size: clamp(38px, 7vw, 92px); letter-spacing: -0.02em; }
+:lang(ja) h1 { font-size: clamp(32px, 6.6vw, 88px); letter-spacing: 0; }
+:lang(en) body { line-height: 1.65; }
+:lang(en) .section h2 { letter-spacing: -0.01em; }
 .lead { font-size: clamp(17px, 1.6vw, 20px); max-width: 34em; margin-top: 24px; color: #ffeaf4; }
 .cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 32px; }
 .cta.center { justify-content: center; }
@@ -151,7 +169,8 @@ h1 { font-size: clamp(44px, 8.2vw, 104px); font-weight: 900; letter-spacing: 0.0
 /* 窄螢幕 */
 @media (max-width: 860px) {
   .nav { display: none; }
-  .top .btn-small { margin-left: auto; }
+  .top { gap: 10px; }
+  .top .lang { margin-left: auto; }
   .hero { padding-top: 48px; background: linear-gradient(to bottom, var(--magenta) 0, var(--magenta) calc(100% - 110px), var(--bg) calc(100% - 110px)); }
   .section { padding: 64px 0; }
   .steps, .points, .install, .scores, .tech { grid-template-columns: 1fr; }
@@ -160,6 +179,12 @@ h1 { font-size: clamp(44px, 8.2vw, 104px); font-weight: 900; letter-spacing: 0.0
   .feature.note { padding: 24px 22px; }
   .btn { flex: 1 1 100%; }
   .btn-small { flex: 0 0 auto; }
+}
+
+/* 手機：頂端列放不下字標，只留圖示 */
+@media (max-width: 520px) {
+  .wordmark { display: none; }
+  .lang button { padding: 7px 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

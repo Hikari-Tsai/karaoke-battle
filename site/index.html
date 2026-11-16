@@ -12,242 +12,235 @@
     <meta name="theme-color" content="#9E266C" />
     <link rel="icon" href="assets/icon.png" />
     <link rel="stylesheet" href="styles.css" />
+    <!-- Sets the language before the page paints; the texts follow in i18n.js. -->
+    <script>
+      (function () {
+        var ok = { zh: 1, en: 1, ja: 1 }, l = null;
+        try { l = new URLSearchParams(location.search).get("lang"); } catch (e) {}
+        if (!ok[l]) { try { l = localStorage.getItem("kb-lang"); } catch (e) {} }
+        if (!ok[l]) {
+          var n = (navigator.language || "zh").toLowerCase();
+          l = n.indexOf("zh") === 0 ? "zh" : n.indexOf("ja") === 0 ? "ja" : "en";
+        }
+        document.documentElement.setAttribute("data-lang", l);
+        document.documentElement.lang = l === "zh" ? "zh-Hant" : l;
+      })();
+    </script>
   </head>
   <body>
-    <a class="skip" href="#main">跳到主要內容</a>
+    <a class="skip" href="#main" data-i18n="skip">跳到主要內容</a>
 
     <header class="top">
-      <a class="brand" href="#" aria-label="Karaoke Battle 首頁">
+      <a class="brand" href="#" aria-label="Karaoke Battle 首頁" data-i18n-aria="a.home">
         <img src="assets/icon.png" width="36" height="36" alt="" />
         <span class="wordmark"><span class="k">KARAOKE</span> BATTLE</span>
       </a>
-      <nav class="nav" aria-label="主選單">
-        <a href="#how">怎麼用</a>
-        <a href="#features">功能</a>
-        <a href="#scoring">評分</a>
-        <a href="#tech">技術</a>
-        <a href="https://github.com/Hikari-Tsai/karaoke-battle">GitHub</a>
+      <nav class="nav" aria-label="主選單" data-i18n-aria="a.nav">
+        <a href="#how" data-i18n="nav.how">怎麼用</a>
+        <a href="#features" data-i18n="nav.features">功能</a>
+        <a href="#scoring" data-i18n="nav.scoring">評分</a>
+        <a href="#tech" data-i18n="nav.tech">技術</a>
+        <a href="https://github.com/Hikari-Tsai/karaoke-battle" data-href-en="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/README.en.md" data-href-ja="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/README.ja.md">GitHub</a>
       </nav>
-      <a class="btn btn-small" href="#download">下載</a>
+      <div class="lang" role="group" aria-label="語言" data-i18n-aria="a.lang">
+        <button type="button" data-set-lang="zh" lang="zh-Hant">中文</button>
+        <button type="button" data-set-lang="en" lang="en">EN</button>
+        <button type="button" data-set-lang="ja" lang="ja">日本語</button>
+      </div>
+      <a class="btn btn-small" href="#download" data-i18n="nav.download">下載</a>
     </header>
 
     <main id="main">
-      <!-- 主視覺 -->
       <section class="hero">
         <div class="wrap hero-text">
-          <p class="eyebrow">在本機執行的卡拉 OK 評分系統</p>
-          <h1>貼連結就能唱<br />唱完有分數</h1>
-          <p class="lead">
-            貼上 YouTube 連結或拖入影音檔，App 在你的電腦上分離人聲、做出伴奏、轉出旋律音符。邊唱邊看自己的音準，唱完給 0 到 100 分。
-          </p>
+          <p class="eyebrow" data-i18n="hero.eyebrow">在本機執行的卡拉 OK 評分系統</p>
+          <h1 data-i18n="hero.h1">貼連結就能唱<br />唱完有分數</h1>
+          <p class="lead" data-i18n="hero.lead">貼上 YouTube 連結或拖入影音檔，App 在你的電腦上分離人聲、做出伴奏、轉出旋律音符。邊唱邊看自己的音準，唱完給 0 到 100 分。</p>
           <div class="cta">
             <a class="btn" href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg">
-              下載 macOS 版
+              <span data-i18n="dl.mac">下載 macOS 版</span>
               <small>Apple Silicon + Intel</small>
             </a>
             <a class="btn" href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip">
-              下載 Windows 版
-              <small>10／11 x64</small>
+              <span data-i18n="dl.win">下載 Windows 版</span>
+              <small data-i18n="dl.winsub">10／11 x64</small>
             </a>
           </div>
-          <p class="fine">免費、開源（MIT）。首次啟動會自動下載模型，約 500 MB。</p>
+          <p class="fine" data-i18n="hero.fine">免費、開源（MIT）。首次啟動會自動下載模型，約 500 MB。</p>
         </div>
         <div class="wrap">
           <figure class="film">
             <video controls playsinline preload="metadata" poster="assets/promo-poster.jpg">
               <source src="assets/promo.mp4" type="video/mp4" />
-              你的瀏覽器無法播放影片，可以<a href="assets/promo.mp4">直接下載</a>。
+              <span data-i18n="film.fallback">你的瀏覽器無法播放影片，可以<a href="assets/promo.mp4">直接下載</a>。</span>
             </video>
-            <figcaption>介紹影片（32 秒，有聲音）。示範歌曲：多帕 Topa〈冬天．我們不說再見〉</figcaption>
+            <figcaption data-i18n="film.cap">介紹影片（32 秒，有聲音）。示範歌曲：多帕 Topa〈冬天．我們不說再見〉</figcaption>
           </figure>
         </div>
       </section>
 
-      <!-- 三步驟 -->
       <section id="how" class="section">
         <div class="wrap">
-          <h2>三步開唱</h2>
+          <h2 data-i18n="how.h2">三步開唱</h2>
           <ol class="steps">
             <li>
               <span class="num">1</span>
-              <h3>貼上連結</h3>
-              <p>貼上 YouTube 連結，或把影音檔拖進來。可以一次排好幾首。</p>
-              <video class="loop" muted loop playsinline preload="none" poster="assets/add-song.jpg" aria-label="貼上 YouTube 連結後在背景備歌"><source src="assets/add-song.mp4" type="video/mp4" /></video>
+              <h3 data-i18n="how.1.t">貼上連結</h3>
+              <p data-i18n="how.1.p">貼上 YouTube 連結，或把影音檔拖進來。可以一次排好幾首。</p>
+              <video class="loop" muted loop playsinline preload="none" poster="assets/add-song.jpg" aria-label="貼上 YouTube 連結後在背景備歌" data-i18n-aria="a.add"><source src="assets/add-song.mp4" type="video/mp4" /></video>
             </li>
             <li>
               <span class="num">2</span>
-              <h3>開唱</h3>
-              <p>備歌完成後按「預覽」，戴上耳機按「開始錄製」。可以先聽導唱或伴奏。</p>
-              <video class="loop" muted loop playsinline preload="none" poster="assets/sing.jpg" aria-label="演唱畫面：捲動的鋼琴卷軸與即時音高曲線"><source src="assets/sing.mp4" type="video/mp4" /></video>
+              <h3 data-i18n="how.2.t">開唱</h3>
+              <p data-i18n="how.2.p">備歌完成後按「預覽」，戴上耳機按「開始錄製」。可以先聽導唱或伴奏。</p>
+              <video class="loop" muted loop playsinline preload="none" poster="assets/sing.jpg" aria-label="演唱畫面：鋼琴卷軸、即時音高曲線、判定字卡與歌詞" data-i18n-aria="a.sing"><source src="assets/sing.mp4" type="video/mp4" /></video>
             </li>
             <li>
               <span class="num">3</span>
-              <h3>看分數</h3>
-              <p>唱完立刻給出總分、D 到 SSS 的等級，還有六項子分數。</p>
-              <video class="loop" muted loop playsinline preload="none" poster="assets/results.jpg" aria-label="結果頁：總分、等級與子分數"><source src="assets/results.mp4" type="video/mp4" /></video>
+              <h3 data-i18n="how.3.t">看分數</h3>
+              <p data-i18n="how.3.p">唱完立刻給出總分、D 到 SSS 的等級，還有六項子分數。</p>
+              <video class="loop" muted loop playsinline preload="none" poster="assets/results.jpg" aria-label="結果頁：分享圖卡、總分與子分數" data-i18n-aria="a.results"><source src="assets/results.mp4" type="video/mp4" /></video>
             </li>
           </ol>
         </div>
       </section>
 
-      <!-- 功能 -->
       <section id="features" class="section alt">
         <div class="wrap">
-          <h2>功能</h2>
-          <p class="section-lead">以下畫面都是實際操作 App 錄下來的，沒有聲音。</p>
+          <h2 data-i18n="feat.h2">功能</h2>
+          <p class="section-lead" data-i18n="feat.lead">以下畫面都是實際操作 App 錄下來的，沒有聲音。</p>
 
           <article class="feature">
             <div class="feature-text">
-              <h3>即時看到自己哪裡走音</h3>
-              <p>鋼琴卷軸捲動顯示原唱的每個音符，你唱的音高即時畫成曲線：綠色是準、黃色差一點、紅色偏掉了。</p>
-              <p>每個音唱下去，就會像音遊一樣跳出 PERFECT／GREAT／GOOD／MISS 字卡。</p>
+              <h3 data-i18n="f1.t">即時看到自己哪裡走音</h3>
+              <p data-i18n="f1.p1">鋼琴卷軸捲動顯示原唱的每個音符，你唱的音高即時畫成曲線：綠色是準、黃色差一點、紅色偏掉了。</p>
+              <p data-i18n="f1.p2">每個音唱下去，就會像音遊一樣跳出 PERFECT／GREAT／GOOD／MISS 字卡。</p>
             </div>
-            <video class="loop" muted loop playsinline preload="none" poster="assets/sing.jpg" aria-label="演唱畫面：鋼琴卷軸、即時音高曲線、判定字卡與歌詞"><source src="assets/sing.mp4" type="video/mp4" /></video>
+            <video class="loop" muted loop playsinline preload="none" poster="assets/sing.jpg" aria-label="演唱畫面：鋼琴卷軸、即時音高曲線、判定字卡與歌詞" data-i18n-aria="a.sing"><source src="assets/sing.mp4" type="video/mp4" /></video>
           </article>
 
           <article class="feature flip">
             <div class="feature-text">
-              <h3>音域鍵盤與一鍵移調</h3>
-              <p>鋼琴鍵盤把這首歌的音域填在琴鍵上，並標出男生、女生的舒適音域，告訴你這個 key 適合誰。</p>
-              <p>對著麥克風唱幾個音，就能量出自己的音域。按「一鍵移調」選男生、女生或你自己的音域，伴奏、音符和鍵盤一起移到適合的 key。</p>
+              <h3 data-i18n="f2.t">音域鍵盤與一鍵移調</h3>
+              <p data-i18n="f2.p1">鋼琴鍵盤把這首歌的音域填在琴鍵上，並標出男生、女生的舒適音域，告訴你這個 key 適合誰。</p>
+              <p data-i18n="f2.p2">對著麥克風唱幾個音，就能量出自己的音域。按「一鍵移調」選男生、女生或你自己的音域，伴奏、音符和鍵盤一起移到適合的 key。</p>
             </div>
-            <video class="loop tall" muted loop playsinline preload="none" poster="assets/voice-range.jpg" aria-label="音域鍵盤：偵測自己的音域，再用一鍵移調"><source src="assets/voice-range.mp4" type="video/mp4" /></video>
+            <video class="loop tall" muted loop playsinline preload="none" poster="assets/voice-range.jpg" aria-label="音域鍵盤：偵測自己的音域，再用一鍵移調" data-i18n-aria="a.range"><source src="assets/voice-range.mp4" type="video/mp4" /></video>
           </article>
 
           <article class="feature">
             <div class="feature-text">
-              <h3>升降 Key、人聲返送與殘響</h3>
-              <p>升降 Key 讓伴奏與參考音符一起移調。人聲返送把你的聲音和音樂一起送到耳機，還能加上 Hall 殘響。</p>
+              <h3 data-i18n="f3.t">升降 Key、人聲返送與殘響</h3>
+              <p data-i18n="f3.p1">升降 Key 讓伴奏與參考音符一起移調。人聲返送把你的聲音和音樂一起送到耳機，還能加上 Hall 殘響。</p>
             </div>
-            <video class="loop" muted loop playsinline preload="none" poster="assets/key-voice.jpg" aria-label="升降 Key 與人聲返送、Hall 殘響設定"><source src="assets/key-voice.mp4" type="video/mp4" /></video>
+            <video class="loop" muted loop playsinline preload="none" poster="assets/key-voice.jpg" aria-label="升降 Key 與人聲返送、Hall 殘響設定" data-i18n-aria="a.key"><source src="assets/key-voice.mp4" type="video/mp4" /></video>
           </article>
 
           <article class="feature flip">
             <div class="feature-text">
-              <h3>分數、分享圖卡與演唱影片</h3>
-              <p>唱在調上、跟得上拍子大約 80 分；要拿 91 分以上的 S，音準和節奏都得很穩。唱錯字或忘詞不扣分。</p>
-              <p>一鍵做成分享圖卡，也能匯出 1080p 演唱影片。每次演唱都留在曲庫，最高分一目了然。</p>
+              <h3 data-i18n="f4.t">分數、分享圖卡與演唱影片</h3>
+              <p data-i18n="f4.p1">唱在調上、跟得上拍子大約 80 分；要拿 91 分以上的 S，音準和節奏都得很穩。唱錯字或忘詞不扣分。</p>
+              <p data-i18n="f4.p2">一鍵做成分享圖卡，也能匯出 1080p 演唱影片。每次演唱都留在曲庫，最高分一目了然。</p>
             </div>
-            <video class="loop" muted loop playsinline preload="none" poster="assets/results.jpg" aria-label="結果頁：分享圖卡、總分與子分數"><source src="assets/results.mp4" type="video/mp4" /></video>
+            <video class="loop" muted loop playsinline preload="none" poster="assets/results.jpg" aria-label="結果頁：分享圖卡、總分與子分數" data-i18n-aria="a.results"><source src="assets/results.mp4" type="video/mp4" /></video>
           </article>
 
           <article class="feature">
             <div class="feature-text">
-              <h3>回放也有判定字卡</h3>
-              <p>回放時同時看時間和音準，除了 FAST／LATE 再加上 HIGH／LOW，一眼看出是快慢還是高低出了問題。</p>
-              <p>重播檔可以匯出成 zip 傳給朋友，對方匯入後就能看你的演唱。</p>
+              <h3 data-i18n="f5.t">回放也有判定字卡</h3>
+              <p data-i18n="f5.p1">回放時同時看時間和音準，除了 FAST／LATE 再加上 HIGH／LOW，一眼看出是快慢還是高低出了問題。</p>
+              <p data-i18n="f5.p2">重播檔可以匯出成 zip 傳給朋友，對方匯入後就能看你的演唱。</p>
             </div>
-            <video class="loop" muted loop playsinline preload="none" poster="assets/replay.jpg" aria-label="回放時跳出判定字卡，並調整殘響與音量"><source src="assets/replay.mp4" type="video/mp4" /></video>
+            <video class="loop" muted loop playsinline preload="none" poster="assets/replay.jpg" aria-label="回放時跳出判定字卡，並調整殘響與音量" data-i18n-aria="a.replay"><source src="assets/replay.mp4" type="video/mp4" /></video>
           </article>
 
           <article class="feature flip">
             <div class="feature-text">
-              <h3>歌詞：字幕、貼上對時、AI 產生</h3>
-              <p>YouTube 影片有字幕就直接當歌詞。沒有的話，可以匯入 SRT／VTT／LRC、整首貼上讓 App 自動對時，或用 Whisper 語音辨識產生。</p>
-              <p>還能逐行修改文字與時間，再匯出成 SRT 或 LRC。</p>
+              <h3 data-i18n="f6.t">歌詞：字幕、貼上對時、AI 產生</h3>
+              <p data-i18n="f6.p1">YouTube 影片有字幕就直接當歌詞。沒有的話，可以匯入 SRT／VTT／LRC、整首貼上讓 App 自動對時，或用 Whisper 語音辨識產生。</p>
+              <p data-i18n="f6.p2">還能逐行修改文字與時間，再匯出成 SRT 或 LRC。</p>
             </div>
-            <video class="loop" muted loop playsinline preload="none" poster="assets/lyrics.jpg" aria-label="貼上歌詞後自動對時，歌詞逐字上色"><source src="assets/lyrics.mp4" type="video/mp4" /></video>
+            <video class="loop" muted loop playsinline preload="none" poster="assets/lyrics.jpg" aria-label="貼上歌詞後自動對時，歌詞逐字上色" data-i18n-aria="a.lyrics"><source src="assets/lyrics.mp4" type="video/mp4" /></video>
           </article>
 
           <article class="feature">
             <div class="feature-text">
-              <h3>手動修正音符</h3>
-              <p>自動轉出的音符不對？按「編輯音符」，上下拖曳就能修正，拖曳時會播放聲音讓你試聽。改錯了隨時可以還原。</p>
+              <h3 data-i18n="f7.t">手動修正音符</h3>
+              <p data-i18n="f7.p1">自動轉出的音符不對？按「編輯音符」，上下拖曳就能修正，拖曳時會播放聲音讓你試聽。改錯了隨時可以還原。</p>
             </div>
-            <video class="loop" muted loop playsinline preload="none" poster="assets/edit-notes.jpg" aria-label="拖曳音符修正音高"><source src="assets/edit-notes.mp4" type="video/mp4" /></video>
+            <video class="loop" muted loop playsinline preload="none" poster="assets/edit-notes.jpg" aria-label="拖曳音符修正音高" data-i18n-aria="a.notes"><source src="assets/edit-notes.mp4" type="video/mp4" /></video>
           </article>
 
           <article class="feature note">
             <div class="feature-text">
-              <h3>熱門歌單</h3>
-              <p>想不到要唱什麼？「熱門歌單」直接列出好樂迪、錢櫃、JOYSOUND、DAM 的每週點歌排行，以及 KKBOX 單曲週榜。每首歌都有「在 YouTube 搜尋」按鈕。</p>
+              <h3 data-i18n="f8.t">熱門歌單</h3>
+              <p data-i18n="f8.p1">想不到要唱什麼？「熱門歌單」直接列出好樂迪、錢櫃、JOYSOUND、DAM 的每週點歌排行，以及 KKBOX 單曲週榜。每首歌都有「在 YouTube 搜尋」按鈕。</p>
             </div>
           </article>
         </div>
       </section>
 
-      <!-- 評分 -->
       <section id="scoring" class="section">
         <div class="wrap">
-          <h2>分數怎麼算</h2>
-          <p class="section-lead">唱完後，App 把你錄下的音高曲線和原唱對齊比較，給出六項子分數，加權後換算成 0 到 100 分。</p>
+          <h2 data-i18n="sc.h2">分數怎麼算</h2>
+          <p class="section-lead" data-i18n="sc.lead">唱完後，App 把你錄下的音高曲線和原唱對齊比較，給出六項子分數，加權後換算成 0 到 100 分。</p>
           <ul class="scores">
-            <li><b>音準</b><em>佔 40%</em><i style="--w: 100%"></i><span>唱的音有沒有落在旋律上</span></li>
-            <li><b>節奏</b><em>佔 20%</em><i style="--w: 50%"></i><span>逐音判定 PERFECT 到 MISS，寬嚴依曲速調整</span></li>
-            <li><b>穩定度</b><em>佔 10%</em><i style="--w: 25%"></i><span>長音的音高晃不晃</span></li>
-            <li><b>顫音</b><em>佔 10%</em><i style="--w: 25%"></i><span>長音上的顫音；原唱大量使用顫音的歌才計分</span></li>
-            <li><b>表現力</b><em>佔 10%</em><i style="--w: 25%"></i><span>大小聲的起伏有沒有跟上原唱</span></li>
-            <li><b>長音</b><em>佔 10%</em><i style="--w: 25%"></i><span>長音有沒有唱滿、唱準</span></li>
+            <li><b data-i18n="sc.pitch">音準</b><em data-i18n="sc.w40">佔 40%</em><i style="--w: 100%"></i><span data-i18n="sc.pitch.d">唱的音有沒有落在旋律上</span></li>
+            <li><b data-i18n="sc.rhythm">節奏</b><em data-i18n="sc.w20">佔 20%</em><i style="--w: 50%"></i><span data-i18n="sc.rhythm.d">逐音判定 PERFECT 到 MISS，寬嚴依曲速調整</span></li>
+            <li><b data-i18n="sc.stab">穩定度</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.stab.d">長音的音高晃不晃</span></li>
+            <li><b data-i18n="sc.vib">顫音</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.vib.d">長音上的顫音；原唱大量使用顫音的歌才計分</span></li>
+            <li><b data-i18n="sc.expr">表現力</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.expr.d">大小聲的起伏有沒有跟上原唱</span></li>
+            <li><b data-i18n="sc.long">長音</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.long.d">長音有沒有唱滿、唱準</span></li>
           </ul>
           <div class="points">
-            <div>
-              <h3>高八度、低八度都算對</h3>
-              <p>八度音視為同一個音，唱高八度或低八度都算正確。</p>
-            </div>
-            <div>
-              <h3>整首移調也可以</h3>
-              <p>全曲用同一個半音位移量，App 會自動估計。</p>
-            </div>
-            <div>
-              <h3>唱錯字不扣分</h3>
-              <p>評分不辨識歌詞，忘詞用哼的也行。</p>
-            </div>
+            <div><h3 data-i18n="pt1.t">高八度、低八度都算對</h3><p data-i18n="pt1.p">八度音視為同一個音，唱高八度或低八度都算正確。</p></div>
+            <div><h3 data-i18n="pt2.t">整首移調也可以</h3><p data-i18n="pt2.p">全曲用同一個半音位移量，App 會自動估計。</p></div>
+            <div><h3 data-i18n="pt3.t">唱錯字不扣分</h3><p data-i18n="pt3.p">評分不辨識歌詞，忘詞用哼的也行。</p></div>
           </div>
-          <p class="more"><a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/SCORING.md">完整的評分方法與公式</a></p>
+          <p class="more"><a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/SCORING.md" data-href-en="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/SCORING.en.md" data-href-ja="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/SCORING.ja.md" data-i18n="sc.more">完整的評分方法與公式</a></p>
         </div>
       </section>
 
-      <!-- 技術 -->
       <section id="tech" class="section alt">
         <div class="wrap">
-          <h2>技術特點</h2>
+          <h2 data-i18n="te.h2">技術特點</h2>
           <ul class="tech">
-            <li><b>全部在本機</b>人聲分離、轉譜、音高分析都在你的電腦上執行。</li>
-            <li><b>原生 C++ 引擎</b>不需要安裝 Python，安裝包約 60 MB。</li>
-            <li><b>macOS 與 Windows</b>Mac 為 Universal（Apple Silicon + Intel）；Windows 支援 CUDA、DirectML 與 CPU。</li>
-            <li><b>即時音高可切換</b>低延遲的 DSP（MPM，10 ms）或 SwiftF0；評分一律用 SwiftF0 重新分析整段錄音。</li>
-            <li><b>延遲校正</b>量測後對齊錄音與伴奏；節奏判定依 Beat This 偵測到的曲速調整。</li>
-            <li><b>歌詞自動對時</b>依 GAME 轉出的音符，或用 Whisper 聽歌。</li>
-            <li><b>原唱回測 100 分</b>把原唱人聲當成錄音送去評分，結果是 100 分。</li>
-            <li><b>模型自動下載</b>首次執行時從 Hugging Face 下載，並以 SHA-256 驗證。</li>
+            <li data-i18n="te1"><b>全部在本機</b>人聲分離、轉譜、音高分析都在你的電腦上執行。</li>
+            <li data-i18n="te2"><b>原生 C++ 引擎</b>不需要安裝 Python，安裝包約 60 MB。</li>
+            <li data-i18n="te3"><b>macOS 與 Windows</b>Mac 為 Universal（Apple Silicon + Intel）；Windows 支援 CUDA、DirectML 與 CPU。</li>
+            <li data-i18n="te4"><b>即時音高可切換</b>低延遲的 DSP（MPM，10 ms）或 SwiftF0；評分一律用 SwiftF0 重新分析整段錄音。</li>
+            <li data-i18n="te5"><b>延遲校正</b>量測後對齊錄音與伴奏；節奏判定依 Beat This 偵測到的曲速調整。</li>
+            <li data-i18n="te6"><b>歌詞自動對時</b>依 GAME 轉出的音符，或用 Whisper 聽歌。</li>
+            <li data-i18n="te7"><b>原唱回測 100 分</b>把原唱人聲當成錄音送去評分，結果是 100 分。</li>
+            <li data-i18n="te8"><b>模型自動下載</b>首次執行時從 Hugging Face 下載，並以 SHA-256 驗證。</li>
           </ul>
-          <p class="more"><a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/TECH.md">完整技術說明</a></p>
+          <p class="more"><a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/TECH.md" data-i18n="te.more">完整技術說明</a></p>
         </div>
       </section>
 
-      <!-- 下載 -->
       <section id="download" class="section download">
         <div class="wrap">
           <img src="assets/icon.png" width="96" height="96" alt="" />
-          <h2>下載 Karaoke Battle</h2>
-          <p class="section-lead">免費、開源（MIT）。</p>
+          <h2 data-i18n="dl.h2">下載 Karaoke Battle</h2>
+          <p class="section-lead" data-i18n="dl.lead">免費、開源（MIT）。</p>
           <div class="cta center">
             <a class="btn" href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-macos-universal.dmg">
-              下載 macOS 版
+              <span data-i18n="dl.mac">下載 macOS 版</span>
               <small>Apple Silicon + Intel</small>
             </a>
             <a class="btn" href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip">
-              下載 Windows 版
-              <small>10／11 x64</small>
+              <span data-i18n="dl.win">下載 Windows 版</span>
+              <small data-i18n="dl.winsub">10／11 x64</small>
             </a>
           </div>
           <dl class="install">
-            <div>
-              <dt>macOS</dt>
-              <dd>打開 DMG，把 App 拖到「應用程式」。第一次請在 App 上按右鍵 →「打開」。</dd>
-            </div>
-            <div>
-              <dt>Windows</dt>
-              <dd>解壓縮後執行 <code>karaoke_battle.exe</code>。SmartScreen 出現時選「仍要執行」。</dd>
-            </div>
-            <div>
-              <dt>第一次啟動</dt>
-              <dd>會自動下載模型，約 500 MB。</dd>
-            </div>
+            <div><dt>macOS</dt><dd data-i18n="in.mac">打開 DMG，把 App 拖到「應用程式」。第一次請在 App 上按右鍵 →「打開」。</dd></div>
+            <div><dt>Windows</dt><dd data-i18n="in.win">解壓縮後執行 <code>karaoke_battle.exe</code>。SmartScreen 出現時選「仍要執行」。</dd></div>
+            <div><dt data-i18n="in.first.t">第一次啟動</dt><dd data-i18n="in.first">會自動下載模型，約 500 MB。</dd></div>
           </dl>
           <p class="more">
-            <a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/INSTALL.md">安裝說明</a>
-            <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases">所有版本與更新紀錄</a>
+            <a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/INSTALL.md" data-i18n="dl.install">安裝說明</a>
+            <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases" data-i18n="dl.releases">所有版本與更新紀錄</a>
           </p>
         </div>
       </section>
@@ -255,17 +248,18 @@
 
     <footer class="foot">
       <div class="wrap">
-        <nav aria-label="頁尾連結">
-          <a href="https://github.com/Hikari-Tsai/karaoke-battle">GitHub</a>
-          <a href="https://github.com/Hikari-Tsai/karaoke-battle/issues">回報問題</a>
-          <a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/CONTRIBUTING.md">參與貢獻</a>
-          <a href="https://github.com/Hikari-Tsai/karaoke-battle#致謝">致謝</a>
+        <nav aria-label="頁尾連結" data-i18n-aria="a.footnav">
+          <a href="https://github.com/Hikari-Tsai/karaoke-battle" data-href-en="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/README.en.md" data-href-ja="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/README.ja.md">GitHub</a>
+          <a href="https://github.com/Hikari-Tsai/karaoke-battle/issues" data-i18n="ft.report">回報問題</a>
+          <a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/CONTRIBUTING.md" data-href-en="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/CONTRIBUTING.en.md" data-href-ja="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/CONTRIBUTING.ja.md" data-i18n="ft.contrib">參與貢獻</a>
+          <a href="https://github.com/Hikari-Tsai/karaoke-battle#致謝" data-href-en="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/README.en.md#acknowledgments" data-href-ja="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/README.ja.md#謝辞" data-i18n="ft.thanks">致謝</a>
         </nav>
-        <p>程式碼以 MIT 授權。轉譜模型 GAME 的權重為非商業授權（CC BY-NC-SA 4.0），整個 App 的使用因此受該條款約束。</p>
-        <p>介紹影片示範歌曲：多帕 Topa〈冬天．我們不說再見〉。功能畫面示範歌曲：Josh Woodward〈Swansong〉（CC BY）。</p>
+        <p data-i18n="ft.p1">程式碼以 MIT 授權。轉譜模型 GAME 的權重為非商業授權（CC BY-NC-SA 4.0），整個 App 的使用因此受該條款約束。</p>
+        <p data-i18n="ft.p2">介紹影片示範歌曲：多帕 Topa〈冬天．我們不說再見〉。功能畫面示範歌曲：Josh Woodward〈Swansong〉（CC BY）。</p>
       </div>
     </footer>
 
+    <script src="i18n.js"></script>
     <script src="main.js"></script>
   </body>
 </html>
