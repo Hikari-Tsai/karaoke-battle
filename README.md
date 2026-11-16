@@ -115,7 +115,7 @@ YouTube 影片有字幕就直接當歌詞，用圓體（jf open 粉圓）顯示�
 * 即時音高 DSP（MPM，10 ms）／SwiftF0 可切換，評分一律以 SwiftF0 重新分析整段錄音
 * 延遲校正對齊錄音與伴奏，節奏判定窗依曲速（Beat This 節拍偵測）調整
 * 歌詞自動對時：依 GAME 音符或 Whisper 聽歌
-* 原唱回測：原唱人聲當錄音得 100 分
+* 嚴謹的評分算法，兼具娛樂性與客觀性
 
 完整說明見 [docs/TECH.md](docs/TECH.md)。
 
