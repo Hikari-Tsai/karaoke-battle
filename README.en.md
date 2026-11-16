@@ -177,7 +177,7 @@ Thanks to the friends who tested the app and reported problems before the offici
 
 * **天櫻咲樂**: tested 50XX-series GPUs; found the GPU tensor-operation bug, the CPU/GPU switching bug and the on-screen card bug while recording; suggested edit-mode UI and scoring changes and inspired the leaderboard; tested it live on stream.
 * **多帕**: found the yt-dlp error; tested 30XX- and 50XX-series GPUs; suggested scoring changes and when the best score should refresh, and proposed automatic lyric alignment; tested it live on stream.
-* **可樂月月**: suggested and refined lyric In/Out timing, added the manual lyrics import, and the idea of Whisper-based lyrics; found the freeze when cancelling during processing, and the loudness gap between songs.
+* **可樂月月**: suggested and refined lyric In/Out timing, added the manual lyrics import, and the idea of Whisper-based lyrics; found the freeze when cancelling during processing, the loudness gap between songs, and the F0 curve being drawn wrong in some cases.
 * **妮亞露**: tested 30XX-series GPUs; found songs whose setup could be blocked, the felt latency while recording, and "Sing again" resetting the settings; proposed showing where imported lyrics come from, confirming permanent deletes and a visible "Download again" button after a failed download; found the large loudness differences between downloaded songs and proposed mastering them in the background.
 * **貝拉子**: found the FFmpeg download version and path problems.
 * **東爺**: found the bug with Chinese characters in paths.
