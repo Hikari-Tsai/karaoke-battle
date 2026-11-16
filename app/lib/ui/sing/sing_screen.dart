@@ -341,7 +341,12 @@ class _SingScreenState extends State<SingScreen>
       _loadLyrics(files.lyricsJson);
       // Once per song: drop ghost notes (see ghost_notes.dart); earlier takes
       // keep a copy of the notes they were scored against.
-      await cleanSongGhostNotes(files.notesJson, [for (final t in await services.library.takes(widget.song)) t.dir]);
+      await cleanSongGhostNotes(
+        files.notesJson,
+        [for (final t in await services.library.takes(widget.song)) t.dir],
+        lyricsJson: files.lyricsJson,
+        vocalsWav: files.vocalsWav,
+      );
       final notes = await NoteList.load(files.notesJson);
       final refF0 = await F0Curve.load(
         files.refF0Json,

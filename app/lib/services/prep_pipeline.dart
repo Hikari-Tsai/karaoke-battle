@@ -271,7 +271,7 @@ class PrepPipeline extends ChangeNotifier {
       );
       await _await(job, cancel, (pr) => _emit(song, PrepStage.transcribe, fraction: pr.fraction, message: pr.stage));
       song.gameModelId = m.id;
-      await cleanSongGhostNotes(f.notesJson, const []);
+      await cleanSongGhostNotes(f.notesJson, const [], lyricsJson: f.lyricsJson, vocalsWav: f.vocalsWav);
     }
     checkCancel();
 
