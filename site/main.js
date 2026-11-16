@@ -38,3 +38,30 @@
   }, { threshold: 0.4 });
   io.observe(list);
 })();
+
+// The star buttons show the repository's current star count, read from the
+// GitHub API (no sign-in; 60 requests an hour per visitor, so the number is
+// kept for ten minutes). If the request fails the buttons just have no number.
+(function () {
+  var els = Array.prototype.slice.call(document.querySelectorAll("[data-stars]"));
+  if (!els.length) return;
+  var KEY = "kb-stars", TTL = 10 * 60 * 1000;
+  function show(n) {
+    els.forEach(function (el) { el.textContent = n.toLocaleString("en-US"); el.hidden = false; });
+  }
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  if (cached && typeof cached.n === "number") {
+    show(cached.n);
+    if (Date.now() - cached.t < TTL) return;
+  }
+  if (!window.fetch) return;
+  fetch("https://api.github.com/repos/Hikari-Tsai/karaoke-battle", { headers: { Accept: "application/vnd.github+json" } })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function (d) {
+      if (typeof d.stargazers_count !== "number") return;
+      show(d.stargazers_count);
+      try { localStorage.setItem(KEY, JSON.stringify({ n: d.stargazers_count, t: Date.now() })); } catch (e) {}
+    })
+    .catch(function () {});
+})();
