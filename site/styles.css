@@ -108,9 +108,9 @@ p { margin: 0; text-wrap: pretty; }
 .hero { background: linear-gradient(to bottom, var(--magenta) 0, var(--magenta) calc(100% - 220px), var(--bg) calc(100% - 220px)); padding-top: 72px; }
 .hero-text { text-align: left; padding-bottom: 48px; }
 .eyebrow { font-weight: 800; color: #ffd9ec; font-size: clamp(17px, 1.9vw, 22px); margin-bottom: 14px; }
-h1 { font-size: clamp(34px, 8.2vw, 104px); font-weight: 900; letter-spacing: 0.02em; }
+h1 { font-size: clamp(30px, 8.2vw, 104px); font-weight: 900; letter-spacing: 0.02em; }
 :lang(en) h1 { font-size: clamp(36px, 6.4vw, 84px); letter-spacing: -0.02em; max-width: 14em; }
-:lang(ja) h1 { font-size: clamp(26px, 6.4vw, 84px); letter-spacing: 0; }
+:lang(ja) h1 { font-size: clamp(22px, 5.6vw, 72px); letter-spacing: 0; }
 :lang(en) body { line-height: 1.65; }
 :lang(en) .section h2 { letter-spacing: -0.01em; }
 .lead { font-size: clamp(17px, 1.6vw, 20px); max-width: 34em; margin-top: 24px; color: #ffeaf4; }
