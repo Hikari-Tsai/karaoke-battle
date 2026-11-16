@@ -208,12 +208,13 @@
           <ul class="tech">
             <li data-i18n="te1"><b>全部在本機</b>人聲分離、轉譜、音高分析都在你的電腦上執行。</li>
             <li data-i18n="te2"><b>原生 C++ 引擎</b>不需要安裝 Python，安裝包約 60 MB。</li>
-            <li data-i18n="te3"><b>macOS 與 Windows</b>Mac 為 Universal（Apple Silicon + Intel）；Windows 支援 CUDA、DirectML 與 CPU。</li>
-            <li data-i18n="te4"><b>即時音高可切換</b>低延遲的 DSP（MPM，10 ms）或 SwiftF0；評分一律用 SwiftF0 重新分析整段錄音。</li>
-            <li data-i18n="te5"><b>延遲校正</b>量測後對齊錄音與伴奏；節奏判定依 Beat This 偵測到的曲速調整。</li>
-            <li data-i18n="te6"><b>歌詞自動對時</b>依 GAME 轉出的音符，或用 Whisper 聽歌。</li>
-            <li data-i18n="te7"><b>嚴謹的評分算法</b>兼具娛樂性與客觀性。</li>
+            <li data-i18n="te3"><b>MacOS以及Win雙平台</b>Mac 為 Universal（Apple Silicon + Intel）；Windows 支援 CUDA、DirectML 與 CPU。</li>
+            <li data-i18n="te4"><b>雙重音高偵測</b>採用DSP（演算法）以及SwiftF0（模型）雙軌並行，兼具速度與準確度。</li>
+            <li data-i18n="te5"><b>自動校正與一鍵調音</b>全自動量測延遲與音域測定。</li>
+            <li data-i18n="te6"><b>歌詞自動對時</b>利用GAME以及Whisper雙模型輔助歌詞時間軸定位。</li>
+            <li data-i18n="te7"><b>嚴謹的評分算法</b>搜集大量歌勢與直播主的實測數據與意見進行設計。</li>
             <li data-i18n="te8"><b>模型自動下載</b>首次執行時從 Hugging Face 下載，並以 SHA-256 驗證。</li>
+            <li data-i18n="te9"><b>先進的轉譜模型與演算法</b>使用內建抗雜訊的GAME模型結合分離模型與抗雜訊演算法，盡可能降低誤判率。</li>
           </ul>
           <p class="more"><a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/TECH.md" data-i18n="te.more">完整技術說明</a></p>
         </div>
