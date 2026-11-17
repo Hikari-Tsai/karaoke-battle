@@ -4,7 +4,7 @@
 // attribute; meta.* set the title and descriptions.
 window.KB_I18N = {
   en: {
-      "meta.title": "Karaoke Battle | A smart home karaoke system, optimized in one click",
+      "meta.title": "Karaoke Battle | A smart karaoke scoring system",
       "meta.desc": "A karaoke scoring system that runs on your own machine. Paste a YouTube link or drop in a media file: it separates the vocals, transcribes the notes, shows your pitch as you sing and scores the take. macOS and Windows, free and open source.",
       "meta.ogdesc": "A karaoke scoring system that runs on your own machine. macOS and Windows, free and open source.",
       "skip": "Skip to content",
@@ -19,9 +19,9 @@ window.KB_I18N = {
       "nav.download": "Download",
       "star": "Star on GitHub",
       "star.short": "Star",
-      "hero.eyebrow": "How well do you sing?<br />Let the score speak",
-      "hero.h1": "A smart home karaoke system, optimized in one click",
-      "hero.lead": "Paste a link and the score and backing track are made for you. AI analyses your singing technique, so your singing keeps getting better.",
+      "hero.eyebrow": "How well do you sing? Let the score speak",
+      "hero.h1": "A smart karaoke scoring system",
+      "hero.lead": "Start singing in three steps. AI analyses your voice, so you practise while you play.",
       "dl.mac": "Download for macOS",
       "dl.win": "Download for Windows",
       "dl.winsub": "10 / 11 x64",
@@ -121,7 +121,7 @@ window.KB_I18N = {
       "ft.p2": "Intro film demo song: 多帕 Topa, 冬天．我們不說再見. Feature clips demo song: Josh Woodward, Swansong (CC BY)."
   },
   ja: {
-      "meta.title": "Karaoke Battle｜ワンクリックで最適化するおうちスマートカラオケシステム",
+      "meta.title": "Karaoke Battle｜スマートカラオケ採点システム",
       "meta.desc": "手元の PC で動くカラオケ採点システム。YouTube のリンクを貼るか動画・音声ファイルをドロップすると、ボーカルを分離して音符を書き起こし、歌いながら音程が見え、歌い終わると点数が出ます。macOS と Windows、無料・オープンソース。",
       "meta.ogdesc": "手元の PC で動くカラオケ採点システム。macOS と Windows、無料・オープンソース。",
       "skip": "本文へスキップ",
@@ -136,9 +136,9 @@ window.KB_I18N = {
       "nav.download": "ダウンロード",
       "star": "スターをください",
       "star.short": "スター",
-      "hero.eyebrow": "うまく歌えてる？<br />点数が教えてくれる",
-      "hero.h1": "ワンクリックで最適化する<br />おうちスマートカラオケシステム",
-      "hero.lead": "リンクを貼るだけで、楽譜と伴奏トラックを自動で作成。AI が歌唱テクニックを分析し、歌の実力をどんどん伸ばします。",
+      "hero.eyebrow": "うまく歌えてる？点数が教えてくれる",
+      "hero.h1": "スマートカラオケ<br />採点システム",
+      "hero.lead": "3 ステップで歌い始められます。AI が自分の歌声を分析し、遊びながら歌の練習ができます。",
       "dl.mac": "macOS 版をダウンロード",
       "dl.win": "Windows 版をダウンロード",
       "dl.winsub": "10／11 x64",
