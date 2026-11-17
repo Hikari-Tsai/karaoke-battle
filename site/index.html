@@ -296,16 +296,21 @@
           <h3 class="thx-sub" data-i18n="thx.libs">模型與函式庫</h3>
           <p class="section-lead" data-i18n="thx.libslead">完整的引用格式（含 BibTeX）與各上游的要求見 <a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/CITATIONS.md" target="_blank" rel="noopener">docs/CITATIONS.md</a>。</p>
           <ul class="thx-libs">
-            <li data-i18n="thx.m1"><b>GAME 1.0 Small / Large</b>（旋律轉譜模型）by <b>Team OpenVPI</b>， 來源 <a href="https://github.com/openvpi/GAME/releases/tag/v1.0.3" target="_blank" rel="noopener">openvpi/GAME v1.0.3</a>， 授權 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>。 模型由 yqzhishen 發布，資料標註由 挚彬Club、YQ之神、小狼、幽寂 提供。本 App 使用官方 ONNX 檔案，未做修改；不為 openvpi 所背書。</li>
-            <li data-i18n="thx.m2"><b>Kim_Vocal_2</b>（人聲分離）by <b>KimberleyJensen</b>，獨立訓練、經 UVR 散布；上游無授權檔，依作者 <a href="https://github.com/KimberleyJensen/kmdx-net_music-source-separation/issues/3" target="_blank" rel="noopener">公開許可聲明</a>（2026-10-02）使用。</li>
-            <li data-i18n="thx.m3"><b>UVR-MDX-NET-Inst_HQ_4</b>（伴奏分離）by <b>Ultimate Vocal Remover</b> 核心開發者 <b>Anjok07 與 aufr33</b>（MIT，依 UVR 的署名要求）。</li>
-            <li data-i18n="thx.m4">MDX-Net 架構與訓練程式來自 <b>kuielab</b>（Choi et al., <i>TFC-TDF-U-Net</i>, ISMIR 2020；Kim et al., <i>KUIELab-MDX-Net</i>, MDX Workshop @ ISMIR 2021）。 引擎的分離程式移植自 <a href="https://github.com/nomadkaraoke/python-audio-separator" target="_blank" rel="noopener">python-audio-separator</a>（MIT）。</li>
-            <li data-i18n="thx.m5"><b>SwiftF0</b> by Lars Nieradzik（<i>SwiftF0: Fast and Accurate Monophonic Pitch Detection</i>, arXiv:2508.18440, 2025）。</li>
-            <li data-i18n="thx.m6">評分指標的定義取自 <b>mir_eval</b>（Raffel et al., ISMIR 2014）與旋律抽取評估文獻（Poliner et al. 2007；Salamon et al. 2014）； 即時音高追蹤用 <b>MPM</b>（McLeod &amp; Wyvill, ICMC 2005）；對齊用 Sakoe-Chiba 帶狀 DTW（1978）。</li>
-            <li data-i18n="thx.m7">升降 key 使用 <a href="https://github.com/Signalsmith-Audio/signalsmith-stretch" target="_blank" rel="noopener">Signalsmith Stretch</a>，音訊 I/O 使用 miniaudio，推論使用 ONNX Runtime。</li>
-            <li data-i18n="thx.m8">歌詞辨識使用 <b>OpenAI Whisper</b> large-v3（Radford et al., <i>Robust Speech Recognition via Large-Scale Weak Supervision</i>, ICML 2023），ONNX 由 onnx-community 匯出。</li>
-            <li data-i18n="thx.m9">歌詞字型為 justfont 的 <a href="https://github.com/justfont/open-huninn-font" target="_blank" rel="noopener">jf open 粉圓</a>（SIL OFL 1.1）。</li>
-            <li data-i18n="thx.m10">人聲殘響使用 Ghost Note Audio 的 <a href="https://github.com/GhostNoteAudio/CloudSeedCore" target="_blank" rel="noopener">Cloud Seed</a> 演算法（MIT）。本專案與 Ghost Note Audio 無關。</li>
+            <li><a href="https://github.com/openvpi/GAME" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.game">轉譜模型</span><b>GAME 1.0</b><span class="lib-by">Team OpenVPI · CC BY-NC-SA 4.0</span></a></li>
+            <li><a href="https://github.com/KimberleyJensen/kmdx-net_music-source-separation" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.kim">人聲分離</span><b>Kim_Vocal_2</b><span class="lib-by">KimberleyJensen</span></a></li>
+            <li><a href="https://github.com/Anjok07/ultimatevocalremovergui" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.uvr">伴奏分離</span><b>UVR-MDX-NET-Inst_HQ_4</b><span class="lib-by">Anjok07 · aufr33 (UVR)</span></a></li>
+            <li><a href="https://github.com/kuielab/mdx-net" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.mdx">分離架構</span><b>MDX-Net</b><span class="lib-by">kuielab</span></a></li>
+            <li><a href="https://github.com/nomadkaraoke/python-audio-separator" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.pas">分離程式</span><b>python-audio-separator</b><span class="lib-by">nomadkaraoke · MIT</span></a></li>
+            <li><a href="https://arxiv.org/abs/2508.18440" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.swift">音高偵測</span><b>SwiftF0</b><span class="lib-by">Lars Nieradzik</span></a></li>
+            <li><a href="https://github.com/openai/whisper" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.whisper">歌詞辨識</span><b>Whisper large-v3</b><span class="lib-by">OpenAI · onnx-community</span></a></li>
+            <li><a href="https://github.com/craffel/mir_eval" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.mireval">評分指標</span><b>mir_eval</b><span class="lib-by">Raffel et al.</span></a></li>
+            <li><div><span class="lib-role" data-i18n="thx.r.mpm">即時音高</span><b>MPM</b><span class="lib-by">McLeod & Wyvill</span></div></li>
+            <li><div><span class="lib-role" data-i18n="thx.r.dtw">時間對齊</span><b>DTW</b><span class="lib-by">Sakoe & Chiba</span></div></li>
+            <li><a href="https://github.com/Signalsmith-Audio/signalsmith-stretch" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.stretch">升降 Key</span><b>Signalsmith Stretch</b><span class="lib-by">Signalsmith Audio</span></a></li>
+            <li><a href="https://github.com/mackron/miniaudio" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.mini">音訊 I/O</span><b>miniaudio</b><span class="lib-by">David Reid</span></a></li>
+            <li><a href="https://github.com/microsoft/onnxruntime" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.ort">模型推論</span><b>ONNX Runtime</b><span class="lib-by">Microsoft</span></a></li>
+            <li><a href="https://github.com/justfont/open-huninn-font" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.font">歌詞字型</span><b>jf open 粉圓</b><span class="lib-by">justfont · SIL OFL 1.1</span></a></li>
+            <li><a href="https://github.com/GhostNoteAudio/CloudSeedCore" target="_blank" rel="noopener"><span class="lib-role" data-i18n="thx.r.seed">人聲殘響</span><b>Cloud Seed</b><span class="lib-by">Ghost Note Audio · MIT</span></a></li>
           </ul>
         </div>
       </section>

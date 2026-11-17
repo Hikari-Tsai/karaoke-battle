@@ -199,8 +199,12 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 .thx-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px !important; flex: none !important; }
 .thx-links a { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.18); color: var(--text); font-size: 14px; font-weight: 700; text-decoration: none; }
 .thx-links a:hover { border-color: var(--lav); background: rgba(200, 190, 250, 0.1); color: #fff; }
-.thx-libs { margin: 20px 0 0; padding-left: 1.2em; color: #c9c4d8; font-size: 15px; display: grid; gap: 10px; }
-.thx-libs i { font-style: italic; }
+.thx-libs { list-style: none; padding: 0; margin: 20px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.thx-libs a, .thx-libs div { display: flex; flex-direction: column; height: 100%; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none; }
+.thx-libs a:hover { border-color: var(--lav); background: rgba(200, 190, 250, 0.08); }
+.thx-libs b { font-size: 15.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.lib-role { font-size: 12.5px; font-weight: 700; color: var(--lav); margin-bottom: 3px; }
+.lib-by { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
 /* 版權聲明 */
 .legal { background: var(--surface); }
@@ -222,6 +226,8 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
   .hero { padding-top: 48px; background: linear-gradient(to bottom, var(--magenta) 0, var(--magenta) calc(100% - 110px), var(--bg) calc(100% - 110px)); }
   .section { padding: 64px 0; }
   .steps, .points, .install, .scores, .tech, .legal-list, .thx-people { grid-template-columns: 1fr; }
+  .thx-libs { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .thx-libs a, .thx-libs div { padding: 10px 12px; }
   .feature, .feature.flip { grid-template-columns: 1fr; gap: 22px; margin-top: 56px; }
   .feature.flip .feature-text { order: 0; }
   .feature.note { padding: 24px 22px; }
