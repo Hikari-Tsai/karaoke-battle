@@ -95,6 +95,10 @@ struct OutRec {
 
 struct Track {
     std::vector<float> left, right;
+    // Optional second stem on the same timeline (the original mix next to the
+    // accompaniment): ke_audio_select_track crossfades between the two
+    // without reloading anything. Empty = none; else `frames` long.
+    std::vector<float> alt_left, alt_right;
     int64_t frames = 0;
     int sample_rate = 0;
     // Replays: the recorded voice on the track timeline (mono, `frames` long;
@@ -164,6 +168,8 @@ struct ke_audio {
 
     // ---- track -------------------------------------------------------------------
     std::atomic<Track*> track{nullptr};
+    std::atomic<int> track_select{0};             // 0 main stem, 1 alt stem
+    std::atomic<bool> select_snap{true};          // jump to the selection (new track) instead of fading
     std::atomic<bool> playing{false};
     std::atomic<int64_t> seek_request{-1};
     std::atomic<float> volume{1.f};
@@ -193,6 +199,21 @@ struct ke_audio {
     float tone_env = 0.f;                         // fades toward tone_gain
     // callback-local state
     int64_t cursor = 0;                           // next track frame to feed
+    float alt_mix = 0.f;                          // 0 main .. 1 alt, crossfaded toward track_select
+    float alt_target = 0.f;
+    float alt_step = 0.f;                         // per frame (20 ms fade)
+    // Track sample with the stems mixed by `m`.
+    static float stem(const std::vector<float>& a, const std::vector<float>& b, size_t f, float m) {
+        if (m <= 0.f || b.empty()) return a[f];
+        if (m >= 1.f) return b[f];
+        return a[f] + (b[f] - a[f]) * m;
+    }
+    float next_alt() {
+        const float m = alt_mix;
+        if (alt_mix < alt_target) alt_mix = std::min(alt_target, alt_mix + alt_step);
+        else if (alt_mix > alt_target) alt_mix = std::max(alt_target, alt_mix - alt_step);
+        return m;
+    }
     float applied_gain = 1.f;
     float applied_track = 1.f, applied_voice = 1.f;
     bool stretch_active = false;
@@ -298,8 +319,8 @@ void ke_audio::set_stretch(bool enable) {
         for (int i = 0; i < seek_len; ++i) {
             const int64_t f = begin + i;
             const bool ok = t && f >= 0 && f < t->frames;
-            preroll_l[i] = ok ? t->left[static_cast<size_t>(f)] : 0.f;
-            preroll_r[i] = ok ? t->right[static_cast<size_t>(f)] : 0.f;
+            preroll_l[i] = ok ? stem(t->left, t->alt_left, static_cast<size_t>(f), alt_mix) : 0.f;
+            preroll_r[i] = ok ? stem(t->right, t->alt_right, static_cast<size_t>(f), alt_mix) : 0.f;
         }
         float* ins[2] = {preroll_l.data(), preroll_r.data()};
         stretch.seek(ins, seek_len, 1.0);
@@ -312,6 +333,9 @@ void ke_audio::set_stretch(bool enable) {
 
 void ke_audio::render_block(float* out, ma_uint32 frames) {
     Track* t = track.load(std::memory_order_acquire);
+    alt_target = (t && !t->alt_left.empty() && track_select.load(std::memory_order_relaxed) == 1) ? 1.f : 0.f;
+    if (select_snap.exchange(false, std::memory_order_acq_rel)) alt_mix = alt_target;
+    alt_step = 1.f / (0.02f * static_cast<float>(sr));
     const int64_t seek = seek_request.exchange(-1, std::memory_order_acq_rel);
     if (seek >= 0) {
         cursor = t ? std::min<int64_t>(seek, t->frames) : 0;
@@ -319,6 +343,7 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
     }
     const bool play = playing.load(std::memory_order_acquire) && t;
     if (!play) {
+        alt_mix = alt_target;                     // nothing audible to fade while paused
         for (ma_uint32 i = 0; i < frames * 2; ++i) out[i] = 0.f;
         const int64_t audible = stretch_active ? std::max<int64_t>(0, cursor - stretch_latency) : cursor;
         audible_frame.store(t ? std::min<int64_t>(audible, t->frames) : 0, std::memory_order_release);
@@ -344,8 +369,9 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
         for (ma_uint32 i = 0; i < frames; ++i) {
             const float g = (g0 + gstep * static_cast<float>(i)) * (tg0 + tgstep * static_cast<float>(i));
             if (cursor < t->frames) {
-                out[2 * i] = t->left[static_cast<size_t>(cursor)] * g;
-                out[2 * i + 1] = t->right[static_cast<size_t>(cursor)] * g;
+                const float m = next_alt();
+                out[2 * i] = stem(t->left, t->alt_left, static_cast<size_t>(cursor), m) * g;
+                out[2 * i + 1] = stem(t->right, t->alt_right, static_cast<size_t>(cursor), m) * g;
                 ++cursor;
             } else {
                 out[2 * i] = out[2 * i + 1] = 0.f;
@@ -359,8 +385,9 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
         for (ma_uint32 i = 0; i < frames; ++i) {
             const int64_t f = cursor + i;
             const bool ok = f < t->frames;
-            st_in_l[i] = ok ? t->left[static_cast<size_t>(f)] : 0.f;
-            st_in_r[i] = ok ? t->right[static_cast<size_t>(f)] : 0.f;
+            const float m = next_alt();
+            st_in_l[i] = ok ? stem(t->left, t->alt_left, static_cast<size_t>(f), m) : 0.f;
+            st_in_r[i] = ok ? stem(t->right, t->alt_right, static_cast<size_t>(f), m) : 0.f;
         }
         float* ins[2] = {st_in_l.data(), st_in_r.data()};
         float* outs[2] = {st_out_l.data(), st_out_r.data()};
@@ -832,6 +859,7 @@ void ke_audio::wait_callback_cycles(int n) {
 int ke_audio::swap_track(Track* t) {
     playing.store(false, std::memory_order_release);
     seek_request.store(0, std::memory_order_release);
+    select_snap.store(true, std::memory_order_release);
     Track* old = track.exchange(t, std::memory_order_acq_rel);
     wait_callback_cycles(2);
     delete old;
@@ -965,19 +993,28 @@ KE_API int ke_audio_load_track(ke_audio* a, const char* wav_path) {
     return ke_audio_load_track_with_voice(a, wav_path, nullptr);
 }
 
+namespace {
+// Reads a WAV as stereo planes at `sr` (resampled when needed).
+int read_stereo(const char* path, int sr, std::vector<float>& left, std::vector<float>& right) {
+    ke::AudioBuffer buf;
+    int rc = ke::read_wav(path, buf);
+    if (rc != KE_OK) return rc;
+    if (buf.frames() == 0) return ke::fail(KE_ERR_INVALID_ARG, "track %s is empty", path);
+    ke::AudioBuffer st = ke::with_channels(buf, 2);
+    left = buf.sample_rate == sr ? std::move(st.planes[0]) : ke::resample(st.planes[0], buf.sample_rate, sr);
+    right = buf.sample_rate == sr ? std::move(st.planes[1]) : ke::resample(st.planes[1], buf.sample_rate, sr);
+    KE_LOGI("audio: loaded %s (%d Hz, %d ch, %.2f s) -> %d Hz", path, buf.sample_rate, buf.channels, buf.duration(), sr);
+    return KE_OK;
+}
+}  // namespace
+
 KE_API int ke_audio_load_track_with_voice(ke_audio* a, const char* wav_path, const char* voice_wav_path) {
     if (!a || !wav_path) return ke::fail(KE_ERR_INVALID_ARG, "ke_audio_load_track: null argument");
-    ke::AudioBuffer buf;
-    int rc = ke::read_wav(wav_path, buf);
-    if (rc != KE_OK) return rc;
-    if (buf.frames() == 0) return ke::fail(KE_ERR_INVALID_ARG, "track %s is empty", wav_path);
-    ke::AudioBuffer st = ke::with_channels(buf, 2);
     auto t = std::make_unique<Track>();
     t->sample_rate = a->sr;
-    t->left = buf.sample_rate == a->sr ? std::move(st.planes[0]) : ke::resample(st.planes[0], buf.sample_rate, a->sr);
-    t->right = buf.sample_rate == a->sr ? std::move(st.planes[1]) : ke::resample(st.planes[1], buf.sample_rate, a->sr);
+    int rc = read_stereo(wav_path, a->sr, t->left, t->right);
+    if (rc != KE_OK) return rc;
     t->frames = static_cast<int64_t>(std::min(t->left.size(), t->right.size()));
-    KE_LOGI("audio: loaded %s (%d Hz, %d ch, %.2f s) -> %d Hz", wav_path, buf.sample_rate, buf.channels, buf.duration(), a->sr);
     if (voice_wav_path) {
         ke::AudioBuffer vb;
         rc = ke::read_wav(voice_wav_path, vb);
@@ -991,6 +1028,33 @@ KE_API int ke_audio_load_track_with_voice(ke_audio* a, const char* wav_path, con
     }
     std::lock_guard<std::mutex> lock(a->api_mutex);
     return a->swap_track(t.release());
+}
+
+KE_API int ke_audio_load_tracks(ke_audio* a, const char* main_wav, const char* alt_wav) {
+    if (!a || !main_wav) return ke::fail(KE_ERR_INVALID_ARG, "ke_audio_load_tracks: null argument");
+    auto t = std::make_unique<Track>();
+    t->sample_rate = a->sr;
+    int alt_rc = KE_OK;
+    std::thread alt_thread;
+    if (alt_wav) alt_thread = std::thread([&] { alt_rc = read_stereo(alt_wav, a->sr, t->alt_left, t->alt_right); });
+    const int rc = read_stereo(main_wav, a->sr, t->left, t->right);
+    if (alt_thread.joinable()) alt_thread.join();
+    if (rc != KE_OK) return rc;
+    if (alt_rc != KE_OK) return alt_rc;
+    t->frames = static_cast<int64_t>(std::min(t->left.size(), t->right.size()));
+    if (alt_wav) {
+        // Same timeline: pad or cut the alt stem to the main one's length.
+        t->alt_left.resize(static_cast<size_t>(t->frames), 0.f);
+        t->alt_right.resize(static_cast<size_t>(t->frames), 0.f);
+    }
+    std::lock_guard<std::mutex> lock(a->api_mutex);
+    return a->swap_track(t.release());
+}
+
+KE_API int ke_audio_select_track(ke_audio* a, int index) {
+    if (!a || index < 0 || index > 1) return ke::fail(KE_ERR_INVALID_ARG, "ke_audio_select_track: bad argument");
+    a->track_select.store(index, std::memory_order_release);
+    return KE_OK;
 }
 
 KE_API int ke_audio_unload_track(ke_audio* a) {

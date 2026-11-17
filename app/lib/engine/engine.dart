@@ -427,6 +427,22 @@ class _CalibResult {
   final double seconds;
 }
 
+/// Loads the stems into an open device (by address) on a worker isolate.
+Future<_CalibResult> _spawnLoadTracks(String libPath, int address, String main, String? alt) =>
+    Isolate.run<_CalibResult>(() {
+      final b = EngineBindings(DynamicLibrary.open(libPath));
+      final m = main.toNativeUtf8();
+      final a = alt?.toNativeUtf8() ?? nullptr;
+      try {
+        final rc = b.audioLoadTracks(Pointer<KeAudio>.fromAddress(address), m, a);
+        if (rc != KeError.ok) return _CalibResult(rc, 'ke_audio_load_tracks: ${b.lastErrorString()}', 0);
+        return _CalibResult(KeError.ok, '', 0);
+      } finally {
+        calloc.free(m);
+        if (a != nullptr) calloc.free(a);
+      }
+    });
+
 /// Calibrates an already open device (by address) on a worker isolate.
 Future<_CalibResult> _spawnCalibrateOn(String libPath, int address) => Isolate.run<_CalibResult>(() {
       final b = EngineBindings(DynamicLibrary.open(libPath));
@@ -536,6 +552,18 @@ class LiveAudio {
       if (v != null) calloc.free(v);
     }
   }
+
+  /// Loads two stems on the same timeline ([main] and, when given, [alt]),
+  /// decoded and resampled on a worker isolate so the UI keeps running.
+  /// [selectTrack] then switches between them instantly, without a reload.
+  Future<void> loadTracks(String main, {String? alt}) async {
+    final r = await _spawnLoadTracks(engine.libraryPath, ptr.address, main, alt);
+    if (r.code != KeError.ok) throw EngineException(r.code, r.message);
+  }
+
+  /// 0 = the main stem, 1 = the alt stem of [loadTracks]: a short crossfade
+  /// at the playing position (no gap, so it is safe while recording).
+  void selectTrack(int index) => _check(_b.audioSelectTrack(ptr, index), 'ke_audio_select_track');
 
   void unloadTrack() => _b.audioUnloadTrack(ptr);
   double get trackDuration => _b.audioTrackDuration(ptr);

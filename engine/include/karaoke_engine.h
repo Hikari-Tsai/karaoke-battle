@@ -242,6 +242,13 @@ KE_API int    ke_audio_unload_track(ke_audio* a);
  * the hall reverb, which follows ke_audio_set_reverb while it plays. The
  * voice is skipped while a pitch shift is set. */
 KE_API int    ke_audio_load_track_with_voice(ke_audio* a, const char* wav_path, const char* voice_wav_path);
+/* Two stems on the same timeline (accompaniment and original mix), both
+ * decoded and resampled up front (in parallel); alt_wav may be NULL. Playback
+ * starts on the stem chosen by ke_audio_select_track (kept across loads). */
+KE_API int    ke_audio_load_tracks(ke_audio* a, const char* main_wav, const char* alt_wav);
+/* 0 = main stem, 1 = alt stem: a 20 ms crossfade at the playing position, no
+ * reload and no gap, so it is safe while recording. Ignored without an alt. */
+KE_API int    ke_audio_select_track(ke_audio* a, int index);
 /* Linear levels of the track and of the voice (replay balance), each in
  * [0, 4], on top of ke_audio_set_volume; both 1 by default. Ramped per block. */
 KE_API int    ke_audio_set_stem_gains(ke_audio* a, float track, float voice);

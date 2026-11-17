@@ -265,7 +265,6 @@ const Map<String, (String, String, String)> _table = {
   'sing.mute': ('靜音', 'Muted', 'ミュート'),
   'sing.play': ('播放', 'Play', '再生'),
   'sing.pause': ('暫停', 'Pause', '一時停止'),
-  'sing.trackLocked': ('錄製中不能切換伴奏／導唱：切換時音樂會中斷約 2 秒，之後的歌聲會與伴奏對不上。請停止後再切換。', "Can't switch between accompaniment and guide vocal while recording: the music stops for about 2 s, and what you sing after would no longer line up. Stop first, then switch.", '録音中は伴奏／ガイドボーカルを切り替えられません（音楽が約 2 秒止まり、その後の歌声が伴奏とずれます）。止めてから切り替えてください。'),
   'sing.pauseLocked': ('錄製中不能暫停：暫停會讓之後的歌聲與伴奏對不上。要停下來請按停止錄製。', "Can't pause while recording: what you sing after a pause would no longer line up with the track. Stop the take instead.", '録音中は一時停止できません（一時停止すると、その後の歌声が伴奏とずれます）。止める場合は録音を停止してください。'),
   'sing.restart': ('從頭', 'Restart', '最初から'),
   'sing.resetSettings': ('回復這首歌的原始設定（伴奏、原 Key、自動音量、節拍器、顯示）', 'Restore this song\'s original settings (instrumental, original key, automatic volume, metronome, view)', 'この曲の設定を元に戻す（伴奏、原曲キー、自動音量、メトロノーム、表示）'),

@@ -6,6 +6,11 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 <!-- Keep the `## X.Y.Z — YYYY-MM-DD` headings: the app finds versions by them. -->
 
+## Unreleased
+
+### Improved
+- Switching between the accompaniment and the guide vocal is instant: both are loaded when the song opens, so a switch is a 20 ms crossfade instead of a gap of about 2 s, and it works while recording too. Songs also open faster: resampling the audio is about 20 times quicker and runs in the background, so the screen no longer freezes while it loads.
+
 ## 1.1.6 — 2026-11-17
 
 ### Added

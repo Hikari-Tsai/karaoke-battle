@@ -287,7 +287,13 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   bool get hasInst => File(files.instWav).existsSync();
   bool get hasMix => File(files.mixWav).existsSync();
 
-  String get _trackPath => track == TrackKind.inst ? files.instWav : files.mixWav;
+  String _pathOf(TrackKind t) => t == TrackKind.inst ? files.instWav : files.mixWav;
+
+  /// Both stems are loaded at once (see [init]): the accompaniment as the
+  /// engine's main stem when it exists, the original mix as its alt stem.
+  TrackKind _mainKind = TrackKind.inst;
+  bool _hasAlt = false;
+  int _stemIndex(TrackKind t) => t == _mainKind ? 0 : 1;
 
   Future<void> init() async {
     final s = services.settings;
@@ -304,7 +310,14 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       _live = l;
       if (track == TrackKind.inst && !hasInst && hasMix) track = TrackKind.mix;
       if (track == TrackKind.mix && !hasMix && hasInst) track = TrackKind.inst;
-      l.loadTrack(_trackPath);
+      // Both stems up front (decoded and resampled on a worker isolate), so
+      // switching between them later is instant.
+      _mainKind = hasInst ? TrackKind.inst : TrackKind.mix;
+      final alt = _mainKind == TrackKind.inst ? TrackKind.mix : TrackKind.inst;
+      _hasAlt = alt == TrackKind.mix ? hasMix : hasInst;
+      if (track != _mainKind && !_hasAlt) track = _mainKind;
+      l.selectTrack(_stemIndex(track));
+      await l.loadTracks(_pathOf(_mainKind), alt: _hasAlt ? _pathOf(alt) : null);
       duration = l.trackDuration;
       l.volume = volume;
       l.pitchShift = pitchShift;
@@ -368,26 +381,18 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   void restart() => seek(0);
 
-  /// Not while recording: loading the other track stops the music for a
-  /// couple of seconds while the capture keeps running, and a take is
-  /// aligned to the track with one offset, so the rest would be scored late.
+  /// Both stems are already in the engine: this is a short crossfade at the
+  /// playing position, with no gap, so it is allowed while recording too.
   void setTrack(TrackKind t) {
     final l = _live;
-    if (t == track || l == null || recording) return;
-    final pos = l.position;
-    final wasPlaying = l.isPlaying;
+    if (t == track || l == null || (t != _mainKind && !_hasAlt)) return;
     try {
-      if (wasPlaying) l.pause();
       track = t;
       _trackSet = true;
       _saveSoon();
-      l.loadTrack(_trackPath);
-      duration = l.trackDuration;
-      l.seek(pos.clamp(0, duration));
+      l.selectTrack(_stemIndex(t));
       if (volumeAuto) volume = loudness?.autoGain(track.name) ?? 1.0;
       l.volume = volume;
-      l.pitchShift = pitchShift;
-      if (wasPlaying) l.play();
     } catch (e) {
       initError = '$e';
     }

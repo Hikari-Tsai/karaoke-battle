@@ -1,4 +1,4 @@
-// High quality resampling (windowed-sinc, polyphase-free direct form).
+// High quality resampling (windowed-sinc; polyphase for rational rate pairs, multi-threaded).
 // Used for 44.1k -> 16k (SwiftF0) and arbitrary input rates -> 44.1k.
 #pragma once
 #include <vector>

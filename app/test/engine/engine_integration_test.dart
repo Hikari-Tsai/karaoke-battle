@@ -91,6 +91,36 @@ void main() {
     }
   }, skip: (available && songDir != null) ? false : 'KE_TEST_SONG not set');
 
+  test('live audio: both stems load in the background and switch without a gap', () async {
+    final e = Engine.instance;
+    final live = LiveAudio.create(e, sampleRate: 48000);
+    try {
+      final inst = p.join(songDir!, 'inst.wav');
+      final mix = File(p.join(songDir, 'mix.wav')).existsSync() ? p.join(songDir, 'mix.wav') : inst;
+      final sw = Stopwatch()..start();
+      await live.loadTracks(inst, alt: mix);
+      // Both stems decoded and resampled to 48 kHz well under a second.
+      expect(sw.elapsedMilliseconds, lessThan(1500));
+      expect(live.trackDuration, greaterThan(5));
+      live.volume = 0.05;
+      live.play();
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      final before = live.position;
+      final t = Stopwatch()..start();
+      live.selectTrack(1);
+      expect(t.elapsedMilliseconds, lessThan(20)); // no reload
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      // Still playing, and the clock kept running across the switch.
+      expect(live.isPlaying, isTrue);
+      expect(live.position - before, inInclusiveRange(0.2, 0.5));
+      live.selectTrack(0);
+      expect(() => live.selectTrack(2), throwsA(isA<EngineException>()));
+      live.pause();
+    } finally {
+      live.dispose();
+    }
+  }, skip: (available && songDir != null) ? false : 'KE_TEST_SONG not set');
+
   test('replay voice track: the reverb switch applies while it plays', () async {
     // Silent backing, and a voice with two short 440 Hz bursts. The onset
     // frames carry the level the engine was playing, so the reverb tail
