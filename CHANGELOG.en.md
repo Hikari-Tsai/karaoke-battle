@@ -11,6 +11,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 ### Added
 - "AI singing tips" on the results screen: download or copy an analysis of the take and paste it into an AI assistant such as Claude Code or ChatGPT for singing advice. Or enter a Claude or OpenAI API key in Settings and press "Ask AI" to see the advice right in the app; without a key the app takes you to enter one first, then carries on. The analysis is sent to the AI service you chose only when you press "Ask AI".
 - The new-version notice lists what changed.
+- The sing screen now shows clearly whether you are practising or recording: a "Practice · not scored" or red "REC Recording · scored" badge next to the title, and a red frame around the window while recording. Start recording counts down 3, 2, 1 first (Esc or Cancel stops it).
 
 ## 1.1.5 — 2026-11-16
 

@@ -1,4 +1,5 @@
 // The sing screen: video + HUD, scrolling piano roll, transport/record controls.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -98,6 +99,41 @@ class _SingScreenState extends State<SingScreen>
   NoteList? _dragBase; // notes when a drag started (preview is not undoable)
 
   final _keys = FocusNode(debugLabel: 'sing-keys');
+
+  // ---- recording countdown ----
+  /// 3, 2, 1 before a take starts; null when no countdown is running.
+  int? _countdown;
+  Timer? _countdownTimer;
+
+  /// Start recording pressed: count down 3-2-1 (playback paused), then
+  /// record. Pressing it again or Esc cancels.
+  void _startCountdown() {
+    final s = _session;
+    if (s == null || s.recording || _countdown != null) return;
+    s.pause();
+    setState(() => _countdown = 3);
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      final next = (_countdown ?? 1) - 1;
+      if (next > 0) {
+        setState(() => _countdown = next);
+        return;
+      }
+      t.cancel();
+      _countdownTimer = null;
+      setState(() => _countdown = null);
+      s.startRecording();
+    });
+  }
+
+  void _cancelCountdown() {
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+    if (_countdown != null) setState(() => _countdown = null);
+  }
 
   NoteEditor _ensureEditor() {
     final s = _session!;
@@ -231,6 +267,11 @@ class _SingScreenState extends State<SingScreen>
     final k = ev.logicalKey;
     final hw = HardwareKeyboard.instance;
     final cmd = hw.isMetaPressed || hw.isControlPressed;
+    // During the countdown only Esc does something (it cancels).
+    if (_countdown != null) {
+      if (k == LogicalKeyboardKey.escape) _cancelCountdown();
+      return KeyEventResult.handled;
+    }
     // Play / pause (space, K like YouTube); no pausing while recording.
     if (k == LogicalKeyboardKey.space || k == LogicalKeyboardKey.keyK) {
       if (ev is KeyDownEvent) s.togglePlay();
@@ -386,6 +427,7 @@ class _SingScreenState extends State<SingScreen>
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _keys.dispose();
     _ticker?.dispose();
     _session?.dispose();
@@ -464,9 +506,39 @@ class _SingScreenState extends State<SingScreen>
         onPointerUp: (_) {
           if (!_keys.hasPrimaryFocus) _keys.requestFocus();
         },
-        child: _buildScaffold(context),
+        child: Stack(
+          children: [
+            _buildScaffold(context),
+            // A red frame around the whole window while a take is counted in,
+            // recorded or scored, so it never looks like practice.
+            if (_session != null)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ListenableBuilder(
+                    listenable: _session!,
+                    builder: (context, _) => _modeOf(_session!) == _SingMode.practice
+                        ? const SizedBox.shrink()
+                        : DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: _recRed,
+                                width: 4,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
+  }
+
+  _SingMode _modeOf(SingSession s) {
+    if (_countdown != null) return _SingMode.countdown;
+    if (s.recording || _busy) return _SingMode.recording;
+    return _SingMode.practice;
   }
 
   Widget _buildScaffold(BuildContext context) {
@@ -489,8 +561,22 @@ class _SingScreenState extends State<SingScreen>
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          '${widget.song.title}${widget.song.artist.isNotEmpty ? ' — ${widget.song.artist}' : ''}',
+        title: Row(
+          children: [
+            if (s != null) ...[
+              ListenableBuilder(
+                listenable: s,
+                builder: (context, _) => _ModeBadge(mode: _modeOf(s)),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Flexible(
+              child: Text(
+                '${widget.song.title}${widget.song.artist.isNotEmpty ? ' — ${widget.song.artist}' : ''}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
         leading: BackButton(onPressed: () => Navigator.of(context).maybePop()),
       ),
@@ -648,6 +734,9 @@ class _SingScreenState extends State<SingScreen>
                         _Controls(
                           session: s,
                           busy: _busy,
+                          countdown: _countdown,
+                          onRecord: _startCountdown,
+                          onCancelCountdown: _cancelCountdown,
                           onStop: _stopAndScore,
                           editing: _editing,
                           onToggleEdit: _toggleEdit,
@@ -655,6 +744,12 @@ class _SingScreenState extends State<SingScreen>
                       ],
                     ),
                   ),
+                  if (_countdown != null)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: _CountdownOverlay(count: _countdown!),
+                      ),
+                    ),
                   ValueListenableBuilder<TakeProcessing?>(
                     valueListenable: s.processing,
                     builder: (context, p, _) => p == null
@@ -1725,6 +1820,9 @@ class _Controls extends StatelessWidget {
   const _Controls({
     required this.session,
     required this.busy,
+    required this.countdown,
+    required this.onRecord,
+    required this.onCancelCountdown,
     required this.onStop,
     required this.editing,
     required this.onToggleEdit,
@@ -1733,6 +1831,11 @@ class _Controls extends StatelessWidget {
   final VoidCallback onToggleEdit;
   final SingSession session;
   final bool busy;
+
+  /// 3-2-1 before recording (null otherwise); the record button cancels it.
+  final int? countdown;
+  final VoidCallback onRecord;
+  final VoidCallback onCancelCountdown;
   final Future<void> Function() onStop;
 
   /// Volume tooltip: automatic (with the measured loudness) or manual.
@@ -1748,7 +1851,7 @@ class _Controls extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = session;
     final cs = Theme.of(context).colorScheme;
-    final enabled = s.ready && !busy;
+    final enabled = s.ready && !busy && countdown == null;
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -1982,7 +2085,7 @@ class _Controls extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.fiber_manual_record,
-                          color: cs.error,
+                          color: _recRed,
                           size: 16,
                         ),
                         const SizedBox(width: 4),
@@ -1990,22 +2093,187 @@ class _Controls extends StatelessWidget {
                       ],
                     ),
                   ),
-                FilledButton.icon(
-                  style: s.recording
-                      ? FilledButton.styleFrom(
-                          backgroundColor: cs.error,
-                          foregroundColor: cs.onError,
-                        )
-                      : null,
-                  onPressed: enabled
-                      ? (s.recording ? onStop : s.startRecording)
-                      : null,
-                  icon: Icon(s.recording ? Icons.stop : Icons.mic),
-                  label: Text(
-                    s.recording ? tr('sing.stop') : tr('sing.record'),
+                if (countdown != null)
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _recRed,
+                      side: const BorderSide(color: _recRed),
+                    ),
+                    onPressed: onCancelCountdown,
+                    icon: const Icon(Icons.close),
+                    label: Text('${tr('sing.cancelRecord')} ($countdown)'),
+                  )
+                else
+                  FilledButton.icon(
+                    style: s.recording
+                        ? FilledButton.styleFrom(
+                            backgroundColor: _recRed,
+                            foregroundColor: Colors.white,
+                          )
+                        : null,
+                    onPressed: enabled
+                        ? (s.recording ? onStop : onRecord)
+                        : null,
+                    icon: Icon(s.recording ? Icons.stop : Icons.mic),
+                    label: Text(
+                      s.recording ? tr('sing.stop') : tr('sing.record'),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Recording red: the frame, REC badge, countdown ring and stop button.
+/// (The theme's error colour is a pale pink on the dark theme.)
+const _recRed = Color(0xFFE5484D);
+
+/// What the sing screen is doing, shown by the badge and the red frame.
+enum _SingMode { practice, countdown, recording }
+
+/// The mode badge left of the song title: grey "practice, not scored" or a
+/// red "REC" (its dot pulses while a take is being recorded).
+class _ModeBadge extends StatefulWidget {
+  const _ModeBadge({required this.mode});
+  final _SingMode mode;
+
+  @override
+  State<_ModeBadge> createState() => _ModeBadgeState();
+}
+
+class _ModeBadgeState extends State<_ModeBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_ModeBadge old) {
+    super.didUpdateWidget(old);
+    _sync();
+  }
+
+  void _sync() {
+    if (widget.mode == _SingMode.recording) {
+      if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
+    } else {
+      _pulse.stop();
+      _pulse.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final practice = widget.mode == _SingMode.practice;
+    final fg = practice ? cs.onSurfaceVariant : Colors.white;
+    final text = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: fg,
+      fontWeight: FontWeight.w600,
+    );
+    final badge = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: practice ? cs.surfaceContainerHighest : _recRed,
+        borderRadius: BorderRadius.circular(999),
+        border: practice ? Border.all(color: cs.outlineVariant) : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: switch (widget.mode) {
+          _SingMode.practice => [
+            Icon(Icons.headphones, size: 16, color: fg),
+            const SizedBox(width: 6),
+            Text(tr('sing.modePreview'), style: text),
+          ],
+          _SingMode.countdown => [
+            Icon(Icons.timer_outlined, size: 16, color: fg),
+            const SizedBox(width: 6),
+            Text(tr('sing.modeCountdown'), style: text),
+          ],
+          _SingMode.recording => [
+            FadeTransition(
+              opacity: Tween(begin: 1.0, end: 0.25).animate(_pulse),
+              child: Icon(Icons.fiber_manual_record, size: 14, color: fg),
+            ),
+            const SizedBox(width: 4),
+            Text('REC', style: text?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(width: 8),
+            Text(tr('sing.modeRecording'), style: text),
+          ],
+        },
+      ),
+    );
+    return practice
+        ? Tooltip(message: tr('sing.modePreviewTip'), child: badge)
+        : badge;
+  }
+}
+
+/// The 3-2-1 before a take: a big number over a dimmed stage.
+class _CountdownOverlay extends StatelessWidget {
+  const _CountdownOverlay({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.black45,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 168,
+              height: 168,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black54,
+                border: Border.all(color: _recRed, width: 6),
+              ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, a) => ScaleTransition(
+                  scale: Tween(begin: 1.6, end: 1.0).animate(a),
+                  child: FadeTransition(opacity: a, child: child),
+                ),
+                child: Text(
+                  '$count',
+                  key: ValueKey(count),
+                  style: const TextStyle(
+                    fontSize: 96,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1,
                   ),
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              tr('sing.countdownHint'),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+              ),
             ),
           ],
         ),
