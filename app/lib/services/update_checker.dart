@@ -44,7 +44,7 @@ class UpdateChecker {
         _ => 'CHANGELOG.md',
       };
 
-  static String changelogUrl(String tag, String lang) => 'https://raw.githubusercontent.com/$repo/$tag/${changelogFile(lang)}';
+  static String changelogUrl(String ref, String lang) => 'https://raw.githubusercontent.com/$repo/$ref/${changelogFile(lang)}';
 
   /// Splits a CHANGELOG into its version sections, newest first as written.
   /// Headings other than `## X.Y.Z…` (title, "unreleased") are skipped.
@@ -100,14 +100,17 @@ class UpdateChecker {
     return _notesCache[key] ??= () async {
       final c = client ?? http.Client();
       try {
-        Future<String?> get(String l) async {
-          final resp = await c.get(Uri.parse(changelogUrl(release.tag, l)), headers: const {'User-Agent': 'karaoke-battle'}).timeout(const Duration(seconds: 15));
+        Future<String?> get(String ref, String l) async {
+          final resp = await c.get(Uri.parse(changelogUrl(ref, l)), headers: const {'User-Agent': 'karaoke-battle'}).timeout(const Duration(seconds: 15));
           if (resp.statusCode == 404) return null;
           if (resp.statusCode != 200) throw Exception('changelog ${resp.statusCode}');
           return utf8.decode(resp.bodyBytes);
         }
 
-        final text = await get(lang) ?? (lang == 'zh' ? null : await get('zh'));
+        Future<String?> at(String ref) async => await get(ref, lang) ?? (lang == 'zh' ? null : await get(ref, 'zh'));
+        // Tags before the changelog existed (up to v1.1.5) have none: use
+        // main's, whose sections up to the release are the same.
+        final text = await at(release.tag) ?? await at('main');
         if (text == null) return const <ReleaseNotes>[];
         return notesBetween(parseChangelog(text), currentVersion, release.version);
       } catch (e) {
