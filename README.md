@@ -79,6 +79,14 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 <p align="center"><img src="docs/media/replay.gif" width="720" alt="回放時跳出 PERFECT、GREAT、GOOD、MISS 判定，並即時調整殘響與 MIX"></p>
 
+### AI 演唱建議
+
+在結果頁按「AI演唱建議」，App 會把這次演唱整理成一份 Markdown 檔：每句歌詞的音準與節奏、高低音區的表現、長音，以及和之前幾次演唱的比較，並附上給 AI 的指示。下載或複製後貼到 Claude、ChatGPT、Gemini 等 AI 助理（大語言模型），就能得到引用歌詞與時間點的演唱建議和練習方法。App 本身不會上傳任何東西，檔案只有評分數據與歌詞，不含錄音；使用 AI 助理會消耗你少許的 LLM Token。
+
+<p align="center"><img src="docs/media/ai-advice.gif" width="720" alt="按 AI演唱建議下載分析檔，貼給 AI 助理，得到三條引用歌詞與時間點的演唱建議"></p>
+
+<p align="center"><sub>這一段是示意動畫，不是實際操作的錄影。</sub></p>
+
 ### 手動修正音符
 
 按「編輯音符」，把音符上下拖曳就能修正，拖曳時會播放正弦波讓你試聽音高（GIF 沒有聲音）；改錯了隨時可以還原成自動轉譜的結果。

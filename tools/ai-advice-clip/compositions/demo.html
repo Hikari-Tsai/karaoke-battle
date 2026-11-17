@@ -1,0 +1,715 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KB Sans";
+      font-weight: 400;
+      src: local("PingFangTC-Regular"), local("PingFang TC");
+    }
+    @font-face {
+      font-family: "KB Sans";
+      font-weight: 600;
+      src: local("PingFangTC-Semibold"), local("PingFang TC Semibold");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #0c0c10;
+      font-family: "KB Sans", "Noto Sans JP", sans-serif;
+      color: #f3f1f8;
+      --surface: #1d1c20;
+      --surface2: #2a292e;
+      --line: rgba(255, 255, 255, 0.1);
+      --muted: #aaa6ba;
+      --lav: #c8befa;
+      --pink: #ff4fa3;
+      --green: #7fd88f;
+      --ink: #1a1030;
+    }
+    .layer {
+      position: absolute;
+      inset: 0;
+    }
+    .win {
+      position: absolute;
+      left: 80px;
+      top: 48px;
+      width: 1760px;
+      height: 930px;
+      background: #131317;
+      border: 2px solid var(--line);
+      border-radius: 28px;
+      overflow: hidden;
+    }
+    .bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 84px;
+      border-bottom: 2px solid var(--line);
+    }
+    .bar-title {
+      position: absolute;
+      left: 36px;
+      top: 18px;
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 48px;
+    }
+    .btn {
+      position: absolute;
+      top: 16px;
+      height: 52px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      border-radius: 26px;
+      font-size: 27px;
+      line-height: 48px;
+      text-align: center;
+      color: #e4e0f0;
+    }
+    .card {
+      position: absolute;
+      background: var(--surface);
+      border-radius: 20px;
+    }
+    /* ---- app: results screen ---- */
+    #d-ai-btn {
+      left: 1150px;
+      width: 244px;
+      border-color: var(--lav);
+      color: var(--lav);
+      font-weight: 600;
+    }
+    #d-ai-btn-glow {
+      position: absolute;
+      inset: -2px;
+      border-radius: 26px;
+      background: var(--lav);
+      opacity: 0;
+    }
+    .score-label {
+      position: absolute;
+      left: 32px;
+      top: 26px;
+      font-size: 26px;
+      color: var(--muted);
+    }
+    .score-num {
+      position: absolute;
+      left: 30px;
+      top: 54px;
+      font-size: 116px;
+      font-weight: 600;
+      line-height: 130px;
+      color: var(--lav);
+      letter-spacing: -2px;
+    }
+    .score-rank {
+      position: absolute;
+      left: 318px;
+      top: 92px;
+      width: 62px;
+      height: 62px;
+      border-radius: 12px;
+      background: var(--pink);
+      color: #16101c;
+      font-size: 38px;
+      font-weight: 600;
+      line-height: 62px;
+      text-align: center;
+    }
+    .sub {
+      position: absolute;
+      left: 32px;
+      width: 356px;
+      height: 78px;
+    }
+    .sub-name {
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 27px;
+      line-height: 40px;
+    }
+    .sub-val {
+      position: absolute;
+      right: 0;
+      top: 0;
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 40px;
+    }
+    .sub-track {
+      position: absolute;
+      left: 0;
+      top: 50px;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .sub-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 10px;
+      border-radius: 5px;
+      background: #8f84d8;
+    }
+    .note {
+      position: absolute;
+      height: 16px;
+      border-radius: 8px;
+      background: #8f84d8;
+    }
+    .gridline {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .row {
+      position: absolute;
+      left: 32px;
+      width: 1196px;
+      height: 52px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.06);
+    }
+    .sk {
+      position: absolute;
+      top: 18px;
+      height: 14px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.14);
+    }
+    .ok {
+      position: absolute;
+      right: 70px;
+      top: 12px;
+      width: 28px;
+      height: 28px;
+      border-radius: 14px;
+      background: var(--green);
+    }
+    /* ---- dialog ---- */
+    #d-scrim-in {
+      position: absolute;
+      inset: 0;
+      background: rgba(6, 6, 10, 0.62);
+      opacity: 0;
+    }
+    #d-dialog-in {
+      position: absolute;
+      left: 530px;
+      top: 233px;
+      width: 860px;
+      height: 560px;
+      background: #2b2a31;
+      border-radius: 36px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+    }
+    .dlg-title {
+      position: absolute;
+      left: 48px;
+      top: 40px;
+      font-size: 44px;
+      font-weight: 600;
+      line-height: 60px;
+    }
+    .dlg-step {
+      position: absolute;
+      left: 48px;
+      width: 764px;
+      font-size: 30px;
+      line-height: 46px;
+      color: #e9e6f2;
+    }
+    .dlg-note {
+      position: absolute;
+      left: 48px;
+      top: 366px;
+      font-size: 27px;
+      line-height: 36px;
+      color: var(--muted);
+    }
+    .dlg-btn {
+      position: absolute;
+      top: 464px;
+      height: 60px;
+      border-radius: 30px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: center;
+    }
+    #d-dl-btn {
+      left: 670px;
+      width: 150px;
+      background: var(--lav);
+      color: var(--ink);
+    }
+    /* ---- file chip ---- */
+    .chip {
+      width: 400px;
+      height: 76px;
+      border-radius: 20px;
+      background: #3a3846;
+      border: 2px solid rgba(200, 190, 250, 0.55);
+    }
+    .chip-icon {
+      position: absolute;
+      left: 18px;
+      top: 14px;
+      width: 40px;
+      height: 48px;
+      border-radius: 8px;
+      background: var(--lav);
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 48px;
+      text-align: center;
+    }
+    .chip-name {
+      position: absolute;
+      left: 74px;
+      top: 18px;
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 40px;
+      white-space: nowrap;
+    }
+    #d-chip-in {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+    }
+    /* ---- chat ---- */
+    #d-chat-in {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+    }
+    .chat-mark {
+      position: absolute;
+      left: 36px;
+      top: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #c8befa, #ff4fa3);
+    }
+    .chat-title {
+      position: absolute;
+      left: 98px;
+      top: 18px;
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 48px;
+    }
+    .chat-sub {
+      position: absolute;
+      left: 250px;
+      top: 24px;
+      font-size: 27px;
+      line-height: 40px;
+      color: var(--muted);
+    }
+    #d-bubble {
+      position: absolute;
+      left: 1010px;
+      top: 104px;
+      width: 690px;
+      height: 100px;
+      border-radius: 28px;
+      background: #34323f;
+      opacity: 0;
+    }
+    #d-bubble .chip {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+    }
+    .bubble-text {
+      position: absolute;
+      left: 432px;
+      top: 28px;
+      font-size: 29px;
+      line-height: 44px;
+      white-space: nowrap;
+    }
+    .dot {
+      position: absolute;
+      top: 248px;
+      width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      background: var(--lav);
+      opacity: 0;
+    }
+    #d-summary {
+      position: absolute;
+      left: 136px;
+      top: 222px;
+      font-size: 31px;
+      line-height: 48px;
+      opacity: 0;
+    }
+    #d-avatar {
+      position: absolute;
+      left: 60px;
+      top: 220px;
+      width: 52px;
+      height: 52px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #c8befa, #ff4fa3);
+      opacity: 0;
+    }
+    .tip {
+      position: absolute;
+      left: 136px;
+      width: 1564px;
+      height: 160px;
+      border-radius: 22px;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      opacity: 0;
+    }
+    .tip-tag {
+      position: absolute;
+      left: 28px;
+      top: 22px;
+      width: 76px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(200, 190, 250, 0.18);
+      color: var(--lav);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 42px;
+      text-align: center;
+    }
+    .tip-title {
+      position: absolute;
+      left: 122px;
+      top: 20px;
+      font-size: 31px;
+      font-weight: 600;
+      line-height: 46px;
+    }
+    .tip-line {
+      position: absolute;
+      left: 122px;
+      font-size: 28px;
+      line-height: 38px;
+      white-space: nowrap;
+    }
+    .tip-ev {
+      top: 70px;
+      color: var(--muted);
+    }
+    .tip-do {
+      top: 108px;
+      color: #e9e6f2;
+    }
+    .tip-do b {
+      color: var(--green);
+      font-weight: 600;
+    }
+    .tip-ev i {
+      font-style: normal;
+      color: #e9e6f2;
+    }
+    #d-prompt {
+      position: absolute;
+      left: 136px;
+      top: 806px;
+      width: 1564px;
+      height: 96px;
+      border-radius: 48px;
+      background: var(--surface2);
+      border: 2px solid var(--line);
+    }
+    #d-placeholder {
+      position: absolute;
+      left: 44px;
+      top: 26px;
+      font-size: 29px;
+      line-height: 44px;
+      color: #7d798c;
+    }
+    #d-typed {
+      position: absolute;
+      left: 450px;
+      top: 26px;
+      font-size: 29px;
+      line-height: 44px;
+      white-space: nowrap;
+    }
+    #d-typed span {
+      opacity: 0;
+    }
+    #d-send {
+      position: absolute;
+      left: 1476px;
+      top: 12px;
+      width: 72px;
+      height: 72px;
+      border-radius: 36px;
+      background: var(--lav);
+    }
+    #d-send svg {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+    }
+    /* ---- step bar ---- */
+    .step {
+      position: absolute;
+      top: 1014px;
+      height: 72px;
+      border-radius: 36px;
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 68px;
+      text-align: center;
+      color: #b9b5c8;
+      background-color: #0c0c10;
+    }
+    .step-arrow {
+      position: absolute;
+      top: 1030px;
+      font-size: 34px;
+      line-height: 40px;
+      color: #8a8699;
+    }
+    /* ---- cursor ---- */
+    #d-cursor-in {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 44px;
+      height: 44px;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="demo" data-width="1920" data-height="1164">
+    <!-- 1. The results screen of the app (drawn, in the app's colours) -->
+    <div id="d-app" class="clip layer" data-start="0" data-duration="15" data-track-index="1">
+      <div id="d-app-in" class="layer">
+        <div class="win">
+          <div class="bar">
+            <div class="bar-title">‹　演唱結果 — 示範曲</div>
+            <div class="btn" style="left: 1010px; width: 126px">回放</div>
+            <div class="btn" id="d-ai-btn"><div id="d-ai-btn-glow"></div>✦ AI演唱建議</div>
+            <div class="btn" style="left: 1408px; width: 172px">匯出重播</div>
+            <div class="btn" style="left: 1594px; width: 138px; background: #3a3846; border-color: transparent">分享</div>
+          </div>
+          <div class="card" style="left: 28px; top: 108px; width: 420px; height: 794px">
+            <div class="score-label">總分</div>
+            <div class="score-num">88.6</div>
+            <div class="score-rank">S</div>
+            <div class="sub" style="top: 226px"><div class="sub-name">音準</div><div class="sub-val">96</div><div class="sub-track"><div class="sub-fill" style="width: 96%"></div></div></div>
+            <div class="sub" style="top: 316px"><div class="sub-name">節奏</div><div class="sub-val">84</div><div class="sub-track"><div class="sub-fill" style="width: 84%"></div></div></div>
+            <div class="sub" style="top: 406px"><div class="sub-name">穩定度</div><div class="sub-val">95</div><div class="sub-track"><div class="sub-fill" style="width: 95%"></div></div></div>
+            <div class="sub" style="top: 496px"><div class="sub-name">顫音</div><div class="sub-val">—</div><div class="sub-track"></div></div>
+            <div class="sub" style="top: 586px"><div class="sub-name">表現力</div><div class="sub-val">62</div><div class="sub-track"><div class="sub-fill" style="width: 62%"></div></div></div>
+            <div class="sub" style="top: 676px"><div class="sub-name">長音</div><div class="sub-val">78</div><div class="sub-track"><div class="sub-fill" style="width: 78%"></div></div></div>
+          </div>
+          <div class="card" style="left: 472px; top: 108px; width: 1260px; height: 380px; overflow: hidden">
+            <div class="gridline" style="top: 76px"></div>
+            <div class="gridline" style="top: 152px"></div>
+            <div class="gridline" style="top: 228px"></div>
+            <div class="gridline" style="top: 304px"></div>
+            <div class="note" style="left: 60px; top: 220px; width: 120px"></div>
+            <div class="note" style="left: 196px; top: 182px; width: 90px"></div>
+            <div class="note" style="left: 300px; top: 144px; width: 170px"></div>
+            <div class="note" style="left: 500px; top: 182px; width: 80px"></div>
+            <div class="note" style="left: 596px; top: 106px; width: 210px"></div>
+            <div class="note" style="left: 840px; top: 144px; width: 100px"></div>
+            <div class="note" style="left: 956px; top: 220px; width: 130px"></div>
+            <div class="note" style="left: 1100px; top: 258px; width: 120px"></div>
+            <svg width="1260" height="380" viewBox="0 0 1260 380" style="position: absolute; left: 0; top: 0">
+              <path d="M60 236 C100 222 150 226 180 228 L196 192 C230 186 260 190 286 190 L300 154 C360 146 420 152 470 152 L500 190 C530 186 560 190 580 190" fill="none" stroke="#7fd88f" stroke-width="5" stroke-linecap="round" />
+              <path d="M596 132 C660 118 740 112 806 116" fill="none" stroke="#f9d84a" stroke-width="5" stroke-linecap="round" />
+              <path d="M840 152 C870 150 910 154 940 152 L956 230 C1000 226 1050 228 1086 228 L1100 280 C1140 270 1180 268 1220 266" fill="none" stroke="#7fd88f" stroke-width="5" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="card" style="left: 472px; top: 512px; width: 1260px; height: 390px; overflow: hidden">
+            <div class="row" style="top: 14px"><div class="sk" style="left: 0; width: 60px; background: rgba(255,255,255,0.3)"></div><div class="sk" style="left: 220px; width: 120px; background: rgba(255,255,255,0.3)"></div><div class="sk" style="left: 520px; width: 150px; background: rgba(255,255,255,0.3)"></div><div class="sk" style="left: 860px; width: 150px; background: rgba(255,255,255,0.3)"></div></div>
+            <div class="row" style="top: 66px"><div class="sk" style="left: 0; width: 30px"></div><div class="sk" style="left: 220px; width: 90px"></div><div class="sk" style="left: 520px; width: 70px"></div><div class="sk" style="left: 860px; width: 60px"></div><div class="ok"></div></div>
+            <div class="row" style="top: 118px"><div class="sk" style="left: 0; width: 30px"></div><div class="sk" style="left: 220px; width: 90px"></div><div class="sk" style="left: 520px; width: 70px"></div><div class="sk" style="left: 860px; width: 80px"></div><div class="ok"></div></div>
+            <div class="row" style="top: 170px"><div class="sk" style="left: 0; width: 30px"></div><div class="sk" style="left: 220px; width: 90px"></div><div class="sk" style="left: 520px; width: 70px"></div><div class="sk" style="left: 860px; width: 50px"></div><div class="ok" style="background: #f9d84a"></div></div>
+            <div class="row" style="top: 222px"><div class="sk" style="left: 0; width: 30px"></div><div class="sk" style="left: 220px; width: 90px"></div><div class="sk" style="left: 520px; width: 70px"></div><div class="sk" style="left: 860px; width: 70px"></div><div class="ok"></div></div>
+            <div class="row" style="top: 274px"><div class="sk" style="left: 0; width: 30px"></div><div class="sk" style="left: 220px; width: 90px"></div><div class="sk" style="left: 520px; width: 70px"></div><div class="sk" style="left: 860px; width: 60px"></div><div class="ok"></div></div>
+            <div class="row" style="top: 326px"><div class="sk" style="left: 0; width: 30px"></div><div class="sk" style="left: 220px; width: 90px"></div><div class="sk" style="left: 520px; width: 70px"></div><div class="sk" style="left: 860px; width: 80px"></div><div class="ok"></div></div>
+          </div>
+        </div>
+        <div id="d-scrim-in" data-layout-allow-occlusion></div>
+        <div id="d-dialog-in" data-layout-allow-occlusion>
+          <div class="dlg-title">AI演唱建議</div>
+          <div class="dlg-step" style="top: 124px">1. 按「下載」存成檔案，或按「複製」複製內容。</div>
+          <div class="dlg-step" style="top: 176px">2. 把檔案或內容貼到 Claude Code、ChatGPT 等 AI 助理（大語言模型）。</div>
+          <div class="dlg-step" style="top: 274px">3. 就能得到這次演唱的專家建議。</div>
+          <div class="dlg-note">ⓘ 這功能將會消耗您少許的 LLM Token。</div>
+          <div class="dlg-btn" style="left: 380px; width: 110px; color: var(--lav)">取消</div>
+          <div class="dlg-btn" style="left: 500px; width: 150px; border: 2px solid rgba(255, 255, 255, 0.3); line-height: 56px; color: var(--lav)">複製</div>
+          <div class="dlg-btn" id="d-dl-btn">下載</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. A generic AI assistant chat -->
+    <div id="d-chat" class="clip layer" data-start="0" data-duration="15" data-track-index="2">
+      <div id="d-chat-in">
+        <div class="win">
+          <div class="bar">
+            <div class="chat-mark"></div>
+            <div class="chat-title">AI 助理</div>
+            <div class="chat-sub">Claude、ChatGPT、Gemini 等都可以</div>
+          </div>
+          <div id="d-bubble">
+            <div class="chip"><div class="chip-icon" data-layout-ignore>MD</div><div class="chip-name">示範曲 88.6 AI.md</div></div>
+            <div class="bubble-text">請給我演唱建議</div>
+          </div>
+          <div id="d-avatar"></div>
+          <div class="dot" id="d-dot1" style="left: 140px"></div>
+          <div class="dot" id="d-dot2" style="left: 170px"></div>
+          <div class="dot" id="d-dot3" style="left: 200px"></div>
+          <div id="d-summary">整體很穩，音準 96 分是你的強項。再注意這三件事會更好：</div>
+          <div class="tip" id="d-tip1" style="top: 290px">
+            <div class="tip-tag">F1</div>
+            <div class="tip-title">這句進拍偏晚</div>
+            <div class="tip-line tip-ev">第 4 句<i>「把今天唱給明天聽」</i>（0:18），起音比原唱晚約 96 ms</div>
+            <div class="tip-line tip-do"><b>練習</b>　先跟著伴奏數拍，前一句尾巴收短一點，提早換氣</div>
+          </div>
+          <div class="tip" id="d-tip2" style="top: 462px">
+            <div class="tip-tag">F2</div>
+            <div class="tip-title">長音提早收</div>
+            <div class="tip-line tip-ev">12 個長音裡有 5 個提早 100 ms 以上收掉，集中在第 9 句（0:36）</div>
+            <div class="tip-line tip-do"><b>練習</b>　長音唱到音符條結束再收，句子之間早一點吸氣</div>
+          </div>
+          <div class="tip" id="d-tip3" style="top: 634px">
+            <div class="tip-tag">F3</div>
+            <div class="tip-title">強弱起伏和原唱不同</div>
+            <div class="tip-line tip-ev">表現力 62 分，音量起伏和原唱的相關係數 0.37</div>
+            <div class="tip-line tip-do"><b>練習</b>　主歌收小聲、副歌放開唱，同一句用兩種音量各唱一次</div>
+          </div>
+          <div id="d-prompt">
+            <div id="d-placeholder">傳訊息給 AI 助理…</div>
+            <div id="d-typed"><span>請</span><span>給</span><span>我</span><span>演</span><span>唱</span><span>建</span><span>議</span></div>
+            <div id="d-send">
+              <svg width="36" height="36" viewBox="0 0 36 36"><path d="M18 30 V8 M8 17 L18 7 L28 17" fill="none" stroke="#1a1030" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. The exported file travelling from the app to the chat -->
+    <div id="d-chip" class="clip layer" data-start="0" data-duration="15" data-track-index="3" data-layout-allow-overlap>
+      <div id="d-chip-in" class="chip"><div class="chip-icon" data-layout-ignore>MD</div><div class="chip-name">示範曲 88.6 AI.md</div></div>
+    </div>
+
+    <!-- 4. Where we are in the three steps -->
+    <div id="d-steps" class="clip layer" data-start="0" data-duration="15" data-track-index="4">
+      <div class="step" id="d-step1" style="left: 356px; width: 340px">1　下載分析檔</div>
+      <div class="step-arrow" style="left: 722px">›</div>
+      <div class="step" id="d-step2" style="left: 770px; width: 380px">2　貼給 AI 助理</div>
+      <div class="step-arrow" style="left: 1176px">›</div>
+      <div class="step" id="d-step3" style="left: 1224px; width: 340px">3　得到演唱建議</div>
+    </div>
+
+    <!-- 5. Pointer -->
+    <div id="d-cursor" class="clip layer" data-start="0" data-duration="15" data-track-index="5" data-layout-ignore>
+      <svg id="d-cursor-in" viewBox="0 0 44 44">
+        <path d="M6 3 L6 35 L15 27 L21 41 L27 38 L21 25 L33 25 Z" fill="#ffffff" stroke="#111" stroke-width="2.5" stroke-linejoin="round" />
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const ON = { backgroundColor: "#c8befa", color: "#1a1030", borderColor: "#c8befa" };
+    const OFF = { backgroundColor: "#0c0c10", color: "#b9b5c8", borderColor: "rgba(255,255,255,0.16)" };
+    const click = (at) =>
+      tl.fromTo("#d-cursor-in", { scale: 1 }, { scale: 0.82, duration: 0.08, yoyo: true, repeat: 1, transformOrigin: "20% 10%" }, at);
+
+    // ---- start state (also the loop point) ----
+    tl.set("#d-app-in", { opacity: 1, scale: 1, filter: "blur(0px)" }, 0);
+    tl.set("#d-step1", ON, 0);
+    tl.set("#d-step2, #d-step3", OFF, 0);
+    tl.set("#d-dialog-in", { scale: 0.94, transformOrigin: "50% 50%" }, 0);
+    tl.set("#d-cursor-in", { x: 1560, y: 780 }, 0);
+    tl.set("#d-chip-in", { x: 1075, y: 689, scale: 0.6, transformOrigin: "50% 50%" }, 0);
+
+    // ---- step 1: open the dialog and download (0 - 5.1 s) ----
+    tl.fromTo("#d-cursor-in", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.25);
+    tl.to("#d-cursor-in", { x: 1352, y: 84, duration: 0.8, ease: "power3.inOut" }, 0.3);
+    click(1.2);
+    tl.fromTo("#d-ai-btn-glow", { opacity: 0 }, { opacity: 0.45, duration: 0.1, yoyo: true, repeat: 1 }, 1.2);
+    tl.fromTo("#d-scrim-in", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 1.35);
+    tl.fromTo("#d-dialog-in", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.45, ease: "expo.out" }, 1.4);
+    tl.to("#d-cursor-in", { x: 1268, y: 722, duration: 0.75, ease: "power3.inOut" }, 3.8);
+    click(4.65);
+    tl.fromTo("#d-dl-btn", { filter: "brightness(1)" }, { filter: "brightness(1.35)", duration: 0.1, yoyo: true, repeat: 1 }, 4.65);
+
+    // ---- the file leaves the app and the chat builds around it ----
+    tl.fromTo("#d-chip-in", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)" }, 4.75);
+    tl.to("#d-step1", { ...OFF, duration: 0.3 }, 5.0);
+    tl.to("#d-step2", { ...ON, duration: 0.3 }, 5.0);
+    tl.to("#d-app-in", { opacity: 0, scale: 0.96, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, 5.1);
+    tl.to("#d-cursor-in", { opacity: 0, duration: 0.2 }, 5.1);
+    tl.fromTo("#d-chat-in", { opacity: 0, scale: 1.03, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 5.35);
+    tl.to("#d-chip-in", { x: 252, y: 864, duration: 0.85, ease: "power3.inOut" }, 5.2);
+    tl.fromTo("#d-placeholder", { opacity: 1 }, { opacity: 0, duration: 0.2 }, 5.8);
+
+    // ---- step 2: type and send (6.1 - 7.5 s) ----
+    tl.fromTo("#d-typed span", { opacity: 0 }, { opacity: 1, duration: 0.04, stagger: 0.07 }, 6.15);
+    tl.set("#d-cursor-in", { x: 1760, y: 1010 }, 6.1);
+    tl.to("#d-cursor-in", { opacity: 1, duration: 0.2 }, 6.3);
+    tl.to("#d-cursor-in", { x: 1722, y: 896, duration: 0.6, ease: "power3.inOut" }, 6.35);
+    click(7.15);
+    tl.fromTo("#d-send", { scale: 1 }, { scale: 0.86, duration: 0.09, yoyo: true, repeat: 1, transformOrigin: "50% 50%" }, 7.15);
+    tl.to("#d-chip-in", { opacity: 0, y: 820, duration: 0.25, ease: "power2.in" }, 7.3);
+    tl.to("#d-typed", { opacity: 0, duration: 0.2 }, 7.3);
+    tl.to("#d-placeholder", { opacity: 1, duration: 0.3 }, 7.55);
+    tl.fromTo("#d-bubble", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 7.4);
+    tl.to("#d-cursor-in", { opacity: 0, duration: 0.25 }, 7.65);
+
+    // ---- step 3: the answer (7.8 - 14.5 s) ----
+    tl.fromTo("#d-avatar", { opacity: 0, scale: 0.6, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)" }, 7.85);
+    tl.fromTo("#d-dot1", { opacity: 0 }, { opacity: 1, duration: 0.12 }, 8.0);
+    tl.fromTo("#d-dot2", { opacity: 0 }, { opacity: 1, duration: 0.12 }, 8.15);
+    tl.fromTo("#d-dot3", { opacity: 0 }, { opacity: 1, duration: 0.12 }, 8.3);
+    tl.to(".dot", { opacity: 0, duration: 0.15 }, 8.5);
+    tl.to("#d-step2", { ...OFF, duration: 0.3 }, 8.5);
+    tl.to("#d-step3", { ...ON, duration: 0.3 }, 8.5);
+    tl.fromTo("#d-summary", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power2.out" }, 8.65);
+    [
+      ["#d-tip1", 9.1],
+      ["#d-tip2", 9.75],
+      ["#d-tip3", 10.4],
+    ].forEach(([id, at]) => {
+      tl.fromTo(id, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, at);
+      tl.fromTo(id + " .tip-ev", { opacity: 0 }, { opacity: 1, duration: 0.25 }, at + 0.18);
+      tl.fromTo(id + " .tip-do", { opacity: 0 }, { opacity: 1, duration: 0.25 }, at + 0.34);
+    });
+
+    // ---- back to the start so the clip loops ----
+    tl.to("#d-chat-in", { opacity: 0, duration: 0.3, ease: "power2.in" }, 14.5);
+    tl.to("#d-step3", { ...OFF, duration: 0.25 }, 14.6);
+    tl.to("#d-step1", { ...ON, duration: 0.25 }, 14.65);
+    tl.set("#d-scrim-in", { opacity: 0 }, 14.4);
+    tl.set("#d-dialog-in", { opacity: 0 }, 14.4);
+    tl.to("#d-app-in", { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.32, ease: "power2.out" }, 14.66);
+
+    window.__timelines["demo"] = tl;
+  </script>
+</template>

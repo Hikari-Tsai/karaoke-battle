@@ -80,6 +80,14 @@ While you sing and in the replay, PERFECT / GREAT / GOOD / MISS judgements pop u
 
 <p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT, GREAT, GOOD and MISS judgements, adjusting the reverb and MIX live"></p>
 
+### AI singing tips
+
+Press "AI singing tips" on the results screen and the app writes this take up as a Markdown file: pitch and timing for every lyric line, how the high and low notes went, the long notes, and how it compares with your earlier takes, together with instructions for the AI. Download or copy it and paste it into an AI assistant (a large language model) such as Claude, ChatGPT or Gemini to get singing advice and exercises that quote the lyric line and the time. The app itself uploads nothing, and the file holds only scoring data and lyrics, no recording. Using the AI assistant spends a small number of your LLM tokens.
+
+<p align="center"><img src="docs/media/ai-advice.gif" width="720" alt="Pressing AI singing tips downloads the analysis file; pasted into an AI assistant, it returns three pieces of advice that quote the lyric line and time"></p>
+
+<p align="center"><sub>This clip is an illustration, not a recording of the app.</sub></p>
+
 ### Fix notes by hand
 
 Press "Edit notes" and drag a note up or down to fix it. While you drag, a sine tone plays the new pitch (not audible in the GIF). You can restore the original transcription at any time.
