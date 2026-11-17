@@ -295,8 +295,10 @@ class _SongCardState extends State<_SongCard> {
     final stage = status?.stage ?? song.stage;
     final inProgress = status != null && stage != PrepStage.done && stage != PrepStage.failed;
     final ready = song.stage == PrepStage.done && !inProgress;
-    final failed = stage == PrepStage.failed && !inProgress;
-    final needsDownload = failed && song.sourceUrl != null && (song.sourceFile == null || !File(song.sourceFile!).existsSync());
+    // Not done and not running: it failed, or the app closed mid-way
+    // (e.g. quit during separation). Either way it can pick up where it left.
+    final failed = !inProgress && stage != PrepStage.done;
+    final needsDownload = stage == PrepStage.failed && !inProgress && song.sourceUrl != null && (song.sourceFile == null || !File(song.sourceFile!).existsSync());
     final services = context.read<AppServices>();
     final dir = services.library.files(song).dir;
     final best = _best;

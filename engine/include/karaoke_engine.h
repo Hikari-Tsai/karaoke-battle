@@ -249,6 +249,13 @@ KE_API int    ke_audio_load_tracks(ke_audio* a, const char* main_wav, const char
 /* 0 = main stem, 1 = alt stem: a 20 ms crossfade at the playing position, no
  * reload and no gap, so it is safe while recording. Ignored without an alt. */
 KE_API int    ke_audio_select_track(ke_audio* a, int index);
+/* MIDI guide: the melody notes (seconds, MIDI pitch) rendered with a soft lead
+ * synth on the loaded track's timeline, levelled against the main stem. Call
+ * after loading the track and again when the notes change; count 0 clears.
+ * It goes through the pitch shift with the track. */
+KE_API int    ke_audio_set_guide_notes(ke_audio* a, const double* onsets, const double* offsets, const double* midi, int count);
+/* Mixes the MIDI guide onto the track (on != 0) with a 20 ms fade. */
+KE_API int    ke_audio_set_guide(ke_audio* a, int on);
 /* Linear levels of the track and of the voice (replay balance), each in
  * [0, 4], on top of ke_audio_set_volume; both 1 by default. Ramped per block. */
 KE_API int    ke_audio_set_stem_gains(ke_audio* a, float track, float voice);

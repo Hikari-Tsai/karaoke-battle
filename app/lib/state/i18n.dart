@@ -259,6 +259,8 @@ const Map<String, (String, String, String)> _table = {
   // sing
   'sing.original': ('導唱', 'Guide vocal', 'ガイドボーカル'),
   'sing.inst': ('伴奏', 'Accompaniment', '伴奏'),
+  'sing.midiGuide': ('MIDI 導唱', 'MIDI guide', 'MIDI ガイド'),
+  'sing.midiGuideTip': ('伴奏加上合成器彈奏主旋律，音高照著卷軸上的音符；修改音符後也會跟著更新。', 'The accompaniment with the melody played on a synth, at the pitches of the notes on the roll; it follows your note edits.', '伴奏にシンセでメロディを重ねます。音程はロールの音符どおりで、音符を編集すると追従します。'),
   'sing.pitchShift': ('升降 Key', 'Key', 'キー'),
   'sing.keyLocked': ('錄製中不能升降 Key：一次錄音只用一個調來評分與回放。請停止後再調整。', "The key can't change while recording: a take is scored and replayed in one key. Stop first, then change it.", '録音中はキーを変更できません（1 回の録音は 1 つのキーで採点・再生します）。止めてから変更してください。'),
   'sing.volume': ('音量', 'Volume', '音量'),

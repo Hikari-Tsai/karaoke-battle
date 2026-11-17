@@ -1932,6 +1932,12 @@ class _Controls extends StatelessWidget {
                       label: Text(tr('sing.original')),
                       enabled: s.hasMix,
                     ),
+                    ButtonSegment(
+                      value: TrackKind.midi,
+                      label: Text(tr('sing.midiGuide')),
+                      tooltip: tr('sing.midiGuideTip'),
+                      enabled: s.canMidiGuide,
+                    ),
                   ],
                   selected: {s.track},
                   showSelectedIcon: false,

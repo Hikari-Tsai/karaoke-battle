@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:math' as math;
 
 import 'package:ffi/ffi.dart';
 import 'package:path/path.dart' as p;
@@ -564,6 +565,29 @@ class LiveAudio {
   /// 0 = the main stem, 1 = the alt stem of [loadTracks]: a short crossfade
   /// at the playing position (no gap, so it is safe while recording).
   void selectTrack(int index) => _check(_b.audioSelectTrack(ptr, index), 'ke_audio_select_track');
+
+  /// MIDI guide: renders the melody notes (seconds, MIDI pitch) with a soft
+  /// lead synth on the loaded track's timeline. Call after [loadTracks] and
+  /// again when the notes change; empty lists clear it.
+  void setGuideNotes(List<double> onsets, List<double> offsets, List<double> midi) {
+    final n = math.min(onsets.length, math.min(offsets.length, midi.length));
+    final a = calloc<Double>(math.max(1, n)), b = calloc<Double>(math.max(1, n)), c = calloc<Double>(math.max(1, n));
+    try {
+      for (var i = 0; i < n; i++) {
+        a[i] = onsets[i];
+        b[i] = offsets[i];
+        c[i] = midi[i];
+      }
+      _check(_b.audioSetGuideNotes(ptr, a, b, c, n), 'ke_audio_set_guide_notes');
+    } finally {
+      calloc.free(a);
+      calloc.free(b);
+      calloc.free(c);
+    }
+  }
+
+  /// Mixes the MIDI guide onto the track (20 ms fade).
+  set guide(bool on) => _check(_b.audioSetGuide(ptr, on ? 1 : 0), 'ke_audio_set_guide');
 
   void unloadTrack() => _b.audioUnloadTrack(ptr);
   double get trackDuration => _b.audioTrackDuration(ptr);

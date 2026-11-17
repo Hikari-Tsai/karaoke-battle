@@ -108,6 +108,12 @@ struct Track {
     std::unique_ptr<ke::HallReverb> voice_reverb;
 };
 
+// MIDI guide: the melody notes rendered with a soft lead synth on the track
+// timeline (mono, at the device rate), mixed onto the track while it is on.
+struct Guide {
+    std::vector<float> samples;
+};
+
 // Metronome clicks in track frames (sorted), with an accent flag per click.
 struct Clicks {
     std::vector<int64_t> frames;
@@ -170,6 +176,8 @@ struct ke_audio {
     std::atomic<Track*> track{nullptr};
     std::atomic<int> track_select{0};             // 0 main stem, 1 alt stem
     std::atomic<bool> select_snap{true};          // jump to the selection (new track) instead of fading
+    std::atomic<Guide*> guide{nullptr};           // MIDI guide (owned; swapped by the API)
+    std::atomic<bool> guide_on{false};
     std::atomic<bool> playing{false};
     std::atomic<int64_t> seek_request{-1};
     std::atomic<float> volume{1.f};
@@ -202,6 +210,19 @@ struct ke_audio {
     float alt_mix = 0.f;                          // 0 main .. 1 alt, crossfaded toward track_select
     float alt_target = 0.f;
     float alt_step = 0.f;                         // per frame (20 ms fade)
+    float guide_mix = 0.f;                        // 0..1, faded toward guide_on
+    float guide_target = 0.f;
+    Guide* cur_guide = nullptr;                   // this block's guide
+    float next_guide() {
+        const float m = guide_mix;
+        if (guide_mix < guide_target) guide_mix = std::min(guide_target, guide_mix + alt_step);
+        else if (guide_mix > guide_target) guide_mix = std::max(guide_target, guide_mix - alt_step);
+        return m;
+    }
+    float guide_at(int64_t f, float m) const {
+        if (m <= 0.f || !cur_guide || f < 0 || f >= static_cast<int64_t>(cur_guide->samples.size())) return 0.f;
+        return cur_guide->samples[static_cast<size_t>(f)] * m;
+    }
     // Track sample with the stems mixed by `m`.
     static float stem(const std::vector<float>& a, const std::vector<float>& b, size_t f, float m) {
         if (m <= 0.f || b.empty()) return a[f];
@@ -278,6 +299,7 @@ struct ke_audio {
         dev_ok = false;
         delete track.exchange(nullptr);
         delete clicks.exchange(nullptr);
+        delete guide.exchange(nullptr);
         if (rb_ok) ma_pcm_rb_uninit(&rb);
         if (resampler_ok) ma_resampler_uninit(&resampler, nullptr);
         if (ctx_ok) ma_context_uninit(&ctx);
@@ -319,8 +341,9 @@ void ke_audio::set_stretch(bool enable) {
         for (int i = 0; i < seek_len; ++i) {
             const int64_t f = begin + i;
             const bool ok = t && f >= 0 && f < t->frames;
-            preroll_l[i] = ok ? stem(t->left, t->alt_left, static_cast<size_t>(f), alt_mix) : 0.f;
-            preroll_r[i] = ok ? stem(t->right, t->alt_right, static_cast<size_t>(f), alt_mix) : 0.f;
+            const float gs = guide_at(f, guide_mix);
+            preroll_l[i] = ok ? stem(t->left, t->alt_left, static_cast<size_t>(f), alt_mix) + gs : 0.f;
+            preroll_r[i] = ok ? stem(t->right, t->alt_right, static_cast<size_t>(f), alt_mix) + gs : 0.f;
         }
         float* ins[2] = {preroll_l.data(), preroll_r.data()};
         stretch.seek(ins, seek_len, 1.0);
@@ -334,6 +357,8 @@ void ke_audio::set_stretch(bool enable) {
 void ke_audio::render_block(float* out, ma_uint32 frames) {
     Track* t = track.load(std::memory_order_acquire);
     alt_target = (t && !t->alt_left.empty() && track_select.load(std::memory_order_relaxed) == 1) ? 1.f : 0.f;
+    cur_guide = guide.load(std::memory_order_acquire);
+    guide_target = cur_guide && guide_on.load(std::memory_order_relaxed) ? 1.f : 0.f;
     if (select_snap.exchange(false, std::memory_order_acq_rel)) alt_mix = alt_target;
     alt_step = 1.f / (0.02f * static_cast<float>(sr));
     const int64_t seek = seek_request.exchange(-1, std::memory_order_acq_rel);
@@ -344,6 +369,7 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
     const bool play = playing.load(std::memory_order_acquire) && t;
     if (!play) {
         alt_mix = alt_target;                     // nothing audible to fade while paused
+        guide_mix = guide_target;
         for (ma_uint32 i = 0; i < frames * 2; ++i) out[i] = 0.f;
         const int64_t audible = stretch_active ? std::max<int64_t>(0, cursor - stretch_latency) : cursor;
         audible_frame.store(t ? std::min<int64_t>(audible, t->frames) : 0, std::memory_order_release);
@@ -370,8 +396,9 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
             const float g = (g0 + gstep * static_cast<float>(i)) * (tg0 + tgstep * static_cast<float>(i));
             if (cursor < t->frames) {
                 const float m = next_alt();
-                out[2 * i] = stem(t->left, t->alt_left, static_cast<size_t>(cursor), m) * g;
-                out[2 * i + 1] = stem(t->right, t->alt_right, static_cast<size_t>(cursor), m) * g;
+                const float gs = guide_at(cursor, next_guide());
+                out[2 * i] = (stem(t->left, t->alt_left, static_cast<size_t>(cursor), m) + gs) * g;
+                out[2 * i + 1] = (stem(t->right, t->alt_right, static_cast<size_t>(cursor), m) + gs) * g;
                 ++cursor;
             } else {
                 out[2 * i] = out[2 * i + 1] = 0.f;
@@ -386,8 +413,9 @@ void ke_audio::render_block(float* out, ma_uint32 frames) {
             const int64_t f = cursor + i;
             const bool ok = f < t->frames;
             const float m = next_alt();
-            st_in_l[i] = ok ? stem(t->left, t->alt_left, static_cast<size_t>(f), m) : 0.f;
-            st_in_r[i] = ok ? stem(t->right, t->alt_right, static_cast<size_t>(f), m) : 0.f;
+            const float gs = guide_at(f, next_guide());
+            st_in_l[i] = ok ? stem(t->left, t->alt_left, static_cast<size_t>(f), m) + gs : 0.f;
+            st_in_r[i] = ok ? stem(t->right, t->alt_right, static_cast<size_t>(f), m) + gs : 0.f;
         }
         float* ins[2] = {st_in_l.data(), st_in_r.data()};
         float* outs[2] = {st_out_l.data(), st_out_r.data()};
@@ -1049,6 +1077,84 @@ KE_API int ke_audio_load_tracks(ke_audio* a, const char* main_wav, const char* a
     }
     std::lock_guard<std::mutex> lock(a->api_mutex);
     return a->swap_track(t.release());
+}
+
+namespace {
+// Soft lead synth for the MIDI guide: a few harmonics (a mellow, flute-like
+// tone that is easy to sing along to), 8 ms attack, a slight dip to 80%,
+// gentle vibrato after 300 ms and a 70 ms release.
+void render_note(std::vector<float>& out, int sr, double onset, double offset, double midi) {
+    if (!(offset > onset) || !std::isfinite(midi)) return;
+    const double f0 = 440.0 * std::pow(2.0, (midi - 69.0) / 12.0);
+    const int64_t a = static_cast<int64_t>(std::llround(onset * sr));
+    const int64_t b = static_cast<int64_t>(std::llround(offset * sr));
+    const int64_t rel = static_cast<int64_t>(0.07 * sr);
+    const int64_t end = std::min<int64_t>(static_cast<int64_t>(out.size()), b + rel);
+    static const double amp[] = {1.0, 0.32, 0.16, 0.08, 0.04};
+    double phase = 0.0;
+    const double two_pi = 2.0 * 3.14159265358979323846;
+    for (int64_t n = std::max<int64_t>(0, a); n < end; ++n) {
+        const double t = double(n - a) / sr;
+        double env = t < 0.008 ? t / 0.008 : 0.8 + 0.2 * std::exp(-(t - 0.008) / 0.12);
+        if (n >= b) env *= 1.0 - double(n - b) / rel;
+        const double vib_depth = t < 0.3 ? 0.0 : std::min(1.0, (t - 0.3) / 0.4) * 0.0035;   // ~6 cents
+        const double f = f0 * (1.0 + vib_depth * std::sin(two_pi * 5.5 * t));
+        phase += two_pi * f / sr;
+        if (phase > two_pi) phase -= two_pi;
+        // sin(k x) by the Chebyshev recurrence: one sin and one cos per sample.
+        const double s1 = std::sin(phase), c2 = 2.0 * std::cos(phase);
+        double prev = 0.0, cur = s1, v = 0.0;
+        for (int h = 0; h < 5; ++h) {
+            if (f0 * (h + 1) >= 0.45 * sr) break;
+            v += amp[h] * cur;
+            const double next = c2 * cur - prev;
+            prev = cur;
+            cur = next;
+        }
+        out[static_cast<size_t>(n)] += static_cast<float>(v * env);
+    }
+}
+}  // namespace
+
+KE_API int ke_audio_set_guide_notes(ke_audio* a, const double* onsets, const double* offsets, const double* midi, int count) {
+    if (!a || count < 0 || (count > 0 && (!onsets || !offsets || !midi)))
+        return ke::fail(KE_ERR_INVALID_ARG, "ke_audio_set_guide_notes: bad argument");
+    std::lock_guard<std::mutex> lock(a->api_mutex);
+    Track* t = a->track.load(std::memory_order_acquire);
+    Guide* g = nullptr;
+    if (count > 0 && t && t->frames > 0) {
+        g = new Guide();
+        g->samples.assign(static_cast<size_t>(t->frames), 0.f);
+        for (int i = 0; i < count; ++i) render_note(g->samples, a->sr, onsets[i], offsets[i], midi[i]);
+        // Level: the guide's RMS while it sounds sits a little under the main
+        // stem's overall RMS, so it leads without drowning the music.
+        double gs = 0.0, ts = 0.0;
+        int64_t gn = 0;
+        for (int64_t n = 0; n < t->frames; ++n) {
+            const float v = g->samples[static_cast<size_t>(n)];
+            if (v != 0.f) { gs += double(v) * v; ++gn; }
+            const double m = 0.5 * (t->left[static_cast<size_t>(n)] + t->right[static_cast<size_t>(n)]);
+            ts += m * m;
+        }
+        const double g_rms = gn > 0 ? std::sqrt(gs / gn) : 0.0;
+        const double t_rms = std::sqrt(ts / double(t->frames));
+        double gain = g_rms > 0.0 ? std::clamp(0.8 * std::max(t_rms, 0.02) / g_rms, 0.01, 4.0) : 0.0;
+        float peak = 0.f;
+        for (float v : g->samples) peak = std::max(peak, std::fabs(v));
+        if (peak * gain > 0.7) gain = 0.7 / peak;
+        for (float& v : g->samples) v = static_cast<float>(v * gain);
+        KE_LOGI("audio: MIDI guide %d notes, gain %.3f", count, gain);
+    }
+    Guide* old = a->guide.exchange(g, std::memory_order_acq_rel);
+    a->wait_callback_cycles(2);
+    delete old;
+    return KE_OK;
+}
+
+KE_API int ke_audio_set_guide(ke_audio* a, int on) {
+    if (!a) return ke::fail(KE_ERR_INVALID_ARG, "audio is null");
+    a->guide_on.store(on != 0, std::memory_order_release);
+    return KE_OK;
 }
 
 KE_API int ke_audio_select_track(ke_audio* a, int index) {

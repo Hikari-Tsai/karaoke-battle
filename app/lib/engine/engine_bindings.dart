@@ -134,6 +134,11 @@ class EngineBindings {
             int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>)>('ke_audio_load_tracks'),
         audioSelectTrack = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Int32),
             int Function(Pointer<KeAudio>, int)>('ke_audio_select_track'),
+        audioSetGuideNotes = lib.lookupFunction<
+            Int32 Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Double>, Pointer<Double>, Int32),
+            int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Double>, Pointer<Double>, int)>('ke_audio_set_guide_notes'),
+        audioSetGuide = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Int32), int Function(Pointer<KeAudio>, int)>(
+            'ke_audio_set_guide'),
         audioUnloadTrack =
             lib.lookupFunction<Int32 Function(Pointer<KeAudio>), int Function(Pointer<KeAudio>)>('ke_audio_unload_track'),
         audioTrackDuration =
@@ -213,6 +218,8 @@ class EngineBindings {
   final int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>) audioLoadTrackWithVoice;
   final int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>) audioLoadTracks;
   final int Function(Pointer<KeAudio>, int) audioSelectTrack;
+  final int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Double>, Pointer<Double>, int) audioSetGuideNotes;
+  final int Function(Pointer<KeAudio>, int) audioSetGuide;
   final int Function(Pointer<KeAudio>) audioUnloadTrack;
   final double Function(Pointer<KeAudio>) audioTrackDuration;
   final int Function(Pointer<KeAudio>) audioPlay;

@@ -8,6 +8,11 @@ void main() {
   setUp(() => tmp = Directory.systemTemp.createTempSync('ke-sing-settings-'));
   tearDown(() => tmp.deleteSync(recursive: true));
 
+  test('the MIDI guide is a saved track choice; unknown ones are dropped', () {
+    expect(SongSingSettings.fromJson({'track': 'midi'}).track, 'midi');
+    expect(SongSingSettings.fromJson({'track': 'karaoke'}).track, isNull);
+  });
+
   test('each song keeps what was last set for it', () async {
     final a = '${tmp.path}/a.json', b = '${tmp.path}/b.json';
     await const SongSingSettings(track: 'mix', pitchShift: -2, volume: 0.3, octaveAlign: false, windowSeconds: 12, metronomeOn: true, metronomeGain: 0.9).save(a);

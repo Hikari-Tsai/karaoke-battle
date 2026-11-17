@@ -63,7 +63,7 @@ class SongSingSettings {
     // Files from 0.7.11 always wrote the volume; 1.0 there was the default.
     if (j['v'] == null && volume == 1.0) volume = null;
     return SongSingSettings(
-      track: track == 'inst' || track == 'mix' ? track as String : null,
+      track: track == 'inst' || track == 'mix' || track == 'midi' ? track as String : null,
       pitchShift: num_('pitch_shift', -6, 6)?.roundToDouble() ?? 0,
       volume: volume,
       octaveAlign: j['octave_align'] is bool ? j['octave_align'] as bool : true,

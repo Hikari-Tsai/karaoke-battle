@@ -27,7 +27,9 @@ import 'scoring_bridge.dart';
 import 'song_data.dart';
 import 'voice_range.dart';
 
-enum TrackKind { inst, mix }
+/// What plays under the singer: the accompaniment, the original mix (guide
+/// vocal), or the accompaniment with the melody on a synth (MIDI guide).
+enum TrackKind { inst, mix, midi }
 
 class SingHud {
   const SingHud({
@@ -128,7 +130,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   void _applySaved(SongSingSettings v) {
     if (v.track != null) {
       _trackSet = true;
-      track = v.track == 'mix' ? TrackKind.mix : TrackKind.inst;
+      track = TrackKind.values.asNameMap()[v.track] ?? TrackKind.inst;
     }
     pitchShift = v.pitchShift;
     if (v.volume != null) {
@@ -154,7 +156,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// Sets the automatic volume for the current track, when it is automatic.
   void _applyAutoVolume() {
     if (!volumeAuto) return;
-    volume = loudness?.autoGain(track.name) ?? 1.0;
+    volume = loudness?.autoGain(_loudKey) ?? 1.0;
     _live?.volume = volume;
   }
 
@@ -232,6 +234,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   void replaceNotes(NoteList n) {
     notes = n;
     _songRange = null;
+    _syncGuideSoon();
     notifyListeners();
   }
 
@@ -293,13 +296,44 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// engine's main stem when it exists, the original mix as its alt stem.
   TrackKind _mainKind = TrackKind.inst;
   bool _hasAlt = false;
-  int _stemIndex(TrackKind t) => t == _mainKind ? 0 : 1;
+  int _stemIndex(TrackKind t) => (t == TrackKind.midi ? TrackKind.inst : t) == _mainKind ? 0 : 1;
+
+  /// The MIDI guide plays over the accompaniment, so it needs one (and notes).
+  bool get canMidiGuide => hasInst && !notes.isEmpty;
+
+  /// Loudness entry for the volume: the MIDI guide uses the accompaniment's.
+  String get _loudKey => track == TrackKind.midi ? TrackKind.inst.name : track.name;
+
+  bool _canPlay(TrackKind t) => switch (t) {
+        TrackKind.midi => _mainKind == TrackKind.inst,
+        _ => t == _mainKind || _hasAlt,
+      };
+
+  /// Renders the notes into the engine's MIDI guide (debounced: note edits
+  /// call this on every drag step).
+  Timer? _guideTimer;
+  void _syncGuideSoon() {
+    _guideTimer?.cancel();
+    _guideTimer = Timer(const Duration(milliseconds: 250), _syncGuide);
+  }
+
+  void _syncGuide() {
+    _guideTimer?.cancel();
+    _guideTimer = null;
+    final l = _live;
+    if (l == null) return;
+    try {
+      l.setGuideNotes(notes.onset, notes.offset, notes.pitch);
+    } catch (e) {
+      debugPrint('MIDI guide: $e');
+    }
+  }
 
   Future<void> init() async {
     final s = services.settings;
     _applySaved(await SongSingSettings.load(files.singSettingsJson));
     loudness = await SongLoudness.load(files.loudnessJson);
-    if (volumeAuto) volume = loudness?.autoGain(track.name) ?? 1.0;
+    if (volumeAuto) volume = loudness?.autoGain(_loudKey) ?? 1.0;
     try {
       final l = LiveAudio.create(
         services.engine,
@@ -315,10 +349,12 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       _mainKind = hasInst ? TrackKind.inst : TrackKind.mix;
       final alt = _mainKind == TrackKind.inst ? TrackKind.mix : TrackKind.inst;
       _hasAlt = alt == TrackKind.mix ? hasMix : hasInst;
-      if (track != _mainKind && !_hasAlt) track = _mainKind;
+      if (!_canPlay(track)) track = _mainKind;
       l.selectTrack(_stemIndex(track));
       await l.loadTracks(_pathOf(_mainKind), alt: _hasAlt ? _pathOf(alt) : null);
       duration = l.trackDuration;
+      _syncGuide();
+      l.guide = track == TrackKind.midi;
       l.volume = volume;
       l.pitchShift = pitchShift;
       applyVoiceFx();
@@ -385,13 +421,14 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// playing position, with no gap, so it is allowed while recording too.
   void setTrack(TrackKind t) {
     final l = _live;
-    if (t == track || l == null || (t != _mainKind && !_hasAlt)) return;
+    if (t == track || l == null || !_canPlay(t)) return;
     try {
       track = t;
       _trackSet = true;
       _saveSoon();
       l.selectTrack(_stemIndex(t));
-      if (volumeAuto) volume = loudness?.autoGain(track.name) ?? 1.0;
+      l.guide = t == TrackKind.midi;
+      if (volumeAuto) volume = loudness?.autoGain(_loudKey) ?? 1.0;
       l.volume = volume;
     } catch (e) {
       initError = '$e';
@@ -809,6 +846,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   @override
   void dispose() {
+    _guideTimer?.cancel();
     if (_saveTimer != null) _saveNow();
     final l = _live;
     _live = null;
