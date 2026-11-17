@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../engine/engine.dart';
+import '../services/ai_keys.dart';
 import '../services/app_log.dart';
 import '../services/app_paths.dart';
 import '../services/backend_manager.dart';
@@ -30,7 +31,8 @@ class AppServices {
     required this.library,
     required this.pipeline,
     required this.replays,
-  });
+    AiKeyStore? aiKeys,
+  }) : aiKeys = aiKeys ?? SecureAiKeyStore();
 
   final AppPaths paths;
   final AppSettings settings;
@@ -41,6 +43,9 @@ class AppServices {
   final SongLibrary library;
   final PrepPipeline pipeline;
   final ReplayLibrary replays;
+
+  /// API keys for AI singing advice (system keychain).
+  final AiKeyStore aiKeys;
 
   /// Path of the SwiftF0 model file (may not exist yet).
   String get swiftF0ModelPath => models.pathOf(ModelRegistry.swiftF0, 'model.onnx');

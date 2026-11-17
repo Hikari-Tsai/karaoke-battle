@@ -190,6 +190,26 @@ class AppSettings extends ChangeNotifier {
   Future<void> setLiveJudgePitch(bool v) => _set('live_judge_pitch', v);
 
   /// Name written into exported replay files.
+  /// AI service asked for singing advice: 'claude' or 'openai'. The API
+  /// keys are not here (see AiKeyStore).
+  String get aiProvider => _get('ai_provider', 'claude') == 'openai' ? 'openai' : 'claude';
+  Future<void> setAiProvider(String p) => _set('ai_provider', p);
+
+  static const aiDefaultModels = {'claude': 'claude-opus-5-5', 'openai': 'gpt-6.1-sol'};
+
+  /// Model id used with [provider].
+  String aiModel(String provider) {
+    final v = _prefs.getString('ai_model_$provider')?.trim() ?? '';
+    return v.isEmpty ? aiDefaultModels[provider]! : v;
+  }
+
+  Future<void> setAiModel(String provider, String model) => _set('ai_model_$provider', model.trim());
+
+  /// The models last listed for [provider] (JSON, see AiModelInfo), shown
+  /// before the list is fetched again.
+  String aiModelListJson(String provider) => _prefs.getString('ai_models_$provider') ?? '';
+  Future<void> setAiModelListJson(String provider, String json) => _set('ai_models_$provider', json);
+
   String get playerName => _prefs.getString('player_name') ?? '';
   Future<void> setPlayerName(String v) => _set('player_name', v.trim());
 

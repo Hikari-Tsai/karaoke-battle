@@ -9,7 +9,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 ## Unreleased
 
 ### Added
-- "AI singing tips" on the results screen: download or copy an analysis of the take and paste it into an AI assistant such as Claude Code or ChatGPT for singing advice. The app itself sends nothing.
+- "AI singing tips" on the results screen: download or copy an analysis of the take and paste it into an AI assistant such as Claude Code or ChatGPT for singing advice. Or enter a Claude or OpenAI API key in Settings and press "Ask AI" to see the advice right in the app; without a key the app takes you to enter one first, then carries on. The analysis is sent to the AI service you chose only when you press "Ask AI".
 - The new-version notice lists what changed.
 
 ## 1.1.5 — 2026-11-16

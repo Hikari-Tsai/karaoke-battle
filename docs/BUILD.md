@@ -33,6 +33,8 @@ scripts) and are idempotent - re-running them is a no-op when the files are pres
 * Visual Studio 2022 with the **Desktop development with C++** workload (MSVC v143,
   Windows 10/11 SDK). The `build_engine.ps1` script uses the `Visual Studio 17 2022`
   generator with `-A x64`.
+  Also tick **C++ ATL for latest v143 build tools** under "Individual components": the
+  `flutter_secure_storage` plugin (API keys in the Credential Manager) includes `atlstr.h`.
 * CMake >= 3.21 on `PATH` (the VS installer's CMake or https://cmake.org).
 * Flutter stable with Windows desktop enabled: `flutter config --enable-windows-desktop`.
 * PowerShell 5.1 or 7 (`pwsh`). If scripts are blocked:

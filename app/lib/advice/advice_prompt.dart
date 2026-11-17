@@ -142,6 +142,14 @@ String buildAdvicePrompt(TakeAnalysis a, {required String lang, bool includeTitl
   return b.toString();
 }
 
+/// Title of [f] in [lang], as written in the export.
+String findingTitle(Finding f, String lang) => _Texts(lang).s('kind.${f.kind}');
+
+/// The numbers behind [f] as a sentence in [lang], with the lyric lines it
+/// is about: the same text the export gives the AI, straight from the
+/// analysis.
+String describeFinding(Finding f, TakeAnalysis a, String lang) => _describe(f, a, _Texts(lang));
+
 /// One finding as a sentence, with the lines it is about.
 String _describe(Finding f, TakeAnalysis a, _Texts t) {
   final d = f.data;

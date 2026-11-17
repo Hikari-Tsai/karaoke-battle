@@ -132,6 +132,9 @@ class TakeInfo {
   String get scoreJson => p.join(dir, 'score.json');
   String get infoJson => p.join(dir, 'take.json');
 
+  /// The AI's singing advice for this take, kept so it is not asked twice.
+  String get adviceJson => p.join(dir, 'advice.json');
+
   /// The notes this take was scored against (a copy of the song's notes.json
   /// taken when it was scored); older takes may not have one.
   String get notesJson => p.join(dir, 'notes.json');

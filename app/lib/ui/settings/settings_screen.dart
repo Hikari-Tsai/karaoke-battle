@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'ai_settings_dialog.dart';
 import '../../services/app_paths.dart';
 import '../../services/backend_manager.dart';
 import '../../services/model_registry.dart';
@@ -607,6 +608,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: settings.setOctaveInvariant,
               ),
             ],
+          ),
+          // ---- AI singing tips: service and API key ----------------------------------------
+          _Section(
+            title: tr('ai.section'),
+            children: const [AiSettingsSummary()],
           ),
           // ---- data folder ---------------------------------------------------------------
           _Section(

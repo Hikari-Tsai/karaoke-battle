@@ -82,7 +82,7 @@ While you sing and in the replay, PERFECT / GREAT / GOOD / MISS judgements pop u
 
 ### AI singing tips
 
-Press "AI singing tips" on the results screen and the app writes this take up as a Markdown file: pitch and timing for every lyric line, how the high and low notes went, the long notes, and how it compares with your earlier takes, together with instructions for the AI. Download or copy it and paste it into an AI assistant (a large language model) such as Claude, ChatGPT or Gemini to get singing advice and exercises that quote the lyric line and the time. The app itself uploads nothing, and the file holds only scoring data and lyrics, no recording. Using the AI assistant spends a small number of your LLM tokens.
+Press "AI singing tips" on the results screen and the app writes this take up as a Markdown file: pitch and timing for every lyric line, how the high and low notes went, the long notes, and how it compares with your earlier takes, together with instructions for the AI. Download or copy it and paste it into an AI assistant (a large language model) such as Claude, ChatGPT or Gemini to get singing advice and exercises that quote the lyric line and the time. Or enter your own Claude or OpenAI API key in Settings and press "Ask AI" to see the advice right in the app; if no key is saved yet, the app takes you to enter one and then carries on. The file holds only scoring data and lyrics, no recording, and the app sends it nowhere unless you press "Ask AI". Using an AI spends a small number of your LLM tokens.
 
 <p align="center"><img src="docs/media/ai-advice.gif" width="720" alt="Pressing AI singing tips downloads the analysis file; pasted into an AI assistant, it returns three pieces of advice that quote the lyric line and time"></p>
 
