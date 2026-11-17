@@ -82,7 +82,9 @@ YouTube のリンクを貼るか動画・音声ファイルをドロップする
 
 歌唱中もリプレイでも、音ゲーのように再生位置で PERFECT／GREAT／GOOD／MISS の判定が表示されます。歌唱中の判定はタイミングだけを見るので歌い出した瞬間に表示され、FAST／LATE のタグが付きます。リプレイではタイミングと音程の両方を見て HIGH／LOW も付くので、早い・遅い・高い・低いがひと目で分かります。リプレイは zip（採点データと歌声の録音）に書き出して友達に送れ、相手は読み込むだけであなたの歌唱を見られます。リプレイではリバーブのオン・オフや量をその場で変えられ、MIX スライダーで声と音楽のバランスを調整できます。
 
-<p align="center"><img src="docs/media/replay.gif" width="720" alt="リプレイで PERFECT・GREAT・GOOD・MISS の判定が表示され、リバーブと MIX をその場で調整"></p>
+<p align="center"><img src="docs/media/replay.gif" width="720" alt="リプレイで再生ライン上に PERFECT・GREAT・GOOD・MISS の判定が表示され、FAST／LATE と HIGH／LOW でタイミングと音程のどちらがずれたかが分かり、リバーブと MIX をその場で調整"></p>
+
+<p align="center"><sub>このクリップはイメージで、実際の操作を録画したものではありません。</sub></p>
 
 ### AI歌唱アドバイス
 

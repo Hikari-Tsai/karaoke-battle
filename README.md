@@ -83,7 +83,9 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 演唱中和回放時都會像音遊一樣在播放線上跳出 PERFECT／GREAT／GOOD／MISS 判定。演唱中的字卡只看拍點、開口就跳出來，標出 FAST／LATE；回放時同時看時間和音準，再加上 HIGH／LOW，一眼看出是快慢還是高低出了問題。重播檔可以匯出成 zip（評分資料加上演唱錄音）傳給朋友，對方匯入後就能看你的演唱。回放時可以即時開關殘響、調整比例，用 MIX 拉桿調整人聲與音樂的音量。
 
-<p align="center"><img src="docs/media/replay.gif" width="720" alt="回放時跳出 PERFECT、GREAT、GOOD、MISS 判定，並即時調整殘響與 MIX"></p>
+<p align="center"><img src="docs/media/replay.gif" width="720" alt="回放時在播放線上跳出 PERFECT、GREAT、GOOD、MISS 判定，FAST／LATE 和 HIGH／LOW 標出是快慢還是高低出了問題，再即時開關殘響、調整 MIX"></p>
+
+<p align="center"><sub>這一段是示意動畫，不是實際操作的錄影。</sub></p>
 
 ### AI 演唱建議
 

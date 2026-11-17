@@ -84,7 +84,9 @@ Right after you sing you get a 0–100 score, a rank from D to SSS and six sub-s
 
 While you sing and in the replay, PERFECT / GREAT / GOOD / MISS judgements pop up at the playhead, rhythm-game style. While you sing they judge timing only, so they pop up the moment you come in, tagged FAST / LATE; in the replay they weigh timing and pitch together and add HIGH / LOW, so you can see at a glance whether a note was early, late, sharp or flat. Export a replay as a zip (the score data plus your vocal recording) and send it to a friend; they import it and watch your take. In the replay you can switch the reverb and its mix live, and the MIX slider balances your voice against the music.
 
-<p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT, GREAT, GOOD and MISS judgements, adjusting the reverb and MIX live"></p>
+<p align="center"><img src="docs/media/replay.gif" width="720" alt="Replay with PERFECT, GREAT, GOOD and MISS judgements on the playhead, FAST / LATE and HIGH / LOW tags showing whether the timing or the pitch was off, then switching the reverb and moving MIX live"></p>
+
+<p align="center"><sub>This clip is an illustration, not a recording of the app.</sub></p>
 
 ### AI singing tips
 
