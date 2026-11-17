@@ -90,11 +90,27 @@
 
 | 平台 | 路徑 |
 | --- | --- |
-| macOS | `~/Library/Application Support/KaraokeBattle/` |
+| macOS | `~/Library/Application Support/com.karaokebattle.karaokeBattle/KaraokeBattle/` |
 | Windows | `%APPDATA%\com.karaokebattle\karaoke_battle\KaraokeBattle\` |
 
 底下有 `models/`（模型）、`sidecars/`（yt-dlp、ffmpeg、deno）、`songs/<id>/`（每首歌的所有檔案與演唱紀錄）、
-`cuda_pack/`（Windows）。刪掉整個資料夾就是完全重置。
+`cuda_pack/`（Windows）。刪掉整個資料夾就是完全重置。在設定裡改過資料夾位置的話，資料在你選的位置。
+
+## 解除安裝
+
+App 不寫登錄檔、不裝服務，也不建立捷徑；刪掉下面這些就移除乾淨了。
+
+1. 若有在「設定 → AI」填過 API Key，先在那裡把 Key 清空（Key 存在系統鑰匙圈／認證管理員，不在資料夾裡）。
+2. 關閉 App。
+3. 刪除 App 本身：
+   * **macOS**：把「應用程式」裡的 **Karaoke Battle** 丟到垃圾桶。
+   * **Windows**：刪除當初解壓縮的資料夾（例如 `C:\KaraokeBattle`）。
+4. 刪除資料與設定（模型、歌曲、演唱紀錄都在這裡；想保留歌曲就先備份 `songs/`）：
+   * **macOS**：`~/Library/Application Support/com.karaokebattle.karaokeBattle/`、
+     `~/Library/Caches/com.karaokebattle.karaokeBattle/`，以及設定檔
+     `~/Library/Preferences/com.karaokebattle.karaokeBattle.plist`。
+   * **Windows**：`%APPDATA%\com.karaokebattle\`（含設定檔與上面的資料資料夾）。
+   * 在設定裡改過資料夾位置的話，也刪除你選的那個資料夾。
 
 ## 常見問題
 

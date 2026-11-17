@@ -36,7 +36,9 @@ quantitative scores for pitch, rhythm, stability, vibrato, expression and long t
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><picture><source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg=="><img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" height="44" alt="Download for Windows (10 / 11 x64)"></picture></a>
 </p>
 
-<p align="center">Free and open source (MIT) · <a href="docs/INSTALL.md">Installation guide</a> · <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases">All versions and release notes</a></p>
+<p align="center">Free and open source (MIT) · <a href="docs/INSTALL.md">Installation guide</a> · <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases">All versions and release notes</a> · <a href="docs/CODE_SIGNING.en.md">Code signing policy</a></p>
+
+<p align="center"><sub>Free code signing provided by SignPath.io, certificate by SignPath Foundation (Windows build).</sub></p>
 
 <p align="center"><sub>macOS: open the DMG and drag the app to Applications; the first time, right-click the app and choose Open.<br>Windows: unzip and run <code>karaoke_battle.exe</code>. The models (about 500 MB) download on first launch.</sub></p>
 
