@@ -1,0 +1,749 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KB Sans";
+      font-weight: 400;
+      src: local("PingFangTC-Regular"), local("PingFang TC");
+    }
+    @font-face {
+      font-family: "KB Sans";
+      font-weight: 600;
+      src: local("PingFangTC-Semibold"), local("PingFang TC Semibold");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #0c0c10;
+      font-family: "KB Sans", "Noto Sans JP", sans-serif;
+      color: #f3f1f8;
+      --surface: #1d1c20;
+      --surface2: #2a292e;
+      --line: rgba(255, 255, 255, 0.1);
+      --muted: #aaa6ba;
+      --lav: #c8befa;
+      --note: #8f84d8;
+      --gold: #f9d84a;
+      --ink: #1a1030;
+    }
+    .layer {
+      position: absolute;
+      inset: 0;
+    }
+    .win {
+      position: absolute;
+      left: 80px;
+      top: 48px;
+      width: 1760px;
+      height: 930px;
+      background: #131317;
+      border: 2px solid var(--line);
+      border-radius: 28px;
+      overflow: hidden;
+    }
+    .bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 84px;
+      border-bottom: 2px solid var(--line);
+    }
+    .bar-title {
+      position: absolute;
+      left: 36px;
+      top: 18px;
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 48px;
+    }
+    .bar-pill {
+      position: absolute;
+      left: 1290px;
+      top: 16px;
+      width: 180px;
+      height: 52px;
+      border-radius: 26px;
+      background: var(--surface2);
+      font-size: 27px;
+      line-height: 52px;
+      text-align: center;
+      color: #e4e0f0;
+    }
+    .icon-btn {
+      position: absolute;
+      top: 14px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+    }
+    .icon-btn svg {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      width: 32px;
+      height: 32px;
+    }
+    .card {
+      position: absolute;
+      background: var(--surface);
+      border-radius: 20px;
+    }
+    /* ---- piano roll: one semitone is 26 px, the top row is E5 ---- */
+    .keys {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 84px;
+      height: 560px;
+      background: repeating-linear-gradient(to bottom, #e9e6f2 0px, #e9e6f2 24px, #8d899c 24px, #8d899c 26px);
+    }
+    .keys-black {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 560px;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 26px,
+        #17161c 26px,
+        #17161c 52px,
+        rgba(0, 0, 0, 0) 52px,
+        rgba(0, 0, 0, 0) 78px,
+        #17161c 78px,
+        #17161c 104px,
+        rgba(0, 0, 0, 0) 104px,
+        rgba(0, 0, 0, 0) 156px,
+        #17161c 156px,
+        #17161c 182px,
+        rgba(0, 0, 0, 0) 182px,
+        rgba(0, 0, 0, 0) 208px,
+        #17161c 208px,
+        #17161c 234px,
+        rgba(0, 0, 0, 0) 234px,
+        rgba(0, 0, 0, 0) 260px,
+        #17161c 260px,
+        #17161c 286px,
+        rgba(0, 0, 0, 0) 286px,
+        rgba(0, 0, 0, 0) 312px
+      );
+    }
+    #e-key {
+      position: absolute;
+      left: 0;
+      top: 260px;
+      width: 84px;
+      height: 26px;
+      background: var(--gold);
+      opacity: 0;
+    }
+    .gridline {
+      position: absolute;
+      left: 84px;
+      width: 1620px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .note {
+      position: absolute;
+      height: 22px;
+      border-radius: 7px;
+      background: var(--note);
+    }
+    #e-curve {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1704px;
+      height: 560px;
+    }
+    .playhead {
+      position: absolute;
+      left: 500px;
+      top: 0;
+      width: 4px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+    .legend {
+      position: absolute;
+      left: 1270px;
+      top: 498px;
+      width: 400px;
+      height: 44px;
+      font-size: 30px;
+      line-height: 44px;
+      color: #c9c5d6;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .lyric {
+      position: absolute;
+      left: 110px;
+      top: 416px;
+      font-size: 62px;
+      font-weight: 600;
+      line-height: 80px;
+      white-space: nowrap;
+    }
+    .lyric b {
+      color: var(--gold);
+      font-weight: 600;
+    }
+    .lyric-next {
+      position: absolute;
+      left: 110px;
+      top: 500px;
+      font-size: 34px;
+      line-height: 48px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    /* ---- the edit bar over the roll ---- */
+    #e-hint {
+      position: absolute;
+      left: 110px;
+      top: 18px;
+      width: 1570px;
+      height: 64px;
+      border-radius: 32px;
+      background: #2f2d3a;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+    }
+    #e-hint svg.pen {
+      position: absolute;
+      left: 24px;
+      top: 16px;
+      width: 32px;
+      height: 32px;
+    }
+    .h-text {
+      position: absolute;
+      left: 72px;
+      top: 10px;
+      font-size: 27px;
+      line-height: 44px;
+      color: #e4e0f0;
+      white-space: nowrap;
+    }
+    .h-undo {
+      position: absolute;
+      left: 1072px;
+      top: 14px;
+      width: 36px;
+      height: 36px;
+    }
+    #e-restore {
+      position: absolute;
+      left: 1140px;
+      top: 6px;
+      width: 240px;
+      height: 52px;
+      border-radius: 26px;
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 52px;
+      text-align: center;
+      color: #f3f1f8;
+      background-color: rgba(200, 190, 250, 0);
+    }
+    .h-done {
+      position: absolute;
+      left: 1404px;
+      top: 6px;
+      width: 144px;
+      height: 52px;
+      border-radius: 26px;
+      background: var(--lav);
+      color: var(--ink);
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 52px;
+      text-align: center;
+    }
+    /* ---- the pitch being auditioned while dragging ---- */
+    #e-badge {
+      position: absolute;
+      left: 780px;
+      top: 296px;
+      width: 176px;
+      height: 56px;
+      border-radius: 16px;
+      background: #3d3a22;
+      border: 2px solid rgba(249, 216, 74, 0.6);
+      opacity: 0;
+    }
+    #e-badge svg {
+      position: absolute;
+      left: 12px;
+      top: 8px;
+      width: 60px;
+      height: 36px;
+    }
+    #e-badge div {
+      position: absolute;
+      left: 78px;
+      top: 4px;
+      width: 88px;
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 44px;
+      text-align: center;
+      color: var(--gold);
+    }
+    /* ---- transport ---- */
+    .t-time {
+      position: absolute;
+      left: 32px;
+      top: 24px;
+      font-size: 27px;
+      line-height: 40px;
+      color: var(--muted);
+    }
+    .t-track {
+      position: absolute;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .t-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--lav);
+    }
+    .t-knob {
+      position: absolute;
+      top: -10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 14px;
+      background: var(--lav);
+    }
+    .t-play {
+      position: absolute;
+      left: 32px;
+      top: 104px;
+      width: 68px;
+      height: 68px;
+      border-radius: 34px;
+      background: #3a3846;
+    }
+    #e-edit {
+      position: absolute;
+      left: 130px;
+      top: 108px;
+      width: 240px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid #c8befa;
+      background-color: #34314a;
+      color: #c8befa;
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 56px;
+      text-align: center;
+    }
+    .t-seg {
+      position: absolute;
+      left: 400px;
+      top: 108px;
+      width: 240px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      overflow: hidden;
+    }
+    .t-seg div {
+      position: absolute;
+      top: 0;
+      width: 120px;
+      height: 56px;
+      font-size: 27px;
+      line-height: 56px;
+      text-align: center;
+      color: #e4e0f0;
+    }
+    .t-label {
+      position: absolute;
+      left: 690px;
+      top: 116px;
+      font-size: 29px;
+      font-weight: 600;
+      line-height: 44px;
+    }
+    .t-round {
+      position: absolute;
+      top: 108px;
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      font-size: 36px;
+      line-height: 54px;
+      text-align: center;
+      color: #f3f1f8;
+    }
+    .t-val {
+      position: absolute;
+      left: 902px;
+      top: 108px;
+      width: 104px;
+      height: 60px;
+      border-radius: 14px;
+      background: #2a292e;
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: center;
+      color: var(--lav);
+    }
+    .t-rec {
+      position: absolute;
+      left: 1410px;
+      top: 104px;
+      width: 262px;
+      height: 68px;
+      border-radius: 34px;
+      background: var(--lav);
+      color: var(--ink);
+      font-size: 29px;
+      font-weight: 600;
+      line-height: 68px;
+      text-align: center;
+    }
+    /* ---- restore dialog ---- */
+    #e-scrim {
+      position: absolute;
+      left: 82px;
+      top: 50px;
+      width: 1760px;
+      height: 930px;
+      border-radius: 26px;
+      background: #000;
+      opacity: 0;
+    }
+    #e-dialog {
+      position: absolute;
+      left: 560px;
+      top: 330px;
+      width: 800px;
+      height: 330px;
+      border-radius: 28px;
+      background: #2b2a31;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+    }
+    .d-title {
+      position: absolute;
+      left: 44px;
+      top: 34px;
+      font-size: 36px;
+      font-weight: 600;
+      line-height: 52px;
+    }
+    .d-body {
+      position: absolute;
+      left: 44px;
+      top: 104px;
+      width: 712px;
+      font-size: 28px;
+      line-height: 44px;
+      color: #d2cee0;
+    }
+    .d-cancel {
+      position: absolute;
+      left: 472px;
+      top: 240px;
+      width: 120px;
+      height: 60px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: center;
+      color: var(--lav);
+    }
+    .d-ok {
+      position: absolute;
+      left: 612px;
+      top: 240px;
+      width: 144px;
+      height: 60px;
+      border-radius: 30px;
+      background: var(--lav);
+      color: var(--ink);
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: center;
+    }
+    /* ---- step bar ---- */
+    .step {
+      position: absolute;
+      top: 1014px;
+      height: 72px;
+      border-radius: 36px;
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 68px;
+      text-align: center;
+      color: #b9b5c8;
+      background-color: #0c0c10;
+    }
+    .step-arrow {
+      position: absolute;
+      top: 1030px;
+      font-size: 34px;
+      line-height: 40px;
+      color: #8a8699;
+    }
+    #e-cursor-in {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 44px;
+      height: 44px;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="editnotes" data-width="1920" data-height="1164">
+    <!-- 1. The preview screen of the app (drawn, in the app's colours) -->
+    <div id="e-app" class="clip layer" data-start="0" data-duration="16" data-track-index="1">
+      <div class="win">
+        <div class="bar">
+          <div class="bar-title">‹　示範曲 — 預覽</div>
+          <div class="bar-pill">♩ 85 · 4/4</div>
+          <div class="icon-btn" style="left: 1500px">
+            <svg viewBox="0 0 40 40"><rect x="14" y="4" width="12" height="20" rx="6" fill="#e4e0f0" /><path d="M8 18 A12 12 0 0 0 32 18 M20 30 V36" fill="none" stroke="#e4e0f0" stroke-width="3.5" stroke-linecap="round" /></svg>
+          </div>
+          <div class="icon-btn" style="left: 1572px">
+            <svg viewBox="0 0 40 40"><path d="M6 24 V20 A14 14 0 0 1 34 20 V24" fill="none" stroke="#e4e0f0" stroke-width="3.5" stroke-linecap="round" /><rect x="3" y="22" width="9" height="13" rx="3.5" fill="#e4e0f0" /><rect x="28" y="22" width="9" height="13" rx="3.5" fill="#e4e0f0" /></svg>
+          </div>
+          <div class="icon-btn" style="left: 1644px">
+            <svg viewBox="0 0 40 40"><rect x="4" y="9" width="32" height="22" rx="4" fill="none" stroke="#e4e0f0" stroke-width="3.5" /><path d="M14 9 V22 M20 9 V22 M26 9 V22" fill="none" stroke="#e4e0f0" stroke-width="3.5" /></svg>
+          </div>
+        </div>
+
+        <div class="card" style="left: 28px; top: 108px; width: 1704px; height: 560px; overflow: hidden">
+          <div class="gridline" style="top: 128px"></div>
+          <div class="gridline" style="top: 232px"></div>
+          <div class="gridline" style="top: 336px"></div>
+          <!-- notes: top = row * 26 + 2. The fifth one was transcribed three semitones low. -->
+          <div class="note" style="left: 130px; top: 314px; width: 150px"></div>
+          <div class="note" style="left: 300px; top: 288px; width: 110px"></div>
+          <div class="note" style="left: 430px; top: 236px; width: 200px"></div>
+          <div class="note" style="left: 660px; top: 288px; width: 100px"></div>
+          <div class="note" id="e-n5" style="left: 780px; top: 262px; width: 240px" data-layout-allow-overflow></div>
+          <div class="note" style="left: 1050px; top: 236px; width: 130px"></div>
+          <div class="note" style="left: 1200px; top: 288px; width: 170px"></div>
+          <div class="note" style="left: 1400px; top: 314px; width: 150px"></div>
+          <div class="note" style="left: 1570px; top: 366px; width: 110px"></div>
+          <!-- the pitch of the original vocal; the path is computed below -->
+          <svg id="e-curve" viewBox="0 0 1704 560"><path id="e-curve-path" d="M0 0" fill="none" stroke="rgba(255,255,255,0.62)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <div class="playhead"></div>
+          <div class="keys"></div>
+          <div class="keys-black"></div>
+          <div id="e-key"></div>
+          <div class="lyric"><b>把今天</b>唱給明天聽</div>
+          <div class="lyric-next">明天的我也會記得這首歌</div>
+          <div class="legend">細線：原唱的音高</div>
+
+          <div id="e-badge" data-layout-ignore>
+            <svg viewBox="0 0 60 36" id="e-sine"><path d="M3 18 C9 -4 17 -4 23 18 S37 40 43 18 S53 2 57 18" fill="none" stroke="#f9d84a" stroke-width="4" stroke-linecap="round" /></svg>
+            <div id="e-p0">F♯4</div>
+            <div id="e-p1">G4</div>
+            <div id="e-p2">G♯4</div>
+            <div id="e-p3">A4</div>
+          </div>
+
+          <div id="e-hint" data-layout-ignore>
+            <svg class="pen" viewBox="0 0 40 40"><path d="M6 34 L8 26 L27 7 L33 13 L14 32 Z" fill="none" stroke="#c8befa" stroke-width="3.5" stroke-linejoin="round" /></svg>
+            <div class="h-text">點選音符，上下拖曳調整音高；Delete 刪除</div>
+            <svg class="h-undo" viewBox="0 0 40 40"><path d="M10 15 H25 A9 9 0 0 1 25 33 H14 M10 15 L17 8 M10 15 L17 22" fill="none" stroke="#e4e0f0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <div id="e-restore">還原原始音符</div>
+            <div class="h-done">完成</div>
+          </div>
+        </div>
+
+        <div class="card" style="left: 28px; top: 692px; width: 1704px; height: 210px">
+          <div class="t-time">0:18 / 3:42</div>
+          <div class="t-track" style="left: 200px; top: 40px; width: 1472px"><div class="t-fill" style="width: 132px"></div><div class="t-knob" style="left: 118px"></div></div>
+          <div class="t-play">
+            <svg viewBox="0 0 68 68" width="68" height="68"><path d="M27 21 L48 34 L27 47 Z" fill="#f3f1f8" /></svg>
+          </div>
+          <div id="e-edit">✎ 編輯音符</div>
+          <div class="t-seg"><div style="left: 0; background: #3a3846">伴奏</div><div style="left: 118px">導唱</div></div>
+          <div class="t-label">升降 Key</div>
+          <div class="t-round" style="left: 830px">−</div>
+          <div class="t-val">0</div>
+          <div class="t-round" style="left: 1018px">+</div>
+          <div class="t-track" style="left: 1130px; top: 134px; width: 220px"><div class="t-fill" style="width: 154px"></div><div class="t-knob" style="left: 140px"></div></div>
+          <div class="t-rec" data-layout-ignore>● 開始錄製</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. "Restore the original notes?" -->
+    <div id="e-modal" class="clip layer" data-start="0" data-duration="16" data-track-index="2" data-layout-allow-overlap>
+      <div id="e-scrim" data-layout-ignore></div>
+      <div id="e-dialog" data-layout-allow-occlusion>
+        <div class="d-title">還原原始音符？</div>
+        <div class="d-body">所有音符修改都會被捨棄，<br />回到自動轉譜的結果。</div>
+        <div class="d-cancel">取消</div>
+        <div class="d-ok">還原</div>
+      </div>
+    </div>
+
+    <!-- 3. Where we are in the three steps -->
+    <div id="e-steps" class="clip layer" data-start="0" data-duration="16" data-track-index="3">
+      <div class="step" id="e-step1" style="left: 406px; width: 300px">1　編輯音符</div>
+      <div class="step-arrow" style="left: 732px">›</div>
+      <div class="step" id="e-step2" style="left: 780px; width: 360px">2　拖曳修正音高</div>
+      <div class="step-arrow" style="left: 1166px">›</div>
+      <div class="step" id="e-step3" style="left: 1214px; width: 300px">3　隨時還原</div>
+    </div>
+
+    <!-- 4. Pointer -->
+    <div id="e-cursor" class="clip layer" data-start="0" data-duration="16" data-track-index="4" data-layout-ignore>
+      <svg id="e-cursor-in" viewBox="0 0 44 44">
+        <path d="M6 3 L6 35 L15 27 L21 41 L27 38 L21 25 L33 25 Z" fill="#ffffff" stroke="#111" stroke-width="2.5" stroke-linejoin="round" />
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    // The original vocal's pitch: it runs through every note except the fifth,
+    // where it sits three semitones (78 px) above the transcribed note.
+    (() => {
+      const row = (r) => r * 26 + 13;
+      const phrases = [
+        [
+          [130, 280, 12],
+          [300, 410, 11],
+          [430, 630, 9],
+          [660, 760, 11],
+          [780, 1020, 7],
+        ],
+        [
+          [1050, 1180, 9],
+          [1200, 1370, 11],
+          [1400, 1550, 12],
+          [1570, 1680, 14],
+        ],
+      ];
+      const smooth = (t) => t * t * (3 - 2 * t);
+      let d = "";
+      phrases.forEach((notes) => {
+        const x0 = notes[0][0] - 6;
+        const x1 = notes[notes.length - 1][1] + 6;
+        for (let x = x0; x <= x1; x += 4) {
+          let y = row(notes[notes.length - 1][2]);
+          for (let i = 0; i < notes.length; i++) {
+            const [a, b, r] = notes[i];
+            if (x <= b - 8) {
+              y = row(r);
+              if (i > 0 && x < a + 14) {
+                // glide in from the previous note
+                const from = notes[i - 1][1] - 8;
+                y = row(notes[i - 1][2]) + (row(r) - row(notes[i - 1][2])) * smooth((x - from) / (a + 14 - from));
+              }
+              break;
+            }
+          }
+          const scoop = Math.max(0, 1 - (x - x0) / 34) * 16; // slide up into the phrase
+          const tail = Math.max(0, (x - (x1 - 120)) / 120); // vibrato at the end of the phrase
+          y += scoop + 2.2 * Math.sin(x * 0.085) + 1.3 * Math.sin(x * 0.031 + 1) + 5 * tail * Math.sin(x * 0.21);
+          d += (x === x0 ? "M" : "L") + x + " " + y.toFixed(1) + " ";
+        }
+      });
+      document.querySelector("#e-curve-path").setAttribute("d", d.trim());
+    })();
+
+    const tl = gsap.timeline({ paused: true });
+    const ON = { backgroundColor: "#c8befa", color: "#1a1030", borderColor: "#c8befa" };
+    const OFF = { backgroundColor: "#0c0c10", color: "#b9b5c8", borderColor: "rgba(255,255,255,0.16)" };
+    const click = (at) =>
+      tl.fromTo("#e-cursor-in", { scale: 1 }, { scale: 0.82, duration: 0.08, yoyo: true, repeat: 1, transformOrigin: "20% 10%" }, at);
+    const flash = (sel, at) => tl.fromTo(sel, { scale: 1 }, { scale: 0.94, duration: 0.09, yoyo: true, repeat: 1, transformOrigin: "50% 50%" }, at);
+
+    // ---- start state (also the loop point) ----
+    gsap.set("#e-step1", ON);
+    gsap.set("#e-step2, #e-step3", OFF);
+    gsap.set("#e-p1, #e-p2, #e-p3", { opacity: 0 });
+    gsap.set("#e-cursor-in", { x: 760, y: 640 });
+    gsap.set("#e-restore", { opacity: 0.45 });
+
+    // ---- step 1: press "Edit notes" (0 - 2.6 s) ----
+    tl.fromTo("#e-cursor-in", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.3);
+    tl.to("#e-cursor-in", { x: 372, y: 880, duration: 0.8, ease: "power3.inOut" }, 0.35);
+    click(1.3);
+    flash("#e-edit", 1.3);
+    tl.to("#e-edit", { backgroundColor: "#c8befa", color: "#1a1030", duration: 0.2 }, 1.34);
+    tl.fromTo("#e-hint", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 1.42);
+
+    // ---- step 2: drag the wrong note up three semitones (2.6 - 8.2 s) ----
+    tl.to("#e-step1", { ...OFF, duration: 0.3 }, 2.6);
+    tl.to("#e-step2", { ...ON, duration: 0.3 }, 2.6);
+    tl.to("#e-cursor-in", { x: 1064, y: 428, duration: 0.85, ease: "power3.inOut" }, 2.65);
+    // press and hold: the note is selected and its pitch sounds
+    tl.to("#e-cursor-in", { scale: 0.84, duration: 0.1, transformOrigin: "20% 10%" }, 3.75);
+    tl.to("#e-n5", { backgroundColor: "#f9d84a", boxShadow: "0 0 0 5px rgba(249,216,74,0.3)", duration: 0.15 }, 3.78);
+    tl.to("#e-key", { opacity: 0.9, duration: 0.15 }, 3.78);
+    tl.fromTo("#e-badge", { opacity: 0, scale: 0.8, transformOrigin: "0% 0%" }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 3.82);
+    tl.fromTo("#e-sine", { scaleY: 0.3, transformOrigin: "50% 50%" }, { scaleY: 1, duration: 0.25, ease: "sine.out" }, 3.82);
+    // one semitone at a time, 26 px each
+    tl.to("#e-cursor-in", { y: 350, duration: 1.8, ease: "none" }, 4.4);
+    [1, 2, 3].forEach((n) => {
+      const at = 4.4 + n * 0.6;
+      tl.to("#e-n5, #e-key, #e-badge", { y: -26 * n, duration: 0.12, ease: "power2.out" }, at - 0.12);
+      tl.set(`#e-p${n - 1}`, { opacity: 0 }, at - 0.06);
+      tl.set(`#e-p${n}`, { opacity: 1 }, at - 0.06);
+      tl.fromTo(`#e-p${n}`, { scale: 1.3, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.25, ease: "power3.out" }, at - 0.06);
+      tl.fromTo("#e-sine", { scaleY: 0.35 }, { scaleY: 1, duration: 0.3, ease: "sine.out" }, at - 0.06);
+    });
+    tl.to("#e-cursor-in", { scale: 1, duration: 0.1 }, 6.55);
+    tl.to("#e-restore", { opacity: 1, duration: 0.3 }, 6.6);
+    tl.to("#e-key", { opacity: 0, duration: 0.3 }, 7.5);
+    tl.to("#e-badge", { opacity: 0, duration: 0.3 }, 7.5);
+
+    // ---- step 3: restore the automatic transcription (8.2 - 15.2 s) ----
+    tl.to("#e-step2", { ...OFF, duration: 0.3 }, 8.2);
+    tl.to("#e-step3", { ...ON, duration: 0.3 }, 8.2);
+    tl.to("#e-cursor-in", { x: 1484, y: 208, duration: 0.85, ease: "power3.inOut" }, 8.2);
+    click(9.25);
+    tl.fromTo("#e-restore", { backgroundColor: "rgba(200,190,250,0)" }, { backgroundColor: "rgba(200,190,250,0.3)", duration: 0.12, yoyo: true, repeat: 1 }, 9.25);
+    tl.to("#e-scrim", { opacity: 0.5, duration: 0.3 }, 9.35);
+    tl.fromTo("#e-dialog", { opacity: 0, scale: 0.92, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.4, ease: "expo.out" }, 9.38);
+    tl.to("#e-cursor-in", { x: 1284, y: 602, duration: 0.75, ease: "power3.inOut" }, 11.2);
+    click(12.5);
+    flash(".d-ok", 12.5);
+    tl.to("#e-dialog", { opacity: 0, scale: 0.96, duration: 0.25, ease: "power2.in" }, 12.62);
+    tl.to("#e-scrim", { opacity: 0, duration: 0.3 }, 12.62);
+    tl.to("#e-n5", { y: 0, duration: 0.55, ease: "back.out(1.6)" }, 12.85);
+    tl.to("#e-n5", { backgroundColor: "#8f84d8", boxShadow: "0 0 0 0px rgba(249,216,74,0)", duration: 0.4 }, 12.9);
+    tl.to("#e-restore", { opacity: 0.45, duration: 0.3 }, 12.9);
+    // "Done" leaves the editor
+    tl.to("#e-cursor-in", { x: 1690, y: 208, duration: 0.6, ease: "power3.inOut" }, 13.6);
+    click(14.35);
+    flash(".h-done", 14.35);
+    tl.to("#e-hint", { opacity: 0, y: -14, duration: 0.3, ease: "power2.in" }, 14.45);
+    tl.to("#e-edit", { backgroundColor: "#34314a", color: "#c8befa", duration: 0.25 }, 14.45);
+    tl.to("#e-cursor-in", { opacity: 0, duration: 0.25 }, 14.8);
+
+    // ---- back to the start so the clip loops ----
+    tl.to("#e-step3", { ...OFF, duration: 0.25 }, 15.35);
+    tl.to("#e-step1", { ...ON, duration: 0.25 }, 15.4);
+    tl.set("#e-key, #e-badge", { y: 0 }, 15.5);
+    tl.set("#e-p3", { opacity: 0 }, 15.5);
+    tl.set("#e-p0", { opacity: 1 }, 15.5);
+
+    window.__timelines["editnotes"] = tl;
+  </script>
+</template>

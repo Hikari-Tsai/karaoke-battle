@@ -60,7 +60,9 @@ A scrolling piano roll shows every note of the original singer, and your pitch i
 
 A piano keyboard on the dashboard fills in the song's range right on the keys, next to the comfortable male and female ranges, and tells you whom the key suits and whether it is too high or too low. Before you record, sing a few notes into the mic: every note you can hold leaves an orange dot, so your own range sits right next to the song's. "One-click key" moves the backing, the notes and the keyboard into a male, a female or your own range. While you record, the keyboard lights the score's note (blue) and the note you sing (orange).
 
-<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="Range keyboard: a sung scale finds your range, then One-click key moves the song into a male, female or your own range"></p>
+<p align="center"><img src="docs/media/voice-range.gif" width="720" alt="Range keyboard: the song's range next to the comfortable male and female ranges, a sung scale that finds your own range, then One-click key moves the song into it"></p>
+
+<p align="center"><sub>This clip is an illustration, not a recording of the app.</sub></p>
 
 ### Key shift and vocal return
 
@@ -96,7 +98,9 @@ Press "AI singing tips" on the results screen and the app writes this take up as
 
 Press "Edit notes" and drag a note up or down to fix it. While you drag, a sine tone plays the new pitch (not audible in the GIF). You can restore the original transcription at any time.
 
-<p align="center"><img src="docs/media/edit-notes.gif" width="720" alt="Dragging a note to fix its pitch"></p>
+<p align="center"><img src="docs/media/edit-notes.gif" width="720" alt="Pressing Edit notes, dragging a wrongly transcribed note onto the pitch of the original vocal, then restoring the automatic transcription"></p>
+
+<p align="center"><sub>This clip is an illustration, not a recording of the app.</sub></p>
 
 ### Import and edit lyrics
 

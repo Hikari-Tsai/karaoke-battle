@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1164" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1164px;
+        overflow: hidden;
+        background: #0c0c10;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1164px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- README / site clip: fixing a transcribed note by dragging it, and restoring the original.
+         1920x1164 is twice the 960x582 of the other clips in docs/media. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="1920" data-height="1164">
+      <div
+        id="editnotes"
+        data-composition-id="editnotes"
+        data-composition-src="compositions/editnotes.html"
+        data-start="0"
+        data-duration="16"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1164"
+      ></div>
+    </div>
+    <script>
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

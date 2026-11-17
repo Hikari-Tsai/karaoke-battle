@@ -138,7 +138,6 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 
 /* 循環播放的畫面 */
 .loop { width: 100%; aspect-ratio: 960 / 582; object-fit: cover; background: #000; border-radius: 14px; border: 1px solid var(--line); }
-.loop.tall { aspect-ratio: 720 / 630; }
 
 /* 功能 */
 .feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: center; margin-top: 88px; }
