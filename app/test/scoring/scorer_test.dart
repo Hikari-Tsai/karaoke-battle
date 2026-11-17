@@ -364,6 +364,13 @@ void main() {
       expect(r.technique.pitchStabilityCents, lessThan(12));
       expect(r.frameMetrics.rawChromaAccuracy, greaterThan(0.95));
       expect(r.technique.longToneScore, greaterThan(0.95));
+      // Per-note details for feedback, kept through score.json.
+      final details = r.technique.longNotes;
+      expect(details.length, 8);
+      expect(details.every((d) => d.vibrato && d.stabilityCents! < 12 && d.referenceStabilityCents != null), isTrue);
+      final back = TechniqueMetrics.fromJson(r.technique.toJson());
+      expect(back.longNotes.map((d) => d.index), details.map((d) => d.index));
+      expect(back.longNotes.first.referenceStabilityCents, details.first.referenceStabilityCents);
     });
 
     test('no vibrato in the take scores 0 against a vibrato reference', () {

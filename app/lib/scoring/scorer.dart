@@ -211,6 +211,10 @@ class Scorer {
           )
         : null;
     final longRefNotes = takeLong.longNotes;
+    final refStability = <int, double?>{
+      for (final d in refLong?.details ?? const <LongNoteDetail>[])
+        d.index: d.stabilityCents,
+    };
     final longTone = longToneScore(
       refNotes,
       alignedTake,
@@ -249,6 +253,10 @@ class Scorer {
           : mean(refLong.stabilities),
       expressionCorrelation: expression,
       longToneScore: longTone,
+      longNotes: [
+        for (final d in takeLong.details)
+          d.withReference(refStability[d.index]),
+      ],
     );
 
     // --- 5d. Sub-scores and total ----------------------------------------

@@ -16,6 +16,7 @@ import 'new_record_dialog.dart';
 import 'replay_screen.dart';
 import '../replays/export_replay_dialog.dart';
 import 'export_video_dialog.dart';
+import 'ai_analysis_dialog.dart';
 import '../../state/take_trace.dart';
 import '../../state/live_trace.dart';
 import '../../state/scoring_bridge.dart';
@@ -127,6 +128,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 label: Text(tr('replay.button')),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: OutlinedButton.icon(
+              onPressed: _score == null ? null : () => showAiAnalysisDialog(context, song: widget.song, take: widget.take),
+              icon: const Icon(Icons.auto_awesome),
+              label: Text(tr('advice.button')),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: OutlinedButton.icon(

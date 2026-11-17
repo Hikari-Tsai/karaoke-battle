@@ -321,6 +321,7 @@ class LongNoteAnalysis {
     required this.extents,
     required this.stabilities,
     required this.amounts,
+    this.details = const [],
   });
 
   /// Reference notes at least `longNoteSeconds` long.
@@ -338,6 +339,10 @@ class LongNoteAnalysis {
   /// Per long note: fraction of analysis windows with vibrato (0 when the
   /// note could not be analysed).
   final List<double> amounts;
+
+  /// One entry per analysed long note (reference note index, stability,
+  /// vibrato), for feedback that names the note.
+  final List<LongNoteDetail> details;
 
   /// `withVibrato / longNotes` (0 without long notes).
   double get fraction => longNotes == 0 ? 0.0 : withVibrato / longNotes;
@@ -366,8 +371,10 @@ LongNoteAnalysis analyzeLongNotes(
   final extents = <double>[];
   final stabilities = <double>[];
   final amounts = <double>[];
+  final details = <LongNoteDetail>[];
   final len = bridged.length;
-  for (final n in refNotes) {
+  for (var i = 0; i < refNotes.length; i++) {
+    final n = refNotes[i];
     if (n.duration < longNoteSeconds) continue;
     longNotes++;
     amounts.add(0);
@@ -399,6 +406,7 @@ LongNoteAnalysis analyzeLongNotes(
       vibratoRateHz: v.present ? v.rateHz : null,
     );
     if (st != null) stabilities.add(st);
+    details.add(LongNoteDetail(index: i, stabilityCents: st, vibrato: v.present));
   }
   return LongNoteAnalysis(
     longNotes: longNotes,
@@ -408,5 +416,6 @@ LongNoteAnalysis analyzeLongNotes(
     extents: extents,
     stabilities: stabilities,
     amounts: amounts,
+    details: details,
   );
 }
