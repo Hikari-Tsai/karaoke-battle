@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/problem_report.dart';
 import '../../services/update_checker.dart';
+import '../widgets/release_notes.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/brand.dart';
@@ -56,6 +57,7 @@ class _AboutScreenState extends State<AboutScreen> {
     PackageInfo.fromPlatform().then((info) {
       if (!mounted) return;
       setState(() => _appVersion = info.version);
+      UpdateChecker.currentVersion = info.version;
       _check();
     });
   }
@@ -100,14 +102,17 @@ class _AboutScreenState extends State<AboutScreen> {
         ]);
       case _UpdateState.available:
         final l = _latest!;
-        return Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, children: [
-          Icon(Icons.new_releases, size: 16, color: cs.tertiary),
-          Text(tr('about.newVersion', {'version': l.tag}), style: TextStyle(color: cs.tertiary, fontWeight: FontWeight.w600)),
-          FilledButton.tonalIcon(
-            onPressed: () => launchUrl(Uri.parse(l.url)),
-            icon: const Icon(Icons.download, size: 16),
-            label: Text(tr('about.downloadVersion', {'version': l.tag})),
-          ),
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, children: [
+            Icon(Icons.new_releases, size: 16, color: cs.tertiary),
+            Text(tr('about.newVersion', {'version': l.tag}), style: TextStyle(color: cs.tertiary, fontWeight: FontWeight.w600)),
+            FilledButton.tonalIcon(
+              onPressed: () => launchUrl(Uri.parse(l.url)),
+              icon: const Icon(Icons.download, size: 16),
+              label: Text(tr('about.downloadVersion', {'version': l.tag})),
+            ),
+          ]),
+          Padding(padding: const EdgeInsets.only(top: 12), child: ReleaseNotesView(release: l)),
         ]);
       case _UpdateState.failed:
         return Text('${tr('about.checkFailed')}: $_error', style: TextStyle(color: cs.error));

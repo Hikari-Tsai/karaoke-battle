@@ -12,6 +12,15 @@ class ReleaseInfo {
   final String name;
 }
 
+/// One version's section of CHANGELOG.md: the text under `## X.Y.Z — date`.
+class ReleaseNotes {
+  const ReleaseNotes({required this.version, required this.date, required this.lines});
+  final String version; // e.g. 1.2.3
+  final String date; // e.g. 2026-11-16, or '' when the heading has none
+  /// Non-blank lines of the section as written (`### Added`, `- item`, text).
+  final List<String> lines;
+}
+
 class UpdateChecker {
   UpdateChecker._();
 
@@ -24,6 +33,91 @@ class UpdateChecker {
   /// The About screen checks at launch, since the shell builds every tab;
   /// the rail and the settings screen show the result.
   static final available = ValueNotifier<ReleaseInfo?>(null);
+
+  /// This app's version, set by the About screen once known ('' until then).
+  static String currentVersion = '';
+
+  /// The changelog file for a UI language (zh is the main one).
+  static String changelogFile(String lang) => switch (lang) {
+        'en' => 'CHANGELOG.en.md',
+        'ja' => 'CHANGELOG.ja.md',
+        _ => 'CHANGELOG.md',
+      };
+
+  static String changelogUrl(String tag, String lang) => 'https://raw.githubusercontent.com/$repo/$tag/${changelogFile(lang)}';
+
+  /// Splits a CHANGELOG into its version sections, newest first as written.
+  /// Headings other than `## X.Y.Z…` (title, "unreleased") are skipped.
+  static List<ReleaseNotes> parseChangelog(String text) {
+    final heading = RegExp(r'^##\s+\[?v?(\d+\.\d+\.\d+)\]?\s*(?:[—–-]+\s*(\S+))?');
+    final out = <ReleaseNotes>[];
+    String? version;
+    var date = '';
+    var lines = <String>[];
+    var inComment = false;
+    void flush() {
+      if (version != null) out.add(ReleaseNotes(version: version, date: date, lines: lines));
+    }
+
+    for (final raw in const LineSplitter().convert(text)) {
+      final line = raw.trimRight();
+      if (inComment) {
+        if (line.contains('-->')) inComment = false;
+        continue;
+      }
+      if (line.trimLeft().startsWith('<!--')) {
+        inComment = !line.contains('-->');
+        continue;
+      }
+      if (line.startsWith('## ')) {
+        flush();
+        final m = heading.firstMatch(line);
+        version = m?.group(1);
+        date = m?.group(2) ?? '';
+        lines = <String>[];
+        continue;
+      }
+      if (line.startsWith('# ')) continue;
+      if (version != null && line.trim().isNotEmpty) lines.add(line);
+    }
+    flush();
+    return out;
+  }
+
+  /// The sections newer than [current] up to and including [latest], newest first.
+  static List<ReleaseNotes> notesBetween(List<ReleaseNotes> all, String current, String latest) => [
+        for (final n in all)
+          if (compareVersions(n.version, current) > 0 && compareVersions(n.version, latest) <= 0) n,
+      ]..sort((a, b) => compareVersions(b.version, a.version));
+
+  static final _notesCache = <String, Future<List<ReleaseNotes>>>{};
+
+  /// The changelog sections between this app and [release], in the UI
+  /// language (falling back to the zh file). Empty when the tag has no
+  /// changelog; a failed fetch is not cached, so the next call retries.
+  static Future<List<ReleaseNotes>> fetchNotes(ReleaseInfo release, String lang, {http.Client? client}) {
+    final key = '${release.tag}/$lang/$currentVersion';
+    return _notesCache[key] ??= () async {
+      final c = client ?? http.Client();
+      try {
+        Future<String?> get(String l) async {
+          final resp = await c.get(Uri.parse(changelogUrl(release.tag, l)), headers: const {'User-Agent': 'karaoke-battle'}).timeout(const Duration(seconds: 15));
+          if (resp.statusCode == 404) return null;
+          if (resp.statusCode != 200) throw Exception('changelog ${resp.statusCode}');
+          return utf8.decode(resp.bodyBytes);
+        }
+
+        final text = await get(lang) ?? (lang == 'zh' ? null : await get('zh'));
+        if (text == null) return const <ReleaseNotes>[];
+        return notesBetween(parseChangelog(text), currentVersion, release.version);
+      } catch (e) {
+        _notesCache.remove(key);
+        rethrow;
+      } finally {
+        if (client == null) c.close();
+      }
+    }();
+  }
 
   /// Parses `v1.2.3`, `1.2.3+45` or `1.2.3-beta.1` into numeric components
   /// (`+build` and `-pre` suffixes are ignored; missing parts are 0).

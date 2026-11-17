@@ -1073,6 +1073,7 @@ const Map<String, (String, String, String)> _table = {
   'about.upToDate': ('已是最新版本（{version}）', 'Up to date ({version})', '最新バージョンです（{version}）'),
   'about.newVersion': ('有新版本 {version}', 'New version {version} available', '新しいバージョン {version} があります'),
   'about.downloadVersion': ('下載 {version}', 'Download {version}', '{version} をダウンロード'),
+  'about.whatsNew': ('更新內容', "What's new", '更新内容'),
   'about.checkFailed': ('無法檢查更新', 'Update check failed', 'アップデートを確認できません'),
   'about.citations': ('引用與致謝（docs/CITATIONS.md）', 'Citations and acknowledgements (docs/CITATIONS.md)', '引用と謝辞（docs/CITATIONS.md）'),
 };

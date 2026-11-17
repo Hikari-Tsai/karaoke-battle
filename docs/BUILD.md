@@ -227,12 +227,16 @@ against the network and installs ffmpeg through one.
   workflow artifacts (not attached to releases) and skip the Flutter steps with a warning while `app/pubspec.yaml` does not exist.
 * `release` (tags only): attaches `KaraokeBattle-macos-universal.dmg`,
   `KaraokeBattle-windows-x64.zip` (stable names for `releases/latest/download/...`) and
-  `SHA256SUMS.txt`, with `.github/release-body.md` as the description (`{{TAG}}` is replaced
-  by the tag), via `softprops/action-gh-release`. A tag containing `-`
+  `SHA256SUMS.txt`, via `softprops/action-gh-release`. The description is the tag's section of
+  `CHANGELOG.md` (cut by `scripts/changelog_section.sh`; a missing section only warns)
+  followed by `.github/release-body.md` (`{{TAG}}` is replaced by the tag). A tag containing `-`
   (e.g. `v1.2.0-beta.1`) is marked as a pre-release.
 * The version comes from the tag (`v1.2.3` -> `--build-name 1.2.3`), `--build-number` is the
   run number; non-tag builds use `0.0.0`.
 * The engine has no version of its own: CMake reads `version:` from `app/pubspec.yaml`
-  (`ke_version()`, `ke_cli`, the About screen). So a release bumps `pubspec.yaml` first, then
-  tags; a tag that does not match `pubspec.yaml` fails the build.
+  (`ke_version()`, `ke_cli`, the About screen). So a release renames the unreleased section
+  (未發布 / Unreleased / 未リリース) of `CHANGELOG.md`, `CHANGELOG.en.md` and `CHANGELOG.ja.md`
+  to `## X.Y.Z — YYYY-MM-DD`, bumps `pubspec.yaml`,
+  then tags; a tag that does not match `pubspec.yaml` fails the build. The app's update notice
+  reads those sections from the release tag (`UpdateChecker.fetchNotes`).
 * Every action is pinned to a commit SHA (version in the trailing comment).

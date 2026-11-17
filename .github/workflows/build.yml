@@ -465,10 +465,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout (release body template)
+      - name: Checkout (release body template, changelog)
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          sparse-checkout: .github/release-body.md
+          sparse-checkout: |
+            .github/release-body.md
+            CHANGELOG.md
+            scripts/changelog_section.sh
           sparse-checkout-cone-mode: false
 
       - name: Download artifacts
@@ -487,14 +490,22 @@ jobs:
           cp artifacts/KaraokeBattle-macos-universal/*.dmg dist/KaraokeBattle-macos-universal.dmg
           cp artifacts/KaraokeBattle-windows-x64/*.zip dist/KaraokeBattle-windows-x64.zip
           (cd dist && sha256sum KaraokeBattle-* > SHA256SUMS.txt && cat SHA256SUMS.txt)
-          sed "s|{{TAG}}|${GITHUB_REF_NAME}|g" .github/release-body.md > release-body.md
+          # This version's CHANGELOG.md section first, then the install guide.
+          if notes=$(bash scripts/changelog_section.sh CHANGELOG.md "${GITHUB_REF_NAME}"); then
+            printf '## 更新內容\n\n%s\n\n完整紀錄：[CHANGELOG.md](https://github.com/%s/blob/%s/CHANGELOG.md)\n\n---\n\n' \
+              "$notes" "${GITHUB_REPOSITORY}" "${GITHUB_REF_NAME}" > release-body.md
+          else
+            echo "::warning file=CHANGELOG.md::No section for ${GITHUB_REF_NAME}; the release has no change notes."
+            : > release-body.md
+          fi
+          sed "s|{{TAG}}|${GITHUB_REF_NAME}|g" .github/release-body.md >> release-body.md
 
       - name: Create release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-          # Installation + usage guide (zh-TW) followed by the auto-generated change list.
+          # CHANGELOG.md notes + installation/usage guide (zh-TW), then GitHub's compare link.
           body_path: release-body.md
           generate_release_notes: true
           files: |

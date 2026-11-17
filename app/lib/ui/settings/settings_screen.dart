@@ -15,6 +15,7 @@ import '../../services/sidecars.dart';
 import '../../state/song_data.dart' show noteName;
 import 'range_detect_dialog.dart';
 import '../../services/update_checker.dart';
+import '../widgets/release_notes.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
@@ -246,19 +247,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     margin: const EdgeInsets.only(bottom: 16),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Row(children: [
-                        Icon(Icons.new_releases, color: theme.colorScheme.onTertiaryContainer),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            tr('about.newVersion', {'version': release.tag}),
-                            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onTertiaryContainer, fontWeight: FontWeight.w600),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Icon(Icons.new_releases, color: theme.colorScheme.onTertiaryContainer),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              tr('about.newVersion', {'version': release.tag}),
+                              style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onTertiaryContainer, fontWeight: FontWeight.w600),
+                            ),
                           ),
-                        ),
-                        FilledButton.icon(
-                          onPressed: () => launchUrl(Uri.parse(release.url)),
-                          icon: const Icon(Icons.download),
-                          label: Text(tr('about.downloadVersion', {'version': release.tag})),
+                          FilledButton.icon(
+                            onPressed: () => launchUrl(Uri.parse(release.url)),
+                            icon: const Icon(Icons.download),
+                            label: Text(tr('about.downloadVersion', {'version': release.tag})),
+                          ),
+                        ]),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 36, top: 8),
+                          child: ReleaseNotesView(release: release, color: theme.colorScheme.onTertiaryContainer),
                         ),
                       ]),
                     ),
