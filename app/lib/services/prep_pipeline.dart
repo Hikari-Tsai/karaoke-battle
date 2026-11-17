@@ -385,7 +385,7 @@ class PrepPipeline extends ChangeNotifier {
     final lines = parseSubtitleFile(p.basename(path), await File(path).readAsBytes());
     final lyrics = await loadLyrics(song);
     final track = LyricTrack(
-      lang: lyrics.uniqueKey('${song.language}-x-import'),
+      lang: lyrics.uniqueKey('${lyricsLanguage(lines.map((l) => l.text), song.language)}-x-import'),
       auto: false,
       lines: lines,
       source: LyricSource.imported,
@@ -464,7 +464,7 @@ class PrepPipeline extends ChangeNotifier {
     var rerun = false;
     try {
       final lyrics = Lyrics.fromJson(jsonDecode(await file.readAsString()) as Map<String, dynamic>);
-      final todo = lyrics.tracks.where((t) => t.isJapanese && t.romajiVersion < kRomajiVersion).toList();
+      final todo = lyrics.tracks.where((t) => t.wantsRomaji && t.romajiVersion < kRomajiVersion).toList();
       if (todo.isEmpty) return;
       final pack = await _ensureJaPack();
       for (final t in todo) {

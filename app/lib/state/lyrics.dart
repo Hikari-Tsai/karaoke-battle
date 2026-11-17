@@ -58,6 +58,10 @@ class LyricTrack {
   int romajiVersion;
 
   bool get isJapanese => langFamily(lang) == 'ja';
+
+  /// Gets romaji: labelled Japanese, or Japanese text under another label
+  /// (Whisper, an imported file or pasted lyrics on a song set to Chinese).
+  bool get wantsRomaji => isJapanese || looksJapanese(lines.map((l) => l.text));
   bool get hasRomaji => romajiVersion > 0 && lines.any((l) => l.romaji != null && l.romaji!.isNotEmpty);
 
   /// Index of the line sounding at [t] (start <= t < end), or -1.
@@ -218,6 +222,25 @@ List<String> subtitlePrefs(String language) => switch (language) {
     };
 
 /// Language family of a subtitle key (zh-TW, zh-Hant, yue -> zh).
+/// True when the [lines] read as Japanese: kana in at least 30% of the
+/// non-empty lines. Chinese lyrics have no kana (an odd の stays under the bar),
+/// so this tells a Japanese song apart even when its tracks are labelled with
+/// another language.
+bool looksJapanese(Iterable<String> lines) {
+  var total = 0, kana = 0;
+  for (final l in lines) {
+    if (l.trim().isEmpty) continue;
+    total++;
+    if (l.runes.any((r) => (r >= 0x3041 && r <= 0x3096) || (r >= 0x30A1 && r <= 0x30FA))) kana++;
+  }
+  return total > 0 && kana >= 0.3 * total;
+}
+
+/// Language for the key of a new track made from [lines]: 'ja' when they read
+/// as Japanese (see [looksJapanese]), else the song's [fallback] language.
+String lyricsLanguage(Iterable<String> lines, String fallback) =>
+    langFamily(fallback) != 'ja' && looksJapanese(lines) ? 'ja' : fallback;
+
 String langFamily(String key) {
   final base = key.split('-').first.toLowerCase();
   return base == 'yue' ? 'zh' : base;

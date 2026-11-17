@@ -376,7 +376,7 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
     final src = _source;
     final LyricTrack track;
     if (src == null) {
-      track = LyricTrack(lang: lyrics.uniqueKey('${widget.song.language}-x-manual'), auto: false, lines: b.lines!, source: LyricSource.manual);
+      track = LyricTrack(lang: lyrics.uniqueKey('${lyricsLanguage(b.lines!.map((l) => l.text), widget.song.language)}-x-manual'), auto: false, lines: b.lines!, source: LyricSource.manual);
     } else {
       final key = Lyrics.editKeyFor(src);
       final inPlace = key == src.lang;

@@ -212,4 +212,21 @@ how are you
     expect(l.tracks.map((t) => t.lang), ['zh-x-paste']);
     expect(l.primaryTrack!.lang, 'zh-x-paste');
   });
+
+  test('Japanese lyrics are recognised by their text, whatever the song language', () {
+    const ja = ['君の名前を呼んだ', '夜空に星が光る', '愛してる', '永遠'];
+    const zh = ['我要聽著親戚們的閒話', '等你為我送來一束鮮花', '從前說'];
+    expect(looksJapanese(ja), isTrue); // kana in 3 of 4 lines
+    expect(looksJapanese(zh), isFalse);
+    expect(looksJapanese(['我の心', '在遠方', '等待', '你']), isFalse); // a stylistic の
+    expect(looksJapanese(['', '  ']), isFalse);
+    expect(lyricsLanguage(ja, 'zh'), 'ja');
+    expect(lyricsLanguage(zh, 'zh-TW'), 'zh-TW');
+    expect(lyricsLanguage(ja, 'ja'), 'ja');
+    final whisper = LyricTrack(lang: 'zh-x-whisper', auto: false, lines: [for (final t in ja) LyricLine(0, 1, t)]);
+    expect(whisper.isJapanese, isFalse);
+    expect(whisper.wantsRomaji, isTrue);
+    final chinese = LyricTrack(lang: 'zh-x-whisper', auto: false, lines: [for (final t in zh) LyricLine(0, 1, t)]);
+    expect(chinese.wantsRomaji, isFalse);
+  });
 }

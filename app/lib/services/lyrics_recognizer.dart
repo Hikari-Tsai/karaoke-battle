@@ -137,7 +137,7 @@ class LyricsRecognizer {
     final lines = linesFromSegments(segments, notes.onset, notes.offset);
     if (lines.isEmpty) throw const NothingRecognized();
     _throwIfCancelled(cancel);
-    return _save(song, LyricSource.whisper, '${song.language}-x-whisper', lines);
+    return _save(song, LyricSource.whisper, 'x-whisper', lines);
   }
 
   /// Times the pasted [text] (one line per row) and makes it the main
@@ -155,12 +155,15 @@ class LyricsRecognizer {
       lines = alignToNotes(rows, notes.onset, notes.offset);
     }
     _throwIfCancelled(cancel);
-    return _save(song, LyricSource.aligned, '${song.language}-x-paste', lines);
+    return _save(song, LyricSource.aligned, 'x-paste', lines);
   }
 
-  Future<LyricTrack> _save(Song song, LyricSource source, String key, List<LyricLine> lines) async {
+  /// Keyed by the lyrics' own language ([lyricsLanguage]), so Japanese text
+  /// on a song set to another language still gets romaji.
+  Future<LyricTrack> _save(Song song, LyricSource source, String suffix, List<LyricLine> lines) async {
     final lyrics = await pipeline.loadLyrics(song);
-    final track = LyricTrack(lang: lyrics.uniqueKey(key), auto: false, lines: lines, source: source);
+    final lang = lyricsLanguage(lines.map((l) => l.text), song.language);
+    final track = LyricTrack(lang: lyrics.uniqueKey('$lang-$suffix'), auto: false, lines: lines, source: source);
     lyrics.putPrimary(track);
     await pipeline.saveLyrics(song, lyrics);
     return track;
