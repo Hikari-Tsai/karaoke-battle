@@ -103,6 +103,16 @@ p { margin: 0; text-wrap: pretty; }
 .btn:hover { background: #ffe573; color: var(--ink); transform: translateY(-2px); }
 .btn small { font-weight: 600; font-size: 13px; opacity: 0.72; }
 .btn-small { flex-direction: row; min-width: 0; font-size: 15px; padding: 8px 18px; border-radius: 10px; }
+/* 下載按鈕：平台標誌加上各自的品牌色（Apple 白底黑標誌、Windows 藍） */
+.btn-os { flex-direction: row; gap: 14px; padding: 13px 28px 13px 24px; color: #fff; }
+.btn-os .btn-text { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.btn-os small { opacity: 0.88; }
+.os-logo { flex: none; width: 30px; height: 30px; fill: currentColor; }
+.os-apple { margin-top: -4px; }
+.btn-mac { background: #fff; color: #000; }
+.btn-mac:hover { background: #e8e8ed; color: #000; }
+.btn-win { background: #0078d4; }
+.btn-win:hover { background: #006cbe; color: #fff; }
 
 /* 主視覺：洋紅色塊，影片跨在色塊與深色之間 */
 .hero { background: linear-gradient(to bottom, var(--magenta) 0, var(--magenta) calc(100% - 220px), var(--bg) calc(100% - 220px)); padding-top: 72px; }
