@@ -148,9 +148,10 @@
 
           <article class="feature">
             <div class="feature-text">
-              <h3 data-i18n="f5.t">檢視錯誤一目瞭然</h3>
-              <p data-i18n="f5.p1">回放時同時看時間和音準，除了 FAST／LATE 再加上 HIGH／LOW，一眼看出是快慢還是高低出了問題。</p>
-              <p data-i18n="f5.p2">重播檔可以匯出成 zip 傳給朋友，對方匯入後就能看你的演唱。</p>
+              <h3 data-i18n="f5.t">回放檢查一目了然</h3>
+              <p data-i18n="f5.p1">回放時使用精確的 SwiftF0 模型，同時看時間和音準，除了 FAST／LATE 再加上 HIGH／LOW，一眼看出是快慢還是高低出了問題。</p>
+              <p data-i18n="f5.p2">另外，重播檔可以匯出成 zip 傳給朋友，對方匯入後就能看你的演唱。</p>
+              <p class="feature-note" data-i18n="f5.p3">註：zip 檔案僅含有 JSON 演唱數據以及清唱檔案，不包含原始歌曲與歌詞。</p>
             </div>
             <video class="loop" muted loop playsinline preload="none" poster="assets/replay.jpg" aria-label="回放時跳出判定字卡，並調整殘響與音量" data-i18n-aria="a.replay"><source src="assets/replay.mp4" type="video/mp4" /></video>
           </article>
@@ -160,6 +161,7 @@
               <h3 data-i18n="fai.t">AI 演唱建議</h3>
               <p data-i18n="fai.p1">唱完按「AI演唱建議」，App 會把每句歌詞的音準與節奏、長音，還有和之前幾次的比較，整理成一份分析檔。</p>
               <p data-i18n="fai.p2">下載或複製後貼到 Claude、ChatGPT 等 AI 助理，就能得到引用歌詞與時間點的建議和練習方法。也可以填入自己的 Claude 或 OpenAI API Key，按「問 AI」直接在 App 裡看建議。</p>
+              <p class="feature-note" data-i18n="fai.p3">註：使用 AI 會消耗您少許的 LLM Token。</p>
             </div>
             <video class="loop" muted loop playsinline preload="none" poster="assets/ai-advice.jpg" aria-label="下載分析檔後貼給 AI 助理，得到引用歌詞與時間點的演唱建議（示意動畫）" data-i18n-aria="a.ai"><source src="assets/ai-advice.mp4" type="video/mp4" /></video>
           </article>
@@ -167,7 +169,7 @@
           <article class="feature">
             <div class="feature-text">
               <h3 data-i18n="f6.t">多樣化的歌詞來源</h3>
-              <p data-i18n="f6.p1">YouTube 影片有字幕就直接當歌詞。沒有的話，可以匯入 SRT／VTT／LRC、整首貼上讓 App 自動對時，或用 Whisper 語音辨識產生。</p>
+              <p data-i18n="f6.p1">來源影片若有字幕，就會直接當歌詞使用。沒有的話，也可以自行匯入字幕檔案，也可以自行貼上歌詞由 AI 產生時間軸，抑或是使用 Whisper 直接辨識歌詞（Beta 版）。</p>
               <p data-i18n="f6.p2">還能逐行修改文字與時間，再匯出成 SRT 或 LRC。</p>
             </div>
             <video class="loop" muted loop playsinline preload="none" poster="assets/lyrics.jpg" aria-label="貼上歌詞後自動對時，歌詞逐字上色" data-i18n-aria="a.lyrics"><source src="assets/lyrics.mp4" type="video/mp4" /></video>
@@ -195,12 +197,12 @@
           <h2 data-i18n="sc.h2">分數怎麼算</h2>
           <p class="section-lead" data-i18n="sc.lead">唱完後，App 把你錄下的音高曲線和原唱對齊比較，給出六項子分數，加權後換算成 0 到 100 分。</p>
           <ul class="scores">
-            <li><b data-i18n="sc.pitch">音準</b><em data-i18n="sc.w40">佔 40%</em><i style="--w: 100%"></i><span data-i18n="sc.pitch.d">唱的音有沒有落在旋律上</span></li>
-            <li><b data-i18n="sc.rhythm">節奏</b><em data-i18n="sc.w20">佔 20%</em><i style="--w: 50%"></i><span data-i18n="sc.rhythm.d">逐音判定 PERFECT 到 MISS，寬嚴依曲速調整</span></li>
-            <li><b data-i18n="sc.stab">穩定度</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.stab.d">長音的音高晃不晃</span></li>
-            <li><b data-i18n="sc.vib">顫音</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.vib.d">長音上的顫音；原唱大量使用顫音的歌才計分</span></li>
-            <li><b data-i18n="sc.expr">表現力</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.expr.d">大小聲的起伏有沒有跟上原唱</span></li>
-            <li><b data-i18n="sc.long">長音</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.long.d">長音有沒有唱滿、唱準</span></li>
+            <li><b data-i18n="sc.pitch">音準</b><em data-i18n="sc.w40">佔 40%</em><i style="--w: 100%"></i><span data-i18n="sc.pitch.d">唱的音有沒有落在旋律上</span><details class="sc-more"><summary data-i18n="sc.more.s">ⓘ 怎麼計分與小訣竅</summary><h4 data-i18n="sc.rule">怎麼計分</h4><p data-i18n="sc.pitch.rule">跟著原唱的旋律唱，每個音只要在半個半音以內就算準。分數最重，先顧好這一項。</p><h4 data-i18n="sc.tips">小訣竅</h4><p data-i18n="sc.pitch.tip">先用「預覽」聽幾次，看鋼琴卷軸記住旋律；音符條變綠就是唱準了。唱不上去就調「升降 Key」，不會扣分。戴耳機，伴奏才不會漏進麥克風干擾偵測。</p></details></li>
+            <li><b data-i18n="sc.rhythm">節奏</b><em data-i18n="sc.w20">佔 20%</em><i style="--w: 50%"></i><span data-i18n="sc.rhythm.d">逐音判定 PERFECT 到 MISS，寬嚴依曲速調整</span><details class="sc-more"><summary data-i18n="sc.more.s">ⓘ 怎麼計分與小訣竅</summary><h4 data-i18n="sc.rule">怎麼計分</h4><p data-i18n="sc.rhythm.rule">每個音的開始和結束都和原唱比對，像音遊一樣判定：差 50 毫秒內 PERFECT、100 毫秒內 GREAT、150 毫秒內 GOOD，再多就是 MISS。快歌判得比較嚴、慢歌比較寬。量過延遲的話，結果頁還會告訴你有沒有搶拍或拖拍的習慣。回放時的字卡同時看時間和音準，取較差的那個，並標出 FAST／LATE（早／晚）和 HIGH／LOW（高／低）；演唱時也會即時跳出字卡（右上的星星按鈕可關閉）。字卡只是顯示，不改變分數。</p><h4 data-i18n="sc.tips">小訣竅</h4><p data-i18n="sc.rhythm.tip">播放線碰到音符條開頭再出聲，句尾唱到音符條結束才收。結果下方會顯示你整體偏快還是偏慢，下次往反方向修正。快歌的判定比較嚴。</p></details></li>
+            <li><b data-i18n="sc.stab">穩定度</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.stab.d">長音的音高晃不晃</span><details class="sc-more"><summary data-i18n="sc.more.s">ⓘ 怎麼計分與小訣竅</summary><h4 data-i18n="sc.rule">怎麼計分</h4><p data-i18n="sc.stab.rule">長音（0.4 秒以上）要唱得穩，音高不要飄來飄去。</p><h4 data-i18n="sc.tips">小訣竅</h4><p data-i18n="sc.stab.tip">長音用腹部撐住氣，音量保持一致，尾巴不要往下掉音。先求穩，再考慮加顫音。</p></details></li>
+            <li><b data-i18n="sc.vib">顫音</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.vib.d">長音上的顫音；原唱大量使用顫音的歌才計分</span><details class="sc-more"><summary data-i18n="sc.more.s">ⓘ 怎麼計分與小訣竅</summary><h4 data-i18n="sc.rule">怎麼計分</h4><p data-i18n="sc.vib.rule">原唱有顫音的歌，長音加上自然的顫音（每秒約 4 到 8 次）會加分；原唱沒用顫音的歌不計這項。</p><h4 data-i18n="sc.tips">小訣竅</h4><p data-i18n="sc.vib.tip">先把長音唱穩，在後半段加上輕微、規律的顫音。太大、太快的抖動不算；原唱沒顫音的歌不計這項。</p></details></li>
+            <li><b data-i18n="sc.expr">表現力</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.expr.d">大小聲的起伏有沒有跟上原唱</span><details class="sc-more"><summary data-i18n="sc.more.s">ⓘ 怎麼計分與小訣竅</summary><h4 data-i18n="sc.rule">怎麼計分</h4><p data-i18n="sc.expr.rule">強弱起伏跟著原唱走：該大聲的地方大聲，該輕的地方輕。</p><h4 data-i18n="sc.tips">小訣竅</h4><p data-i18n="sc.expr.tip">主歌收著唱、副歌放開唱，跟著原唱的強弱走。麥克風和嘴巴保持固定距離，音量變化才會被正確量到。</p></details></li>
+            <li><b data-i18n="sc.long">長音</b><em data-i18n="sc.w10">佔 10%</em><i style="--w: 25%"></i><span data-i18n="sc.long.d">長音有沒有唱滿、唱準</span><details class="sc-more"><summary data-i18n="sc.more.s">ⓘ 怎麼計分與小訣竅</summary><h4 data-i18n="sc.rule">怎麼計分</h4><p data-i18n="sc.long.rule">長音要唱滿原唱的長度，不要提早斷掉。</p><h4 data-i18n="sc.tips">小訣竅</h4><p data-i18n="sc.long.tip">在句子之間提早換氣，長音唱到音符條結束再收。氣不夠時，寧可把前一句的尾巴收短一點去換氣。</p></details></li>
           </ul>
           <div class="points">
             <div><h3 data-i18n="pt1.t">高八度、低八度都算對</h3><p data-i18n="pt1.p">八度音視為同一個音，唱高八度或低八度都算正確。</p></div>
@@ -224,6 +226,7 @@
             <li data-i18n="te7"><b>嚴謹的評分算法</b>搜集大量歌勢與直播主的實測數據與意見進行設計。</li>
             <li data-i18n="te8"><b>模型自動下載</b>首次執行時從 Hugging Face 下載，並以 SHA-256 驗證。</li>
             <li data-i18n="te9"><b>先進的轉譜模型與演算法</b>使用內建抗雜訊的GAME模型結合分離模型與抗雜訊演算法，盡可能降低誤判率。</li>
+            <li data-i18n="te10"><b>AI演唱建議（需連網）</b>透過關鍵資料檔案與 LLM 互動取得歌曲演唱建議，可使用 API Key，或自行把數據貼到慣用的聊天 AI 內進行分析（這將會消耗您少許 Token）。</li>
           </ul>
           <p class="more"><a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/TECH.md" data-i18n="te.more">完整技術說明</a></p>
         </div>

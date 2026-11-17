@@ -143,6 +143,7 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 /* 功能 */
 .feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: center; margin-top: 88px; }
 .feature.flip .feature-text { order: 2; }
+.feature-text .feature-note { font-size: 14px; color: var(--muted); }
 .feature.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
 .feature h3 { font-size: clamp(24px, 2.6vw, 32px); margin-bottom: 14px; }
 .feature p + p { margin-top: 12px; }
@@ -166,6 +167,12 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 .scores.anim.in li:nth-child(5) i::after { transition-delay: 0.32s; }
 .scores.anim.in li:nth-child(6) i::after { transition-delay: 0.4s; }
 .scores span { grid-column: 1 / -1; color: var(--muted); font-size: 15px; }
+.sc-more { grid-column: 1 / -1; margin-top: 4px; font-size: 15px; }
+.sc-more summary { cursor: pointer; color: var(--lav); width: fit-content; list-style: none; }
+.sc-more summary::-webkit-details-marker { display: none; }
+.sc-more summary:hover { text-decoration: underline; }
+.sc-more h4 { margin: 12px 0 2px; font-size: 15px; color: #fff; }
+.sc-more p { color: #d6d2e3; line-height: 1.7; }
 .points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 56px; }
 .points div { border-top: 3px solid var(--magenta); padding-top: 18px; }
 .points h3 { font-size: 21px; margin-bottom: 8px; }
