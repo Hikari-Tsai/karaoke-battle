@@ -1,0 +1,881 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KB Sans";
+      font-weight: 400;
+      src: local("PingFangTC-Regular"), local("PingFang TC");
+    }
+    @font-face {
+      font-family: "KB Sans";
+      font-weight: 600;
+      src: local("PingFangTC-Semibold"), local("PingFang TC Semibold");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #0c0c10;
+      font-family: "KB Sans", "Noto Sans JP", sans-serif;
+      color: #f3f1f8;
+      --surface: #1d1c20;
+      --surface2: #2a292e;
+      --line: rgba(255, 255, 255, 0.1);
+      --muted: #aaa6ba;
+      --lav: #c8befa;
+      --note: #8f84d8;
+      --gold: #f9d84a;
+      --ink: #1a1030;
+    }
+    .layer {
+      position: absolute;
+      inset: 0;
+    }
+    .win {
+      position: absolute;
+      left: 80px;
+      top: 48px;
+      width: 1760px;
+      height: 930px;
+      background: #131317;
+      border: 2px solid var(--line);
+      border-radius: 28px;
+      overflow: hidden;
+    }
+    .bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 84px;
+      border-bottom: 2px solid var(--line);
+    }
+    .bar-title {
+      position: absolute;
+      left: 36px;
+      top: 18px;
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 48px;
+    }
+    .bar-pill {
+      position: absolute;
+      left: 1290px;
+      top: 16px;
+      width: 180px;
+      height: 52px;
+      border-radius: 26px;
+      background: var(--surface2);
+      font-size: 27px;
+      line-height: 52px;
+      text-align: center;
+      color: #e4e0f0;
+    }
+    .icon-btn {
+      position: absolute;
+      top: 14px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      background-color: rgba(200, 190, 250, 0);
+    }
+    .icon-btn svg {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      width: 32px;
+      height: 32px;
+    }
+    .card {
+      position: absolute;
+      background: var(--surface);
+      border-radius: 20px;
+    }
+    /* ---- piano roll: one semitone is 26 px ---- */
+    .keys {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 84px;
+      height: 560px;
+      background: repeating-linear-gradient(to bottom, #e9e6f2 0px, #e9e6f2 24px, #8d899c 24px, #8d899c 26px);
+    }
+    .keys-black {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 560px;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 26px,
+        #17161c 26px,
+        #17161c 52px,
+        rgba(0, 0, 0, 0) 52px,
+        rgba(0, 0, 0, 0) 78px,
+        #17161c 78px,
+        #17161c 104px,
+        rgba(0, 0, 0, 0) 104px,
+        rgba(0, 0, 0, 0) 156px,
+        #17161c 156px,
+        #17161c 182px,
+        rgba(0, 0, 0, 0) 182px,
+        rgba(0, 0, 0, 0) 208px,
+        #17161c 208px,
+        #17161c 234px,
+        rgba(0, 0, 0, 0) 234px,
+        rgba(0, 0, 0, 0) 260px,
+        #17161c 260px,
+        #17161c 286px,
+        rgba(0, 0, 0, 0) 286px,
+        rgba(0, 0, 0, 0) 312px
+      );
+    }
+    .gridline {
+      position: absolute;
+      left: 84px;
+      width: 1620px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    #l-notes {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2920px;
+      height: 400px;
+    }
+    .note {
+      position: absolute;
+      height: 22px;
+      border-radius: 7px;
+      background-color: #8f84d8;
+    }
+    .playhead {
+      position: absolute;
+      left: 500px;
+      top: 0;
+      width: 4px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+    #l-nolyric {
+      position: absolute;
+      left: 110px;
+      top: 440px;
+      font-size: 36px;
+      line-height: 52px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    #l-lyric {
+      position: absolute;
+      left: 110px;
+      top: 416px;
+      width: 1500px;
+      height: 134px;
+      opacity: 0;
+    }
+    .lyric {
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 62px;
+      font-weight: 600;
+      line-height: 80px;
+      white-space: nowrap;
+    }
+    .lyric span {
+      color: #f3f1f8;
+    }
+    .lyric-next {
+      position: absolute;
+      left: 0;
+      top: 84px;
+      font-size: 34px;
+      line-height: 48px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    #l-toast {
+      position: absolute;
+      left: 462px;
+      top: 22px;
+      width: 780px;
+      height: 64px;
+      border-radius: 16px;
+      background: #e9e6f2;
+      color: var(--ink);
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 64px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+    }
+    /* ---- transport ---- */
+    .t-time {
+      position: absolute;
+      left: 32px;
+      top: 24px;
+      font-size: 27px;
+      line-height: 40px;
+      color: var(--muted);
+    }
+    .t-track {
+      position: absolute;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .t-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--lav);
+    }
+    .t-knob {
+      position: absolute;
+      top: -10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 14px;
+      background: var(--lav);
+    }
+    .t-play {
+      position: absolute;
+      left: 32px;
+      top: 104px;
+      width: 68px;
+      height: 68px;
+      border-radius: 34px;
+      background: #3a3846;
+    }
+    .t-play svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 68px;
+      height: 68px;
+    }
+    .t-edit {
+      position: absolute;
+      left: 130px;
+      top: 108px;
+      width: 240px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      color: #e4e0f0;
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 56px;
+      text-align: center;
+    }
+    .t-seg {
+      position: absolute;
+      left: 400px;
+      top: 108px;
+      width: 240px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      overflow: hidden;
+    }
+    .t-seg div {
+      position: absolute;
+      top: 0;
+      width: 120px;
+      height: 56px;
+      font-size: 27px;
+      line-height: 56px;
+      text-align: center;
+      color: #e4e0f0;
+    }
+    .t-label {
+      position: absolute;
+      left: 690px;
+      top: 116px;
+      font-size: 29px;
+      font-weight: 600;
+      line-height: 44px;
+    }
+    .t-round {
+      position: absolute;
+      top: 108px;
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      font-size: 36px;
+      line-height: 54px;
+      text-align: center;
+      color: #f3f1f8;
+    }
+    .t-val {
+      position: absolute;
+      left: 902px;
+      top: 108px;
+      width: 104px;
+      height: 60px;
+      border-radius: 14px;
+      background: #2a292e;
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: center;
+      color: var(--lav);
+    }
+    .t-rec {
+      position: absolute;
+      left: 1410px;
+      top: 104px;
+      width: 262px;
+      height: 68px;
+      border-radius: 34px;
+      background: var(--lav);
+      color: var(--ink);
+      font-size: 29px;
+      font-weight: 600;
+      line-height: 68px;
+      text-align: center;
+    }
+    /* ---- dialogs ---- */
+    #l-scrim {
+      position: absolute;
+      left: 82px;
+      top: 50px;
+      width: 1760px;
+      height: 930px;
+      border-radius: 26px;
+      background: #000;
+      opacity: 0;
+    }
+    .dialog {
+      position: absolute;
+      border-radius: 28px;
+      background: #2b2a31;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+    }
+    #l-none {
+      left: 530px;
+      top: 190px;
+      width: 860px;
+      height: 610px;
+    }
+    #l-paste {
+      left: 500px;
+      top: 150px;
+      width: 920px;
+      height: 690px;
+    }
+    .d-title {
+      position: absolute;
+      left: 44px;
+      top: 34px;
+      font-size: 36px;
+      font-weight: 600;
+      line-height: 52px;
+    }
+    .d-body {
+      position: absolute;
+      left: 44px;
+      top: 98px;
+      width: 832px;
+      font-size: 28px;
+      line-height: 44px;
+      color: #d2cee0;
+      white-space: nowrap;
+    }
+    .opt {
+      position: absolute;
+      left: 44px;
+      width: 772px;
+      height: 72px;
+      border-radius: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      background-color: rgba(200, 190, 250, 0);
+    }
+    .opt svg {
+      position: absolute;
+      left: 22px;
+      top: 16px;
+      width: 36px;
+      height: 36px;
+    }
+    .opt-label {
+      position: absolute;
+      left: 78px;
+      top: 12px;
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 44px;
+      white-space: nowrap;
+    }
+    .opt-sub {
+      position: absolute;
+      left: 432px;
+      top: 14px;
+      width: 312px;
+      font-size: 27px;
+      line-height: 40px;
+      text-align: right;
+      color: #c9c5d6;
+      white-space: nowrap;
+    }
+    .d-skip {
+      position: absolute;
+      left: 616px;
+      top: 524px;
+      width: 200px;
+      height: 60px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: right;
+      color: var(--lav);
+    }
+    #l-area {
+      position: absolute;
+      left: 44px;
+      top: 156px;
+      width: 832px;
+      height: 236px;
+      border-radius: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      background: #222127;
+    }
+    .area-line {
+      position: absolute;
+      left: 26px;
+      font-size: 30px;
+      line-height: 46px;
+      white-space: nowrap;
+    }
+    #l-ph {
+      position: absolute;
+      left: 26px;
+      top: 18px;
+      font-size: 30px;
+      line-height: 46px;
+      color: #a6a2b6;
+      white-space: nowrap;
+    }
+    #l-caret {
+      position: absolute;
+      left: 20px;
+      top: 22px;
+      width: 3px;
+      height: 38px;
+      background: var(--lav);
+      opacity: 0;
+    }
+    #l-keycap {
+      position: absolute;
+      left: 690px;
+      top: 20px;
+      width: 116px;
+      height: 56px;
+      border-radius: 14px;
+      background: #46435a;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 52px;
+      text-align: center;
+      color: #f3f1f8;
+      opacity: 0;
+    }
+    .m-label {
+      position: absolute;
+      left: 44px;
+      top: 420px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 60px;
+    }
+    .m-seg {
+      position: absolute;
+      left: 204px;
+      top: 420px;
+      width: 540px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      overflow: hidden;
+    }
+    .m-seg div {
+      position: absolute;
+      top: 0;
+      width: 270px;
+      height: 56px;
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 56px;
+      text-align: center;
+      color: #e4e0f0;
+    }
+    .m-hint {
+      position: absolute;
+      left: 44px;
+      top: 498px;
+      font-size: 27px;
+      line-height: 40px;
+      color: #c9c5d6;
+      white-space: nowrap;
+    }
+    .m-track {
+      position: absolute;
+      left: 44px;
+      top: 562px;
+      width: 832px;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      opacity: 0;
+    }
+    #l-prog {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 832px;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--lav);
+    }
+    .d-cancel {
+      position: absolute;
+      left: 560px;
+      top: 598px;
+      width: 120px;
+      height: 60px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: center;
+      color: var(--lav);
+    }
+    #l-start {
+      position: absolute;
+      left: 700px;
+      top: 598px;
+      width: 176px;
+      height: 60px;
+      border-radius: 30px;
+      background: var(--lav);
+    }
+    #l-start div {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 176px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: center;
+      color: var(--ink);
+    }
+    /* ---- step bar ---- */
+    .step {
+      position: absolute;
+      top: 1014px;
+      height: 72px;
+      border-radius: 36px;
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 68px;
+      text-align: center;
+      color: #b9b5c8;
+      background-color: #0c0c10;
+    }
+    .step-arrow {
+      position: absolute;
+      top: 1030px;
+      font-size: 34px;
+      line-height: 40px;
+      color: #8a8699;
+    }
+    #l-cursor-in {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 44px;
+      height: 44px;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="lyrics" data-width="1920" data-height="1164">
+    <!-- 1. The preview screen of the app (drawn, in the app's colours) -->
+    <div id="l-app" class="clip layer" data-start="0" data-duration="16" data-track-index="1">
+      <div class="win">
+        <div class="bar">
+          <div class="bar-title">‹　示範曲 — 預覽</div>
+          <div class="bar-pill">♩ 85 · 4/4</div>
+          <div class="icon-btn" style="left: 1500px">
+            <svg viewBox="0 0 40 40"><rect x="14" y="4" width="12" height="20" rx="6" fill="#e4e0f0" /><path d="M8 18 A12 12 0 0 0 32 18 M20 30 V36" fill="none" stroke="#e4e0f0" stroke-width="3.5" stroke-linecap="round" /></svg>
+          </div>
+          <div class="icon-btn" style="left: 1572px">
+            <svg viewBox="0 0 40 40"><path d="M6 24 V20 A14 14 0 0 1 34 20 V24" fill="none" stroke="#e4e0f0" stroke-width="3.5" stroke-linecap="round" /><rect x="3" y="22" width="9" height="13" rx="3.5" fill="#e4e0f0" /><rect x="28" y="22" width="9" height="13" rx="3.5" fill="#e4e0f0" /></svg>
+          </div>
+          <!-- the lyrics button -->
+          <div class="icon-btn" id="l-btn" style="left: 1644px">
+            <svg viewBox="0 0 40 40"><rect x="4" y="7" width="32" height="26" rx="5" fill="none" stroke="#e4e0f0" stroke-width="3.5" /><path d="M10 19 H19 M24 19 H30 M10 26 H15 M20 26 H30" fill="none" stroke="#e4e0f0" stroke-width="3.5" stroke-linecap="round" /></svg>
+          </div>
+        </div>
+
+        <div class="card" style="left: 28px; top: 108px; width: 1704px; height: 560px; overflow: hidden">
+          <div class="gridline" style="top: 128px"></div>
+          <div class="gridline" style="top: 232px"></div>
+          <div class="gridline" style="top: 336px"></div>
+          <!-- notes: top = row * 26 + 2. The first eight are the eight characters of the first line. -->
+          <div id="l-notes" data-layout-ignore>
+            <div class="note" id="l-n1" style="left: 560px; top: 288px; width: 100px"></div>
+            <div class="note" id="l-n2" style="left: 680px; top: 288px; width: 100px"></div>
+            <div class="note" id="l-n3" style="left: 800px; top: 236px; width: 140px"></div>
+            <div class="note" id="l-n4" style="left: 960px; top: 262px; width: 100px"></div>
+            <div class="note" id="l-n5" style="left: 1080px; top: 314px; width: 100px"></div>
+            <div class="note" id="l-n6" style="left: 1200px; top: 262px; width: 100px"></div>
+            <div class="note" id="l-n7" style="left: 1320px; top: 236px; width: 100px"></div>
+            <div class="note" id="l-n8" style="left: 1440px; top: 184px; width: 200px"></div>
+            <div class="note" style="left: 1700px; top: 236px; width: 100px"></div>
+            <div class="note" style="left: 1820px; top: 236px; width: 100px"></div>
+            <div class="note" style="left: 1940px; top: 184px; width: 140px"></div>
+            <div class="note" style="left: 2100px; top: 210px; width: 100px"></div>
+            <div class="note" style="left: 2220px; top: 262px; width: 100px"></div>
+            <div class="note" style="left: 2340px; top: 236px; width: 160px"></div>
+            <div class="note" style="left: 2520px; top: 288px; width: 100px"></div>
+            <div class="note" style="left: 2640px; top: 314px; width: 100px"></div>
+            <div class="note" style="left: 2760px; top: 288px; width: 140px"></div>
+          </div>
+          <div class="playhead"></div>
+          <div class="keys"></div>
+          <div class="keys-black"></div>
+
+          <div id="l-nolyric">這首歌還沒有歌詞</div>
+          <div id="l-lyric" data-layout-allow-overlap>
+            <div class="lyric"><span id="l-c1">把</span><span id="l-c2">今</span><span id="l-c3">天</span><span id="l-c4">唱</span><span id="l-c5">給</span><span id="l-c6">明</span><span id="l-c7">天</span><span id="l-c8">聽</span></div>
+            <div class="lyric-next">明天的我也會記得這首歌</div>
+          </div>
+          <div id="l-toast" data-layout-ignore>✓　已為 4 行歌詞對上時間，並設為主要歌詞</div>
+        </div>
+
+        <div class="card" style="left: 28px; top: 692px; width: 1704px; height: 210px">
+          <div class="t-time" id="l-t0">0:00 / 3:42</div>
+          <div class="t-time" id="l-t1" data-layout-allow-overlap>0:02 / 3:42</div>
+          <div class="t-time" id="l-t2" data-layout-allow-overlap>0:04 / 3:42</div>
+          <div class="t-track" style="left: 200px; top: 40px; width: 1472px"><div class="t-fill" id="l-fill" style="width: 1472px"></div><div class="t-knob" id="l-knob" style="left: -14px"></div></div>
+          <div class="t-play">
+            <svg viewBox="0 0 68 68" id="l-play"><path d="M27 21 L48 34 L27 47 Z" fill="#f3f1f8" /></svg>
+            <svg viewBox="0 0 68 68" id="l-pause"><path d="M25 21 H31 V47 H25 Z M37 21 H43 V47 H37 Z" fill="#f3f1f8" /></svg>
+          </div>
+          <div class="t-edit">✎ 編輯音符</div>
+          <div class="t-seg"><div style="left: 0; background: #3a3846">伴奏</div><div style="left: 118px">導唱</div></div>
+          <div class="t-label">升降 Key</div>
+          <div class="t-round" style="left: 830px">−</div>
+          <div class="t-val">0</div>
+          <div class="t-round" style="left: 1018px">+</div>
+          <div class="t-track" style="left: 1130px; top: 134px; width: 220px"><div class="t-fill" style="width: 154px"></div><div class="t-knob" style="left: 140px"></div></div>
+          <div class="t-rec" data-layout-ignore>● 開始錄製</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. The two dialogs: where the lyrics come from, then pasting them -->
+    <div id="l-modal" class="clip layer" data-start="0" data-duration="16" data-track-index="2" data-layout-allow-overlap>
+      <div id="l-scrim" data-layout-ignore></div>
+
+      <div id="l-none" class="dialog" data-layout-allow-occlusion data-layout-allow-overlap>
+        <div class="d-title">這首歌沒有歌詞</div>
+        <div class="d-body">「示範曲」找不到可用的字幕。要怎麼處理？</div>
+        <div class="opt" id="l-o1" style="top: 168px">
+          <svg viewBox="0 0 36 36"><path d="M9 4 H21 L29 12 V32 H9 Z M21 4 V12 H29" fill="none" stroke="#c8befa" stroke-width="3" stroke-linejoin="round" /></svg>
+          <div class="opt-label">匯入字幕檔</div>
+          <div class="opt-sub">SRT、VTT、LRC</div>
+        </div>
+        <div class="opt" id="l-o2" style="top: 254px">
+          <svg viewBox="0 0 36 36"><rect x="7" y="8" width="22" height="24" rx="3" fill="none" stroke="#c8befa" stroke-width="3" /><rect x="13" y="4" width="10" height="8" rx="2" fill="#c8befa" /></svg>
+          <div class="opt-label">貼上歌詞(AI對齊)</div>
+          <div class="opt-sub">整首貼上，自動對時</div>
+        </div>
+        <div class="opt" id="l-o3" style="top: 340px">
+          <svg viewBox="0 0 36 36"><path d="M7 14 V22 M14 7 V29 M22 11 V25 M29 15 V21" fill="none" stroke="#c8befa" stroke-width="3.5" stroke-linecap="round" /></svg>
+          <div class="opt-label">用 AI 產生字幕</div>
+          <div class="opt-sub">Whisper 語音辨識</div>
+        </div>
+        <div class="opt" id="l-o4" style="top: 426px">
+          <svg viewBox="0 0 36 36"><path d="M5 31 L7 23 L24 6 L30 12 L13 29 Z" fill="none" stroke="#c8befa" stroke-width="3" stroke-linejoin="round" /></svg>
+          <div class="opt-label">自己輸入歌詞</div>
+          <div class="opt-sub">邊聽邊按 Enter 打點</div>
+        </div>
+        <div class="d-skip">不需要歌詞</div>
+      </div>
+
+      <div id="l-paste" class="dialog" data-layout-allow-occlusion data-layout-allow-overlap>
+        <div class="d-title">貼上歌詞(AI對齊)</div>
+        <div class="d-body">一行一句貼上整首歌詞，App 會自動幫每一句對上時間。</div>
+        <div id="l-area">
+          <div id="l-ph">第一句歌詞<br />第二句歌詞<br />…</div>
+          <div id="l-caret"></div>
+          <div class="area-line" id="l-p1" style="top: 18px" data-layout-allow-overlap>把今天唱給明天聽</div>
+          <div class="area-line" id="l-p2" style="top: 64px" data-layout-allow-overlap>明天的我也會記得這首歌</div>
+          <div class="area-line" id="l-p3" style="top: 110px" data-layout-allow-overlap>風把旋律帶到很遠的地方</div>
+          <div class="area-line" id="l-p4" style="top: 156px">我們在副歌裡再見一面</div>
+          <div id="l-keycap" data-layout-ignore>⌘ V</div>
+        </div>
+        <div class="m-label">對時方式</div>
+        <div class="m-seg"><div style="left: 0; background: #4a4670">♪ 音符（GAME）</div><div style="left: 268px">AI 聽歌對時</div></div>
+        <div class="m-hint">用備歌時轉出的音符對時，幾秒內完成、不用下載。</div>
+        <div class="m-track" id="l-track"><div id="l-prog"></div></div>
+        <div class="d-cancel">取消</div>
+        <div id="l-start">
+          <div id="l-sa">開始對時</div>
+          <div id="l-sb" data-layout-allow-overlap>對時中…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Where we are in the three steps -->
+    <div id="l-steps" class="clip layer" data-start="0" data-duration="16" data-track-index="3">
+      <div class="step" id="l-step1" style="left: 362px; width: 330px">1　選歌詞來源</div>
+      <div class="step-arrow" style="left: 718px">›</div>
+      <div class="step" id="l-step2" style="left: 766px; width: 360px">2　貼上整首歌詞</div>
+      <div class="step-arrow" style="left: 1152px">›</div>
+      <div class="step" id="l-step3" style="left: 1200px; width: 360px">3　自動對上時間</div>
+    </div>
+
+    <!-- 4. Pointer -->
+    <div id="l-cursor" class="clip layer" data-start="0" data-duration="16" data-track-index="4" data-layout-ignore>
+      <svg id="l-cursor-in" viewBox="0 0 44 44">
+        <path d="M6 3 L6 35 L15 27 L21 41 L27 38 L21 25 L33 25 Z" fill="#ffffff" stroke="#111" stroke-width="2.5" stroke-linejoin="round" />
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const ON = { backgroundColor: "#c8befa", color: "#1a1030", borderColor: "#c8befa" };
+    const OFF = { backgroundColor: "#0c0c10", color: "#b9b5c8", borderColor: "rgba(255,255,255,0.16)" };
+    const WHITE = "#f3f1f8";
+    const GOLD = "#f9d84a";
+    const click = (at) =>
+      tl.fromTo("#l-cursor-in", { scale: 1 }, { scale: 0.82, duration: 0.08, yoyo: true, repeat: 1, transformOrigin: "20% 10%" }, at);
+    const flash = (sel, at) => tl.fromTo(sel, { scale: 1 }, { scale: 0.95, duration: 0.09, yoyo: true, repeat: 1, transformOrigin: "50% 50%" }, at);
+
+    // ---- start state (also the loop point) ----
+    gsap.set("#l-step1", ON);
+    gsap.set("#l-step2, #l-step3", OFF);
+    gsap.set("#l-cursor-in", { x: 1300, y: 560 });
+    gsap.set("#l-p1, #l-p2, #l-p3, #l-p4, #l-sb, #l-t1, #l-t2, #l-pause", { opacity: 0 });
+    gsap.set("#l-fill", { scaleX: 0, transformOrigin: "0% 50%" });
+    gsap.set("#l-prog", { scaleX: 0, transformOrigin: "0% 50%" });
+
+    // ---- step 1: the lyrics button lists where lyrics can come from (0 - 4.5 s) ----
+    tl.fromTo("#l-cursor-in", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.3);
+    tl.to("#l-cursor-in", { x: 1754, y: 96, duration: 0.8, ease: "power3.inOut" }, 0.35);
+    click(1.2);
+    tl.fromTo("#l-btn", { backgroundColor: "rgba(200,190,250,0)" }, { backgroundColor: "rgba(200,190,250,0.35)", duration: 0.12, yoyo: true, repeat: 1 }, 1.2);
+    tl.to("#l-scrim", { opacity: 0.5, duration: 0.3 }, 1.3);
+    tl.fromTo("#l-none", { opacity: 0, scale: 0.92, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.4, ease: "expo.out" }, 1.33);
+    // the four sources, one after another
+    [1, 2, 3, 4].forEach((n, i) => {
+      const at = 2.0 + i * 0.32;
+      tl.fromTo(
+        `#l-o${n}`,
+        { borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(200,190,250,0)" },
+        { borderColor: "#c8befa", backgroundColor: "rgba(200,190,250,0.16)", duration: 0.16, yoyo: true, repeat: 1, repeatDelay: 0.1 },
+        at,
+      );
+      tl.fromTo(`#l-o${n}`, { x: 0 }, { x: 10, duration: 0.16, yoyo: true, repeat: 1, repeatDelay: 0.1, ease: "power2.out" }, at);
+    });
+    tl.to("#l-cursor-in", { x: 968, y: 486, duration: 0.75, ease: "power3.inOut" }, 3.3);
+    tl.to("#l-o2", { borderColor: "#c8befa", backgroundColor: "rgba(200,190,250,0.16)", duration: 0.2 }, 3.95);
+    click(4.25);
+    flash("#l-o2", 4.25);
+    tl.to("#l-none", { opacity: 0, scale: 0.96, duration: 0.22, ease: "power2.in" }, 4.4);
+
+    // ---- step 2: paste the whole lyrics and start (4.5 - 9.4 s) ----
+    tl.to("#l-step1", { ...OFF, duration: 0.3 }, 4.5);
+    tl.to("#l-step2", { ...ON, duration: 0.3 }, 4.5);
+    tl.fromTo("#l-paste", { opacity: 0, scale: 0.92, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.4, ease: "expo.out" }, 4.6);
+    tl.set("#l-o2", { borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(200,190,250,0)" }, 4.7);
+    tl.to("#l-cursor-in", { x: 1180, y: 470, duration: 0.6, ease: "power3.inOut" }, 5.0);
+    click(5.7);
+    tl.to("#l-area", { borderColor: "#c8befa", duration: 0.15 }, 5.72);
+    tl.to("#l-caret", { opacity: 1, duration: 0.1 }, 5.75);
+    // paste
+    tl.fromTo("#l-keycap", { opacity: 0, scale: 0.7, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2.2)" }, 6.25);
+    tl.to("#l-keycap", { scale: 0.9, duration: 0.07, yoyo: true, repeat: 1 }, 6.55);
+    tl.to("#l-ph", { opacity: 0, duration: 0.08 }, 6.6);
+    tl.to("#l-caret", { opacity: 0, duration: 0.08 }, 6.6);
+    [1, 2, 3, 4].forEach((n, i) => {
+      tl.fromTo(`#l-p${n}`, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.28, ease: "power3.out" }, 6.64 + i * 0.07);
+    });
+    tl.to("#l-keycap", { opacity: 0, duration: 0.3 }, 7.3);
+    tl.to("#l-cursor-in", { x: 1344, y: 778, duration: 0.75, ease: "power3.inOut" }, 7.4);
+    click(8.25);
+    flash("#l-start", 8.25);
+    tl.set("#l-sa", { opacity: 0 }, 8.34);
+    tl.set("#l-sb", { opacity: 1 }, 8.34);
+    tl.to("#l-track", { opacity: 1, duration: 0.15 }, 8.34);
+    tl.to("#l-prog", { scaleX: 1, duration: 0.85, ease: "power1.inOut" }, 8.38);
+    tl.to("#l-paste", { opacity: 0, scale: 0.96, duration: 0.25, ease: "power2.in" }, 9.3);
+    tl.to("#l-scrim", { opacity: 0, duration: 0.3 }, 9.3);
+    // the paste dialog is hidden now: put it back for the next loop
+    tl.set("#l-p1, #l-p2, #l-p3, #l-p4, #l-sb, #l-track", { opacity: 0 }, 9.65);
+    tl.set("#l-ph, #l-sa", { opacity: 1 }, 9.65);
+    tl.set("#l-prog", { scaleX: 0 }, 9.65);
+    tl.set("#l-area", { borderColor: "rgba(255,255,255,0.22)" }, 9.65);
+
+    // ---- step 3: the lyrics are timed; play to see them colour in (9.4 - 15.3 s) ----
+    tl.to("#l-step2", { ...OFF, duration: 0.3 }, 9.4);
+    tl.to("#l-step3", { ...ON, duration: 0.3 }, 9.4);
+    tl.to("#l-nolyric", { opacity: 0, duration: 0.2 }, 9.45);
+    tl.fromTo("#l-lyric", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 9.6);
+    tl.fromTo("#l-toast", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" }, 9.7);
+    tl.to("#l-cursor-in", { x: 182, y: 888, duration: 0.8, ease: "power3.inOut" }, 9.4);
+    click(10.25);
+    flash(".t-play", 10.25);
+    tl.set("#l-play", { opacity: 0 }, 10.3);
+    tl.set("#l-pause", { opacity: 1 }, 10.3);
+    tl.to("#l-cursor-in", { opacity: 0, duration: 0.25 }, 10.9);
+    // the roll scrolls 250 px a second past the playhead at x = 500
+    const T0 = 10.35;
+    const SPEED = 250;
+    tl.to("#l-notes", { x: -1125, duration: 4.5, ease: "none" }, T0);
+    tl.to("#l-fill", { scaleX: 0.02, duration: 4.5, ease: "none" }, T0);
+    tl.to("#l-knob", { x: 29, duration: 4.5, ease: "none" }, T0);
+    [560, 680, 800, 960, 1080, 1200, 1320, 1440].forEach((left, i) => {
+      const at = T0 + (left - 500) / SPEED;
+      tl.to(`#l-c${i + 1}`, { color: GOLD, duration: 0.12 }, at);
+      tl.to(`#l-n${i + 1}`, { backgroundColor: GOLD, duration: 0.1 }, at);
+      tl.to(`#l-n${i + 1}`, { backgroundColor: "#b9aef5", duration: 0.3 }, at + 0.34);
+    });
+    tl.set("#l-t0", { opacity: 0 }, T0 + 2);
+    tl.set("#l-t1", { opacity: 1 }, T0 + 2);
+    tl.set("#l-t1", { opacity: 0 }, T0 + 4);
+    tl.set("#l-t2", { opacity: 1 }, T0 + 4);
+    tl.to("#l-toast", { opacity: 0, y: -12, duration: 0.3, ease: "power2.in" }, 14.2);
+    tl.set("#l-pause", { opacity: 0 }, 14.87);
+    tl.set("#l-play", { opacity: 1 }, 14.87);
+
+    // ---- back to the start so the clip loops ----
+    tl.to("#l-lyric", { opacity: 0, duration: 0.25 }, 15.05);
+    tl.to("#l-notes", { x: 0, duration: 0.45, ease: "power2.inOut" }, 15.1);
+    tl.to("#l-fill", { scaleX: 0, duration: 0.45, ease: "power2.inOut" }, 15.1);
+    tl.to("#l-knob", { x: 0, duration: 0.45, ease: "power2.inOut" }, 15.1);
+    tl.to("#l-n1, #l-n2, #l-n3, #l-n4, #l-n5, #l-n6, #l-n7, #l-n8", { backgroundColor: "#8f84d8", duration: 0.3 }, 15.1);
+    tl.set("#l-t2", { opacity: 0 }, 15.3);
+    tl.set("#l-t0", { opacity: 1 }, 15.3);
+    tl.set("#l-c1, #l-c2, #l-c3, #l-c4, #l-c5, #l-c6, #l-c7, #l-c8", { color: WHITE }, 15.35);
+    tl.to("#l-step3", { ...OFF, duration: 0.25 }, 15.35);
+    tl.to("#l-step1", { ...ON, duration: 0.25 }, 15.4);
+    tl.to("#l-nolyric", { opacity: 1, duration: 0.3 }, 15.45);
+
+    window.__timelines["lyrics"] = tl;
+  </script>
+</template>

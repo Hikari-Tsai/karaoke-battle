@@ -110,7 +110,9 @@ YouTube 影片有字幕就直接當歌詞，用圓體（jf open 粉圓）顯示�
 * **用 AI 產生字幕**：OpenAI Whisper 語音辨識，會自動偵測演唱語言，也可以手動指定。模型第一次使用時才詢問下載（Windows 約 6.2 GB，在顯示卡上執行；Mac 用 int8 版約 1.8 GB，在 CPU 上執行）。
 * **自己輸入**。
 
-<p align="center"><img src="docs/media/lyrics.gif" width="720" alt="預覽畫面貼上歌詞、依音符自動對時，圓體歌詞逐字上色，再調整字幕時間"></p>
+<p align="center"><img src="docs/media/lyrics.gif" width="720" alt="沒有字幕時的四種歌詞來源：匯入字幕檔、貼上歌詞、用 AI 產生字幕、自己輸入；貼上整首歌詞後依音符自動對時，播放時歌詞逐字上色"></p>
+
+<p align="center"><sub>這一段是示意動畫，不是實際操作的錄影。</sub></p>
 
 預覽畫面的歌詞按鈕也有這些選項，還能用 ◀ ▶ 把字幕提早或延後（雙箭頭一次 0.5 秒）。歌曲卡片選單的「編輯字幕」可以逐行修改文字與時間：邊聽邊按 Enter 打點、整體位移、拆行合併，並匯出成 SRT 或 LRC。原本的 YouTube 字幕會保留，隨時可以切回。
 

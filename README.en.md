@@ -111,7 +111,9 @@ When the YouTube video has subtitles they become the lyrics, shown in a rounded 
 * **Generate lyrics with AI**: OpenAI Whisper speech recognition, which detects the sung language or takes the one you pick. The model is only downloaded when first used, after asking (about 6.2 GB on Windows, where it runs on the GPU; the 1.8 GB int8 build on Mac, where it runs on the CPU).
 * **Type them in**.
 
-<p align="center"><img src="docs/media/lyrics.gif" width="720" alt="Pasting lyrics in Preview, timed from the notes, with the rounded lyrics highlighted word by word, then nudging the timing"></p>
+<p align="center"><img src="docs/media/lyrics.gif" width="720" alt="The four lyric sources for a song without subtitles: import a subtitle file, paste the lyrics, generate them with AI, or type them in; pasted lyrics are timed from the notes and colour in word by word during playback"></p>
+
+<p align="center"><sub>This clip is an illustration, not a recording of the app.</sub></p>
 
 The lyrics button in Preview offers the same choices and moves the lyrics earlier or later with ◀ ▶ (double arrows: 0.5 s). "Edit lyrics…" in a song's menu edits the text and times line by line: press Enter as each line starts while the song plays, shift everything at once, split or merge lines, and export to SRT or LRC. The original YouTube subtitles are kept, so you can switch back at any time.
 
