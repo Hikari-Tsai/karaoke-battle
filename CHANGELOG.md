@@ -9,7 +9,7 @@
 再 bump app/pubspec.yaml、打 tag。標題格式不要改，App 和 release 工作流程靠它找版本。
 -->
 
-## 未發布
+## 1.1.6 — 2026-11-17
 
 ### 新增
 - 結果頁「AI演唱建議」：把這次演唱的分析下載或複製下來，貼給 Claude Code、ChatGPT 等 AI 助理，就能得到演唱建議。也可以在設定填入 Claude 或 OpenAI 的 API Key，按「問 AI」直接在 App 裡看到建議；還沒填 Key 時會先帶你去填再繼續。只有按下「問 AI」時才會把分析傳給你選的 AI 服務。
