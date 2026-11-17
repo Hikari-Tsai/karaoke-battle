@@ -65,13 +65,17 @@ F0 曲線，結束後依音準、節奏、安定度、顫音、抑揚與長音�
 
 升降 Key 讓伴奏與參考音符一起移調（錄製中會鎖住，一次錄音只用一個調）；右上角的人聲返送把你的聲音和音樂一起送到耳機，OBS 擷取 App 音訊時直播也會有人聲，還能加上 Hall 殘響。
 
-<p align="center"><img src="docs/media/key-voice.gif" width="720" alt="升降 Key 與人聲返送、Hall 殘響設定"></p>
+<p align="center"><img src="docs/media/key-voice.gif" width="720" alt="按升降 Key 讓伴奏與音符一起移調，開啟人聲返送把你的聲音和音樂送到耳機，再開 Hall 殘響並調整混合比例"></p>
+
+<p align="center"><sub>這一段是示意動畫，不是實際操作的錄影。</sub></p>
 
 ### 分數與分享圖卡
 
 唱完立刻給出 0 到 100 分、D 到 SSS 等級與六項子分數：唱在調上、跟得上拍子大約 80 分，要拿 91 分以上的 S 得音準和節奏都很穩，唱錯字或忘詞不扣分。一鍵做成分享圖卡（可貼到 X、Instagram、Threads）。每項子分數旁的 ⓘ 說明怎麼計分，也附上進步的小訣竅。還能一鍵匯出 1080p 演唱影片：MV 背景、捲動樂譜、你的音高線、歌詞和判定字卡，最後加上分數卡。每次演唱都留在曲庫，最高分一目了然。
 
-<p align="center"><img src="docs/media/results.gif" width="720" alt="結果頁：分享圖卡、總分與子分數，以及子分數的計分說明"></p>
+<p align="center"><img src="docs/media/results.gif" width="720" alt="唱完看總分、等級與六項子分數，做成分享圖卡，再匯出 1080p 演唱影片"></p>
+
+<p align="center"><sub>這一段是示意動畫，不是實際操作的錄影。</sub></p>
 
 ### 音遊風格的判定字卡
 

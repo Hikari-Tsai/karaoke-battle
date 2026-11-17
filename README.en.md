@@ -66,13 +66,17 @@ A piano keyboard on the dashboard fills in the song's range right on the keys, n
 
 Key moves the accompaniment and the reference notes together (it is locked while you record: one take, one key). The vocal return at the top right sends your voice to the headphones along with the music (and to the stream when OBS captures the app's audio), with an optional hall reverb.
 
-<p align="center"><img src="docs/media/key-voice.gif" width="720" alt="Key shift, vocal return and hall reverb"></p>
+<p align="center"><img src="docs/media/key-voice.gif" width="720" alt="The key buttons move the accompaniment and the notes together; the vocal return sends your voice and the music to the headphones; hall reverb with its mix"></p>
+
+<p align="center"><sub>This clip is an illustration, not a recording of the app.</sub></p>
 
 ### Scores and share cards
 
 Right after you sing you get a 0–100 score, a rank from D to SSS and six sub-scores: staying in tune and on the beat gets you around 80, an S (91+) takes steady pitch and rhythm throughout, and wrong words cost nothing. One click turns it into a share card for X, Instagram or Threads. The ⓘ next to each sub-score explains how it is scored, with tips to improve. You can also export a 1080p video of your take: the music video behind the scrolling notes, your pitch line, lyrics and judgements, ending on your score. Every take stays in the library, with your best score on top.
 
-<p align="center"><img src="docs/media/results.gif" width="720" alt="Results: the share card, total score and sub-scores, and how a sub-score is scored"></p>
+<p align="center"><img src="docs/media/results.gif" width="720" alt="The total score, rank and six sub-scores after a take, then the share card and the exported 1080p performance video"></p>
+
+<p align="center"><sub>This clip is an illustration, not a recording of the app.</sub></p>
 
 ### Rhythm-game style judgements
 

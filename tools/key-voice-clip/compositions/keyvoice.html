@@ -1,0 +1,811 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KB Sans";
+      font-weight: 400;
+      src: local("PingFangTC-Regular"), local("PingFang TC");
+    }
+    @font-face {
+      font-family: "KB Sans";
+      font-weight: 600;
+      src: local("PingFangTC-Semibold"), local("PingFang TC Semibold");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #0c0c10;
+      font-family: "KB Sans", "Noto Sans JP", sans-serif;
+      color: #f3f1f8;
+      --surface: #1d1c20;
+      --surface2: #2a292e;
+      --line: rgba(255, 255, 255, 0.1);
+      --muted: #aaa6ba;
+      --lav: #c8befa;
+      --note: #8f84d8;
+      --orange: #ffa25c;
+      --gold: #f9d84a;
+      --ink: #1a1030;
+    }
+    .layer {
+      position: absolute;
+      inset: 0;
+    }
+    .win {
+      position: absolute;
+      left: 80px;
+      top: 48px;
+      width: 1760px;
+      height: 930px;
+      background: #131317;
+      border: 2px solid var(--line);
+      border-radius: 28px;
+      overflow: hidden;
+    }
+    .bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 84px;
+      border-bottom: 2px solid var(--line);
+    }
+    .bar-title {
+      position: absolute;
+      left: 36px;
+      top: 18px;
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 48px;
+    }
+    .bar-pill {
+      position: absolute;
+      left: 1290px;
+      top: 16px;
+      width: 180px;
+      height: 52px;
+      border-radius: 26px;
+      background: var(--surface2);
+      font-size: 27px;
+      line-height: 52px;
+      text-align: center;
+      color: #e4e0f0;
+    }
+    .icon-btn {
+      position: absolute;
+      top: 14px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+    }
+    .icon-btn svg {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      width: 32px;
+      height: 32px;
+    }
+    .card {
+      position: absolute;
+      background: var(--surface);
+      border-radius: 20px;
+    }
+    /* ---- piano roll ---- */
+    .keys {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 84px;
+      height: 560px;
+      background: repeating-linear-gradient(to bottom, #e9e6f2 0px, #e9e6f2 24px, #8d899c 24px, #8d899c 26px);
+    }
+    .keys-black {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 52px;
+      height: 560px;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 26px,
+        #17161c 26px,
+        #17161c 52px,
+        rgba(0, 0, 0, 0) 52px,
+        rgba(0, 0, 0, 0) 78px,
+        #17161c 78px,
+        #17161c 104px,
+        rgba(0, 0, 0, 0) 104px,
+        rgba(0, 0, 0, 0) 156px,
+        #17161c 156px,
+        #17161c 182px,
+        rgba(0, 0, 0, 0) 182px,
+        rgba(0, 0, 0, 0) 208px,
+        #17161c 208px,
+        #17161c 234px,
+        rgba(0, 0, 0, 0) 234px,
+        rgba(0, 0, 0, 0) 260px,
+        #17161c 260px,
+        #17161c 286px,
+        rgba(0, 0, 0, 0) 286px,
+        rgba(0, 0, 0, 0) 312px
+      );
+    }
+    #k-range {
+      position: absolute;
+      left: 0;
+      top: 130px;
+      width: 84px;
+      height: 234px;
+      background: rgba(143, 132, 216, 0.72);
+    }
+    .gridline {
+      position: absolute;
+      left: 84px;
+      width: 1620px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .note {
+      position: absolute;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--note);
+    }
+    .ghost {
+      position: absolute;
+      height: 20px;
+      border-radius: 10px;
+      border: 2px dashed rgba(200, 190, 250, 0.4);
+    }
+    #k-ghosts {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+    }
+    #k-notes {
+      position: absolute;
+      inset: 0;
+    }
+    .playhead {
+      position: absolute;
+      left: 500px;
+      top: 0;
+      width: 4px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+    #k-pill {
+      position: absolute;
+      left: 110px;
+      top: 22px;
+      width: 340px;
+      height: 54px;
+      border-radius: 27px;
+      background: #34314a;
+      color: var(--lav);
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 54px;
+      text-align: center;
+      opacity: 0;
+    }
+    .lyric {
+      position: absolute;
+      left: 110px;
+      top: 416px;
+      font-size: 62px;
+      font-weight: 600;
+      line-height: 80px;
+      white-space: nowrap;
+    }
+    .lyric b {
+      color: var(--gold);
+      font-weight: 600;
+    }
+    .lyric-next {
+      position: absolute;
+      left: 110px;
+      top: 500px;
+      font-size: 34px;
+      line-height: 48px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    /* ---- transport ---- */
+    .t-time {
+      position: absolute;
+      left: 32px;
+      top: 24px;
+      font-size: 27px;
+      line-height: 40px;
+      color: var(--muted);
+    }
+    .t-track {
+      position: absolute;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .t-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--lav);
+    }
+    .t-knob {
+      position: absolute;
+      top: -10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 14px;
+      background: var(--lav);
+    }
+    .t-play {
+      position: absolute;
+      left: 32px;
+      top: 104px;
+      width: 68px;
+      height: 68px;
+      border-radius: 34px;
+      background: #3a3846;
+    }
+    .t-seg {
+      position: absolute;
+      left: 130px;
+      top: 108px;
+      width: 240px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      overflow: hidden;
+    }
+    .t-seg div {
+      position: absolute;
+      top: 0;
+      width: 120px;
+      height: 56px;
+      font-size: 27px;
+      line-height: 56px;
+      text-align: center;
+      color: #e4e0f0;
+    }
+    .t-label {
+      position: absolute;
+      left: 420px;
+      top: 116px;
+      font-size: 29px;
+      font-weight: 600;
+      line-height: 44px;
+    }
+    .t-round {
+      position: absolute;
+      top: 108px;
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      font-size: 36px;
+      line-height: 54px;
+      text-align: center;
+      color: #f3f1f8;
+    }
+    #k-plus-glow {
+      position: absolute;
+      inset: -2px;
+      border-radius: 30px;
+      background: var(--lav);
+      opacity: 0;
+    }
+    .t-val {
+      position: absolute;
+      left: 632px;
+      top: 108px;
+      width: 104px;
+      height: 60px;
+      border-radius: 14px;
+      background: #2a292e;
+    }
+    .t-val div {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 104px;
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 60px;
+      text-align: center;
+      color: var(--lav);
+    }
+    .t-rec {
+      position: absolute;
+      left: 1410px;
+      top: 104px;
+      width: 262px;
+      height: 68px;
+      border-radius: 34px;
+      background: var(--lav);
+      color: var(--ink);
+      font-size: 29px;
+      font-weight: 600;
+      line-height: 68px;
+      text-align: center;
+    }
+    /* ---- voice panel ---- */
+    #k-panel-in {
+      position: absolute;
+      left: 1024px;
+      top: 148px;
+      width: 788px;
+      height: 572px;
+      border-radius: 28px;
+      background: #2b2a31;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+    }
+    .p-icon {
+      position: absolute;
+      left: 32px;
+      width: 40px;
+      height: 40px;
+    }
+    .p-name {
+      position: absolute;
+      left: 90px;
+      font-size: 31px;
+      font-weight: 600;
+      line-height: 46px;
+      white-space: nowrap;
+    }
+    .p-sub {
+      position: absolute;
+      left: 90px;
+      top: 72px;
+      font-size: 26px;
+      line-height: 38px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .tog {
+      position: absolute;
+      left: 660px;
+      width: 96px;
+      height: 52px;
+      border-radius: 26px;
+      background: #4a4856;
+    }
+    .tog-on {
+      position: absolute;
+      inset: 0;
+      border-radius: 26px;
+      background: var(--lav);
+      opacity: 0;
+    }
+    .tog-knob {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 18px;
+      background: #d6d2e2;
+    }
+    #k-mixrow {
+      position: absolute;
+      left: 0;
+      top: 214px;
+      width: 788px;
+      height: 60px;
+    }
+    .m-label {
+      position: absolute;
+      left: 90px;
+      top: 6px;
+      font-size: 28px;
+      line-height: 44px;
+      color: #e4e0f0;
+    }
+    .m-track {
+      position: absolute;
+      left: 240px;
+      top: 24px;
+      width: 360px;
+      height: 10px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.14);
+    }
+    #k-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 360px;
+      height: 10px;
+      border-radius: 5px;
+      background: var(--lav);
+    }
+    #k-knob {
+      position: absolute;
+      left: 321px;
+      top: 13px;
+      width: 32px;
+      height: 32px;
+      border-radius: 16px;
+      background: #f3f1f8;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+    #k-mix {
+      position: absolute;
+      left: 624px;
+      top: 6px;
+      width: 132px;
+      font-size: 29px;
+      font-weight: 600;
+      line-height: 44px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .p-div {
+      position: absolute;
+      left: 32px;
+      top: 292px;
+      width: 724px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .chip {
+      position: absolute;
+      height: 64px;
+      border-radius: 16px;
+      background: #3a3846;
+      border: 2px solid rgba(255, 255, 255, 0);
+    }
+    .chip svg {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      width: 32px;
+      height: 32px;
+    }
+    .chip span {
+      position: absolute;
+      left: 54px;
+      top: 10px;
+      font-size: 27px;
+      font-weight: 600;
+      line-height: 40px;
+      white-space: nowrap;
+    }
+    .lane {
+      position: absolute;
+      left: 252px;
+      width: 330px;
+      height: 88px;
+    }
+    .vbar,
+    .mbar {
+      position: absolute;
+      border-radius: 4px;
+    }
+    .vbar {
+      background: var(--orange);
+    }
+    .mbar {
+      width: 8px;
+      background: var(--note);
+    }
+    .tails {
+      position: absolute;
+      top: 0;
+      width: 60px;
+      height: 88px;
+    }
+    .tails div {
+      position: absolute;
+      width: 8px;
+      border-radius: 4px;
+      background: #ffc79c;
+    }
+    #k-conn {
+      position: absolute;
+      left: 582px;
+      top: 310px;
+      width: 52px;
+      height: 216px;
+    }
+    /* ---- step bar ---- */
+    .step {
+      position: absolute;
+      top: 1014px;
+      height: 72px;
+      border-radius: 36px;
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 68px;
+      text-align: center;
+      color: #b9b5c8;
+      background-color: #0c0c10;
+    }
+    .step-arrow {
+      position: absolute;
+      top: 1030px;
+      font-size: 34px;
+      line-height: 40px;
+      color: #8a8699;
+    }
+    #k-cursor-in {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 44px;
+      height: 44px;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="keyvoice" data-width="1920" data-height="1164">
+    <!-- 1. The sing screen of the app (drawn, in the app's colours) -->
+    <div id="k-app" class="clip layer" data-start="0" data-duration="15" data-track-index="1">
+      <div class="win">
+        <div class="bar">
+          <div class="bar-title">‹　示範曲 — 預覽</div>
+          <div class="bar-pill">♩ 85 · 4/4</div>
+          <div class="icon-btn" style="left: 1500px">
+            <svg viewBox="0 0 40 40"><rect x="14" y="4" width="12" height="20" rx="6" fill="#e4e0f0" /><path d="M8 18 A12 12 0 0 0 32 18 M20 30 V36" fill="none" stroke="#e4e0f0" stroke-width="3.5" stroke-linecap="round" /></svg>
+          </div>
+          <div class="icon-btn" id="k-hp-btn" style="left: 1572px">
+            <svg viewBox="0 0 40 40"><path d="M6 24 V20 A14 14 0 0 1 34 20 V24" fill="none" stroke="#e4e0f0" stroke-width="3.5" stroke-linecap="round" /><rect x="3" y="22" width="9" height="13" rx="3.5" fill="#e4e0f0" /><rect x="28" y="22" width="9" height="13" rx="3.5" fill="#e4e0f0" /></svg>
+          </div>
+          <div class="icon-btn" style="left: 1644px">
+            <svg viewBox="0 0 40 40"><rect x="4" y="9" width="32" height="22" rx="4" fill="none" stroke="#e4e0f0" stroke-width="3.5" /><path d="M14 9 V22 M20 9 V22 M26 9 V22" fill="none" stroke="#e4e0f0" stroke-width="3.5" /></svg>
+          </div>
+        </div>
+
+        <div class="card" style="left: 28px; top: 108px; width: 1704px; height: 560px; overflow: hidden">
+          <div class="gridline" style="top: 128px"></div>
+          <div class="gridline" style="top: 232px"></div>
+          <div class="gridline" style="top: 336px"></div>
+          <div id="k-ghosts">
+            <div class="ghost" style="left: 130px; top: 302px; width: 150px"></div>
+            <div class="ghost" style="left: 300px; top: 250px; width: 110px"></div>
+            <div class="ghost" style="left: 430px; top: 198px; width: 200px"></div>
+            <div class="ghost" style="left: 660px; top: 250px; width: 100px"></div>
+            <div class="ghost" style="left: 780px; top: 146px; width: 240px"></div>
+            <div class="ghost" style="left: 1050px; top: 198px; width: 130px"></div>
+            <div class="ghost" style="left: 1200px; top: 302px; width: 170px"></div>
+            <div class="ghost" style="left: 1400px; top: 354px; width: 150px"></div>
+            <div class="ghost" style="left: 1570px; top: 250px; width: 110px"></div>
+          </div>
+          <div id="k-notes" data-layout-allow-overflow>
+            <div class="note" style="left: 130px; top: 302px; width: 150px"></div>
+            <div class="note" style="left: 300px; top: 250px; width: 110px"></div>
+            <div class="note" style="left: 430px; top: 198px; width: 200px"></div>
+            <div class="note" style="left: 660px; top: 250px; width: 100px"></div>
+            <div class="note" style="left: 780px; top: 146px; width: 240px"></div>
+            <div class="note" style="left: 1050px; top: 198px; width: 130px"></div>
+            <div class="note" style="left: 1200px; top: 302px; width: 170px"></div>
+            <div class="note" style="left: 1400px; top: 354px; width: 150px"></div>
+            <div class="note" style="left: 1570px; top: 250px; width: 110px"></div>
+          </div>
+          <div class="playhead"></div>
+          <div class="keys"></div>
+          <div class="keys-black"></div>
+          <div id="k-range"></div>
+          <div id="k-pill" data-layout-ignore>↑ 伴奏與音符一起移調</div>
+          <div class="lyric"><b>把今天</b>唱給明天聽</div>
+          <div class="lyric-next">明天的我也會記得這首歌</div>
+        </div>
+
+        <div class="card" style="left: 28px; top: 692px; width: 1704px; height: 210px">
+          <div class="t-time">0:18 / 3:42</div>
+          <div class="t-track" style="left: 200px; top: 40px; width: 1472px"><div class="t-fill" style="width: 132px"></div><div class="t-knob" style="left: 118px"></div></div>
+          <div class="t-play">
+            <svg viewBox="0 0 68 68" width="68" height="68"><rect x="24" y="21" width="7" height="26" rx="2" fill="#f3f1f8" /><rect x="37" y="21" width="7" height="26" rx="2" fill="#f3f1f8" /></svg>
+          </div>
+          <div class="t-seg"><div style="left: 0; background: #3a3846">伴奏</div><div style="left: 118px">導唱</div></div>
+          <div class="t-label">升降 Key</div>
+          <div class="t-round" style="left: 560px">−</div>
+          <div class="t-val"><div id="k-v0">0</div><div id="k-v1">+1</div><div id="k-v2">+2</div></div>
+          <div class="t-round" id="k-plus" style="left: 748px"><div id="k-plus-glow"></div>+</div>
+          <div class="t-track" style="left: 900px; top: 134px; width: 320px"><div class="t-fill" style="width: 224px"></div><div class="t-knob" style="left: 210px"></div></div>
+          <div class="t-rec" data-layout-ignore>● 開始錄製</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. The voice panel: vocal return and hall reverb -->
+    <div id="k-panel" class="clip layer" data-start="0" data-duration="15" data-track-index="2" data-layout-allow-overlap>
+      <div id="k-panel-in" data-layout-allow-occlusion>
+        <svg class="p-icon" style="top: 30px" viewBox="0 0 40 40"><path d="M6 24 V20 A14 14 0 0 1 34 20 V24" fill="none" stroke="#c8befa" stroke-width="3.5" stroke-linecap="round" /><rect x="3" y="22" width="9" height="13" rx="3.5" fill="#c8befa" /><rect x="28" y="22" width="9" height="13" rx="3.5" fill="#c8befa" /></svg>
+        <div class="p-name" style="top: 24px">人聲返送（Vocal Return）</div>
+        <div class="p-sub">你的聲音和音樂一起送到耳機</div>
+        <div class="tog" id="k-t1" style="top: 34px"><div class="tog-on" id="k-t1-on"></div><div class="tog-knob" id="k-t1-knob"></div></div>
+
+        <svg class="p-icon" style="top: 144px" viewBox="0 0 40 40"><path d="M5 30 V10 M12 30 V16 M19 30 V20 M26 30 V24 M33 30 V27" fill="none" stroke="#c8befa" stroke-width="4" stroke-linecap="round" /></svg>
+        <div class="p-name" style="top: 140px">Hall 殘響</div>
+        <div class="tog" id="k-t2" style="top: 138px"><div class="tog-on" id="k-t2-on"></div><div class="tog-knob" id="k-t2-knob"></div></div>
+
+        <div id="k-mixrow">
+          <div class="m-label">混合比例</div>
+          <div class="m-track"><div id="k-fill"></div></div>
+          <div id="k-knob"></div>
+          <div id="k-mix">27%</div>
+        </div>
+        <div class="p-div"></div>
+
+        <!-- what reaches the headphones -->
+        <div class="chip" style="left: 32px; top: 322px; width: 200px">
+          <svg viewBox="0 0 40 40"><rect x="14" y="4" width="12" height="20" rx="6" fill="#ffa25c" /><path d="M8 18 A12 12 0 0 0 32 18 M20 30 V36" fill="none" stroke="#ffa25c" stroke-width="3.5" stroke-linecap="round" /></svg>
+          <span>你的聲音</span>
+        </div>
+        <div class="chip" style="left: 32px; top: 450px; width: 200px">
+          <svg viewBox="0 0 40 40"><path d="M15 30 V8 L31 5 V26" fill="none" stroke="#c8befa" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" /><circle cx="10.5" cy="30" r="5.5" fill="#c8befa" /><circle cx="26.5" cy="26" r="5.5" fill="#c8befa" /></svg>
+          <span>音樂</span>
+        </div>
+        <div class="lane" id="k-lane-v" style="top: 310px">
+          <div class="vbar vmain" style="left: 6px; top: 12px; width: 12px; height: 64px"></div>
+          <div class="tails" style="left: 24px"><div style="left: 0px; top: 22px; height: 44px"></div><div style="left: 12px; top: 28px; height: 32px"></div><div style="left: 24px; top: 33px; height: 22px"></div><div style="left: 36px; top: 37px; height: 14px"></div><div style="left: 48px; top: 40px; height: 8px"></div></div>
+          <div class="vbar vmain" style="left: 88px; top: 12px; width: 12px; height: 64px"></div>
+          <div class="tails" style="left: 106px"><div style="left: 0px; top: 22px; height: 44px"></div><div style="left: 12px; top: 28px; height: 32px"></div><div style="left: 24px; top: 33px; height: 22px"></div><div style="left: 36px; top: 37px; height: 14px"></div><div style="left: 48px; top: 40px; height: 8px"></div></div>
+          <div class="vbar vmain" style="left: 170px; top: 12px; width: 12px; height: 64px"></div>
+          <div class="tails" style="left: 188px"><div style="left: 0px; top: 22px; height: 44px"></div><div style="left: 12px; top: 28px; height: 32px"></div><div style="left: 24px; top: 33px; height: 22px"></div><div style="left: 36px; top: 37px; height: 14px"></div><div style="left: 48px; top: 40px; height: 8px"></div></div>
+          <div class="vbar vmain" style="left: 252px; top: 12px; width: 12px; height: 64px"></div>
+          <div class="tails" style="left: 270px"><div style="left: 0px; top: 22px; height: 44px"></div><div style="left: 12px; top: 28px; height: 32px"></div><div style="left: 24px; top: 33px; height: 22px"></div><div style="left: 36px; top: 37px; height: 14px"></div><div style="left: 48px; top: 40px; height: 8px"></div></div>
+        </div>
+        <div class="lane" id="k-lane-m" style="top: 438px">
+          <div class="mbar" style="left: 4px; top: 29px; height: 30px"></div>
+          <div class="mbar" style="left: 16.5px; top: 18px; height: 52px"></div>
+          <div class="mbar" style="left: 29px; top: 24px; height: 40px"></div>
+          <div class="mbar" style="left: 41.5px; top: 12px; height: 64px"></div>
+          <div class="mbar" style="left: 54px; top: 26px; height: 36px"></div>
+          <div class="mbar" style="left: 66.5px; top: 20px; height: 48px"></div>
+          <div class="mbar" style="left: 79px; top: 15px; height: 58px"></div>
+          <div class="mbar" style="left: 91.5px; top: 30px; height: 28px"></div>
+          <div class="mbar" style="left: 104px; top: 22px; height: 44px"></div>
+          <div class="mbar" style="left: 116.5px; top: 14px; height: 60px"></div>
+          <div class="mbar" style="left: 129px; top: 27px; height: 34px"></div>
+          <div class="mbar" style="left: 141.5px; top: 19px; height: 50px"></div>
+          <div class="mbar" style="left: 154px; top: 23px; height: 42px"></div>
+          <div class="mbar" style="left: 166.5px; top: 13px; height: 62px"></div>
+          <div class="mbar" style="left: 179px; top: 29px; height: 30px"></div>
+          <div class="mbar" style="left: 191.5px; top: 17px; height: 54px"></div>
+          <div class="mbar" style="left: 204px; top: 25px; height: 38px"></div>
+          <div class="mbar" style="left: 216.5px; top: 11px; height: 66px"></div>
+          <div class="mbar" style="left: 229px; top: 21px; height: 46px"></div>
+          <div class="mbar" style="left: 241.5px; top: 28px; height: 32px"></div>
+          <div class="mbar" style="left: 254px; top: 16px; height: 56px"></div>
+          <div class="mbar" style="left: 266.5px; top: 24px; height: 40px"></div>
+          <div class="mbar" style="left: 279px; top: 14px; height: 60px"></div>
+          <div class="mbar" style="left: 291.5px; top: 27px; height: 34px"></div>
+          <div class="mbar" style="left: 304px; top: 19px; height: 50px"></div>
+          <div class="mbar" style="left: 316.5px; top: 22px; height: 44px"></div>
+        </div>
+        <svg id="k-conn" viewBox="0 0 52 216">
+          <path id="k-conn-v" d="M2 44 C30 44 22 108 50 108" fill="none" stroke="#ffa25c" stroke-width="4" stroke-linecap="round" />
+          <path d="M2 172 C30 172 22 108 50 108" fill="none" stroke="#8f84d8" stroke-width="4" stroke-linecap="round" />
+        </svg>
+        <div class="chip" id="k-out" style="left: 634px; top: 386px; width: 130px">
+          <svg viewBox="0 0 40 40"><path d="M6 24 V20 A14 14 0 0 1 34 20 V24" fill="none" stroke="#f3f1f8" stroke-width="3.5" stroke-linecap="round" /><rect x="3" y="22" width="9" height="13" rx="3.5" fill="#f3f1f8" /><rect x="28" y="22" width="9" height="13" rx="3.5" fill="#f3f1f8" /></svg>
+          <span>耳機</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Where we are in the three steps -->
+    <div id="k-steps" class="clip layer" data-start="0" data-duration="15" data-track-index="3">
+      <div class="step" id="k-step1" style="left: 416px; width: 300px">1　升降 Key</div>
+      <div class="step-arrow" style="left: 742px">›</div>
+      <div class="step" id="k-step2" style="left: 790px; width: 320px">2　人聲監聽</div>
+      <div class="step-arrow" style="left: 1136px">›</div>
+      <div class="step" id="k-step3" style="left: 1184px; width: 320px">3　空間殘響</div>
+    </div>
+
+    <!-- 4. Pointer -->
+    <div id="k-cursor" class="clip layer" data-start="0" data-duration="15" data-track-index="4" data-layout-ignore>
+      <svg id="k-cursor-in" viewBox="0 0 44 44">
+        <path d="M6 3 L6 35 L15 27 L21 41 L27 38 L21 25 L33 25 Z" fill="#ffffff" stroke="#111" stroke-width="2.5" stroke-linejoin="round" />
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const ON = { backgroundColor: "#c8befa", color: "#1a1030", borderColor: "#c8befa" };
+    const OFF = { backgroundColor: "#0c0c10", color: "#b9b5c8", borderColor: "rgba(255,255,255,0.16)" };
+    const click = (at) =>
+      tl.fromTo("#k-cursor-in", { scale: 1 }, { scale: 0.82, duration: 0.08, yoyo: true, repeat: 1, transformOrigin: "20% 10%" }, at);
+    const toggle = (n, on, at) => {
+      tl.to(`#k-t${n}-on`, { opacity: on ? 1 : 0, duration: 0.2 }, at);
+      tl.to(`#k-t${n}-knob`, { x: on ? 44 : 0, backgroundColor: on ? "#1a1030" : "#d6d2e2", duration: 0.25, ease: "power3.out" }, at);
+    };
+
+    const mix = { v: 27 };
+    const mixEl = document.querySelector("#k-mix");
+    const showMix = () => {
+      mixEl.textContent = Math.round(mix.v) + "%";
+    };
+
+    // ---- start state (also the loop point) ----
+    gsap.set("#k-step1", ON);
+    gsap.set("#k-step2, #k-step3", OFF);
+    gsap.set("#k-v1, #k-v2", { opacity: 0 });
+    gsap.set("#k-cursor-in", { x: 1240, y: 700 });
+    gsap.set("#k-fill", { scaleX: 0.27, transformOrigin: "0% 50%" });
+    gsap.set("#k-mixrow", { opacity: 0.35 });
+    gsap.set("#k-lane-v, #k-conn-v", { opacity: 0.2 });
+    gsap.set(".tails", { scaleX: 0, scaleY: 0, opacity: 0, transformOrigin: "0% 50%" });
+    gsap.set(".vmain", { scaleY: 0.55, transformOrigin: "50% 50%" });
+    gsap.set(".mbar", { scaleY: 0.6, transformOrigin: "50% 50%" });
+
+    // ---- step 1: raise the key twice (0 - 4.6 s) ----
+    tl.fromTo("#k-cursor-in", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.3);
+    tl.to("#k-cursor-in", { x: 880, y: 872, duration: 0.8, ease: "power3.inOut" }, 0.35);
+    [
+      [1.3, 1],
+      [2.3, 2],
+    ].forEach(([at, n]) => {
+      click(at);
+      tl.fromTo("#k-plus-glow", { opacity: 0 }, { opacity: 0.5, duration: 0.1, yoyo: true, repeat: 1 }, at);
+      tl.set(`#k-v${n - 1}`, { opacity: 0 }, at + 0.06);
+      tl.set(`#k-v${n}`, { opacity: 1 }, at + 0.06);
+      tl.fromTo(`#k-v${n}`, { scale: 1.35, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.3, ease: "power3.out" }, at + 0.06);
+      tl.to("#k-notes, #k-range", { y: -26 * n, duration: 0.5, ease: "back.out(1.8)" }, at + 0.08);
+    });
+    tl.to("#k-ghosts", { opacity: 1, duration: 0.25 }, 1.38);
+    tl.fromTo("#k-pill", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" }, 1.45);
+
+    // ---- step 2: vocal return (4.6 - 9.3 s) ----
+    tl.to("#k-cursor-in", { x: 1672, y: 84, duration: 0.85, ease: "power3.inOut" }, 3.9);
+    click(4.85);
+    tl.to("#k-hp-btn", { backgroundColor: "rgba(200,190,250,0.28)", borderColor: "#c8befa", duration: 0.2 }, 4.85);
+    tl.to("#k-step1", { ...OFF, duration: 0.3 }, 4.95);
+    tl.to("#k-step2", { ...ON, duration: 0.3 }, 4.95);
+    tl.fromTo("#k-panel-in", { opacity: 0, y: -24 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 4.95);
+    tl.to(".mbar", { scaleY: 1, duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 21, stagger: 0.04 }, 5.2);
+    tl.to("#k-cursor-in", { x: 1724, y: 204, duration: 0.6, ease: "power3.inOut" }, 6.1);
+    click(6.85);
+    toggle(1, true, 6.9);
+    tl.to("#k-lane-v, #k-conn-v", { opacity: 1, duration: 0.3 }, 6.95);
+    tl.to("#k-out", { borderColor: "#c8befa", duration: 0.3 }, 7.0);
+    tl.to(".vmain", { scaleY: 1, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 21, stagger: 0.08 }, 7.0);
+
+    // ---- step 3: hall reverb and its mix (9.3 - 14.3 s) ----
+    tl.to("#k-cursor-in", { x: 1724, y: 308, duration: 0.5, ease: "power3.inOut" }, 8.9);
+    click(9.55);
+    toggle(2, true, 9.6);
+    tl.to("#k-step2", { ...OFF, duration: 0.3 }, 9.6);
+    tl.to("#k-step3", { ...ON, duration: 0.3 }, 9.6);
+    tl.to("#k-mixrow", { opacity: 1, duration: 0.3 }, 9.65);
+    tl.to(".tails", { scaleX: 0.5, scaleY: 0.5, opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.05 }, 9.7);
+    tl.to("#k-cursor-in", { x: 1354, y: 388, duration: 0.6, ease: "power3.inOut" }, 10.5);
+    // drag the mix from 27% to 62%: 126 px on the 360 px track
+    tl.to("#k-cursor-in, #k-knob", { x: "+=126", duration: 1.3, ease: "power2.inOut" }, 11.25);
+    tl.to("#k-fill", { scaleX: 0.62, duration: 1.3, ease: "power2.inOut" }, 11.25);
+    tl.to(mix, { v: 62, duration: 1.3, ease: "power2.inOut", onUpdate: showMix }, 11.25);
+    tl.to(".tails", { scaleX: 1, scaleY: 1, duration: 1.3, ease: "power2.inOut" }, 11.25);
+    tl.to("#k-cursor-in", { opacity: 0, duration: 0.25 }, 12.8);
+
+    // ---- back to the start so the clip loops ----
+    tl.to("#k-panel-in", { opacity: 0, y: -16, duration: 0.3, ease: "power2.in" }, 14.2);
+    tl.to("#k-hp-btn", { backgroundColor: "rgba(200,190,250,0)", borderColor: "rgba(255,255,255,0.22)", duration: 0.25 }, 14.25);
+    tl.to("#k-notes, #k-range", { y: 0, duration: 0.4, ease: "power3.inOut" }, 14.4);
+    tl.to("#k-ghosts, #k-pill", { opacity: 0, duration: 0.25 }, 14.4);
+    tl.set("#k-v2", { opacity: 0 }, 14.55);
+    tl.set("#k-v0", { opacity: 1 }, 14.55);
+    tl.to("#k-step3", { ...OFF, duration: 0.25 }, 14.5);
+    tl.to("#k-step1", { ...ON, duration: 0.25 }, 14.55);
+    toggle(1, false, 14.6);
+    toggle(2, false, 14.6);
+    tl.set("#k-knob", { x: 0 }, 14.6);
+    tl.set("#k-fill", { scaleX: 0.27 }, 14.6);
+    tl.to(mix, { v: 27, duration: 0.04, onUpdate: showMix }, 14.6);
+    tl.set("#k-mixrow", { opacity: 0.35 }, 14.6);
+    tl.set("#k-lane-v, #k-conn-v", { opacity: 0.2 }, 14.6);
+    tl.set("#k-out", { borderColor: "rgba(255,255,255,0)" }, 14.6);
+    tl.set(".tails", { scaleX: 0, scaleY: 0, opacity: 0 }, 14.6);
+
+    window.__timelines["keyvoice"] = tl;
+  </script>
+</template>
