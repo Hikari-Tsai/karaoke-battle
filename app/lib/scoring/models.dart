@@ -707,6 +707,7 @@ class TechniqueMetrics {
     this.referencePitchStabilityCents,
     this.expressionCorrelation,
     this.longToneScore,
+    this.longNotes = const [],
   });
 
   /// Number of reference notes at least `longNoteSeconds` long.
@@ -753,6 +754,10 @@ class TechniqueMetrics {
   /// take is voiced and within 50 cents (null without long notes).
   final double? longToneScore;
 
+  /// Per analysed long note: stability and vibrato of the take, with the
+  /// reference's stability when known (empty in older score.json files).
+  final List<LongNoteDetail> longNotes;
+
   factory TechniqueMetrics.fromJson(Map<String, dynamic> json) =>
       TechniqueMetrics(
         longReferenceNotes: _i(json['long_reference_notes']),
@@ -770,6 +775,10 @@ class TechniqueMetrics {
         ),
         expressionCorrelation: _dn(json['expression_correlation']),
         longToneScore: _dn(json['long_tone_score']),
+        longNotes: [
+          for (final e in (json['long_notes'] as List? ?? const []))
+            if (e is Map) LongNoteDetail.fromJson(e.cast<String, dynamic>()),
+        ],
       );
 
   Map<String, dynamic> toJson() => {
@@ -786,6 +795,52 @@ class TechniqueMetrics {
     'reference_pitch_stability_cents': referencePitchStabilityCents,
     'expression_correlation': expressionCorrelation,
     'long_tone_score': longToneScore,
+    if (longNotes.isNotEmpty)
+      'long_notes': [for (final n in longNotes) n.toJson()],
+  };
+}
+
+/// Stability and vibrato of the take on one long reference note.
+class LongNoteDetail {
+  const LongNoteDetail({
+    required this.index,
+    this.stabilityCents,
+    this.vibrato = false,
+    this.referenceStabilityCents,
+  });
+
+  /// Index into `ReferenceNotes.notes`.
+  final int index;
+
+  /// Std (cents) of the take pitch on the note after removing the vibrato
+  /// band (null when it could not be measured).
+  final double? stabilityCents;
+
+  /// Vibrato was detected on the note.
+  final bool vibrato;
+
+  /// The same std measured on the reference F0 curve (null without it).
+  final double? referenceStabilityCents;
+
+  LongNoteDetail withReference(double? cents) => LongNoteDetail(
+    index: index,
+    stabilityCents: stabilityCents,
+    vibrato: vibrato,
+    referenceStabilityCents: cents,
+  );
+
+  factory LongNoteDetail.fromJson(Map<String, dynamic> json) => LongNoteDetail(
+    index: _i(json['index']),
+    stabilityCents: _dn(json['stability_cents']),
+    vibrato: json['vibrato'] == true,
+    referenceStabilityCents: _dn(json['ref_stability_cents']),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'index': index,
+    'stability_cents': stabilityCents,
+    'vibrato': vibrato,
+    'ref_stability_cents': ?referenceStabilityCents,
   };
 }
 
