@@ -12,21 +12,14 @@ import 'package:karaoke_battle/services/ktv_charts.dart';
 import 'package:karaoke_battle/state/i18n.dart';
 import 'package:karaoke_battle/ui/charts/charts_screen.dart';
 
-String fixture(String name) => File('test/services/fixtures/ktv_charts/$name').readAsStringSync();
-
-/// Fixture-backed sites; Cashbox can be made to fail.
+/// The KTV Charts site from fixtures; Cashbox can be made to fail.
 KtvChartService fakeService({bool cashboxDown = false}) => KtvChartService(
   client: MockClient((req) async {
-    final body = switch (req.url.host) {
-      'www.holiday.com.tw' => fixture(req.body.contains('"page":1') ? 'holiday_top_p1.json' : 'holiday_top_p2.json'),
-      'www.cashboxparty.com' => cashboxDown ? null : fixture('cashbox_bl.json'),
-      'www.joysound.com' => fixture('joysound_weekly.html'),
-      'www.clubdam.com' => fixture('dam_ranking.html'),
-      'kma.kkbox.com' => fixture('kkbox_weekly.json'),
-      _ => null,
-    };
-    if (body == null) return http.Response('', 503);
-    return http.Response.bytes(utf8.encode(body), 200);
+    final name = req.url.pathSegments.last; // holiday.json…
+    if (cashboxDown && name == 'cashbox.json') return http.Response('', 503);
+    final f = File('test/services/fixtures/ktv_charts/site-$name');
+    if (!f.existsSync()) return http.Response('', 404);
+    return http.Response.bytes(f.readAsBytesSync(), 200);
   }),
 );
 
@@ -68,23 +61,23 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('each operator is fetched when its tab is first shown', (tester) async {
-    final hosts = <String>[];
+  testWidgets('each source is fetched when its tab is first shown', (tester) async {
+    final files = <String>[];
     final s = KtvChartService(
       client: MockClient((req) async {
-        hosts.add(req.url.host);
+        files.add(req.url.pathSegments.last);
         return http.Response('', 503);
       }),
     );
     await pump(tester, s);
     await tester.pump();
     await settle(tester);
-    expect(hosts.toSet(), {'www.holiday.com.tw'});
+    expect(files.toSet(), {'holiday.json'});
     await openTab(tester, 'DAM');
-    expect(hosts.toSet(), {'www.holiday.com.tw', 'www.clubdam.com'});
+    expect(files.toSet(), {'holiday.json', 'dam.json'});
   });
 
-  testWidgets('every operator tab, with movement, new entries and links', (tester) async {
+  testWidgets('every source tab, with details, movement and links', (tester) async {
     await pump(tester, fakeService());
     await tester.pump();
     await settle(tester);
@@ -92,35 +85,45 @@ void main() {
     for (final v in ['好樂迪', '錢櫃', 'JOYSOUND', 'DAM', 'KKBOX']) {
       expect(find.descendant(of: find.byType(TabBar), matching: find.text(v)), findsOneWidget);
     }
+    expect(find.widgetWithText(ChoiceChip, '國語點播'), findsOneWidget);
     expect(find.text('在 好樂迪 官網查看'), findsOneWidget);
+    expect(find.text('網頁版榜單'), findsOneWidget);
     expect(find.text('甲乙丙丁'), findsOneWidget);
-    expect(find.text('新進'), findsOneWidget, reason: 'Holiday rank 8');
+    expect(find.text('130 BPM'), findsWidgets);
+    expect(find.text('副歌 C4–D5'), findsWidgets);
     expect(find.byTooltip('在 YouTube 搜尋'), findsWidgets);
+    expect(find.byTooltip('試聽'), findsWidgets);
 
     await openTab(tester, '錢櫃');
-    expect(find.text('在 錢櫃 官網查看'), findsOneWidget);
     expect(find.text('甲乙丙丁'), findsOneWidget);
 
     await openTab(tester, 'JOYSOUND');
+    expect(find.widgetWithText(ChoiceChip, '綜合週榜'), findsOneWidget);
     expect(find.text('伯方の塩'), findsOneWidget);
+    expect(find.text('1143475'), findsOneWidget, reason: 'song id from the song page');
 
     await openTab(tester, 'DAM');
-    expect(find.text('怪獣の花唄'), findsOneWidget);
-    expect(find.textContaining('2026/10/25 – 2026/10/31'), findsOneWidget, reason: 'DAM weekly period');
+    expect(find.text('怪獣の花唄'), findsOneWidget, reason: 'the weekly chart by default');
+    expect(find.textContaining('2026/11/08 ~ 2026/11/14'), findsOneWidget);
     expect(find.text('5277-09'), findsOneWidget);
-    expect(find.text('在 DAM 官網查看'), findsOneWidget);
 
     await openTab(tester, 'KKBOX');
-    expect(find.text('海嶼你'), findsOneWidget);
-    expect(find.text('馬也Crabbit'), findsOneWidget);
-    expect(find.text('新進'), findsOneWidget, reason: 'KKBOX rank 7');
     expect(find.text('曲號'), findsNothing, reason: 'KKBOX has no song numbers');
-    expect(find.textContaining('2026/10/23 – 2026/10/29'), findsOneWidget);
     expect(find.text('在 KKBOX 官網查看'), findsOneWidget);
-    expect(find.byTooltip('在 YouTube 搜尋'), findsWidgets);
   });
 
-  testWidgets('one failing operator shows its own error only', (tester) async {
+  testWidgets('the listen menu opens each service, exact or by search', (tester) async {
+    await pump(tester, fakeService());
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byTooltip('試聽').first);
+    await tester.pumpAndSettle();
+    expect(find.text('在 Apple Music 試聽'), findsOneWidget);
+    expect(find.text('在 Spotify 試聽'), findsOneWidget);
+    expect(find.text('在 KKBOX 試聽'), findsOneWidget);
+  });
+
+  testWidgets('one failing source shows its own error only', (tester) async {
     await pump(tester, fakeService(cashboxDown: true));
     await tester.pump();
     await settle(tester);
@@ -134,22 +137,24 @@ void main() {
     expect(find.text('重試'), findsNothing);
   });
 
-  testWidgets('switching a board loads that chart', (tester) async {
-    final paths = <String>[];
+  testWidgets('switching a chart needs no new request', (tester) async {
+    var hits = 0;
     final s = KtvChartService(
       client: MockClient((req) async {
-        paths.add(req.url.path);
-        return http.Response.bytes(utf8.encode(fixture('joysound_weekly.html')), 200);
+        hits++;
+        return http.Response.bytes(File('test/services/fixtures/ktv_charts/site-joysound.json').readAsBytesSync(), 200);
       }),
     );
     await pump(tester, s);
     await tester.pump();
     await settle(tester);
     await openTab(tester, 'JOYSOUND');
-    await tester.tap(find.widgetWithText(ChoiceChip, '動畫'));
+    final before = hits;
+    await tester.tap(find.widgetWithText(ChoiceChip, '綜合日榜'));
     await tester.pump();
     await settle(tester);
-    expect(paths, contains('/web/karaoke/ranking/anime/weekly'));
+    expect(hits, before);
+    expect(find.widgetWithText(ChoiceChip, '綜合日榜'), findsOneWidget);
   });
 
   // KE_TEST_CHARTS_OUT=<file.png> (with KE_TEST_CHARTS_FONT=<CJK font>) saves

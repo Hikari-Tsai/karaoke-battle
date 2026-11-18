@@ -1,11 +1,14 @@
-// KTV song request charts from the operators' own websites: Holiday and
-// Cashbox (Taiwan, internal AJAX endpoints), JOYSOUND (JSON-LD in the ranking
-// page) and DAM (static ranking HTML), plus the KKBOX streaming charts (the
-// JSON behind its public chart pages). None of these are public APIs, so the
-// parsers are kept pure and tested against saved responses.
+// KTV song request charts (Holiday, Cashbox, JOYSOUND, DAM) and the KKBOX
+// streaming charts, read from the KTV Charts site
+// (https://hikari-tsai.github.io/ktv-charts): a daily ETL that scrapes the
+// operators once and publishes one JSON file per source, enriched with genre,
+// mood and instrument tags, BPM, the chorus range and links to Apple Music,
+// Spotify and KKBOX. The app reads those files instead of scraping the
+// operators from every computer.
 //
-// Charts change once a week (DAM daily/weekly), so results are cached in
-// memory and on disk for [KtvChartService.ttl]; a refresh bypasses the cache.
+// A source's file is cached in memory and on disk. It is fetched again when it
+// is older than [KtvChartService.ttl]; when that fails, the last copy on disk
+// is shown (marked offline) rather than an error.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -17,27 +20,35 @@ import 'package:path/path.dart' as p;
 /// operator, but its charts sit beside theirs.
 enum KtvVendor { holiday, cashbox, joysound, dam, kkbox }
 
-/// One chart a vendor publishes. [id] is the vendor's own code: the Holiday
-/// `ltype`, `t<type>-<lang>` for Cashbox, the JOYSOUND genre, the DAM genre
-/// (`all` for the overall chart), or the KKBOX category number.
+class KtvCharts {
+  KtvCharts._();
+
+  /// The KTV Charts site; `data/<source>.json` holds a source's charts.
+  static const base = 'https://hikari-tsai.github.io/ktv-charts';
+
+  static Uri dataUrl(KtvVendor v) => Uri.parse('$base/data/${v.name}.json');
+
+  /// `tw` or `jp`.
+  static String region(KtvVendor v) => v == KtvVendor.joysound || v == KtvVendor.dam ? 'jp' : 'tw';
+}
+
+/// One chart a source publishes, as listed in its file.
 class ChartBoard {
-  const ChartBoard(this.vendor, this.id, this.labelKey);
+  const ChartBoard(this.vendor, this.id, this.title, {this.sourceUrl});
   final KtvVendor vendor;
+
+  /// The site's chart id (`tc`, `hot-01`, `all-weekly`, `song-weekly-297`…).
   final String id;
 
-  /// i18n key of the tab label.
-  final String labelKey;
+  /// Localised names by language (`zh`, `en`, `ja`).
+  final Map<String, String> title;
+
+  /// The chart on the operator's own website.
+  final String? sourceUrl;
 
   String get key => '${vendor.name}-$id';
 
-  /// The chart on the vendor's website.
-  String get officialUrl => switch (vendor) {
-    KtvVendor.holiday => 'https://www.holiday.com.tw/SongInfo/SongList.aspx?st=top&lt=$id',
-    KtvVendor.cashbox => 'https://www.cashboxparty.com/Music/KTVMusic.aspx',
-    KtvVendor.joysound => 'https://www.joysound.com/web/karaoke/ranking/$id/weekly',
-    KtvVendor.dam => 'https://www.clubdam.com${_damPath(id)}#ranking-weekly',
-    KtvVendor.kkbox => 'https://kma.kkbox.com/charts/weekly/song?terr=tw&lang=tc&cate=$id',
-  };
+  String label(String lang) => title[lang] ?? title['zh'] ?? title['en'] ?? id;
 
   @override
   bool operator ==(Object other) => other is ChartBoard && other.key == key;
@@ -45,143 +56,198 @@ class ChartBoard {
   int get hashCode => key.hashCode;
 }
 
-String _damPath(String genre) => genre == 'all' ? '/ranking/' : '/genre/$genre/';
+/// The singer's chorus range from the site (MIDI notes) and how it suits male
+/// and female voices: `v` is a verdict (`ok`, `high`, `vhigh`, `low`, `vlow`)
+/// and `key` the suggested key change in semitones.
+class ChartRange {
+  const ChartRange({required this.low, required this.high, this.male, this.female, this.fit});
+  final int low;
+  final int high;
+  final ({String verdict, int key})? male;
+  final ({String verdict, int key})? female;
 
-class KtvCharts {
-  KtvCharts._();
+  /// `m` or `f`: whose range the song sits in.
+  final String? fit;
 
-  /// Every board, grouped by vendor in display order; the first is the default.
-  static const boards = <KtvVendor, List<ChartBoard>>{
-    KtvVendor.holiday: [
-      ChartBoard(KtvVendor.holiday, 'tc', 'charts.lang.mandarin'),
-      ChartBoard(KtvVendor.holiday, 'tt', 'charts.lang.taiwanese'),
-      ChartBoard(KtvVendor.holiday, 'ct', 'charts.lang.cantonese'),
-      ChartBoard(KtvVendor.holiday, 'et', 'charts.lang.english'),
-      ChartBoard(KtvVendor.holiday, 'jt', 'charts.lang.japanese'),
-      ChartBoard(KtvVendor.holiday, 'kt', 'charts.lang.korean'),
-      ChartBoard(KtvVendor.holiday, 'vt', 'charts.lang.vietnamese'),
-      ChartBoard(KtvVendor.holiday, 'nc', 'charts.new.mandarin'),
-      ChartBoard(KtvVendor.holiday, 'nt', 'charts.new.taiwanese'),
-    ],
-    KtvVendor.cashbox: [
-      ChartBoard(KtvVendor.cashbox, 't2-01', 'charts.lang.mandarin'),
-      ChartBoard(KtvVendor.cashbox, 't2-02', 'charts.lang.taiwanese'),
-      ChartBoard(KtvVendor.cashbox, 't2-03', 'charts.lang.cantonese'),
-      ChartBoard(KtvVendor.cashbox, 't2-04', 'charts.lang.japanese'),
-      ChartBoard(KtvVendor.cashbox, 't2-05', 'charts.lang.english'),
-      ChartBoard(KtvVendor.cashbox, 't1-01', 'charts.new.mandarin'),
-      ChartBoard(KtvVendor.cashbox, 't1-02', 'charts.new.taiwanese'),
-    ],
-    KtvVendor.joysound: [
-      ChartBoard(KtvVendor.joysound, 'all', 'charts.genre.overall'),
-      ChartBoard(KtvVendor.joysound, 'anime', 'charts.genre.anime'),
-      ChartBoard(KtvVendor.joysound, 'vocaloid', 'charts.genre.vocaloid'),
-      ChartBoard(KtvVendor.joysound, 'enka', 'charts.genre.enka'),
-      ChartBoard(KtvVendor.joysound, 'foreign', 'charts.genre.foreign'),
-    ],
-    KtvVendor.dam: [
-      ChartBoard(KtvVendor.dam, 'all', 'charts.genre.overall'),
-      ChartBoard(KtvVendor.dam, 'anison', 'charts.genre.anime'),
-      ChartBoard(KtvVendor.dam, 'vocaloid', 'charts.genre.vocaloid'),
-      ChartBoard(KtvVendor.dam, 'vtuber', 'charts.genre.vtuber'),
-      ChartBoard(KtvVendor.dam, 'enka', 'charts.genre.enka'),
-      ChartBoard(KtvVendor.dam, 'foreign', 'charts.genre.foreign'),
-    ],
-    // The weekly single charts of KKBOX Taiwan.
-    KtvVendor.kkbox: [
-      ChartBoard(KtvVendor.kkbox, '297', 'charts.lang.chinese'),
-      ChartBoard(KtvVendor.kkbox, '390', 'charts.genre.foreign'),
-      ChartBoard(KtvVendor.kkbox, '308', 'charts.lang.japanese'),
-      ChartBoard(KtvVendor.kkbox, '314', 'charts.lang.korean'),
-      ChartBoard(KtvVendor.kkbox, '304', 'charts.lang.taiwanese'),
-      ChartBoard(KtvVendor.kkbox, '320', 'charts.lang.cantonese'),
-    ],
-  };
-
-  /// Whether the vendor publishes last week's rank.
-  static bool hasMovement(KtvVendor v) => v == KtvVendor.holiday || v == KtvVendor.cashbox || v == KtvVendor.kkbox;
-
-  /// Whether the chart has a number to enter on a karaoke machine.
-  static bool hasSongNo(KtvVendor v) => v != KtvVendor.kkbox;
-
-  /// `tw` or `jp`.
-  static String region(KtvVendor v) => v == KtvVendor.joysound || v == KtvVendor.dam ? 'jp' : 'tw';
+  static ChartRange? fromJson(Object? j) {
+    if (j is! Map) return null;
+    final lo = (j['low'] as num?)?.toInt(), hi = (j['high'] as num?)?.toInt();
+    if (lo == null || hi == null) return null;
+    ({String verdict, int key})? voice(Object? v) =>
+        v is Map && v['v'] is String ? (verdict: v['v'] as String, key: (v['key'] as num?)?.toInt() ?? 0) : null;
+    return ChartRange(low: lo, high: hi, male: voice(j['m']), female: voice(j['f']), fit: j['fit'] as String?);
+  }
 }
 
+/// A place to hear a song: a service's own page.
+enum ListenService { apple, spotify, kkbox }
+
 class ChartEntry {
-  const ChartEntry({required this.rank, required this.title, required this.artist, required this.songNo, this.lastRank, this.isNew = false});
+  const ChartEntry({
+    required this.rank,
+    required this.title,
+    required this.artist,
+    this.songNo = '',
+    this.lastRank,
+    this.isNew = false,
+    this.songUrl,
+    this.genre,
+    this.tags = const {},
+    this.bpm,
+    this.range,
+    this.apple,
+    this.spotify,
+    this.kkbox,
+  });
 
   final int rank;
   final String title;
   final String artist;
 
-  /// The number entered on the vendor's machines (JOYSOUND: its song id).
+  /// The number entered on the operator's machines (JOYSOUND: its song id);
+  /// empty when there is none (KKBOX).
   final String songNo;
 
   /// Last week's rank, when known and the song was on the chart.
   final int? lastRank;
   final bool isNew;
 
+  /// The song's page on the operator's site, when given.
+  final String? songUrl;
+
+  /// From the iTunes Search API.
+  final String? genre;
+
+  /// Model tags by group (`genre`, `mood`, `instrument`, `vocal`).
+  final Map<String, List<String>> tags;
+
+  /// Estimated tempo (Beat This! on a 30 s preview); may be half or double.
+  final int? bpm;
+  final ChartRange? range;
+
+  /// Apple Music `<country>/<track id>`, Spotify track id, KKBOX song id.
+  final String? apple;
+  final String? spotify;
+  final String? kkbox;
+
   /// Places moved up (negative: down), or null when unknown or new.
   int? get movement => isNew || lastRank == null ? null : lastRank! - rank;
 
+  String get _query => '$title $artist'.trim();
+
   /// A YouTube search for this song: a plain results page, no API key.
-  Uri get youtubeSearchUrl => Uri.https('www.youtube.com', '/results', {'search_query': '$title $artist'.trim()});
+  Uri get youtubeSearchUrl => Uri.https('www.youtube.com', '/results', {'search_query': _query});
 
-  Map<String, dynamic> toJson() => {
-    'rank': rank,
-    'title': title,
-    'artist': artist,
-    'songNo': songNo,
-    if (lastRank != null) 'lastRank': lastRank,
-    if (isNew) 'isNew': true,
+  /// The song's page on [s] (where it can be played), or a search there
+  /// when the site has no match for it. Opened in the browser: the service
+  /// plays it under its own terms; the app never handles the audio.
+  Uri listenUrl(ListenService s, {String region = 'tw'}) {
+    switch (s) {
+      case ListenService.apple:
+        final parts = apple?.split('/');
+        if (parts != null && parts.length == 2 && parts[1].isNotEmpty) return Uri.https('music.apple.com', '/${parts[0]}/song/${parts[1]}');
+        return Uri.https('music.apple.com', '/$region/search', {'term': _query});
+      case ListenService.spotify:
+        if (spotify != null && spotify!.isNotEmpty) return Uri.https('open.spotify.com', '/track/$spotify');
+        return Uri.https('open.spotify.com', '/search/${Uri.encodeComponent(_query)}');
+      case ListenService.kkbox:
+        if (kkbox != null && kkbox!.isNotEmpty) return Uri.https('www.kkbox.com', '/tw/tc/song/$kkbox');
+        return Uri.https('www.kkbox.com', '/tw/tc/search', {'q': _query});
+    }
+  }
+
+  /// Whether [s] has this exact song (not just a search).
+  bool hasListen(ListenService s) => switch (s) {
+    ListenService.apple => (apple ?? '').contains('/'),
+    ListenService.spotify => (spotify ?? '').isNotEmpty,
+    ListenService.kkbox => (kkbox ?? '').isNotEmpty,
   };
 
-  factory ChartEntry.fromJson(Map<String, dynamic> j) => ChartEntry(
-    rank: j['rank'] as int,
-    title: j['title'] as String,
-    artist: j['artist'] as String,
-    songNo: j['songNo'] as String,
-    lastRank: j['lastRank'] as int?,
-    isNew: j['isNew'] as bool? ?? false,
-  );
-}
+  factory ChartEntry.fromJson(Map<String, dynamic> j) {
+    final songUrl = j['song_url'] as String?;
+    var songNo = (j['song_no'] ?? '').toString();
+    // JOYSOUND gives its song page; its id is what the machines take.
+    if (songNo.isEmpty && songUrl != null && songUrl.contains('joysound.com')) {
+      songNo = RegExp(r'/song/(\d+)').firstMatch(songUrl)?.group(1) ?? '';
+    }
+    final tags = <String, List<String>>{};
+    final t = j['tags'];
+    if (t is Map) {
+      for (final e in t.entries) {
+        if (e.value is List) tags['${e.key}'] = [for (final v in e.value as List) '$v'];
+      }
+    }
+    String? str(String k) {
+      final v = j[k];
+      return v is String && v.isNotEmpty ? v : null;
+    }
 
-class KtvChart {
-  const KtvChart({required this.board, required this.entries, required this.fetchedAt, this.period, this.updated});
-
-  final ChartBoard board;
-  final List<ChartEntry> entries;
-  final DateTime fetchedAt;
-
-  /// Counting period as `yyyy/MM/dd – yyyy/MM/dd`, when known.
-  final String? period;
-
-  /// The vendor's own "updated" date, when it gives one.
-  final String? updated;
-
-  Map<String, dynamic> toJson() => {
-    'version': 1,
-    'board': board.key,
-    'fetchedAt': fetchedAt.toUtc().toIso8601String(),
-    'period': period,
-    'updated': updated,
-    'entries': [for (final e in entries) e.toJson()],
-  };
-
-  factory KtvChart.fromJson(ChartBoard board, Map<String, dynamic> j) {
-    if (j['version'] != 1 || j['board'] != board.key) throw const FormatException('cache mismatch');
-    return KtvChart(
-      board: board,
-      fetchedAt: DateTime.parse(j['fetchedAt'] as String).toLocal(),
-      period: j['period'] as String?,
-      updated: j['updated'] as String?,
-      entries: [for (final e in j['entries'] as List) ChartEntry.fromJson(e as Map<String, dynamic>)],
+    return ChartEntry(
+      rank: (j['rank'] as num).toInt(),
+      title: j['title'] as String? ?? '',
+      artist: j['artist'] as String? ?? '',
+      songNo: songNo,
+      lastRank: (j['last_rank'] as num?)?.toInt(),
+      isNew: j['is_new'] == true,
+      songUrl: songUrl,
+      genre: str('genre'),
+      tags: tags,
+      bpm: (j['bpm'] as num?)?.toInt(),
+      range: ChartRange.fromJson(j['range']),
+      apple: str('apple'),
+      spotify: str('spotify'),
+      kkbox: str('kkbox'),
     );
   }
 }
 
-enum ChartErrorKind { timeout, network, http, format, rejected }
+class KtvChart {
+  const KtvChart({required this.board, required this.entries, this.period, this.fetchedAt, this.stale = false});
+
+  final ChartBoard board;
+  final List<ChartEntry> entries;
+
+  /// Counting period, as the site gives it (`2026/11/10 ~ 2026/11/16`).
+  final String? period;
+
+  /// When the site last fetched this chart from the operator.
+  final DateTime? fetchedAt;
+
+  /// The site could not refresh it and kept an older copy.
+  final bool stale;
+
+  bool get hasMovement => entries.any((e) => e.lastRank != null || e.isNew);
+  bool get hasSongNo => entries.any((e) => e.songNo.isNotEmpty);
+}
+
+/// Every chart of one source, as one file of the site.
+class VendorCharts {
+  const VendorCharts({required this.vendor, required this.charts, required this.downloadedAt, this.checkedAt, this.offline = false});
+  final KtvVendor vendor;
+  final List<KtvChart> charts;
+
+  /// When the app downloaded this copy.
+  final DateTime downloadedAt;
+
+  /// When the site last checked the operator.
+  final DateTime? checkedAt;
+
+  /// The site could not be reached: this is the last copy on disk.
+  final bool offline;
+
+  List<ChartBoard> get boards => [for (final c in charts) c.board];
+
+  KtvChart? chart(String id) {
+    for (final c in charts) {
+      if (c.board.id == id) return c;
+    }
+    return null;
+  }
+
+  VendorCharts asOffline() => VendorCharts(vendor: vendor, charts: charts, downloadedAt: downloadedAt, checkedAt: checkedAt, offline: true);
+}
+
+enum ChartErrorKind { timeout, network, http, format }
 
 class ChartException implements Exception {
   const ChartException(this.kind, [this.detail = '']);
@@ -191,238 +257,48 @@ class ChartException implements Exception {
   String toString() => 'ChartException(${kind.name}${detail.isEmpty ? '' : ': $detail'})';
 }
 
-String _period(String? start, String? end) {
-  final s = start?.trim() ?? '';
-  final e = end?.trim() ?? '';
-  if (s.isEmpty && e.isEmpty) return '';
-  if (s.isEmpty || e.isEmpty || s == e) return s.isEmpty ? e : s;
-  return '$s – $e';
-}
+DateTime? _date(Object? v) => v is String ? DateTime.tryParse(v)?.toLocal() : null;
 
-// --- parsers ---------------------------------------------------------------
-
-/// Decodes a Holiday value (`encodeURIComponent` on the server side).
-String _holidayDecode(Object? v) {
-  final s = v?.toString() ?? '';
-  try {
-    return Uri.decodeComponent(s);
-  } catch (_) {
-    return s;
-  }
-}
-
-/// One page of `SongInfo.ashx` `m=top`.
-({List<ChartEntry> entries, int maxPage, String period}) parseHolidayPage(String body) {
+/// One source's file from the site.
+VendorCharts parseVendorCharts(KtvVendor vendor, String body, {required DateTime downloadedAt}) {
   final Object? root;
   try {
     root = jsonDecode(body);
   } on FormatException catch (e) {
     throw ChartException(ChartErrorKind.format, e.message);
   }
-  if (root is! List || root.isEmpty || root.first is! Map) throw const ChartException(ChartErrorKind.format, 'not a JSON array');
-  final d = root.first as Map<String, dynamic>;
-  if (d['Ok'] != '1') {
-    final msg = _holidayDecode(d['Msg']);
-    throw ChartException(ChartErrorKind.rejected, 'Ok=${d['Ok']}${msg.isEmpty ? '' : ' $msg'}');
-  }
-  final page = d['Page'];
-  final maxPage = page is List && page.isNotEmpty && page.first is Map ? ((page.first as Map)['MaxPage'] as num?)?.toInt() ?? 1 : 1;
-  final entries = <ChartEntry>[];
-  for (final r in (d['DataList'] as List? ?? const [])) {
-    if (r is! Map) continue;
-    final rank = int.tryParse(_holidayDecode(r['thisweek']));
-    if (rank == null) continue;
-    final weeks = _holidayDecode(r['weeks']);
-    final last = int.tryParse(_holidayDecode(r['lastweek']));
-    entries.add(ChartEntry(
-      rank: rank,
-      title: _holidayDecode(r['songname']),
-      artist: _holidayDecode(r['singer']),
-      songNo: _holidayDecode(r['id']),
-      lastRank: last,
-      isNew: weeks.contains('新') || (last == null && weeks.isNotEmpty && !'↑↓→'.contains(weeks)),
-    ));
-  }
-  return (entries: entries, maxPage: maxPage, period: _period(_holidayDecode(d['sdate']), _holidayDecode(d['edate'])));
-}
-
-/// `ah_Song.ashx` `m=bl`: one row per song, all languages in the request.
-/// Only rows of [lang] are kept when it is given.
-({List<ChartEntry> entries, String period}) parseCashboxChart(String body, {String? lang}) {
-  final Object? root;
-  try {
-    root = jsonDecode(body.trim().isEmpty ? 'null' : body);
-  } on FormatException catch (e) {
-    throw ChartException(ChartErrorKind.format, e.message);
-  }
-  if (root is! List || root.isEmpty) throw const ChartException(ChartErrorKind.format, 'empty response');
-  final first = root.first;
-  if (first is! Map || first['Result'] != '0') {
-    final r = first is Map ? first : const {};
-    throw ChartException(ChartErrorKind.rejected, 'Result=${r['Result']} ${r['Msg'] ?? ''}'.trim());
-  }
-  final entries = <ChartEntry>[];
-  String period = '';
-  for (final r in root) {
-    if (r is! Map) continue;
-    final no = (r['SongNo'] as String? ?? '').trim();
-    if (no.isEmpty) continue;
-    if (lang != null && r['LangCode'] != lang) continue;
-    final rank = int.tryParse('${r['ThisWeekend']}');
-    if (rank == null) continue;
-    final last = int.tryParse('${r['LastWeekend']}');
-    if (period.isEmpty) period = _period(r['StartDate'] as String?, r['EndDate'] as String?);
-    entries.add(ChartEntry(
-      rank: rank,
-      title: (r['SongName'] as String? ?? '').trim(),
-      artist: (r['Singer'] as String? ?? '').trim(),
-      songNo: no,
-      lastRank: last == null || last == 0 ? null : last,
-      isNew: last == 0,
-    ));
-  }
-  entries.sort((a, b) => a.rank.compareTo(b.rank));
-  return (entries: entries, period: period);
-}
-
-final _ldJson = RegExp(r'<script type="application/ld\+json"[^>]*>(.*?)</script>', dotAll: true);
-final _joyPeriod = RegExp(r'集計期間[:：]\s*(?:<[^>]+>\s*)*([0-9/]+(?:\s*-\s*[0-9/]+)?)');
-
-/// A JOYSOUND ranking page: the schema.org `ItemList` in its JSON-LD.
-({List<ChartEntry> entries, String period}) parseJoysoundPage(String html) {
-  final entries = <ChartEntry>[];
-  for (final m in _ldJson.allMatches(html)) {
-    Object? data;
-    try {
-      data = jsonDecode(m.group(1)!);
-    } on FormatException {
-      continue;
-    }
-    final graph = data is Map ? (data['@graph'] is List ? data['@graph'] as List : [data]) : const [];
-    for (final g in graph) {
-      final list = g is Map ? g['mainEntity'] : null;
-      if (list is! Map || list['@type'] != 'ItemList') continue;
-      for (final it in (list['itemListElement'] as List? ?? const [])) {
-        if (it is! Map || it['item'] is! Map) continue;
-        final song = it['item'] as Map;
-        final rank = (it['position'] as num?)?.toInt();
-        if (rank == null) continue;
-        final artist = song['byArtist'];
-        entries.add(ChartEntry(
-          rank: rank,
-          title: '${song['name'] ?? ''}'.trim(),
-          artist: artist is Map ? '${artist['name'] ?? ''}'.trim() : '',
-          songNo: '${song['url'] ?? ''}'.split('/').last,
-        ));
+  if (root is! Map || root['charts'] is! List) throw const ChartException(ChartErrorKind.format, 'no charts');
+  final charts = <KtvChart>[];
+  for (final c in root['charts'] as List) {
+    if (c is! Map || c['id'] is! String) continue;
+    final title = <String, String>{};
+    final t = c['title'];
+    if (t is Map) {
+      for (final e in t.entries) {
+        if (e.value is String) title['${e.key}'] = e.value as String;
       }
     }
-  }
-  if (entries.isEmpty) throw const ChartException(ChartErrorKind.format, 'no ItemList in JSON-LD');
-  final period = _joyPeriod.firstMatch(html)?.group(1)?.trim() ?? '';
-  return (entries: entries, period: period.replaceAll(RegExp(r'\s*-\s*'), ' – '));
-}
-
-final _damSection = RegExp(r'<div class="c-section" id="([^"]*)">');
-final _damRow = RegExp(
-  r'requestNo=([\d-]+)"[^>]*>\s*<div class="p-ranking__num[^"]*">(\d+)</div>'
-  r'.*?p-song__title">(.*?)</h4>\s*<div class="p-song__artist">(.*?)</div>',
-  dotAll: true,
-);
-final _damDate = RegExp(r'p-section-header__date">\s*(\d{4}/\d{2}/\d{2})');
-
-/// Section [sectionId] (e.g. `ranking-weekly`) of a DAM ranking page. The
-/// period is derived for weekly charts, which run Sunday to Saturday and are
-/// published the next Sunday.
-({List<ChartEntry> entries, String period, String updated}) parseDamPage(String html, {String sectionId = 'ranking-weekly'}) {
-  final starts = _damSection.allMatches(html).toList();
-  final i = starts.indexWhere((m) => m.group(1) == sectionId);
-  if (i < 0) throw ChartException(ChartErrorKind.format, 'no section $sectionId');
-  final body = html.substring(starts[i].end, i + 1 < starts.length ? starts[i + 1].start : html.length);
-  final seen = <String>{};
-  final entries = <ChartEntry>[];
-  for (final m in _damRow.allMatches(body)) {
-    final no = m.group(1)!;
-    // PC and mobile layouts may both be in the page.
-    if (!seen.add(no)) continue;
-    entries.add(ChartEntry(rank: int.parse(m.group(2)!), title: htmlUnescape(m.group(3)!.trim()), artist: htmlUnescape(m.group(4)!.trim()), songNo: no));
-  }
-  if (entries.isEmpty) throw ChartException(ChartErrorKind.format, 'no songs in $sectionId');
-  final updated = _damDate.firstMatch(body)?.group(1) ?? '';
-  var period = '';
-  final u = _parseSlashDate(updated);
-  if (sectionId == 'ranking-weekly' && u != null && u.weekday == DateTime.sunday) {
-    period = _period(_slashDate(u.subtract(const Duration(days: 7))), _slashDate(u.subtract(const Duration(days: 1))));
-  }
-  return (entries: entries, period: period, updated: updated);
-}
-
-/// `charts/api/v1/weekly?type=song`. KKBOX weeks run Friday to Thursday and
-/// the chart is dated by its last day.
-({List<ChartEntry> entries, String period}) parseKkboxChart(String body) {
-  final Object? root;
-  try {
-    root = jsonDecode(body);
-  } on FormatException catch (e) {
-    throw ChartException(ChartErrorKind.format, e.message);
-  }
-  if (root is! Map) throw const ChartException(ChartErrorKind.format, 'not a JSON object');
-  if ('${root['code']}' != '0') throw ChartException(ChartErrorKind.rejected, 'code=${root['code']} ${root['message'] ?? ''}'.trim());
-  final data = root['data'];
-  final charts = data is Map ? data['charts'] : null;
-  final songs = charts is Map ? charts['song'] : null;
-  if (songs is! List) throw const ChartException(ChartErrorKind.format, 'no song chart');
-  final entries = <ChartEntry>[];
-  for (final r in songs) {
-    if (r is! Map || r['rankings'] is! Map) continue;
-    final rankings = r['rankings'] as Map;
-    final rank = (rankings['this_period'] as num?)?.toInt();
-    if (rank == null) continue;
-    final last = (rankings['last_period'] as num?)?.toInt();
-    // artist_roles names the performers; artist_name is the album artist
-    // ("Various Artists" on soundtracks).
-    final roles = '${r['artist_roles'] ?? ''}'.trim();
-    entries.add(ChartEntry(
-      rank: rank,
-      title: '${r['song_name'] ?? ''}'.trim(),
-      artist: roles.isNotEmpty ? roles : '${r['artist_name'] ?? ''}'.trim(),
-      songNo: '',
-      lastRank: last,
-      isNew: last == null,
-    ));
-  }
-  entries.sort((a, b) => a.rank.compareTo(b.rank));
-  final end = DateTime.tryParse('${data is Map ? data['date'] : ''}');
-  final period = end == null ? '' : _period(_slashDate(end.subtract(const Duration(days: 6))), _slashDate(end));
-  return (entries: entries, period: period);
-}
-
-DateTime? _parseSlashDate(String s) {
-  final m = RegExp(r'^(\d{4})/(\d{2})/(\d{2})$').firstMatch(s);
-  return m == null ? null : DateTime.utc(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!));
-}
-
-String _slashDate(DateTime d) => '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
-
-const _entities = {'amp': '&', 'lt': '<', 'gt': '>', 'quot': '"', 'apos': "'", 'nbsp': ' '};
-
-/// Unescapes named (the common ones) and numeric HTML character references.
-String htmlUnescape(String s) {
-  if (!s.contains('&')) return s;
-  return s.replaceAllMapped(RegExp(r'&(#[xX][0-9a-fA-F]+|#\d+|[a-zA-Z]+);'), (m) {
-    final ref = m.group(1)!;
-    if (ref.startsWith('#')) {
-      final hex = ref.length > 1 && (ref[1] == 'x' || ref[1] == 'X');
-      final code = int.tryParse(hex ? ref.substring(2) : ref.substring(1), radix: hex ? 16 : 10);
-      return code == null || code > 0x10FFFF ? m.group(0)! : String.fromCharCode(code);
+    final board = ChartBoard(vendor, c['id'] as String, title, sourceUrl: c['source_url'] as String?);
+    final entries = <ChartEntry>[];
+    for (final r in (c['rows'] as List? ?? const [])) {
+      if (r is! Map || r['rank'] is! num) continue;
+      try {
+        entries.add(ChartEntry.fromJson(r.cast<String, dynamic>()));
+      } catch (_) {
+        // One odd row does not lose the chart.
+      }
     }
-    return _entities[ref] ?? m.group(0)!;
-  });
+    entries.sort((a, b) => a.rank.compareTo(b.rank));
+    charts.add(KtvChart(board: board, entries: entries, period: c['period'] as String?, fetchedAt: _date(c['fetched_at']), stale: c['stale'] == true));
+  }
+  if (charts.isEmpty) throw const ChartException(ChartErrorKind.format, 'no charts');
+  return VendorCharts(vendor: vendor, charts: charts, downloadedAt: downloadedAt, checkedAt: _date(root['checked_at']));
 }
 
 // --- service ---------------------------------------------------------------
 
 class KtvChartService {
-  KtvChartService({http.Client? client, this.cacheDir, this.ttl = const Duration(hours: 6), this.timeout = const Duration(seconds: 20), DateTime Function()? now})
+  KtvChartService({http.Client? client, this.cacheDir, this.ttl = const Duration(hours: 3), this.timeout = const Duration(seconds: 20), DateTime Function()? now})
     : _client = client ?? http.Client(),
       _ownsClient = client == null,
       _now = now ?? DateTime.now;
@@ -431,97 +307,55 @@ class KtvChartService {
   final bool _ownsClient;
   final DateTime Function() _now;
 
-  /// Where charts are kept between launches; memory only when null.
+  /// Where the files are kept between launches; memory only when null.
   final String? cacheDir;
+
+  /// The site updates once a day; a copy younger than this is used as is.
   final Duration ttl;
   final Duration timeout;
 
-  final _memory = <String, KtvChart>{};
-  final _pending = <String, Future<KtvChart>>{};
+  final _memory = <KtvVendor, VendorCharts>{};
+  final _pending = <KtvVendor, Future<VendorCharts>>{};
 
-  static const _userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) KaraokeBattle';
-  static const _formType = 'application/x-www-form-urlencoded; charset=utf-8';
-
-  /// The chart for [board]: from the cache while it is younger than [ttl],
-  /// else fetched. [force] skips the cache. Throws [ChartException].
-  Future<KtvChart> load(ChartBoard board, {bool force = false}) {
-    final pending = _pending[board.key];
+  /// The charts of [vendor]: the cached copy while it is younger than [ttl],
+  /// else downloaded; when the download fails, the last copy on disk (marked
+  /// [VendorCharts.offline]). [force] skips the fresh-copy check. Throws
+  /// [ChartException] only when there is no copy at all.
+  Future<VendorCharts> load(KtvVendor vendor, {bool force = false}) {
+    final pending = _pending[vendor];
     if (pending != null) return pending;
     // A block body: returning the removed future would make it wait on itself.
-    final f = _load(board, force).whenComplete(() {
-      _pending.remove(board.key);
+    final f = _load(vendor, force).whenComplete(() {
+      _pending.remove(vendor);
     });
-    _pending[board.key] = f;
+    _pending[vendor] = f;
     return f;
   }
 
-  Future<KtvChart> _load(ChartBoard board, bool force) async {
-    if (!force) {
-      final cached = _memory[board.key] ?? await _readDisk(board);
-      if (cached != null && _now().difference(cached.fetchedAt) < ttl) {
-        _memory[board.key] = cached;
-        return cached;
-      }
+  Future<VendorCharts> _load(KtvVendor vendor, bool force) async {
+    final cached = _memory[vendor] ?? await _readDisk(vendor);
+    if (!force && cached != null && _now().difference(cached.downloadedAt) < ttl) {
+      return _memory[vendor] = cached;
     }
-    final chart = await _fetch(board);
-    _memory[board.key] = chart;
-    await _writeDisk(chart);
-    return chart;
-  }
-
-  Future<KtvChart> _fetch(ChartBoard board) async {
-    final now = _now();
-    switch (board.vendor) {
-      case KtvVendor.holiday:
-        final first = parseHolidayPage(await _holidayPage(board.id, 1));
-        final entries = [...first.entries];
-        // 30 entries in two pages; the cap guards against a bogus MaxPage.
-        for (var page = 2; page <= first.maxPage && page <= 5; page++) {
-          entries.addAll(parseHolidayPage(await _holidayPage(board.id, page)).entries);
-        }
-        entries.sort((a, b) => a.rank.compareTo(b.rank));
-        return KtvChart(board: board, entries: entries, period: first.period, fetchedAt: now);
-      case KtvVendor.cashbox:
-        final [type, lang] = board.id.substring(1).split('-');
-        final body = await _send(
-          http.Request('POST', Uri.parse('https://www.cashboxparty.com/ashx/ah_Song.ashx'))
-            ..headers.addAll({'Content-Type': _formType, 'Referer': 'https://www.cashboxparty.com/Music/KTVMusic.aspx'})
-            ..body = jsonEncode([
-              {'m': 'bl', 't': type, 'lang': lang},
-            ]),
-        );
-        final r = parseCashboxChart(body, lang: lang);
-        return KtvChart(board: board, entries: r.entries, period: r.period, fetchedAt: now);
-      case KtvVendor.joysound:
-        final r = parseJoysoundPage(await _send(http.Request('GET', Uri.parse('https://www.joysound.com/web/karaoke/ranking/${board.id}/weekly'))));
-        return KtvChart(board: board, entries: r.entries, period: r.period, fetchedAt: now);
-      case KtvVendor.dam:
-        final r = parseDamPage(await _send(http.Request('GET', Uri.parse('https://www.clubdam.com${_damPath(board.id)}'))));
-        return KtvChart(board: board, entries: r.entries, period: r.period, updated: r.updated, fetchedAt: now);
-      case KtvVendor.kkbox:
-        final url = Uri.https('kma.kkbox.com', '/charts/api/v1/weekly', {'category': board.id, 'lang': 'tc', 'limit': '50', 'terr': 'tw', 'type': 'song'});
-        final r = parseKkboxChart(await _send(http.Request('GET', url)));
-        return KtvChart(board: board, entries: r.entries, period: r.period, fetchedAt: now);
-    }
-  }
-
-  Future<String> _holidayPage(String ltype, int page) => _send(
-    http.Request('POST', Uri.parse('https://www.holiday.com.tw/Ashx/SongInfo.ashx'))
-      ..headers['Content-Type'] = _formType
-      ..body = jsonEncode([
-        {'m': 'top', 'ltype': ltype, 'page': page},
-      ]),
-  );
-
-  /// Sends [req] and returns the UTF-8 body of a 200 response.
-  Future<String> _send(http.Request req) async {
-    req.headers['User-Agent'] = _userAgent;
     try {
-      final resp = await http.Response.fromStream(await _client.send(req).timeout(timeout)).timeout(timeout);
+      final now = _now();
+      final body = await _get(KtvCharts.dataUrl(vendor));
+      final charts = parseVendorCharts(vendor, body, downloadedAt: now);
+      _memory[vendor] = charts;
+      await _writeDisk(vendor, body, now);
+      return charts;
+    } on ChartException {
+      if (cached != null) return _memory[vendor] = cached.asOffline();
+      rethrow;
+    }
+  }
+
+  /// The UTF-8 body of a 200 response.
+  Future<String> _get(Uri url) async {
+    try {
+      final resp = await _client.get(url, headers: {'User-Agent': 'KaraokeBattle'}).timeout(timeout);
       if (resp.statusCode != 200) throw ChartException(ChartErrorKind.http, '${resp.statusCode}');
-      var body = utf8.decode(resp.bodyBytes, allowMalformed: true);
-      if (body.startsWith('﻿')) body = body.substring(1);
-      return body;
+      return utf8.decode(resp.bodyBytes, allowMalformed: true);
     } on TimeoutException {
       throw const ChartException(ChartErrorKind.timeout);
     } on ChartException {
@@ -531,25 +365,38 @@ class KtvChartService {
     }
   }
 
-  File? _cacheFile(ChartBoard board) => cacheDir == null ? null : File(p.join(cacheDir!, 'ktv_charts', '${board.key}.json'));
+  // The site's file as downloaded, plus a sidecar with the download time.
+  File? _cacheFile(KtvVendor v) => cacheDir == null ? null : File(p.join(cacheDir!, 'ktv_charts', 'site-${v.name}.json'));
+  File? _stampFile(KtvVendor v) => cacheDir == null ? null : File(p.join(cacheDir!, 'ktv_charts', 'site-${v.name}.time'));
 
-  Future<KtvChart?> _readDisk(ChartBoard board) async {
-    final f = _cacheFile(board);
-    if (f == null) return null;
+  Future<VendorCharts?> _readDisk(KtvVendor vendor) async {
+    final f = _cacheFile(vendor), s = _stampFile(vendor);
+    if (f == null || s == null) return null;
     try {
       if (!await f.exists()) return null;
-      return KtvChart.fromJson(board, jsonDecode(await f.readAsString()) as Map<String, dynamic>);
+      final at = await s.exists() ? DateTime.tryParse((await s.readAsString()).trim())?.toLocal() : null;
+      return parseVendorCharts(vendor, await f.readAsString(), downloadedAt: at ?? await f.lastModified());
     } catch (_) {
       return null;
     }
   }
 
-  Future<void> _writeDisk(KtvChart chart) async {
-    final f = _cacheFile(chart.board);
-    if (f == null) return;
+  bool _cleaned = false;
+
+  Future<void> _writeDisk(KtvVendor vendor, String body, DateTime at) async {
+    final f = _cacheFile(vendor), s = _stampFile(vendor);
+    if (f == null || s == null) return;
     try {
       await f.parent.create(recursive: true);
-      await f.writeAsString(jsonEncode(chart.toJson()));
+      if (!_cleaned) {
+        _cleaned = true;
+        // Per-board files from the versions that scraped the operators.
+        await for (final e in f.parent.list()) {
+          if (e is File && !p.basename(e.path).startsWith('site-')) await e.delete();
+        }
+      }
+      await f.writeAsString(body);
+      await s.writeAsString(at.toUtc().toIso8601String());
     } catch (_) {
       // The memory cache still works.
     }

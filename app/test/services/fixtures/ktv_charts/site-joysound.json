@@ -1,0 +1,943 @@
+{
+ "source": "joysound",
+ "name": {
+  "zh": "JOYSOUND",
+  "en": "JOYSOUND",
+  "ja": "JOYSOUND"
+ },
+ "region": "jp",
+ "kind": "ktv",
+ "site_url": "https://www.joysound.com/",
+ "checked_at": "2026-11-18T04:04:06+08:00",
+ "errors": [],
+ "charts": [
+  {
+   "id": "all-daily",
+   "title": {
+    "zh": "綜合日榜",
+    "en": "Overall · Daily",
+    "ja": "総合 デイリー"
+   },
+   "period": "2026/11/16",
+   "source_url": "https://www.joysound.com/web/karaoke/ranking/all",
+   "rows": [
+    {
+     "rank": 1,
+     "title": "伯方の塩",
+     "artist": "塩谷信廣",
+     "song_url": "https://www.joysound.com/web/search/song/1143056",
+     "last_rank": 1,
+     "is_new": false
+    },
+    {
+     "rank": 2,
+     "title": "残酷な天使のテーゼ",
+     "artist": "高橋洋子",
+     "song_url": "https://www.joysound.com/web/search/song/9629",
+     "last_rank": 4,
+     "is_new": false,
+     "genre": "Anime",
+     "apple": "jp/1549545978",
+     "spotify": "23phSRwoMy48rwFpmuAP8q",
+     "bpm": 133,
+     "range": {
+      "low": 57,
+      "high": 72,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "クリスマスソング",
+     "artist": "back number",
+     "song_url": "https://www.joysound.com/web/search/song/542563",
+     "last_rank": 6,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1451577755",
+     "spotify": "5P8ZvBQoCrujjNcLAxO3Su",
+     "bpm": 77,
+     "range": {
+      "low": 56,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Brit Pop",
+       "Alternative Rock"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "好きすぎて滅!",
+     "artist": "M!LK",
+     "song_url": "https://www.joysound.com/web/search/song/1143475",
+     "last_rank": 2,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1846753946",
+     "spotify": "0vDqNzQqEhl7boeRS3Joli",
+     "bpm": 151,
+     "range": {
+      "low": 57,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "instrument": [
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 5,
+     "title": "怪獣の花唄",
+     "artist": "Vaundy",
+     "song_url": "https://www.joysound.com/web/search/song/830943",
+     "last_rank": 3,
+     "is_new": false,
+     "kkbox": "P-DEF6WWhnTeOCytlD",
+     "genre": "Rock",
+     "apple": "jp/1706832137",
+     "spotify": "7dTW21YAJxnAOiUh7Rtu9S",
+     "bpm": 150,
+     "range": {
+      "low": 57,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Indie Rock"
+      ],
+      "mood": [
+       "happy",
+       "aggressive",
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 6,
+     "title": "マリーゴールド",
+     "artist": "あいみょん",
+     "song_url": "https://www.joysound.com/web/search/song/696651",
+     "last_rank": 5,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1402042897",
+     "spotify": "2cKiHG16JBiqHdi7Llq0r7",
+     "bpm": 106,
+     "range": {
+      "low": 59,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "happy",
+       "energetic"
+      ],
+      "instrument": [
+       "electricguitar"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "サウダージ",
+     "artist": "ポルノグラフィティ",
+     "song_url": "https://www.joysound.com/web/search/song/24592",
+     "last_rank": 9,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1538303081",
+     "spotify": "7lUaEsQVwvNEjaJNcvc1CN",
+     "bpm": 120,
+     "range": {
+      "low": 59,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Euro House",
+       "House"
+      ],
+      "mood": [
+       "danceable"
+      ],
+      "instrument": [
+       "synthesizer",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 8,
+     "title": "Yes! 東京",
+     "artist": "EBiDAN (恵比寿学園男子部)",
+     "song_url": "https://www.joysound.com/web/search/song/1188409",
+     "last_rank": 7,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/6793870938",
+     "spotify": "7L1UsUbSqowTKwrgT0v8AS",
+     "bpm": 217,
+     "range": {
+      "low": 55,
+      "high": 77,
+      "m": {
+       "v": "vhigh"
+      },
+      "f": {
+       "v": "vhigh"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "party",
+       "danceable",
+       "energetic"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "水平線",
+     "artist": "back number",
+     "song_url": "https://www.joysound.com/web/search/song/850206",
+     "last_rank": 8,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1579439168",
+     "spotify": "3RvdkNMcSy71m0aT6UF9Uf",
+     "bpm": 73,
+     "range": {
+      "low": 58,
+      "high": 70,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Brit Pop"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 10,
+     "title": "さよならエレジー",
+     "artist": "菅田将暉",
+     "song_url": "https://www.joysound.com/web/search/song/667498",
+     "last_rank": 10,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1538151144",
+     "spotify": "3oYD2O31b05fILFpv0AXRI",
+     "bpm": 155,
+     "range": {
+      "low": 49,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 4,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Rock"
+      ],
+      "mood": [
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "しわあわせ",
+     "artist": "Vaundy",
+     "song_url": "https://www.joysound.com/web/search/song/876689",
+     "last_rank": 11,
+     "is_new": false,
+     "genre": "Rock",
+     "apple": "jp/1706829387",
+     "spotify": "03nLyVPeLP7ivujEZW0dIj",
+     "bpm": 80,
+     "range": {
+      "low": 60,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Rock"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 12,
+     "title": "ドライフラワー",
+     "artist": "優里",
+     "song_url": "https://www.joysound.com/web/search/song/856015",
+     "last_rank": 12,
+     "is_new": false,
+     "kkbox": "8lxcS85nvIvoktbyrY",
+     "genre": "Rock",
+     "apple": "jp/1534620183",
+     "spotify": "7dH0dpi751EoguDDg3xx6J",
+     "bpm": 150,
+     "range": {
+      "low": 55,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 2,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Punk"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 29,
+     "title": "津軽海峡・冬景色",
+     "artist": "石川さゆり",
+     "song_url": "https://www.joysound.com/web/search/song/929",
+     "last_rank": null,
+     "is_new": true,
+     "kkbox": "4pIFIDDBiO7N6MHadn",
+     "genre": "Enka",
+     "apple": "jp/1838960470",
+     "spotify": "4JKCSjtRkJ2TxwJ8jZUQzH",
+     "bpm": 101,
+     "range": {
+      "low": 62,
+      "high": 78,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "vhigh",
+       "key": 3,
+       "oct": -12
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "City Pop"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-16",
+   "rank_change": "history",
+   "fetched_at": "2026-11-18T04:03:55+08:00",
+   "stale": false
+  },
+  {
+   "id": "all-weekly",
+   "title": {
+    "zh": "綜合週榜",
+    "en": "Overall · Weekly",
+    "ja": "総合 週間"
+   },
+   "period": "2026/11/09 ~ 2026/11/15",
+   "source_url": "https://www.joysound.com/web/karaoke/ranking/all/weekly",
+   "rows": [
+    {
+     "rank": 1,
+     "title": "伯方の塩",
+     "artist": "塩谷信廣",
+     "song_url": "https://www.joysound.com/web/search/song/1143056",
+     "last_rank": 1,
+     "is_new": false
+    },
+    {
+     "rank": 2,
+     "title": "好きすぎて滅!",
+     "artist": "M!LK",
+     "song_url": "https://www.joysound.com/web/search/song/1143475",
+     "last_rank": 2,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1846753946",
+     "spotify": "0vDqNzQqEhl7boeRS3Joli",
+     "bpm": 151,
+     "range": {
+      "low": 57,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "instrument": [
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "残酷な天使のテーゼ",
+     "artist": "高橋洋子",
+     "song_url": "https://www.joysound.com/web/search/song/9629",
+     "last_rank": 3,
+     "is_new": false,
+     "genre": "Anime",
+     "apple": "jp/1549545978",
+     "spotify": "23phSRwoMy48rwFpmuAP8q",
+     "bpm": 133,
+     "range": {
+      "low": 57,
+      "high": 72,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "怪獣の花唄",
+     "artist": "Vaundy",
+     "song_url": "https://www.joysound.com/web/search/song/830943",
+     "last_rank": 4,
+     "is_new": false,
+     "kkbox": "P-DEF6WWhnTeOCytlD",
+     "genre": "Rock",
+     "apple": "jp/1706832137",
+     "spotify": "7dTW21YAJxnAOiUh7Rtu9S",
+     "bpm": 150,
+     "range": {
+      "low": 57,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Indie Rock"
+      ],
+      "mood": [
+       "happy",
+       "aggressive",
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 5,
+     "title": "マリーゴールド",
+     "artist": "あいみょん",
+     "song_url": "https://www.joysound.com/web/search/song/696651",
+     "last_rank": 5,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1402042897",
+     "spotify": "2cKiHG16JBiqHdi7Llq0r7",
+     "bpm": 106,
+     "range": {
+      "low": 59,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "happy",
+       "energetic"
+      ],
+      "instrument": [
+       "electricguitar"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 6,
+     "title": "クリスマスソング",
+     "artist": "back number",
+     "song_url": "https://www.joysound.com/web/search/song/542563",
+     "last_rank": 10,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1451577755",
+     "spotify": "5P8ZvBQoCrujjNcLAxO3Su",
+     "bpm": 77,
+     "range": {
+      "low": 56,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Brit Pop",
+       "Alternative Rock"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "サウダージ",
+     "artist": "ポルノグラフィティ",
+     "song_url": "https://www.joysound.com/web/search/song/24592",
+     "last_rank": 6,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1538303081",
+     "spotify": "7lUaEsQVwvNEjaJNcvc1CN",
+     "bpm": 120,
+     "range": {
+      "low": 59,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Euro House",
+       "House"
+      ],
+      "mood": [
+       "danceable"
+      ],
+      "instrument": [
+       "synthesizer",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 8,
+     "title": "水平線",
+     "artist": "back number",
+     "song_url": "https://www.joysound.com/web/search/song/850206",
+     "last_rank": 7,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1579439168",
+     "spotify": "3RvdkNMcSy71m0aT6UF9Uf",
+     "bpm": 73,
+     "range": {
+      "low": 58,
+      "high": 70,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Brit Pop"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "Yes! 東京",
+     "artist": "EBiDAN (恵比寿学園男子部)",
+     "song_url": "https://www.joysound.com/web/search/song/1188409",
+     "last_rank": 11,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/6793870938",
+     "spotify": "7L1UsUbSqowTKwrgT0v8AS",
+     "bpm": 217,
+     "range": {
+      "low": 55,
+      "high": 77,
+      "m": {
+       "v": "vhigh"
+      },
+      "f": {
+       "v": "vhigh"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "party",
+       "danceable",
+       "energetic"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 10,
+     "title": "さよならエレジー",
+     "artist": "菅田将暉",
+     "song_url": "https://www.joysound.com/web/search/song/667498",
+     "last_rank": 8,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1538151144",
+     "spotify": "3oYD2O31b05fILFpv0AXRI",
+     "bpm": 155,
+     "range": {
+      "low": 49,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 4,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Rock"
+      ],
+      "mood": [
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "しわあわせ",
+     "artist": "Vaundy",
+     "song_url": "https://www.joysound.com/web/search/song/876689",
+     "last_rank": 16,
+     "is_new": false,
+     "genre": "Rock",
+     "apple": "jp/1706829387",
+     "spotify": "03nLyVPeLP7ivujEZW0dIj",
+     "bpm": 80,
+     "range": {
+      "low": 60,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Rock"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 12,
+     "title": "ドライフラワー",
+     "artist": "優里",
+     "song_url": "https://www.joysound.com/web/search/song/856015",
+     "last_rank": 12,
+     "is_new": false,
+     "kkbox": "8lxcS85nvIvoktbyrY",
+     "genre": "Rock",
+     "apple": "jp/1534620183",
+     "spotify": "7dH0dpi751EoguDDg3xx6J",
+     "bpm": 150,
+     "range": {
+      "low": 55,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 2,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Punk"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 86,
+     "title": "ブルーバード",
+     "artist": "いきものがかり",
+     "song_url": "https://www.joysound.com/web/search/song/118932",
+     "last_rank": null,
+     "is_new": true,
+     "genre": "J-Pop",
+     "apple": "jp/1536263347",
+     "spotify": "1WdkBwAsdznWw9xM69KmvR",
+     "bpm": 152,
+     "range": {
+      "low": 61,
+      "high": 76,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -4,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "happy",
+       "energetic"
+      ],
+      "instrument": [
+       "electricguitar"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-09_2026-11-15",
+   "rank_change": "history",
+   "fetched_at": "2026-11-18T04:03:57+08:00",
+   "stale": false
+  }
+ ]
+}

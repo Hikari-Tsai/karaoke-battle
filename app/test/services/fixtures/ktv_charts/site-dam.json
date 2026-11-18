@@ -1,0 +1,995 @@
+{
+ "source": "dam",
+ "name": {
+  "zh": "DAM",
+  "en": "DAM",
+  "ja": "DAM"
+ },
+ "region": "jp",
+ "kind": "ktv",
+ "site_url": "https://www.clubdam.com/",
+ "checked_at": "2026-11-18T04:04:17+08:00",
+ "errors": [],
+ "charts": [
+  {
+   "id": "all-daily",
+   "title": {
+    "zh": "綜合日榜",
+    "en": "Overall · Daily",
+    "ja": "総合 デイリー"
+   },
+   "period": "2026/11/16",
+   "updated": "2026/11/17",
+   "source_url": "https://www.clubdam.com/ranking/",
+   "rows": [
+    {
+     "rank": 1,
+     "title": "しわあわせ",
+     "artist": "Vaundy",
+     "song_no": "5351-39",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5351-39",
+     "last_rank": 4,
+     "is_new": false,
+     "genre": "Rock",
+     "apple": "jp/1706829387",
+     "spotify": "03nLyVPeLP7ivujEZW0dIj",
+     "bpm": 80,
+     "range": {
+      "low": 60,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Rock"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "クリスマスソング",
+     "artist": "back number",
+     "song_no": "5859-20",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5859-20",
+     "last_rank": 5,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1451577755",
+     "spotify": "5P8ZvBQoCrujjNcLAxO3Su",
+     "bpm": 77,
+     "range": {
+      "low": 56,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Brit Pop",
+       "Alternative Rock"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "怪獣の花唄",
+     "artist": "Vaundy",
+     "song_no": "5277-09",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5277-09",
+     "last_rank": 1,
+     "is_new": false,
+     "kkbox": "P-DEF6WWhnTeOCytlD",
+     "genre": "Rock",
+     "apple": "jp/1706832137",
+     "spotify": "7dTW21YAJxnAOiUh7Rtu9S",
+     "bpm": 150,
+     "range": {
+      "low": 57,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Indie Rock"
+      ],
+      "mood": [
+       "happy",
+       "aggressive",
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "好きすぎて滅！",
+     "artist": "M!LK",
+     "song_no": "1268-85",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=1268-85",
+     "last_rank": 2,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1846753946",
+     "spotify": "0vDqNzQqEhl7boeRS3Joli",
+     "bpm": 151,
+     "range": {
+      "low": 57,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "instrument": [
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 5,
+     "title": "奏(かなで)",
+     "artist": "スキマスイッチ",
+     "song_no": "5025-04",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5025-04",
+     "last_rank": 10,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1445037956",
+     "spotify": "5RbMlPFL4gVyEHW2lEOuzG",
+     "bpm": 75,
+     "range": {
+      "low": 50,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "f": {
+       "v": "low",
+       "key": 3,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "sad",
+       "love"
+      ]
+     }
+    },
+    {
+     "rank": 6,
+     "title": "残酷な天使のテーゼ",
+     "artist": "高橋洋子",
+     "song_no": "1896-04",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=1896-04",
+     "last_rank": 6,
+     "is_new": false,
+     "genre": "Anime",
+     "apple": "jp/1549545978",
+     "spotify": "23phSRwoMy48rwFpmuAP8q",
+     "bpm": 133,
+     "range": {
+      "low": 57,
+      "high": 72,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "マリーゴールド",
+     "artist": "あいみょん",
+     "song_no": "5171-36",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5171-36",
+     "last_rank": 7,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1402042897",
+     "spotify": "2cKiHG16JBiqHdi7Llq0r7",
+     "bpm": 106,
+     "range": {
+      "low": 59,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "happy",
+       "energetic"
+      ],
+      "instrument": [
+       "electricguitar"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 8,
+     "title": "水平線",
+     "artist": "back number",
+     "song_no": "5862-13",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5862-13",
+     "last_rank": 8,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1579439168",
+     "spotify": "3RvdkNMcSy71m0aT6UF9Uf",
+     "bpm": 73,
+     "range": {
+      "low": 58,
+      "high": 70,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Brit Pop"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "さよならエレジー",
+     "artist": "菅田将暉",
+     "song_no": "6052-97",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=6052-97",
+     "last_rank": 11,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1538151144",
+     "spotify": "3oYD2O31b05fILFpv0AXRI",
+     "bpm": 155,
+     "range": {
+      "low": 49,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 4,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Rock"
+      ],
+      "mood": [
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 10,
+     "title": "ダーリン",
+     "artist": "Mrs. GREEN APPLE",
+     "song_no": "1447-17",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=1447-17",
+     "last_rank": 9,
+     "is_new": false,
+     "genre": "Rock",
+     "apple": "jp/1790599512",
+     "spotify": "62x4EMPyCFF2Ohv7qDjalp",
+     "bpm": 135,
+     "range": {
+      "low": 53,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "both"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "ドライフラワー",
+     "artist": "優里",
+     "song_no": "6844-05",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=6844-05",
+     "last_rank": 12,
+     "is_new": false,
+     "kkbox": "8lxcS85nvIvoktbyrY",
+     "genre": "Rock",
+     "apple": "jp/1534620183",
+     "spotify": "7dH0dpi751EoguDDg3xx6J",
+     "bpm": 150,
+     "range": {
+      "low": 55,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 2,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Punk"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 12,
+     "title": "サウダージ",
+     "artist": "ポルノグラフィティ",
+     "song_no": "6167-17",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=6167-17",
+     "last_rank": 13,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1538303081",
+     "spotify": "7lUaEsQVwvNEjaJNcvc1CN",
+     "bpm": 120,
+     "range": {
+      "low": 59,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Euro House",
+       "House"
+      ],
+      "mood": [
+       "danceable"
+      ],
+      "instrument": [
+       "synthesizer",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 77,
+     "title": "アイネクライネ",
+     "artist": "米津玄師",
+     "song_no": "3699-77",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=3699-77",
+     "last_rank": null,
+     "is_new": true,
+     "genre": "J-Pop",
+     "apple": "jp/1440792118",
+     "spotify": "45YBVp6zMwQZRbUDcPzmMB",
+     "bpm": 87,
+     "tags": {
+      "genre": [
+       "Alternative Rock"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-16",
+   "rank_change": "history",
+   "fetched_at": "2026-11-18T04:04:08+08:00",
+   "stale": false
+  },
+  {
+   "id": "all-weekly",
+   "title": {
+    "zh": "綜合週榜",
+    "en": "Overall · Weekly",
+    "ja": "総合 週間"
+   },
+   "period": "2026/11/08 ~ 2026/11/14",
+   "updated": "2026/11/15",
+   "source_url": "https://www.clubdam.com/ranking/",
+   "rows": [
+    {
+     "rank": 1,
+     "title": "怪獣の花唄",
+     "artist": "Vaundy",
+     "song_no": "5277-09",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5277-09",
+     "last_rank": 1,
+     "is_new": false,
+     "kkbox": "P-DEF6WWhnTeOCytlD",
+     "genre": "Rock",
+     "apple": "jp/1706832137",
+     "spotify": "7dTW21YAJxnAOiUh7Rtu9S",
+     "bpm": 150,
+     "range": {
+      "low": 57,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Indie Rock"
+      ],
+      "mood": [
+       "happy",
+       "aggressive",
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "好きすぎて滅！",
+     "artist": "M!LK",
+     "song_no": "1268-85",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=1268-85",
+     "last_rank": 2,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1846753946",
+     "spotify": "0vDqNzQqEhl7boeRS3Joli",
+     "bpm": 151,
+     "range": {
+      "low": 57,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "instrument": [
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "しわあわせ",
+     "artist": "Vaundy",
+     "song_no": "5351-39",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5351-39",
+     "last_rank": 5,
+     "is_new": false,
+     "genre": "Rock",
+     "apple": "jp/1706829387",
+     "spotify": "03nLyVPeLP7ivujEZW0dIj",
+     "bpm": 80,
+     "range": {
+      "low": 60,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Rock"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "マリーゴールド",
+     "artist": "あいみょん",
+     "song_no": "5171-36",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5171-36",
+     "last_rank": 4,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1402042897",
+     "spotify": "2cKiHG16JBiqHdi7Llq0r7",
+     "bpm": 106,
+     "range": {
+      "low": 59,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "happy",
+       "energetic"
+      ],
+      "instrument": [
+       "electricguitar"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 5,
+     "title": "残酷な天使のテーゼ",
+     "artist": "高橋洋子",
+     "song_no": "1896-04",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=1896-04",
+     "last_rank": 3,
+     "is_new": false,
+     "genre": "Anime",
+     "apple": "jp/1549545978",
+     "spotify": "23phSRwoMy48rwFpmuAP8q",
+     "bpm": 133,
+     "range": {
+      "low": 57,
+      "high": 72,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable"
+      ]
+     }
+    },
+    {
+     "rank": 6,
+     "title": "クリスマスソング",
+     "artist": "back number",
+     "song_no": "5859-20",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5859-20",
+     "last_rank": 12,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1451577755",
+     "spotify": "5P8ZvBQoCrujjNcLAxO3Su",
+     "bpm": 77,
+     "range": {
+      "low": 56,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Brit Pop",
+       "Alternative Rock"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "水平線",
+     "artist": "back number",
+     "song_no": "5862-13",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5862-13",
+     "last_rank": 6,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1579439168",
+     "spotify": "3RvdkNMcSy71m0aT6UF9Uf",
+     "bpm": 73,
+     "range": {
+      "low": 58,
+      "high": 70,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Brit Pop"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 8,
+     "title": "さよならエレジー",
+     "artist": "菅田将暉",
+     "song_no": "6052-97",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=6052-97",
+     "last_rank": 7,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1538151144",
+     "spotify": "3oYD2O31b05fILFpv0AXRI",
+     "bpm": 155,
+     "range": {
+      "low": 49,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 4,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Rock"
+      ],
+      "mood": [
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "bass",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "奏(かなで)",
+     "artist": "スキマスイッチ",
+     "song_no": "5025-04",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=5025-04",
+     "last_rank": 10,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1445037956",
+     "spotify": "5RbMlPFL4gVyEHW2lEOuzG",
+     "bpm": 75,
+     "range": {
+      "low": 50,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "f": {
+       "v": "low",
+       "key": 3,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "sad",
+       "love"
+      ]
+     }
+    },
+    {
+     "rank": 10,
+     "title": "ダーリン",
+     "artist": "Mrs. GREEN APPLE",
+     "song_no": "1447-17",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=1447-17",
+     "last_rank": 8,
+     "is_new": false,
+     "genre": "Rock",
+     "apple": "jp/1790599512",
+     "spotify": "62x4EMPyCFF2Ohv7qDjalp",
+     "bpm": 135,
+     "range": {
+      "low": 53,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "both"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "サウダージ",
+     "artist": "ポルノグラフィティ",
+     "song_no": "6167-17",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=6167-17",
+     "last_rank": 9,
+     "is_new": false,
+     "genre": "J-Pop",
+     "apple": "jp/1538303081",
+     "spotify": "7lUaEsQVwvNEjaJNcvc1CN",
+     "bpm": 120,
+     "range": {
+      "low": 59,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Euro House",
+       "House"
+      ],
+      "mood": [
+       "danceable"
+      ],
+      "instrument": [
+       "synthesizer",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 12,
+     "title": "ドライフラワー",
+     "artist": "優里",
+     "song_no": "6844-05",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=6844-05",
+     "last_rank": 11,
+     "is_new": false,
+     "kkbox": "8lxcS85nvIvoktbyrY",
+     "genre": "Rock",
+     "apple": "jp/1534620183",
+     "spotify": "7dH0dpi751EoguDDg3xx6J",
+     "bpm": 150,
+     "range": {
+      "low": 55,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 2,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Alternative Rock",
+       "Pop Punk"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 71,
+     "title": "天城越え",
+     "artist": "石川さゆり",
+     "song_no": "2303-03",
+     "song_url": "https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=2303-03",
+     "last_rank": null,
+     "is_new": true,
+     "kkbox": "OlXd2M2oS497ba0DDs",
+     "genre": "Enka",
+     "apple": "jp/1862900054",
+     "spotify": "6pdDosBtsc64PmvILB8no7",
+     "bpm": 81,
+     "range": {
+      "low": 57,
+      "high": 74,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "City Pop"
+      ],
+      "mood": [
+       "relaxed"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-08_2026-11-14",
+   "rank_change": "history",
+   "fetched_at": "2026-11-18T04:04:08+08:00",
+   "stale": false
+  }
+ ]
+}

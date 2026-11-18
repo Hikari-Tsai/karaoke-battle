@@ -172,11 +172,13 @@ Validate against `pip install swift-f0` on the same WAV: median |cents| < 5 on v
 * `services/models.dart` — model registry (HF repo, files, sha256) and downloader.
 * `services/backend.dart` — GPU detection, CUDA pack management, backend selection UI logic.
 * `services/library.dart` — song store (JSON index + per-song folder).
-* `services/ktv_charts.dart` — weekly request charts of Holiday / Cashbox (their internal
-  AJAX endpoints), JOYSOUND (JSON-LD in the ranking page), DAM (ranking HTML) and the
-  KKBOX weekly single charts (the JSON behind kma.kkbox.com); pure
-  parsers plus a memory + disk cache (`<support>/cache/ktv_charts/`, 6 h) shown by
-  `ui/charts/charts_screen.dart`.
+* `services/ktv_charts.dart` — the request charts of Holiday / Cashbox / JOYSOUND / DAM and
+  the KKBOX single charts, read from the KTV Charts site's per-source files
+  (`https://hikari-tsai.github.io/ktv-charts/data/<source>.json`, a daily ETL that also adds
+  genre, mood tags, BPM, chorus range and Apple Music / Spotify / KKBOX ids). A pure parser
+  plus a memory + disk cache (`<support>/cache/ktv_charts/site-<source>.json`, refreshed after
+  3 h; the last copy is shown offline), shown by `ui/charts/charts_screen.dart`. Listening
+  opens the service's own song page in the browser; the app never handles preview audio.
 * `scoring/` — alignment (global semitone shift, DTW), chroma/pitch metrics, note metrics,
   vibrato/stability/dynamics.
 * `ui/` — screens and the piano roll `CustomPainter`.

@@ -1,7 +1,9 @@
-// "Hot songs" tab (熱門歌單): the weekly request charts of Holiday, Cashbox, JOYSOUND
-// and DAM and the KKBOX streaming charts, one tab per operator with its own boards, errors and a link to the
-// chart on the operator's website. An operator is fetched the first time its
-// tab is shown, and nothing before the "Hot songs" page itself is.
+// "Hot songs" tab (熱門歌單): the request charts of Holiday, Cashbox, JOYSOUND
+// and DAM and the KKBOX streaming charts, read from the KTV Charts site, one
+// tab per source with its charts, the song's genre, BPM and chorus range, and
+// links to hear it on Apple Music, Spotify or KKBOX (opened in the browser).
+// A source is fetched the first time its tab is shown, and nothing before the
+// "Hot songs" page itself is.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/ktv_charts.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../../state/song_data.dart';
 import '../widgets/brand.dart';
 
 /// Localized reason for a failed chart load.
@@ -32,18 +35,26 @@ class ChartsScreen extends StatefulWidget {
 }
 
 class _VendorState {
-  _VendorState(this.board);
-  ChartBoard board;
-  KtvChart? chart;
+  VendorCharts? data;
+
+  /// The chosen chart id; the source's first chart until one is picked.
+  String? boardId;
   Object? error;
   bool loading = false;
   bool expanded = false;
+
+  KtvChart? get chart {
+    final d = data;
+    if (d == null) return null;
+    // By default the weekly chart where a source has several periods.
+    return (boardId == null ? null : d.chart(boardId!)) ?? d.charts.firstWhere((c) => c.board.id.contains('weekly'), orElse: () => d.charts.first);
+  }
 }
 
 class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderStateMixin {
   KtvChartService? _service;
   bool _ownsService = false;
-  final _vendors = {for (final e in KtvCharts.boards.entries) e.key: _VendorState(e.value.first)};
+  final _vendors = {for (final v in KtvVendor.values) v: _VendorState()};
   late final _tabs = TabController(length: _vendors.length, vsync: this)..addListener(_onTab);
 
   KtvVendor get _current => _vendors.keys.elementAt(_tabs.index);
@@ -83,40 +94,37 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
     if (_service != null) _loadFirst(_current);
   }
 
-  /// Each operator is fetched the first time its tab is shown.
+  /// Each source is fetched the first time its tab is shown.
   void _loadFirst(KtvVendor vendor) {
     final s = _vendors[vendor]!;
-    if (s.chart == null && s.error == null && !s.loading) _load(vendor);
+    if (s.data == null && s.error == null && !s.loading) _load(vendor);
   }
 
   Future<void> _load(KtvVendor vendor, {bool force = false}) async {
     final s = _vendors[vendor]!;
-    final board = s.board;
     setState(() {
       s.loading = true;
       s.error = null;
     });
     try {
-      final chart = await _service!.load(board, force: force);
-      if (!mounted || s.board != board) return;
-      setState(() => s.chart = chart);
+      final data = await _service!.load(vendor, force: force);
+      if (!mounted) return;
+      setState(() => s.data = data);
     } catch (e) {
-      if (!mounted || s.board != board) return;
+      if (!mounted) return;
       setState(() => s.error = e);
     } finally {
-      if (mounted && s.board == board) setState(() => s.loading = false);
+      if (mounted) setState(() => s.loading = false);
     }
   }
 
   void _select(KtvVendor vendor, ChartBoard board) {
     final s = _vendors[vendor]!;
-    if (s.board == board) return;
+    if (s.chart?.board == board) return;
     setState(() {
-      s.board = board;
-      s.chart = null;
+      s.boardId = board.id;
       s.expanded = false;
     });
-    _load(vendor);
   }
 
   void _refresh() {
@@ -133,6 +141,11 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
       appBar: AppBar(
         title: BrandedTitle(tr('charts.title')),
         actions: [
+          TextButton.icon(
+            onPressed: () => launchUrl(Uri.parse(KtvCharts.base)),
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: Text(tr('charts.openWeb')),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(tooltip: tr('charts.refresh'), onPressed: state.loading ? null : _refresh, icon: const Icon(Icons.refresh)),
@@ -218,10 +231,15 @@ class _VendorSection extends StatelessWidget {
     final cs = theme.colorScheme;
     final name = _vendorName(vendor);
     final chart = state.chart;
+    final data = state.data;
+    final fmt = DateFormat('yyyy/MM/dd HH:mm');
     final meta = <String>[
       if (chart?.period?.isNotEmpty ?? false) tr('charts.period', {'period': chart!.period}),
-      if (chart?.updated?.isNotEmpty ?? false) tr('charts.updated', {'date': chart!.updated}),
-      if (chart != null) tr('charts.fetched', {'time': DateFormat('yyyy/MM/dd HH:mm').format(chart.fetchedAt)}),
+      if (chart?.fetchedAt != null) tr('charts.fetched', {'time': fmt.format(chart!.fetchedAt!)}),
+    ];
+    final notes = <String>[
+      if (data?.offline ?? false) tr('charts.offline', {'time': fmt.format(data!.downloadedAt)}),
+      if (chart?.stale ?? false) tr('charts.stale', {'vendor': name}),
     ];
     final entries = chart?.entries ?? const <ChartEntry>[];
     final shown = state.expanded ? entries : entries.take(_collapsed).toList();
@@ -238,12 +256,23 @@ class _VendorSection extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final b in KtvCharts.boards[vendor]!)
-                  ChoiceChip(label: Text(tr(b.labelKey)), selected: b == state.board, onSelected: (_) => onSelect(b)),
+                for (final b in data?.boards ?? const <ChartBoard>[])
+                  ChoiceChip(label: Text(b.label(I18n.lang)), selected: b == chart?.board, onSelected: (_) => onSelect(b)),
               ],
             ),
             const SizedBox(height: 10),
             Text(meta.join('  ·  '), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            for (final n in notes)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_off, size: 16, color: cs.tertiary),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(n, style: theme.textTheme.bodySmall?.copyWith(color: cs.tertiary))),
+                  ],
+                ),
+              ),
             const SizedBox(height: 10),
             SizedBox(height: 2, child: state.loading ? const LinearProgressIndicator() : null),
             if (state.error != null)
@@ -254,8 +283,8 @@ class _VendorSection extends StatelessWidget {
                 child: Text(tr('charts.empty'), style: TextStyle(color: cs.onSurfaceVariant)),
               )
             else if (chart != null) ...[
-              _HeaderRow(vendor: vendor),
-              for (var i = 0; i < shown.length; i++) _EntryRow(entry: shown[i], vendor: vendor, shaded: i.isOdd),
+              _HeaderRow(vendor: vendor, chart: chart),
+              for (var i = 0; i < shown.length; i++) _EntryRow(entry: shown[i], vendor: vendor, chart: chart, shaded: i.isOdd),
               if (entries.length > _collapsed)
                 Align(
                   child: TextButton(
@@ -273,13 +302,9 @@ class _VendorSection extends StatelessWidget {
                 Expanded(
                   child: Text(tr('charts.source', {'vendor': name}), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
                 ),
-                if (!KtvCharts.hasMovement(vendor))
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(tr('charts.noMovement'), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-                  ),
+                if (chart?.board.sourceUrl != null)
                 TextButton.icon(
-                  onPressed: () => launchUrl(Uri.parse(state.board.officialUrl)),
+                  onPressed: () => launchUrl(Uri.parse(chart!.board.sourceUrl!)),
                   icon: const Icon(Icons.open_in_new, size: 16),
                   label: Text(tr('charts.openSite', {'vendor': name})),
                 ),
@@ -327,8 +352,9 @@ String _songNoLabel(KtvVendor v) => switch (v) {
 };
 
 class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({required this.vendor});
+  const _HeaderRow({required this.vendor, required this.chart});
   final KtvVendor vendor;
+  final KtvChart chart;
 
   @override
   Widget build(BuildContext context) {
@@ -339,21 +365,40 @@ class _HeaderRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(width: _rankW, child: Text(tr('charts.rank'), style: style)),
-          if (KtvCharts.hasMovement(vendor)) const SizedBox(width: _moveW),
+          if (chart.hasMovement) const SizedBox(width: _moveW),
           Expanded(flex: 5, child: Text(tr('charts.song'), style: style)),
           Expanded(flex: 4, child: Text(tr('charts.artist'), style: style)),
-          if (KtvCharts.hasSongNo(vendor)) SizedBox(width: _noW, child: Text(_songNoLabel(vendor), style: style, textAlign: TextAlign.end)),
-          const SizedBox(width: _ytW),
+          if (chart.hasSongNo) SizedBox(width: _noW, child: Text(_songNoLabel(vendor), style: style, textAlign: TextAlign.end)),
+          const SizedBox(width: _ytW * 2),
         ],
       ),
     );
   }
 }
 
+/// `C4–D5`, with a tooltip on how it suits male and female voices.
+String _rangeText(ChartRange r) => '${noteName(r.low.toDouble())}–${noteName(r.high.toDouble())}';
+
+String _voiceText(({String verdict, int key})? v) {
+  if (v == null) return '—';
+  final verdict = tr('charts.fit.${v.verdict}');
+  if (v.key == 0) return verdict;
+  return '$verdict（${tr('charts.fit.key', {'k': v.key > 0 ? '+${v.key}' : '${v.key}'})}）';
+}
+
+/// A model tag in the UI language (genre names stay as they are).
+String _tagText(String group, String tag) {
+  if (group == 'genre') return tag;
+  final k = 'charts.t.$tag';
+  final t = tr(k);
+  return t == k ? tag : t;
+}
+
 class _EntryRow extends StatelessWidget {
-  const _EntryRow({required this.entry, required this.vendor, required this.shaded});
+  const _EntryRow({required this.entry, required this.vendor, required this.chart, required this.shaded});
   final ChartEntry entry;
   final KtvVendor vendor;
+  final KtvChart chart;
   final bool shaded;
 
   @override
@@ -361,6 +406,24 @@ class _EntryRow extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final top3 = entry.rank <= 3;
+    final small = theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
+    final range = entry.range;
+    final details = <Widget>[
+      if (entry.genre != null) Text(entry.genre!, style: small),
+      if (entry.bpm != null) Tooltip(message: tr('charts.bpmTip'), child: Text('${entry.bpm} BPM', style: small)),
+      if (range != null)
+        Tooltip(
+          message: tr('charts.rangeTip', {'m': _voiceText(range.male), 'f': _voiceText(range.female)}),
+          child: Text(tr('charts.range', {'range': _rangeText(range)}), style: small),
+        ),
+      if (entry.tags.isNotEmpty)
+        Tooltip(
+          message: [
+            for (final e in entry.tags.entries) '${tr('charts.tag.${e.key}')}：${e.value.map((t) => _tagText(e.key, t)).join('、')}',
+          ].join('\n'),
+          child: Icon(Icons.sell_outlined, size: 14, color: cs.onSurfaceVariant),
+        ),
+    ];
     return Container(
       color: shaded ? cs.surfaceContainerHighest.withValues(alpha: 0.35) : null,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
@@ -373,21 +436,32 @@ class _EntryRow extends StatelessWidget {
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: top3 ? Brand.magenta : null),
             ),
           ),
-          if (KtvCharts.hasMovement(vendor)) SizedBox(width: _moveW, child: _Movement(entry: entry)),
+          if (chart.hasMovement) SizedBox(width: _moveW, child: _Movement(entry: entry)),
           Expanded(
             flex: 5,
-            child: Text(entry.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(entry.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                if (details.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Wrap(spacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: details),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
             flex: 4,
             child: Text(entry.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
           ),
-          if (KtvCharts.hasSongNo(vendor))
+          if (chart.hasSongNo)
             SizedBox(
               width: _noW,
               child: Text(entry.songNo, textAlign: TextAlign.end, style: theme.textTheme.bodyMedium?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
             ),
+          SizedBox(width: _ytW, child: _ListenMenu(entry: entry, region: KtvCharts.region(vendor))),
           SizedBox(
             width: _ytW,
             child: IconButton(
@@ -400,6 +474,40 @@ class _EntryRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Where to hear the song: the services' own pages, opened in the browser
+/// (an exact match when the site found one, else a search there).
+class _ListenMenu extends StatelessWidget {
+  const _ListenMenu({required this.entry, required this.region});
+  final ChartEntry entry;
+  final String region;
+
+  static const _names = {ListenService.apple: 'Apple Music', ListenService.spotify: 'Spotify', ListenService.kkbox: 'KKBOX'};
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final exact = ListenService.values.where(entry.hasListen).toList();
+    return PopupMenuButton<ListenService>(
+      tooltip: tr('charts.listen'),
+      icon: Icon(exact.isEmpty ? Icons.headphones_outlined : Icons.headphones, size: 20, color: exact.isEmpty ? cs.onSurfaceVariant : cs.primary),
+      onSelected: (s) => launchUrl(entry.listenUrl(s, region: region)),
+      itemBuilder: (_) => [
+        for (final s in ListenService.values)
+          PopupMenuItem(
+            value: s,
+            child: Row(
+              children: [
+                Icon(entry.hasListen(s) ? Icons.play_circle_outline : Icons.search, size: 18),
+                const SizedBox(width: 10),
+                Text(tr(entry.hasListen(s) ? 'charts.listenOn' : 'charts.searchOn', {'service': _names[s]})),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

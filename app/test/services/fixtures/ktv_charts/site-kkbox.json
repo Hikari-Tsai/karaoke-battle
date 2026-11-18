@@ -1,0 +1,920 @@
+{
+ "source": "kkbox",
+ "name": {
+  "zh": "KKBOX",
+  "en": "KKBOX",
+  "ja": "KKBOX"
+ },
+ "region": "tw",
+ "kind": "streaming",
+ "site_url": "https://kma.kkbox.com/charts/?terr=tw&lang=tc",
+ "checked_at": "2026-11-18T04:04:42+08:00",
+ "errors": [],
+ "charts": [
+  {
+   "id": "song-daily-297",
+   "title": {
+    "zh": "華語單曲日榜",
+    "en": "Mandopop · Daily",
+    "ja": "中国語 デイリー"
+   },
+   "period": "2026/11/16",
+   "source_url": "https://kma.kkbox.com/charts/daily/song?terr=tw&lang=tc&cate=297",
+   "rows": [
+    {
+     "rank": 1,
+     "title": "甲乙丙丁Strangers - 你我怎麼兩清",
+     "artist": "李佳薇 (Jess Lee)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/GptIJ2y--IKc1ewMvC",
+     "kkbox": "GptIJ2y--IKc1ewMvC",
+     "last_rank": 1,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6785801848",
+     "spotify": "629FqLOdjtsXh5b45FTk43",
+     "bpm": 130,
+     "range": {
+      "low": 60,
+      "high": 74,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "欲落未落",
+     "artist": "DIOR 大穎",
+     "song_url": "https://www.kkbox.com/tw/tc/song/Konc3YLhP2VFsFSPQx",
+     "kkbox": "Konc3YLhP2VFsFSPQx",
+     "last_rank": 2,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6825805202",
+     "spotify": "25rKfmSz9QTVtilqZU9f8D",
+     "bpm": 82,
+     "range": {
+      "low": 52,
+      "high": 68,
+      "m": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "f": {
+       "v": "low",
+       "key": 1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "海嶼你",
+     "artist": "马也Crabbit, Cole先生",
+     "song_url": "https://www.kkbox.com/tw/tc/song/9XjRo9xi3wYrBpOzqC",
+     "kkbox": "9XjRo9xi3wYrBpOzqC",
+     "last_rank": 3,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1692508528",
+     "bpm": 75,
+     "range": {
+      "low": 51,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 2,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Vocal Pop",
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "love"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "一萬零一次沉溺",
+     "artist": "李佳薇 (Jess Lee)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/4qdey8s8WUFosVsyY4",
+     "kkbox": "4qdey8s8WUFosVsyY4",
+     "last_rank": 5,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6831316011",
+     "spotify": "49ALKp7bwE36ZZVGNLroKL",
+     "bpm": 78,
+     "range": {
+      "low": 52,
+      "high": 69,
+      "m": {
+       "v": "high",
+       "key": -3,
+       "oct": 0
+      },
+      "f": {
+       "v": "low",
+       "key": 1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 5,
+     "title": "沒有人像我一樣 - 影集《欠妳的那場婚禮》主題曲",
+     "artist": "宇宙人 (Cosmos People)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/4njo1hg43TYurFIZjC",
+     "kkbox": "4njo1hg43TYurFIZjC",
+     "last_rank": 4,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6780772534",
+     "spotify": "7fr9imYju7AXYQa2b2ofGd",
+     "bpm": 92,
+     "range": {
+      "low": 58,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Brit Pop",
+       "Alternative Rock"
+      ],
+      "instrument": [
+       "bass",
+       "drums",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 6,
+     "title": "離開我的依賴",
+     "artist": "王艷薇 (Evangeline)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/9ZH06Yn-s_ZpFJYVjQ",
+     "kkbox": "9ZH06Yn-s_ZpFJYVjQ",
+     "last_rank": 6,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1794042592",
+     "spotify": "28VBdtYc5Cpmey4Cpvcrby",
+     "bpm": 63,
+     "range": {
+      "low": 56,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "love"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "看著我的眼睛說",
+     "artist": "張遠",
+     "song_url": "https://www.kkbox.com/tw/tc/song/GoiHhDGwV7_OegDFh_",
+     "kkbox": "GoiHhDGwV7_OegDFh_",
+     "last_rank": 8,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1815583986",
+     "bpm": 77,
+     "range": {
+      "low": 42,
+      "high": 64,
+      "m": {
+       "v": "low"
+      },
+      "f": {
+       "v": "low"
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 8,
+     "title": "幸福在歌唱 - 電影《陽光女子合唱團》幸福版主題曲",
+     "artist": "A-Lin",
+     "song_url": "https://www.kkbox.com/tw/tc/song/D-jLjjQmldMin6-umY",
+     "kkbox": "D-jLjjQmldMin6-umY",
+     "last_rank": 7,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1861431711",
+     "spotify": "3VHi5bCUek6XdiDmqqrirs",
+     "bpm": 76,
+     "range": {
+      "low": 52,
+      "high": 66,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 1,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "我的貓會後空翻",
+     "artist": "陳華",
+     "song_url": "https://www.kkbox.com/tw/tc/song/XZlnT4qZIDECox2DJs",
+     "kkbox": "XZlnT4qZIDECox2DJs",
+     "last_rank": 18,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6830581290",
+     "spotify": "2t7Ki40DOY8YG38SEeD4xt",
+     "bpm": 86,
+     "range": {
+      "low": 58,
+      "high": 70,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "danceable"
+      ],
+      "instrument": [
+       "synthesizer",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 10,
+     "title": "今夜讓我帶你高飛遠走",
+     "artist": "Various Artists",
+     "song_url": "https://www.kkbox.com/tw/tc/song/PXpcRUCL8IwsBYpXIt",
+     "kkbox": "PXpcRUCL8IwsBYpXIt",
+     "last_rank": 12,
+     "is_new": false
+    },
+    {
+     "rank": 11,
+     "title": "太陽與地球",
+     "artist": "盧廣仲 (Crowd Lu)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/0spVFXYiDz1b8uI2zi",
+     "kkbox": "0spVFXYiDz1b8uI2zi",
+     "last_rank": 11,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1839368232",
+     "spotify": "0bQSWXtpau3VkNI1ZcXTQA",
+     "bpm": 66,
+     "range": {
+      "low": 50,
+      "high": 60,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 0,
+       "oct": 12
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "sad",
+       "love"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 12,
+     "title": "擱淺",
+     "artist": "周杰倫 (Jay Chou)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/KsNxNkw3fpSTS3_hs4",
+     "kkbox": "KsNxNkw3fpSTS3_hs4",
+     "last_rank": 10,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/536115199",
+     "spotify": "56mzU03ZesV0iRroHR2K04",
+     "bpm": 62,
+     "range": {
+      "low": 53,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-16",
+   "rank_change": "site",
+   "fetched_at": "2026-11-18T04:04:19+08:00",
+   "stale": false
+  },
+  {
+   "id": "song-weekly-297",
+   "title": {
+    "zh": "華語單曲週榜",
+    "en": "Mandopop · Weekly",
+    "ja": "中国語 週間"
+   },
+   "period": "2026/11/06 ~ 2026/11/12",
+   "source_url": "https://kma.kkbox.com/charts/weekly/song?terr=tw&lang=tc&cate=297",
+   "rows": [
+    {
+     "rank": 1,
+     "title": "甲乙丙丁Strangers - 你我怎麼兩清",
+     "artist": "李佳薇 (Jess Lee)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/GptIJ2y--IKc1ewMvC",
+     "kkbox": "GptIJ2y--IKc1ewMvC",
+     "last_rank": 1,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6785801848",
+     "spotify": "629FqLOdjtsXh5b45FTk43",
+     "bpm": 130,
+     "range": {
+      "low": 60,
+      "high": 74,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "欲落未落",
+     "artist": "DIOR 大穎",
+     "song_url": "https://www.kkbox.com/tw/tc/song/Konc3YLhP2VFsFSPQx",
+     "kkbox": "Konc3YLhP2VFsFSPQx",
+     "last_rank": 3,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6825805202",
+     "spotify": "25rKfmSz9QTVtilqZU9f8D",
+     "bpm": 82,
+     "range": {
+      "low": 52,
+      "high": 68,
+      "m": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "f": {
+       "v": "low",
+       "key": 1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "海嶼你",
+     "artist": "马也Crabbit, Cole先生",
+     "song_url": "https://www.kkbox.com/tw/tc/song/9XjRo9xi3wYrBpOzqC",
+     "kkbox": "9XjRo9xi3wYrBpOzqC",
+     "last_rank": 2,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1692508528",
+     "bpm": 75,
+     "range": {
+      "low": 51,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 2,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Vocal Pop",
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "love"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "今夜讓我帶你高飛遠走",
+     "artist": "Various Artists",
+     "song_url": "https://www.kkbox.com/tw/tc/song/PXpcRUCL8IwsBYpXIt",
+     "kkbox": "PXpcRUCL8IwsBYpXIt",
+     "last_rank": 9,
+     "is_new": false
+    },
+    {
+     "rank": 5,
+     "title": "沒有人像我一樣 - 影集《欠妳的那場婚禮》主題曲",
+     "artist": "宇宙人 (Cosmos People)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/4njo1hg43TYurFIZjC",
+     "kkbox": "4njo1hg43TYurFIZjC",
+     "last_rank": 4,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6780772534",
+     "spotify": "7fr9imYju7AXYQa2b2ofGd",
+     "bpm": 92,
+     "range": {
+      "low": 58,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Brit Pop",
+       "Alternative Rock"
+      ],
+      "instrument": [
+       "bass",
+       "drums",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 6,
+     "title": "離開我的依賴",
+     "artist": "王艷薇 (Evangeline)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/9ZH06Yn-s_ZpFJYVjQ",
+     "kkbox": "9ZH06Yn-s_ZpFJYVjQ",
+     "last_rank": 5,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1794042592",
+     "spotify": "28VBdtYc5Cpmey4Cpvcrby",
+     "bpm": 63,
+     "range": {
+      "low": 56,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "love"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "看著我的眼睛說",
+     "artist": "張遠",
+     "song_url": "https://www.kkbox.com/tw/tc/song/GoiHhDGwV7_OegDFh_",
+     "kkbox": "GoiHhDGwV7_OegDFh_",
+     "last_rank": 7,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1815583986",
+     "bpm": 77,
+     "range": {
+      "low": 42,
+      "high": 64,
+      "m": {
+       "v": "low"
+      },
+      "f": {
+       "v": "low"
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 8,
+     "title": "幸福在歌唱 - 電影《陽光女子合唱團》幸福版主題曲",
+     "artist": "A-Lin",
+     "song_url": "https://www.kkbox.com/tw/tc/song/D-jLjjQmldMin6-umY",
+     "kkbox": "D-jLjjQmldMin6-umY",
+     "last_rank": 10,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1861431711",
+     "spotify": "3VHi5bCUek6XdiDmqqrirs",
+     "bpm": 76,
+     "range": {
+      "low": 52,
+      "high": 66,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 1,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "擱淺",
+     "artist": "周杰倫 (Jay Chou)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/KsNxNkw3fpSTS3_hs4",
+     "kkbox": "KsNxNkw3fpSTS3_hs4",
+     "last_rank": 16,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/536115199",
+     "spotify": "56mzU03ZesV0iRroHR2K04",
+     "bpm": 62,
+     "range": {
+      "low": 53,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 10,
+     "title": "太陽與地球",
+     "artist": "盧廣仲 (Crowd Lu)",
+     "song_url": "https://www.kkbox.com/tw/tc/song/0spVFXYiDz1b8uI2zi",
+     "kkbox": "0spVFXYiDz1b8uI2zi",
+     "last_rank": 13,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1839368232",
+     "spotify": "0bQSWXtpau3VkNI1ZcXTQA",
+     "bpm": 66,
+     "range": {
+      "low": 50,
+      "high": 60,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 0,
+       "oct": 12
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "sad",
+       "love"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "大梦归 (电视剧《兰香如故》主题曲)",
+     "artist": "周深",
+     "song_url": "https://www.kkbox.com/tw/tc/song/8ryrlSM059bDR2lddK",
+     "kkbox": "8ryrlSM059bDR2lddK",
+     "last_rank": 8,
+     "is_new": false,
+     "genre": "Soundtrack",
+     "apple": "jp/6810189174",
+     "spotify": "0ykKwja0lp6MSQKl71eT9C",
+     "bpm": 74,
+     "range": {
+      "low": 60,
+      "high": 72,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ]
+     }
+    },
+    {
+     "rank": 12,
+     "title": "我愛你一句話",
+     "artist": "蕭秉治Xiao Bing Chih",
+     "song_url": "https://www.kkbox.com/tw/tc/song/8t0vgvKjsnPsGOCnu5",
+     "kkbox": "8t0vgvKjsnPsGOCnu5",
+     "last_rank": 11,
+     "is_new": false,
+     "genre": "Tai-Pop",
+     "apple": "tw/6819227477",
+     "bpm": 93,
+     "range": {
+      "low": 55,
+      "high": 68,
+      "m": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "relaxed"
+      ],
+      "instrument": [
+       "piano"
+      ]
+     }
+    },
+    {
+     "rank": 13,
+     "title": "只剩後悔在等待",
+     "artist": "TRASH",
+     "song_url": "https://www.kkbox.com/tw/tc/song/LXP1CYiRU4Yl67Tq-C",
+     "kkbox": "LXP1CYiRU4Yl67Tq-C",
+     "last_rank": null,
+     "is_new": true,
+     "genre": "Mandopop",
+     "apple": "tw/6828048101",
+     "spotify": "7FZDUwHOMnPU9ChFYXSov5",
+     "bpm": 178,
+     "range": {
+      "low": 53,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "both"
+     },
+     "tags": {
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "acousticguitar"
+      ],
+      "vocal": [
+       "male"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-06_2026-11-12",
+   "rank_change": "site",
+   "fetched_at": "2026-11-18T04:04:21+08:00",
+   "stale": false
+  }
+ ]
+}

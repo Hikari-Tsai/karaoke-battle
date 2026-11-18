@@ -1,0 +1,906 @@
+{
+ "source": "holiday",
+ "name": {
+  "zh": "好樂迪",
+  "en": "Holiday",
+  "ja": "好樂迪 (Holiday)"
+ },
+ "region": "tw",
+ "kind": "ktv",
+ "site_url": "https://www.holiday.com.tw/",
+ "checked_at": "2026-11-18T04:03:46+08:00",
+ "errors": [],
+ "charts": [
+  {
+   "id": "tc",
+   "title": {
+    "zh": "國語點播",
+    "en": "Mandarin Requests",
+    "ja": "中国語リクエスト"
+   },
+   "period": "2026/11/10 ~ 2026/11/16",
+   "source_url": "https://www.holiday.com.tw/SongInfo/SongList.aspx?st=top&lt=tc",
+   "rows": [
+    {
+     "rank": 1,
+     "title": "甲乙丙丁",
+     "artist": "李佳薇",
+     "song_no": "02657",
+     "kkbox": "GptIJ2y--IKc1ewMvC",
+     "last_rank": 1,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/6785801848",
+     "spotify": "629FqLOdjtsXh5b45FTk43",
+     "bpm": 130,
+     "range": {
+      "low": 60,
+      "high": 74,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "不愛就不愛",
+     "artist": "艾薇",
+     "song_no": "21644",
+     "kkbox": "HZEdODdiEYKflMA1Jk",
+     "last_rank": 3,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1806088704",
+     "spotify": "3ZILOOFldKtW2C7sD3MYXi",
+     "bpm": 85,
+     "range": {
+      "low": 60,
+      "high": 75,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -3,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Gothic Metal",
+       "Symphonic Rock"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "對等關係",
+     "artist": "李榮浩、張惠妹(aMEI)",
+     "song_no": "29100",
+     "kkbox": "PaQgW7h6WKr8017JvY",
+     "last_rank": 2,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1655821308",
+     "spotify": "0mGNDAW085Jkn8IbEalZG3",
+     "bpm": 130,
+     "range": {
+      "low": 54,
+      "high": 68,
+      "m": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "擱淺",
+     "artist": "周杰倫",
+     "song_no": "67060",
+     "kkbox": "KsNxNkw3fpSTS3_hs4",
+     "last_rank": 4,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/536115199",
+     "spotify": "56mzU03ZesV0iRroHR2K04",
+     "bpm": 62,
+     "range": {
+      "low": 53,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 5,
+     "title": "太陽與地球",
+     "artist": "盧廣仲",
+     "song_no": "22221",
+     "kkbox": "0spVFXYiDz1b8uI2zi",
+     "last_rank": 5,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1839368232",
+     "spotify": "0bQSWXtpau3VkNI1ZcXTQA",
+     "bpm": 66,
+     "range": {
+      "low": 50,
+      "high": 60,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 0,
+       "oct": 12
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "sad",
+       "love"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 6,
+     "title": "天后",
+     "artist": "陳勢安",
+     "song_no": "45744",
+     "kkbox": "GmKDY4Wj7q4F4SQ2MY",
+     "last_rank": 6,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/535085181",
+     "spotify": "4D0KlK4Fl8lotvsoys1bYQ",
+     "bpm": 80,
+     "range": {
+      "low": 50,
+      "high": 64,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 3,
+       "oct": 0
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Ballad",
+       "Vocal Pop"
+      ],
+      "mood": [
+       "sad",
+       "relaxed",
+       "love"
+      ],
+      "instrument": [
+       "piano"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "我懷念的",
+     "artist": "孫燕姿",
+     "song_no": "42589",
+     "kkbox": "-qn2N4CALDIxDm5Os5",
+     "last_rank": 8,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/905226305",
+     "spotify": "7z2M7DsEjZjwXBkWG3zd21",
+     "bpm": 68,
+     "range": {
+      "low": 56,
+      "high": 68,
+      "m": {
+       "v": "high",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 8,
+     "title": "雨愛",
+     "artist": "楊丞琳",
+     "song_no": "45132",
+     "kkbox": "8snyrQ7NV0ZqmaxIzZ",
+     "last_rank": 10,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/352569303",
+     "spotify": "553GNiNqcudWfsF55RBDqz",
+     "bpm": 80,
+     "range": {
+      "low": 59,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "instrument": [
+       "electricguitar"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "離開我的依賴",
+     "artist": "王艷薇",
+     "song_no": "29515",
+     "kkbox": "9ZH06Yn-s_ZpFJYVjQ",
+     "last_rank": 11,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1794042592",
+     "spotify": "28VBdtYc5Cpmey4Cpvcrby",
+     "bpm": 63,
+     "range": {
+      "low": 56,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "love"
+      ],
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 10,
+     "title": "痴心絕對",
+     "artist": "李聖傑",
+     "song_no": "61536",
+     "kkbox": "OmVUK_QNTsIBcjAIqS",
+     "last_rank": 7,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1530519464",
+     "spotify": "0D0n4q2o54VTOmDJdL6ikY",
+     "bpm": 107,
+     "range": {
+      "low": 54,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "sad",
+       "love"
+      ],
+      "instrument": [
+       "acousticguitar"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "看著我的眼睛說",
+     "artist": "張遠",
+     "song_no": "21900",
+     "kkbox": "GoiHhDGwV7_OegDFh_",
+     "last_rank": 9,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1815583986",
+     "bpm": 77,
+     "range": {
+      "low": 42,
+      "high": 64,
+      "m": {
+       "v": "low"
+      },
+      "f": {
+       "v": "low"
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 12,
+     "title": "倒帶",
+     "artist": "蔡依林",
+     "song_no": "66844",
+     "kkbox": "CnTB-AypUCArosFMgU",
+     "last_rank": 13,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/556949926",
+     "spotify": "4XipvtwRgtUrGb2j2l0wNG",
+     "bpm": 65,
+     "range": {
+      "low": 55,
+      "high": 69,
+      "m": {
+       "v": "high",
+       "key": 2,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Indie Rock",
+       "Alternative Rock"
+      ],
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "bass",
+       "drums",
+       "electricguitar"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-10_2026-11-16",
+   "rank_change": "site",
+   "fetched_at": "2026-11-18T04:03:18+08:00",
+   "stale": false
+  },
+  {
+   "id": "tt",
+   "title": {
+    "zh": "台語點播",
+    "en": "Taiwanese Requests",
+    "ja": "台湾語リクエスト"
+   },
+   "period": "2026/11/10 ~ 2026/11/16",
+   "source_url": "https://www.holiday.com.tw/SongInfo/SongList.aspx?st=top&lt=tt",
+   "rows": [
+    {
+     "rank": 1,
+     "title": "若無你我欲去佗位",
+     "artist": "黃奇斌",
+     "song_no": "82007",
+     "kkbox": "WqLdzspqTPWt5uodZs",
+     "last_rank": 1,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1824122176",
+     "spotify": "63uBr7KrsE4dUHCjFTzn3W",
+     "bpm": 75,
+     "range": {
+      "low": 48,
+      "high": 57,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": 0,
+       "oct": 12
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "love"
+      ],
+      "instrument": [
+       "drums",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "必巡",
+     "artist": "曾瑋中",
+     "song_no": "80822",
+     "kkbox": "0q5yzrkakH9Q_NjEi7",
+     "last_rank": 2,
+     "is_new": false,
+     "genre": "Tai-Pop",
+     "apple": "tw/1632587457",
+     "spotify": "3MHs8CC273iKTyGLVrLwxG",
+     "bpm": 72,
+     "range": {
+      "low": 47,
+      "high": 61,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": -1,
+       "oct": 12
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "運轉人生",
+     "artist": "邱軍",
+     "song_no": "81459",
+     "kkbox": "1-G_QnGnWDhie4i3A1",
+     "last_rank": 4,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1731074668",
+     "spotify": "30slz6D2PtbwDimGJaEVsH",
+     "bpm": 66,
+     "range": {
+      "low": 55,
+      "high": 69,
+      "m": {
+       "v": "high",
+       "key": 2,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "sad",
+       "love"
+      ],
+      "instrument": [
+       "acousticguitar"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "人生的歌",
+     "artist": "黃乙玲",
+     "song_no": "70292",
+     "kkbox": "SpUhAs8c1sYnpNS7W3",
+     "last_rank": 3,
+     "is_new": false,
+     "genre": "Tai-Pop",
+     "apple": "tw/1445875932",
+     "spotify": "4Vo0iTCUlkBfh1Xsx8o3wI",
+     "bpm": 124,
+     "range": {
+      "low": 47,
+      "high": 63,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": -3,
+       "oct": 12
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ]
+     }
+    },
+    {
+     "rank": 5,
+     "title": "雲中月圓",
+     "artist": "王識賢．孫淑媚",
+     "song_no": "77833",
+     "last_rank": 5,
+     "is_new": false,
+     "genre": "Tai-Pop",
+     "apple": "tw/1859554874",
+     "spotify": "5BOCd2Ve2cVRKb3x3DrLK3",
+     "bpm": 90,
+     "range": {
+      "low": 54,
+      "high": 67,
+      "m": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "happy"
+      ]
+     }
+    },
+    {
+     "rank": 6,
+     "title": "浪流連",
+     "artist": "茄子蛋",
+     "song_no": "15053",
+     "kkbox": "5-LQH1Tei4L5oBvtCR",
+     "last_rank": 7,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1726967549",
+     "spotify": "1IS0WFyiVpwsATeSzjEvpI",
+     "bpm": 124,
+     "range": {
+      "low": 43,
+      "high": 67,
+      "m": {
+       "v": "wide"
+      },
+      "f": {
+       "v": "low"
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "relaxed"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "閣愛妳一擺",
+     "artist": "茄子蛋",
+     "song_no": "80722",
+     "kkbox": "5YFhHAmXhYuu0i1V6e",
+     "last_rank": 6,
+     "is_new": false,
+     "genre": "Tai-Pop",
+     "apple": "tw/1726970401",
+     "spotify": "4Zwn8WxD61diTwqv9hyTQA",
+     "bpm": 67,
+     "range": {
+      "low": 50,
+      "high": 62,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": -2,
+       "oct": 12
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "mood": [
+       "love"
+      ],
+      "instrument": [
+       "guitar"
+      ]
+     }
+    },
+    {
+     "rank": 8,
+     "title": "愛到無命不知驚",
+     "artist": "王識賢",
+     "song_no": "76176",
+     "kkbox": "HajwZMFVE8K3bEULf4",
+     "last_rank": 9,
+     "is_new": false,
+     "genre": "Tai-Pop",
+     "apple": "tw/1851115080",
+     "spotify": "5Y8Jwa9TKgmy2DKXp49XNF",
+     "bpm": 70,
+     "range": {
+      "low": 55,
+      "high": 65,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "both"
+     }
+    },
+    {
+     "rank": 9,
+     "title": "我喜歡你",
+     "artist": "芒果醬 Mango Jump",
+     "song_no": "81381",
+     "kkbox": "H-3Gax1aCJ6qw-OS3s",
+     "last_rank": 8,
+     "is_new": false,
+     "genre": "Alternative",
+     "apple": "tw/1721470242",
+     "spotify": "6FpUCVpLvO0QXwsovSfWEa",
+     "bpm": 194,
+     "range": {
+      "low": 52,
+      "high": 68,
+      "m": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "f": {
+       "v": "low",
+       "key": 1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Folk"
+      ],
+      "mood": [
+       "sad",
+       "relaxed",
+       "love"
+      ],
+      "instrument": [
+       "acousticguitar",
+       "piano"
+      ]
+     }
+    },
+    {
+     "rank": 10,
+     "title": "浪子回頭",
+     "artist": "茄子蛋",
+     "song_no": "74805",
+     "kkbox": "KlMCS0RIBZNAA7lG1_",
+     "last_rank": 10,
+     "is_new": false,
+     "genre": "Mandopop",
+     "apple": "tw/1726978526",
+     "spotify": "301mxTHzMyFOVUXl6U22sf",
+     "bpm": 130,
+     "tags": {
+      "instrument": [
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "做你的格",
+     "artist": "玖壹壹",
+     "song_no": "81511",
+     "kkbox": "L_Fkru1p_NyBrHQR75",
+     "last_rank": 11,
+     "is_new": false,
+     "genre": "Tai-Pop",
+     "apple": "tw/1775889910",
+     "spotify": "01KDzPqoYKiUSV54SKWEHf",
+     "bpm": 140,
+     "range": {
+      "low": 54,
+      "high": 68,
+      "m": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Disco Polo"
+      ],
+      "mood": [
+       "danceable",
+       "party"
+      ],
+      "vocal": [
+       "male"
+      ]
+     }
+    },
+    {
+     "rank": 12,
+     "title": "伊的身邊已經有別人 2023",
+     "artist": "許富凱、血肉果汁機",
+     "song_no": "81531",
+     "kkbox": "OqRvDjpPMMmVe0gtPR",
+     "last_rank": 13,
+     "is_new": false,
+     "genre": "Tai-Pop",
+     "apple": "tw/1691657373",
+     "spotify": "2FpYbwYtGA5a4RUvGY2T6L",
+     "bpm": 128,
+     "range": {
+      "low": 49,
+      "high": 71,
+      "m": {
+       "v": "vhigh"
+      },
+      "f": {
+       "v": "low"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Metalcore",
+       "Post-Hardcore"
+      ],
+      "mood": [
+       "aggressive"
+      ],
+      "instrument": [
+       "drums",
+       "electricguitar"
+      ],
+      "vocal": [
+       "male"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-10_2026-11-16",
+   "rank_change": "site",
+   "fetched_at": "2026-11-18T04:03:22+08:00",
+   "stale": false
+  }
+ ]
+}
