@@ -6,6 +6,11 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 <!-- Keep the `## X.Y.Z — YYYY-MM-DD` headings: the app finds versions by them. -->
 
+## Unreleased
+
+### Fixed
+- "Move data" to another folder failed on Windows ("Deletion failed … being used by another process"), and could leave the old folder partly deleted while the app still pointed at it. The app itself still had its log open or the CUDA pack loaded, which Windows does not allow to be deleted. The log is now closed before moving; once the copy is complete the app points at the new folder before the old one is removed, and files that cannot be deleted yet are removed at the next start instead of causing an error.
+
 ## 1.1.7 — 2026-11-18
 
 ### Added
@@ -25,7 +30,6 @@ Each version lists what was added, improved and fixed. The app's new-version not
 - Latency calibration succeeds more often and measures more reliably (#5). It used to play five 2 ms clicks within the first second after the device started, which USB speakers, S/PDIF and amplifiers with auto-standby often swallowed, so it failed or even measured wrong. It now plays a soft tone first to wake the speakers, then six short chirps, each judged on its own: three heard are enough, and a distant microphone or a low volume still works. It takes about 3 s instead of 2. When it fails, the advice now also mentions the output device (S/PDIF and HDMI often have no speakers attached) and a muted microphone.
 - A download whose security certificate cannot be verified (usually an antivirus HTTPS scan or a company or school network, #6) now asks first whether to skip the check. Only files with a fixed checksum (the CUDA pack, models, yt-dlp and so on) can skip it, and they are still checked after downloading: changed content is not installed. Once you agree, it does not ask again until the app is closed.
 - The CUDA pack has a fallback source: when NuGet or PyPI fails, the same files come from this project's Hugging Face mirror (byte-identical, checked against the same checksums).
-- "Move data" to another folder failed on Windows ("Deletion failed … being used by another process"), and could leave the old folder partly deleted while the app still pointed at it. The app itself still had its log open or the CUDA pack loaded, which Windows does not allow to be deleted. The log is now closed before moving; once the copy is complete the app points at the new folder before the old one is removed, and files that cannot be deleted yet are removed at the next start instead of causing an error.
 
 ## 1.1.6 — 2026-11-17
 
