@@ -6,7 +6,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 <!-- Keep the `## X.Y.Z — YYYY-MM-DD` headings: the app finds versions by them. -->
 
-## Unreleased
+## 1.1.7 — 2026-11-18
 
 ### Added
 - A master volume bar in replays: the speaker mutes, the slider goes up to +6 dB, and the level is remembered.
