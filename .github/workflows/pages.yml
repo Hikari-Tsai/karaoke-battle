@@ -1,4 +1,6 @@
-# Publishes the static site in site/ to GitHub Pages.
+# Publishes the static site in site/ to GitHub Pages. Before uploading it
+# refreshes the "thanks to the issue reporters" line from the repo's issues
+# (scripts/issue_reporters.py), so it also runs once a day.
 name: pages
 
 on:
@@ -6,11 +8,15 @@ on:
     branches: [main]
     paths:
       - 'site/**'
+      - 'scripts/issue_reporters.py'
       - '.github/workflows/pages.yml'
+  schedule:
+    - cron: '17 16 * * *' # daily, 00:17 Taiwan time
   workflow_dispatch:
 
 permissions:
   contents: read
+  issues: read
   pages: write
   id-token: write
 
@@ -27,6 +33,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Issue reporters
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/issue_reporters.py "$GITHUB_REPOSITORY"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
