@@ -211,6 +211,10 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 .thx-people { list-style: none; padding: 0; margin: 24px 0 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .thx-people li { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; }
 .thx-people h3 { font-size: 20px; color: #fff; }
+.thx-who { display: flex; align-items: center; gap: 14px; }
+.thx-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex: none; border: 2px solid rgba(255, 255, 255, 0.16); background: var(--line); }
+.thx-issues { margin-top: 20px; font-size: 15.5px; }
+.thx-initial { display: grid; place-items: center; font-size: 21px; font-weight: 800; color: #fff; background: linear-gradient(135deg, var(--magenta), var(--lav)); }
 .thx-people p { color: #d6d2e3; font-size: 15.5px; margin-top: 6px; flex: 1; }
 .thx-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px !important; flex: none !important; }
 .thx-links a { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.18); color: var(--text); font-size: 14px; font-weight: 700; text-decoration: none; }
