@@ -71,6 +71,61 @@ final _catalog = SidecarCatalog({
   },
 });
 
+/// A yt-dlp that only knows `--version` and `-U` (which prints [update] and
+/// exits with [updateExit]).
+Future<void> _versionedYtDlp(String path, String version, {String update = 'yt-dlp is up to date', int updateExit = 0}) async {
+  await Directory(p.dirname(path)).create(recursive: true);
+  await File(path).writeAsString('''#!/bin/sh
+if [ "\$1" = "--version" ]; then echo "$version"; exit 0; fi
+if [ "\$1" = "-U" ]; then echo "$update" >&2; exit $updateExit; fi
+exit 1
+''');
+  await Process.run('chmod', ['+x', path]);
+}
+
+/// GitHub as seen by the release-page update: `releases/latest` redirects to
+/// [tag]; a download writes a yt-dlp reporting the version in its URL.
+class _ReleaseDownloader extends Downloader {
+  _ReleaseDownloader(this.tag, {this.failResolve = false});
+  final String tag;
+  final bool failResolve;
+  final urls = <Uri>[];
+  final sums = <Uri>[];
+
+  @override
+  Future<Uri> resolve(Uri url, {int maxHops = 5, Duration timeout = const Duration(seconds: 20)}) async {
+    if (failResolve) throw DownloadException('HTTP 503 for $url');
+    expect(url.toString(), 'https://github.com/yt-dlp/yt-dlp/releases/latest');
+    return Uri.parse('https://github.com/yt-dlp/yt-dlp/releases/tag/$tag');
+  }
+
+  @override
+  Future<String> fetchText(Uri url, {int maxBytes = 1 << 20, Duration timeout = const Duration(seconds: 20)}) async {
+    sums.add(url);
+    return '${'a' * 64}  yt-dlp\n${'b' * 64}  yt-dlp.exe\n';
+  }
+
+  @override
+  Future<void> download(Uri url, String destPath,
+      {String? sha256, void Function(DownloadProgress)? onProgress, Future<void>? cancel, Map<String, String>? headers}) async {
+    urls.add(url);
+    final segs = url.pathSegments;
+    await _versionedYtDlp(destPath, segs.contains('download') ? segs[segs.indexOf('download') + 1] : '2026.10.26');
+  }
+}
+
+final _releaseCatalog = SidecarCatalog({
+  SidecarKind.ytDlp: {
+    for (final k in SidecarCatalog.platformKeys)
+      k: const SidecarSource(url: 'https://example.invalid/yt-dlp', fallbacks: [
+        SidecarSource(
+          url: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp',
+          sha256Url: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS',
+        ),
+      ]),
+  },
+});
+
 void main() {
   late Directory tmp;
   late AppPaths paths;
@@ -190,6 +245,59 @@ void main() {
       final r = await setup.updateYtDlp();
       expect(r.ok, isFalse);
       expect(r.message, contains('Unable to write'));
+    });
+  });
+
+  group('update from the release page (no api.github.com, issue #4)', () {
+    String exe() => sidecars.managedPath(SidecarKind.ytDlp);
+
+    test('a newer release is downloaded from its tag, checked against its SHA2-256SUMS', skip: skip, () async {
+      final dl = _ReleaseDownloader('2026.11.05');
+      final s = Sidecars(paths, _releaseCatalog, downloader: dl);
+      await _versionedYtDlp(s.managedPath(SidecarKind.ytDlp), '2026.10.26', update: 'HTTP Error 403: rate limit exceeded', updateExit: 1);
+      final r = await s.updateYtDlp();
+      expect(r.ok, isTrue, reason: r.output);
+      expect(r.output, 'Updated yt-dlp from stable@2026.10.26 to stable@2026.11.05');
+      expect(r.output, contains('Updated yt-dlp')); // what downloadVideo looks for
+      expect(dl.urls, [Uri.parse('https://github.com/yt-dlp/yt-dlp/releases/download/2026.11.05/yt-dlp')]);
+      expect(dl.sums, [Uri.parse('https://github.com/yt-dlp/yt-dlp/releases/download/2026.11.05/SHA2-256SUMS')]);
+      expect(((await Process.run(s.managedPath(SidecarKind.ytDlp), ['--version'])).stdout as String).trim(), '2026.11.05');
+    });
+
+    test('nothing is downloaded when the copy is current (or newer, e.g. nightly)', skip: skip, () async {
+      for (final installed in ['2026.11.05', '2026.11.06.120000']) {
+        final dl = _ReleaseDownloader('2026.11.05');
+        final s = Sidecars(paths, _releaseCatalog, downloader: dl);
+        await _versionedYtDlp(exe(), installed);
+        final r = await s.updateYtDlp();
+        expect(r.ok, isTrue);
+        expect(r.output, 'yt-dlp is up to date (stable@$installed)');
+        expect(dl.urls, isEmpty);
+      }
+    });
+
+    test('when the release page cannot be read, -U is tried and both errors are kept', skip: skip, () async {
+      final s = Sidecars(paths, _releaseCatalog, downloader: _ReleaseDownloader('x', failResolve: true));
+      await _versionedYtDlp(exe(), '2026.10.26', update: 'ERROR: HTTP Error 403: rate limit exceeded', updateExit: 1);
+      final r = await s.updateYtDlp();
+      expect(r.ok, isFalse);
+      expect(r.output, allOf(contains('HTTP 503'), contains('rate limit exceeded')));
+    });
+
+    test('a copy installed just now counts as success even when the update check fails', skip: skip, () async {
+      final s = _PathSidecars(paths, _releaseCatalog, null, downloader: _ReleaseDownloader('x', failResolve: true));
+      final setup = SetupController(ModelStore(paths), s);
+      final r = await setup.updateYtDlp();
+      expect(r.ok, isTrue, reason: r.message);
+      expect(r.message, contains(tr('settings.ytDlpInstalled')));
+      expect(await File(s.managedPath(SidecarKind.ytDlp)).exists(), isTrue);
+    });
+
+    test('version order', () {
+      expect(Sidecars.compareVersions('2026.10.26', '2026.11.05'), -1);
+      expect(Sidecars.compareVersions('2026.11.05', '2026.11.05'), 0);
+      expect(Sidecars.compareVersions('2026.11.05.120000', '2026.11.05'), 1);
+      expect(Sidecars.compareVersions('2026.9.1', '2026.10.1'), -1);
     });
   });
 

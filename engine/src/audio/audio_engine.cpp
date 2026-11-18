@@ -55,6 +55,7 @@
 #include "core/error.h"
 #include "core/resample.h"
 #include "core/wav.h"
+#include "dsp/latency_probe.h"
 #include "dsp/mpm.h"
 #include "dsp/onset.h"
 #include "models/swiftf0.h"
@@ -73,11 +74,6 @@ constexpr int kModelLeftFrames = 11;      // swift-f0 LEFT_FRAMES
 constexpr int kModelLookahead = 10;       // swift-f0 LOOKAHEAD_FRAMES
 constexpr int kModelWindowFrames = 62;    // ~1 s at 16 ms
 constexpr int kModelEmitFrames = 10;      // run every 160 ms
-constexpr double kCalibSeconds = 1.5;
-constexpr int kCalibClicks = 5;
-constexpr double kCalibClickSpacing = 0.2;
-constexpr double kCalibFirstClick = 0.2;
-constexpr double kCalibMaxLag = 0.45;
 constexpr double kPi = 3.14159265358979323846;
 
 struct SyncRec {
@@ -267,7 +263,8 @@ struct ke_audio {
 
     // ---- calibration -------------------------------------------------------------
     std::atomic<int> calib_state{0};              // 0 idle, 1 running, 2 done
-    std::vector<float> calib_out, calib_in;
+    ke::LatencyProbe calib_probe;                 // played during calibration (dsp/latency_probe.h)
+    std::vector<float> calib_in;
     size_t calib_out_pos = 0, calib_in_pos = 0;
 
     // ---- workers -----------------------------------------------------------------
@@ -625,10 +622,10 @@ void ke_audio::data_callback(float* out, const float* in, ma_uint32 total) {
     if (out) {
         if (calib == 1) {
             for (ma_uint32 i = 0; i < total; ++i) {
-                const float v = calib_out_pos < calib_out.size() ? calib_out[calib_out_pos++] : 0.f;
+                const float v = calib_out_pos < calib_probe.out.size() ? calib_probe.out[calib_out_pos++] : 0.f;
                 out[2 * i] = out[2 * i + 1] = v;
             }
-            if (calib_out_pos >= calib_out.size() && calib_in_pos >= calib_in.size())
+            if (calib_out_pos >= calib_probe.out.size() && calib_in_pos >= calib_in.size())
                 calib_state.store(2, std::memory_order_release);
         } else {
             ma_uint32 done = 0;
@@ -974,19 +971,9 @@ KE_API int ke_audio_create(const char* capture_device_id, const char* playback_d
     r = ma_pcm_rb_init(ma_format_f32, 1, static_cast<ma_uint32>(kRingSeconds * sample_rate), nullptr, nullptr, &a->rb);
     if (r != MA_SUCCESS) return ke::fail(KE_ERR_AUDIO_DEVICE, "ma_pcm_rb_init: %s", ma_err(r).c_str());
     a->rb_ok = true;
-    // calibration click pattern: 5 Hann-windowed 1.5 kHz bursts (2 ms) 200 ms apart
-    a->calib_out.assign(static_cast<size_t>(kCalibSeconds * sample_rate), 0.f);
-    a->calib_in.assign(static_cast<size_t>(kCalibSeconds * sample_rate), 0.f);
-    {
-        const int len = std::max(8, static_cast<int>(0.002 * sample_rate));
-        for (int k = 0; k < kCalibClicks; ++k) {
-            const size_t s0 = static_cast<size_t>((kCalibFirstClick + k * kCalibClickSpacing) * sample_rate);
-            for (int i = 0; i < len && s0 + i < a->calib_out.size(); ++i) {
-                const double w = 0.5 - 0.5 * std::cos(2.0 * kPi * i / (len - 1));
-                a->calib_out[s0 + i] = static_cast<float>(0.6 * w * std::sin(2.0 * kPi * 1500.0 * i / sample_rate));
-            }
-        }
-    }
+    // calibration probe: wake-up tone, then six chirps (dsp/latency_probe.h)
+    a->calib_probe = ke::make_latency_probe(static_cast<int>(sample_rate));
+    a->calib_in.assign(a->calib_probe.record_frames, 0.f);
 
     r = ma_device_start(&a->dev);
     if (r != MA_SUCCESS) return ke::fail(KE_ERR_AUDIO_DEVICE, "ma_device_start: %s", ma_err(r).c_str());
@@ -1467,7 +1454,7 @@ KE_API int ke_audio_calibrate_latency(ke_audio* a, double* roundtrip_seconds) {
     std::fill(a->calib_in.begin(), a->calib_in.end(), 0.f);
     a->calib_out_pos = a->calib_in_pos = 0;
     a->calib_state.store(1, std::memory_order_release);
-    const auto deadline = Clock::now() + std::chrono::milliseconds(static_cast<int>(kCalibSeconds * 1000) + 2000);
+    const auto deadline = Clock::now() + std::chrono::milliseconds(static_cast<int>(1000.0 * a->calib_in.size() / a->sr) + 2000);
     while (a->calib_state.load(std::memory_order_acquire) == 1 && Clock::now() < deadline)
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     const bool finished = a->calib_state.load() == 2;
@@ -1475,49 +1462,18 @@ KE_API int ke_audio_calibrate_latency(ke_audio* a, double* roundtrip_seconds) {
     a->wait_callback_cycles(1);
     if (!finished) return ke::fail(KE_ERR_AUDIO_DEVICE, "calibration timed out (device not running?)");
 
-    // Matched filter of the recording against the click pattern (only the non-zero pattern samples).
-    const std::vector<float>& pat = a->calib_out;
-    const std::vector<float>& rec = a->calib_in;
-    std::vector<size_t> nz;
-    for (size_t i = 0; i < pat.size(); ++i) if (pat[i] != 0.f) nz.push_back(i);
-    const size_t max_lag = static_cast<size_t>(kCalibMaxLag * a->sr);
-    std::vector<double> corr(max_lag, 0.0);
-    double rec_peak = 0.0;
-    for (float v : rec) rec_peak = std::max(rec_peak, double(std::fabs(v)));
-    for (size_t lag = 0; lag < max_lag; ++lag) {
-        double s = 0.0;
-        for (size_t i : nz) { const size_t k = i + lag; if (k < rec.size()) s += double(pat[i]) * rec[k]; }
-        corr[lag] = std::fabs(s);
+    const ke::LatencyResult res = ke::measure_latency(a->calib_probe, a->calib_in);
+    if (!res.ok) return ke::fail(KE_ERR_AUDIO_DEVICE, "%s", res.error.c_str());
+    std::string per;
+    for (double v : res.per_chirp) {
+        char b[16];
+        if (v < 0) std::snprintf(b, sizeof b, " -");
+        else std::snprintf(b, sizeof b, " %.1f", v * 1000.0);
+        per += b;
     }
-    size_t best = 0;
-    double peak = 0.0, mean = 0.0;
-    for (size_t lag = 0; lag < max_lag; ++lag) { if (corr[lag] > peak) { peak = corr[lag]; best = lag; } mean += corr[lag]; }
-    mean /= std::max<size_t>(1, max_lag);
-    const double prominence = mean > 0 ? peak / mean : 0.0;
-    if (rec_peak < 1e-4 || prominence < 6.0)
-        return ke::fail(KE_ERR_AUDIO_DEVICE, "no click detected in the recording (input peak %.1f dBFS, peak/mean %.1f): is the microphone enabled and able to hear the speakers?",
-                        db_of_rms(rec_peak), prominence);
-    // Per-click lag within +-5 ms of the global peak, then the median.
-    const int half = static_cast<int>(0.005 * a->sr);
-    const int len = std::max(8, static_cast<int>(0.002 * a->sr));
-    std::vector<double> lags;
-    for (int k = 0; k < kCalibClicks; ++k) {
-        const size_t s0 = static_cast<size_t>((kCalibFirstClick + k * kCalibClickSpacing) * a->sr);
-        double bp = -1.0; size_t bl = best;
-        for (int d = -half; d <= half; ++d) {
-            const long lag = static_cast<long>(best) + d;
-            if (lag < 0) continue;
-            double s = 0.0;
-            for (int i = 0; i < len; ++i) { const size_t kk = s0 + i + static_cast<size_t>(lag); if (kk < rec.size()) s += double(pat[s0 + i]) * rec[kk]; }
-            s = std::fabs(s);
-            if (s > bp) { bp = s; bl = static_cast<size_t>(lag); }
-        }
-        lags.push_back(double(bl) / a->sr);
-    }
-    std::sort(lags.begin(), lags.end());
-    const double median = lags[lags.size() / 2];
-    KE_LOGI("audio: calibration round trip %.1f ms (per click: %.1f %.1f %.1f %.1f %.1f ms, peak/mean %.1f, input peak %.1f dBFS)",
-            median * 1000.0, lags[0] * 1000, lags[1] * 1000, lags[2] * 1000, lags[3] * 1000, lags[4] * 1000, prominence, db_of_rms(rec_peak));
+    KE_LOGI("audio: calibration round trip %.1f ms (per sweep:%s ms, %d found, peak/mean %.1f, input peak %.1f dBFS)",
+            res.roundtrip * 1000.0, per.c_str(), res.found, res.prominence, db_of_rms(res.input_peak));
+    const double median = res.roundtrip;
     if (roundtrip_seconds) *roundtrip_seconds = median;
     return KE_OK;
 }

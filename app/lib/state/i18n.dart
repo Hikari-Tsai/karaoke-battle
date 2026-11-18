@@ -536,7 +536,7 @@ const Map<String, (String, String, String)> _table = {
   'sing.keyboardOn': ('音高鍵盤：開（點一下關閉）', 'Pitch keyboard: on (click to turn off)', '音程キーボード：オン（クリックでオフ）'),
   'sing.keyboardOff': ('音高鍵盤：關（點一下開啟）', 'Pitch keyboard: off (click to turn on)', '音程キーボード：オフ（クリックでオン）'),
   'sing.latencyRemeasureShort': ('重新量測', 'Measure', '再測定'),
-  'sing.latencyRemeasure': ('重新量測延遲（會暫停播放，播放幾聲咔嗒聲）', 'Measure the latency again (pauses playback and plays a few clicks)', '遅延を測り直す（再生を止めてクリック音を鳴らします）'),
+  'sing.latencyRemeasure': ('重新量測延遲（會暫停播放，播放提示音）', 'Measure the latency again (pauses playback and plays a few test sounds)', '遅延を測り直す（再生を止めてテスト音を鳴らします）'),
   'sing.latencyMeasured': ('延遲已更新為 {ms} ms', 'Latency set to {ms} ms', '遅延を {ms} ms に更新しました'),
   'sing.octaveAlign': ('八度對齊顯示', 'Octave-aligned display', 'オクターブを揃えて表示'),
   'sing.window': ('時間範圍', 'Window', '表示範囲'),
@@ -879,6 +879,11 @@ const Map<String, (String, String, String)> _table = {
   ),
   'settings.ytDlpInstallFailed': ('無法下載 yt-dlp：{error}', 'Could not download yt-dlp: {error}', 'yt-dlp をダウンロードできませんでした：{error}'),
   'settings.ytDlpUpdateFailed': ('無法更新 yt-dlp：{error}', 'Could not update yt-dlp: {error}', 'yt-dlp を更新できませんでした：{error}'),
+  'settings.ytDlpCheckLater': (
+    '已經可以使用；只是暫時查不到有沒有更新的版本，之後可以再按「更新 yt-dlp」。（{error}）',
+    'It is ready to use; only checking for a newer version failed for now. Press "Update yt-dlp" again later. ({error})',
+    'すぐに使えます。新しいバージョンの確認だけが今はできなかったので、あとで「yt-dlp を更新」をもう一度押してください。（{error}）',
+  ),
   'ytdlp.title': ('yt-dlp 需要處理', 'yt-dlp needs attention', 'yt-dlp の対応が必要です'),
   'ytdlp.broken': (
     '程式自己的 yt-dlp 無法執行，可能是先前下載不完整或檔案損壞。重新下載一份即可修復。\n\n若不重新下載，將無法從 YouTube 下載歌曲。',
@@ -908,11 +913,11 @@ const Map<String, (String, String, String)> _table = {
   'settings.systemDefault': ('系統預設', 'System default', 'システム既定'),
   'settings.sampleRate': ('取樣率', 'Sample rate', 'サンプルレート'),
   'settings.calibrate': ('量測延遲', 'Calibrate latency', '遅延を測定'),
-  'settings.calibrating': ('量測中（約 2 秒）…', 'Measuring (about 2 s)…', '測定中（約 2 秒）…'),
+  'settings.calibrating': ('量測中（約 3 秒）…', 'Measuring (about 3 s)…', '測定中（約 3 秒）…'),
   'settings.calibrateHint': (
-    '請用喇叭外放（不要戴耳機），讓麥克風能聽到播放的聲響，才能量出延遲。量測時會播放一串短促的咔嗒聲，請把音量調到聽得清楚。',
-    'Use your speakers (not headphones) so the microphone can hear the playback; otherwise the latency cannot be measured. A short burst of clicks will play, so turn the volume up enough to hear it clearly.',
-    'ヘッドホンではなくスピーカーで再生し、マイクが再生音を拾えるようにしてください。そうしないと遅延を測定できません。測定中に短いクリック音が流れるので、はっきり聞こえる音量にしてください。',
+    '請用喇叭外放（不要戴耳機），讓麥克風能聽到播放的聲響，才能量出延遲。量測時會先播一聲輕柔的提示音，接著是幾聲短促的「啾」聲，請把音量調到聽得清楚。',
+    'Use your speakers (not headphones) so the microphone can hear the playback; otherwise the latency cannot be measured. A soft tone and then a few short chirps will play, so turn the volume up enough to hear them clearly.',
+    'ヘッドホンではなくスピーカーで再生し、マイクが再生音を拾えるようにしてください。そうしないと遅延を測定できません。測定中にやわらかい音のあとで短い「チュッ」という音が数回流れるので、はっきり聞こえる音量にしてください。',
   ),
   'rangePrompt.title': ('量測你的音域', 'Find your range', 'あなたの音域を測りましょう'),
   'rangePrompt.body': (
@@ -923,9 +928,9 @@ const Map<String, (String, String, String)> _table = {
   'rangePrompt.dontAsk': ('不再提醒（之後可在「設定」量測）', "Don't ask again (you can do it later in Settings)", '今後表示しない（あとで「設定」から測定できます）'),
   'calibPrompt.title': ('先量測一次延遲', 'Measure latency first', '最初に遅延を測定しましょう'),
   'calibPrompt.body': (
-    '還沒有量測過這台電腦的音訊延遲。量測一次（約 2 秒）可以讓即時音高線和伴奏對齊，評分也更準；結果會保存，之後不用再量。換了麥克風或喇叭時，可以到「設定」重新量測。',
-    'The audio latency of this computer has not been measured yet. Measuring once (about 2 s) lines the live pitch line up with the backing track and makes scoring more accurate; the result is saved, so you only need to do it once. If you change microphone or speakers, measure again in Settings.',
-    'このパソコンの音声遅延はまだ測定されていません。一度測定する（約 2 秒）と、リアルタイムの音程線が伴奏と揃い、採点もより正確になります。結果は保存されるので一度だけで大丈夫です。マイクやスピーカーを変えたときは「設定」から測り直せます。',
+    '還沒有量測過這台電腦的音訊延遲。量測一次（約 3 秒）可以讓即時音高線和伴奏對齊，評分也更準；結果會保存，之後不用再量。換了麥克風或喇叭時，可以到「設定」重新量測。',
+    'The audio latency of this computer has not been measured yet. Measuring once (about 3 s) lines the live pitch line up with the backing track and makes scoring more accurate; the result is saved, so you only need to do it once. If you change microphone or speakers, measure again in Settings.',
+    'このパソコンの音声遅延はまだ測定されていません。一度測定する（約 3 秒）と、リアルタイムの音程線が伴奏と揃い、採点もより正確になります。結果は保存されるので一度だけで大丈夫です。マイクやスピーカーを変えたときは「設定」から測り直せます。',
   ),
   'calibPrompt.measure': ('開始量測', 'Measure now', '測定する'),
   'calibPrompt.retry': ('再量一次', 'Try again', 'もう一度測定'),
@@ -936,9 +941,9 @@ const Map<String, (String, String, String)> _table = {
   'calibPrompt.continue': ('開始預覽', 'Continue to preview', 'プレビューへ'),
   'settings.calibFail.title': ('量測失敗', 'Calibration failed', '測定に失敗しました'),
   'settings.calibFail.noClick': (
-    '麥克風沒有聽到播放的咔嗒聲。請拿掉耳機改用喇叭外放、把系統音量調大，並確認「設定」中選的輸入裝置是你正在用的麥克風，然後再量一次。',
-    'The microphone did not hear the clicks. Take off your headphones and use speakers, turn the system volume up, check that the input device selected in Settings is the microphone you are using, then try again.',
-    'マイクがクリック音を拾えませんでした。ヘッドホンを外してスピーカーで再生し、システムの音量を上げ、設定で選んだ入力デバイスが使用中のマイクか確認してから、もう一度測定してください。',
+    '麥克風沒有聽到量測的聲音。請拿掉耳機改用喇叭外放、把系統音量調大，並確認「設定」中選的輸入裝置是你正在用的麥克風、輸出裝置是你正在聽的喇叭（S/PDIF、HDMI 這類數位輸出常常沒有接喇叭），麥克風的靜音也要關掉，然後再量一次。',
+    'The microphone did not hear the test sounds. Take off your headphones and use speakers, turn the system volume up, and check in Settings that the input device is the microphone you are using and the output device is the speakers you are listening to (digital outputs such as S/PDIF or HDMI often have no speakers attached). Make sure the microphone is not muted, then try again.',
+    'マイクが測定音を拾えませんでした。ヘッドホンを外してスピーカーで再生し、システムの音量を上げてください。設定で、入力デバイスが使用中のマイク、出力デバイスが聞いているスピーカーになっているか確認してください（S/PDIF や HDMI などのデジタル出力にはスピーカーがつながっていないことがよくあります）。マイクのミュートも解除してから、もう一度測定してください。',
   ),
   'settings.calibFail.device': (
     '無法開啟音訊裝置。請確認麥克風與喇叭已連接、沒有被其他程式獨占，並已允許本 App 使用麥克風（macOS：系統設定 > 隱私權與安全性 > 麥克風；Windows：設定 > 隱私權與安全性 > 麥克風）。也可以試著把取樣率改成 44100 Hz 或改選其他裝置。',

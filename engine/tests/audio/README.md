@@ -52,6 +52,7 @@ synthetic ground truth to ~4 cents median (the vibrato moves 40 cents within a f
 ./build-audio/ke_cli devices
 ./build-audio/ke_cli live --ort $ORT --model $MODEL --track /tmp/ke/track.wav --seconds 5 --save /tmp/ke/take.wav --verbose
 ./build-audio/ke_cli calibrate --verbose
+./build-audio/ke_calib_eval    # calibration on synthetic recordings (quiet, noisy, start swallowed)
 uv run --python 3.12 --with soundfile --with numpy python -I tests/audio/live_test.py \
     --ke-cli build-audio/ke_cli --ort $ORT --model $MODEL --work-dir /tmp/ke/live
 ```

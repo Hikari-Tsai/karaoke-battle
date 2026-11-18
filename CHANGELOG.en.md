@@ -20,6 +20,8 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 ### Fixed
 - The Windows CUDA pack downloads again. Its download link broke when Microsoft took ONNX Runtime off GitHub (#7); it now comes from NuGet and PyPI and moves to CUDA 13: about 1.2 GB instead of 1.9 GB, but it needs a GTX 16 / RTX 20 series or newer GPU and driver 580.88 or newer. An already installed CUDA pack keeps working; downloading it again replaces it with the new one and deletes the old files.
+- Updating yt-dlp no longer fails on GitHub's request limit (#4). It used to ask the GitHub API for the newest version, which allows 60 requests an hour per IP without a login, easily used up on shared connections such as mobile networks, dorms or offices. It now reads the newest version from the GitHub release page and still checks the official checksums. A yt-dlp that was just downloaded is no longer reported as "could not update" when only the check for a newer one fails.
+- Latency calibration succeeds more often and measures more reliably (#5). It used to play five 2 ms clicks within the first second after the device started, which USB speakers, S/PDIF and amplifiers with auto-standby often swallowed, so it failed or even measured wrong. It now plays a soft tone first to wake the speakers, then six short chirps, each judged on its own: three heard are enough, and a distant microphone or a low volume still works. It takes about 3 s instead of 2. When it fails, the advice now also mentions the output device (S/PDIF and HDMI often have no speakers attached) and a muted microphone.
 
 ## 1.1.6 — 2026-11-17
 

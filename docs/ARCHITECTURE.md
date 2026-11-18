@@ -159,7 +159,7 @@ Validate against `pip install swift-f0` on the same WAV: median |cents| < 5 on v
   playback clock when a track is playing (capture start is recorded against the playback cursor).
 * `ke_audio_save_capture` writes the whole capture (kept in a growable buffer, mono f32) and a
   JSON sidecar with `track_start_offset` and `latency`.
-* Latency calibration: play 5 clicks 200 ms apart, record, cross-correlate, median.
+* Latency calibration: play a soft wake-up tone (speakers and amplifiers that sleep drop the start of a stream) and then six 40 ms chirps, alternately up and down, 300 ms apart; record, matched-filter each chirp, take the median of those heard (`src/dsp/latency_probe.cpp`, synthetic tests in `ke_calib_eval`).
 * Everything in the device callback is allocation-free and lock-free.
 
 ## Dart side (app/lib)

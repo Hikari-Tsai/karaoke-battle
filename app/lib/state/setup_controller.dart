@@ -253,6 +253,9 @@ class SetupController extends ChangeNotifier {
         if (err != null) return (ok: false, message: tr('settings.ytDlpInstallFailed', {'error': err}));
       }
       final r = await sidecars.updateYtDlp();
+      // A copy installed just now from the catalog works; only the check for
+      // an even newer one failed (issue #4), so this is not a failure.
+      if (!r.ok && missing) return (ok: true, message: '${tr('settings.ytDlpInstalled')}\n${tr('settings.ytDlpCheckLater', {'error': r.output})}');
       if (!r.ok) return (ok: false, message: tr('settings.ytDlpUpdateFailed', {'error': r.output}));
       ytDlpHealth = YtDlpHealth.ok;
       return (ok: true, message: missing ? '${tr('settings.ytDlpInstalled')}\n${r.output}' : r.output);

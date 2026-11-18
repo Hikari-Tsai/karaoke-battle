@@ -420,17 +420,78 @@ class Sidecars {
     if (Platform.isMacOS) await Process.run('xattr', ['-d', 'com.apple.quarantine', path]);
   }
 
-  /// Runs `yt-dlp -U` on the app's own copy. A yt-dlp found on PATH (winget,
-  /// scoop, pip, Homebrew) belongs to its package manager and is left alone;
-  /// when the managed copy is missing it is installed from the catalog first,
-  /// and [resolve] prefers it from then on. [installed] says that happened;
-  /// [ok] is false when `-U` itself failed.
+  /// Updates the app's own yt-dlp. A yt-dlp found on PATH (winget, scoop,
+  /// pip, Homebrew) belongs to its package manager and is left alone; when
+  /// the managed copy is missing it is installed from the catalog first, and
+  /// [resolve] prefers it from then on. [installed] says that happened; [ok]
+  /// is false when the update itself failed.
+  ///
+  /// The newest version is read from the GitHub release page's redirect and
+  /// downloaded like an install (checked against the release's
+  /// SHA2-256SUMS). `yt-dlp -U` asks api.github.com instead, which allows 60
+  /// requests an hour per IP without a login and failed on shared
+  /// connections (issue #4); it is only used when the catalog has no GitHub
+  /// "latest" link or the release page cannot be read.
   Future<({bool installed, bool ok, String output})> updateYtDlp({void Function(DownloadProgress)? onProgress}) async {
     final exe = managedPath(SidecarKind.ytDlp);
     final installed = !await File(exe).exists();
     if (installed) await install(SidecarKind.ytDlp, onProgress: onProgress);
+    String? releaseError;
+    final release = _githubLatest(await sourceFor(SidecarKind.ytDlp));
+    if (release != null) {
+      try {
+        return (installed: installed, ok: true, output: await _updateFromRelease(exe, release.repo, release.file, onProgress));
+      } catch (e) {
+        releaseError = '$e';
+      }
+    }
     final r = await Process.run(exe, ['-U'], environment: _env());
-    return (installed: installed, ok: r.exitCode == 0, output: '${r.stdout}${r.stderr}'.trim());
+    final out = '${r.stdout}${r.stderr}'.trim();
+    return (installed: installed, ok: r.exitCode == 0, output: r.exitCode == 0 || releaseError == null ? out : '$releaseError\n$out');
+  }
+
+  static final _latestLink = RegExp(r'^(https://github\.com/[^/]+/[^/]+)/releases/latest/download/([^/]+)$');
+
+  /// The repository and file name of a source (or one of its fallbacks)
+  /// that follows a GitHub project's latest release.
+  static ({String repo, String file})? _githubLatest(SidecarSource? s) {
+    if (s == null) return null;
+    for (final c in [s, ...s.fallbacks]) {
+      final m = _latestLink.firstMatch(c.url);
+      if (m != null) return (repo: m.group(1)!, file: m.group(2)!);
+    }
+    return null;
+  }
+
+  /// Compares dotted version numbers ("2026.10.26", "2026.11.05.233921").
+  static int compareVersions(String a, String b) {
+    List<int> parts(String v) => [for (final s in v.split(RegExp(r'[.\-]'))) int.tryParse(s) ?? 0];
+    final x = parts(a), y = parts(b);
+    for (var i = 0; i < x.length || i < y.length; i++) {
+      final d = (i < x.length ? x[i] : 0) - (i < y.length ? y[i] : 0);
+      if (d != 0) return d.sign;
+    }
+    return 0;
+  }
+
+  /// Replaces [exe] with [repo]'s newest release of [file] when that is
+  /// newer than what [exe] reports. Returns yt-dlp's own wording, which
+  /// [downloadVideo] looks for.
+  Future<String> _updateFromRelease(String exe, String repo, String file, void Function(DownloadProgress)? onProgress) async {
+    final tagUrl = await _dl.resolve(Uri.parse('$repo/releases/latest'));
+    final segs = tagUrl.pathSegments;
+    final at = segs.indexOf('tag');
+    if (at < 0 || at + 1 >= segs.length || segs[at + 1].isEmpty) throw DownloadException('no release tag in $tagUrl');
+    final tag = segs[at + 1];
+    final v = await Process.run(exe, ['--version'], environment: _env());
+    final current = '${v.stdout}'.trim().split('\n').first.trim();
+    if (v.exitCode == 0 && current.isNotEmpty && compareVersions(current, tag) >= 0) {
+      return 'yt-dlp is up to date (stable@$current)';
+    }
+    final base = '$repo/releases/download/$tag';
+    await _installFrom(SidecarSource(url: '$base/$file', sha256Url: '$base/SHA2-256SUMS'), exe, onProgress);
+    await _makeExecutable(exe);
+    return current.isEmpty ? 'Updated yt-dlp to stable@$tag' : 'Updated yt-dlp from stable@$current to stable@$tag';
   }
 
   /// Launch check: does the app's own yt-dlp run, and if there is none, is

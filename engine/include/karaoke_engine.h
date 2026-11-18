@@ -330,9 +330,11 @@ KE_API double ke_audio_capture_elapsed(ke_audio* a);
 KE_API int  ke_audio_save_capture(ke_audio* a, const char* wav_path);
 
 /*
- * Latency calibration: plays a short click burst through the playback device
- * while recording, cross-correlates, and returns the round-trip latency in
- * seconds. Requires no track to be playing. Blocks for ~2 seconds.
+ * Latency calibration: plays a soft wake-up tone and six short chirps
+ * (dsp/latency_probe.h) through the playback device while recording, finds
+ * them with a matched filter, and returns the round-trip latency in seconds
+ * (the median over the chirps heard). Requires no track to be playing.
+ * Blocks for ~3 seconds.
  */
 KE_API int  ke_audio_calibrate_latency(ke_audio* a, double* roundtrip_seconds);
 

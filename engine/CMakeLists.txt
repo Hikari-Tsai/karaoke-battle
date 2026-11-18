@@ -64,6 +64,7 @@ set(KE_SOURCES
   src/dsp/stft.cpp
   src/dsp/mpm.cpp
   src/dsp/onset.cpp
+  src/dsp/latency_probe.cpp
   src/dsp/hall_reverb.cpp
   src/dsp/reverb_api.cpp
   third_party/cloudseed/DSP/Biquad.cpp
@@ -129,6 +130,10 @@ endif()
 # Onset detector tuning tool (development only, not installed)
 add_executable(ke_onset_eval tools/onset_eval.cpp src/dsp/onset.cpp)
 target_include_directories(ke_onset_eval PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+
+# Latency calibration on synthetic recordings (development only, not installed)
+add_executable(ke_calib_eval tools/calib_eval.cpp src/dsp/latency_probe.cpp)
+target_include_directories(ke_calib_eval PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 install(TARGETS karaoke_engine ke_cli
   RUNTIME DESTINATION bin
