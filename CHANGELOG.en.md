@@ -6,7 +6,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 <!-- Keep the `## X.Y.Z — YYYY-MM-DD` headings: the app finds versions by them. -->
 
-## Unreleased
+## 1.1.8 — 2026-11-18
 
 ### Fixed
 - "Move data" to another folder failed on Windows ("Deletion failed … being used by another process"), and could leave the old folder partly deleted while the app still pointed at it. The app itself still had its log open or the CUDA pack loaded, which Windows does not allow to be deleted. The log is now closed before moving; once the copy is complete the app points at the new folder before the old one is removed, and files that cannot be deleted yet are removed at the next start instead of causing an error.
