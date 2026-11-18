@@ -52,21 +52,28 @@ void main() {
   group('listen links', () {
     final e = parseVendorCharts(KtvVendor.holiday, fixture('site-holiday.json'), downloadedAt: t0).chart('tc')!.entries.first;
 
-    test('open the exact song on each service when the site matched it', () {
-      expect(e.hasListen(ListenService.apple), isTrue);
+    test('open the exact song on each service that has it', () {
+      expect(e.listenServices, ListenService.values);
       expect(e.listenUrl(ListenService.apple).toString(), 'https://music.apple.com/tw/song/6785801848');
       expect(e.listenUrl(ListenService.spotify).toString(), 'https://open.spotify.com/track/${e.spotify}');
       expect(e.listenUrl(ListenService.kkbox).toString(), 'https://www.kkbox.com/tw/tc/song/${e.kkbox}');
     });
 
-    test('fall back to a search there otherwise', () {
-      const bare = ChartEntry(rank: 1, title: '伯方の塩', artist: '塩谷信廣');
-      expect(bare.hasListen(ListenService.spotify), isFalse);
-      expect(bare.listenUrl(ListenService.apple, region: 'jp').toString(), startsWith('https://music.apple.com/jp/search?term='));
-      expect(bare.listenUrl(ListenService.spotify).host, 'open.spotify.com');
-      expect(bare.listenUrl(ListenService.kkbox).path, '/tw/tc/search');
+    test('no link where the site found no match', () {
+      const bare = ChartEntry(rank: 1, title: '伯方の塩', artist: '塩谷信廣', apple: 'jp/123');
+      expect(bare.listenServices, [ListenService.apple]);
+      expect(bare.listenUrl(ListenService.spotify), isNull);
       expect(bare.youtubeSearchUrl.queryParameters['search_query'], '伯方の塩 塩谷信廣');
     });
+  });
+
+  test('VTuber covers: count and who sang them', () {
+    final d = parseVendorCharts(KtvVendor.vtuber, fixture('site-vtuber.json'), downloadedAt: t0);
+    expect(d.boards.map((b) => b.id), ['covers-all', 'covers-90d']);
+    final e = d.chart('covers-all')!.entries.first;
+    expect((e.title, e.covers), ('CH4NGE', 19));
+    expect(e.performers.first, (name: '可可伊丹CocoEden', video: 'QRcTX1JJaVo'));
+    expect(ChartEntry.youtubeVideo('QRcTX1JJaVo').toString(), 'https://www.youtube.com/watch?v=QRcTX1JJaVo');
   });
 
   group('KtvChartService', () {

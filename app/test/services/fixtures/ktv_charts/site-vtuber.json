@@ -1,0 +1,1787 @@
+{
+ "source": "vtuber",
+ "name": {
+  "zh": "VTuber 翻唱",
+  "en": "VTuber Covers",
+  "ja": "VTuber カバー"
+ },
+ "region": "tw",
+ "kind": "cover",
+ "site_url": "https://www.youtube.com/playlist?list=PLg42Bx1jWLfnUmAMCEEwsKE0yNUW5X6Jl",
+ "checked_at": "2026-11-18T09:58:41+08:00",
+ "errors": [],
+ "charts": [
+  {
+   "id": "covers-all",
+   "title": {
+    "zh": "累計翻唱次數",
+    "en": "Most Covered · All Time",
+    "ja": "累計カバー数"
+   },
+   "period": "2026/11/18",
+   "source_url": "https://www.youtube.com/playlist?list=PLg42Bx1jWLfnUmAMCEEwsKE0yNUW5X6Jl",
+   "videos": 1010,
+   "rows": [
+    {
+     "rank": 1,
+     "title": "CH4NGE",
+     "artist": "Giga",
+     "covers": 19,
+     "cover_video": "QRcTX1JJaVo",
+     "performers": [
+      [
+       "可可伊丹CocoEden",
+       "QRcTX1JJaVo"
+      ],
+      [
+       "諾恪里 Nokori",
+       "U8SxZ16wzgw"
+      ],
+      [
+       "絲卡皊 Skylynn Shiotsuki",
+       "v-k0bxc7xEY"
+      ],
+      [
+       "涅波絲姬 Neboskey",
+       "TH8cVHPZ9EM"
+      ],
+      [
+       "Belmoru 莫爾",
+       "yVKhWmgZMig"
+      ],
+      [
+       "音宿明",
+       "d2z00EOssMc"
+      ],
+      [
+       "塩月墨瀧 Sutaki",
+       "XaZsJ316xWo"
+      ],
+      [
+       "雨ノAMeNo",
+       "l49fuFadUx4"
+      ],
+      [
+       "安戈洛 Englar",
+       "AJfNr9uJ-64"
+      ],
+      [
+       "天櫻咲樂さくら",
+       "N8dVWLTctzQ"
+      ],
+      [
+       "胡梨 Hulii",
+       "DteR0rq6goo"
+      ],
+      [
+       "梨亞卓恩",
+       "ZiR32oCKQGU"
+      ],
+      [
+       "月島ケン_Tsukishima Ken",
+       "hFzm3rDEJeY"
+      ],
+      [
+       "Chulina Felu 菲露",
+       "KmLswfJB4wM"
+      ],
+      [
+       "FuscA 法斯卡",
+       "qK2kDUoq3JA"
+      ],
+      [
+       "Blueberry Cheese 藍莓起司",
+       "ewAKkelE1Cw"
+      ],
+      [
+       "汐Seki",
+       "QPEDztVZNQ8"
+      ],
+      [
+       "洛可洛斯特Loco Lost",
+       "nIkanQCMhWk"
+      ],
+      [
+       "荒幽ばつ | Rakurai Batsu",
+       "OpF0c-_sskI"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "tw/1625063291",
+     "spotify": "1LMtX8T1WnVsKwoKrP4oZi",
+     "bpm": 121,
+     "range": {
+      "low": 56,
+      "high": 70,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Dance-pop",
+       "Synth-pop"
+      ],
+      "mood": [
+       "danceable",
+       "party"
+      ],
+      "instrument": [
+       "synthesizer"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "JANE DOE",
+     "artist": "米津玄師 & Hikaru Utada",
+     "covers": 18,
+     "cover_video": "uTVshFu5KUs",
+     "performers": [
+      [
+       "SuNo 踏雪",
+       "uTVshFu5KUs"
+      ],
+      [
+       "夜露妮亞",
+       "ZBOUYO_7jVU"
+      ],
+      [
+       "拾參 Thirteen",
+       "BMFR4BRE8l4"
+      ],
+      [
+       "人偶・薩賓娜 Panenka Sabina",
+       "G0P-EOPqQxQ"
+      ],
+      [
+       "望夜 Night",
+       "mf11kHr7ag8"
+      ],
+      [
+       "林媛媛 Yuanyuan Lin",
+       "yHyIfCz-pmc"
+      ],
+      [
+       "揪摳 JOKO",
+       "5aBlQ_S90WI"
+      ],
+      [
+       "雨下 ᴜᴋᴀ",
+       "WDt4_dwDuw4"
+      ],
+      [
+       "伊洛菈Elora",
+       "xnPRTjb5sFY"
+      ],
+      [
+       "Duby 嘟比",
+       "Sqdo2X3OpF4"
+      ],
+      [
+       "Nagisa 凪砂",
+       "fZsodfF07G4"
+      ],
+      [
+       "浠Mizuki",
+       "-SBgQYkkPiU"
+      ],
+      [
+       "知花",
+       "XLVQ-Y2kFqY"
+      ],
+      [
+       "灯織Touori",
+       "txSfrMpLXJo"
+      ],
+      [
+       "蘆棠布奈",
+       "8yipRxWaQag"
+      ],
+      [
+       "萌留みみん",
+       "kYDqZtdlpdg"
+      ],
+      [
+       "Devilith Violustre",
+       "_leeZ4gi8Rs"
+      ],
+      [
+       "尼皮 NiPi",
+       "ppmXcSyBE80"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "tw/1840081736",
+     "spotify": "4oE7MyJhqSD3BaHRpNs8Nl",
+     "bpm": 135,
+     "range": {
+      "low": 59,
+      "high": 74,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable"
+      ],
+      "instrument": [
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 3,
+     "title": "KING",
+     "artist": "Kanaria",
+     "covers": 17,
+     "cover_video": "PlrgjgOAMCs",
+     "performers": [
+      [
+       "幻夢サティ",
+       "PlrgjgOAMCs"
+      ],
+      [
+       "滔滔饕餮 TaotaoTaotie",
+       "7phbUlQl0E4"
+      ],
+      [
+       "尼貝爾 Nibel",
+       "oQS20kS25R8"
+      ],
+      [
+       "米婭 Mia Flamel",
+       "lc-hmixi7xw"
+      ],
+      [
+       "希洛萊昂 Shiro Leon",
+       "P7rG4PrZIIY"
+      ],
+      [
+       "貓神夜珞璃 Rakuri",
+       "cAiDPZEdT0c"
+      ],
+      [
+       "月島ケン_Tsukishima Ken",
+       "EFGC5TnnoPk"
+      ],
+      [
+       "絢璘 一隻金魚",
+       "56DptaJuhWE"
+      ],
+      [
+       "諾諾莎 Nonosa",
+       "hCBVC0daZCA"
+      ],
+      [
+       "語風薯薯撿到貓 Kazeimo",
+       "UoKxDOTVpxA"
+      ],
+      [
+       "麵音白湯 Paitan",
+       "O52G-qq1H1Y"
+      ],
+      [
+       "Liv 莉芙嘉薇亞",
+       "i_G1muvLgrQ"
+      ],
+      [
+       "Gento Taitan",
+       "a_V-ULtbZgM"
+      ],
+      [
+       "若娜 Zona",
+       "4A6PMjK7pYA"
+      ],
+      [
+       "轉蛋姬 HoMETE",
+       "QU5cpTYgxjk"
+      ],
+      [
+       "Asa Ifrit",
+       "2CZsW0ncm3I"
+      ],
+      [
+       "斜胖XiePun",
+       "QxUK9UZvmBM"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "Anime",
+     "apple": "jp/1541979921",
+     "spotify": "5DidqdM3CgTSnXQDYZyUHi",
+     "bpm": 166,
+     "range": {
+      "low": 51,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": -5,
+       "oct": 0
+      },
+      "f": {
+       "v": "low"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Happy Hardcore"
+      ],
+      "mood": [
+       "danceable",
+       "party",
+       "energetic"
+      ],
+      "instrument": [
+       "synthesizer"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "I Really Want to Stay at Your House",
+     "artist": "JustCosplaySings",
+     "covers": 15,
+     "cover_video": "vRMRhQpKR4w",
+     "performers": [
+      [
+       "諾鴉・奈菲墨",
+       "vRMRhQpKR4w"
+      ],
+      [
+       "Nemesis 涅默",
+       "oPEMFJoiAxU"
+      ],
+      [
+       "Bunny 兔兔吐吐",
+       "HgD0S8Or-Ko"
+      ],
+      [
+       "璃Miri",
+       "iMA0N-Eqrr4"
+      ],
+      [
+       "羅妲 Rhoda",
+       "v5BDzWh6z9M"
+      ],
+      [
+       "角蓮Caren",
+       "pk8XN1LTqhk"
+      ],
+      [
+       "克洛維斯 Clovis",
+       "R_SaJytHxD8"
+      ],
+      [
+       "瑟薇亞Silvia Clione",
+       "51dQS3xbje8"
+      ],
+      [
+       "心咲",
+       "bzId80ju-80"
+      ],
+      [
+       "伊莉西亞 Alicia",
+       "Qu3uPPqeJFo"
+      ],
+      [
+       "神無月鹿比 Kannazuki Lubee",
+       "LTK6BeCKCtI"
+      ],
+      [
+       "璐洛洛 Ruroro",
+       "uHTHCd2Tmqg"
+      ],
+      [
+       "Olda 歐妲",
+       "P9jhb6SYhpM"
+      ],
+      [
+       "轉蛋姬 HoMETE",
+       "wvw4ZsPgK6I"
+      ],
+      [
+       "萊菈 希格娜斯 LyraCygnus",
+       "X9RkCsl2O7w"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "Anime",
+     "apple": "tw/1650440586",
+     "bpm": 120,
+     "range": {
+      "low": 59,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "可愛くてごめん",
+     "artist": "HoneyWorks",
+     "covers": 15,
+     "cover_video": "luwUW2kFIfU",
+     "performers": [
+      [
+       "Nemesis 涅默",
+       "luwUW2kFIfU"
+      ],
+      [
+       "米菈",
+       "l6IE0UpHGVE"
+      ],
+      [
+       "南珂Nank",
+       "bTS519xStSU"
+      ],
+      [
+       "Airi 熊実愛莉",
+       "lOH3L4irPIA"
+      ],
+      [
+       "莓果花夕 berihanayu",
+       "GAt9iP0kQqQ"
+      ],
+      [
+       "花川夢姬 Hanakawa Yumehime",
+       "oyKQ0zdR-ng"
+      ],
+      [
+       "木野子楓太",
+       "lm08fq7Hyks"
+      ],
+      [
+       "米亞 Mya",
+       "gd7bnmNMFBI"
+      ],
+      [
+       "暖杏nuanxing",
+       "8uiiCYWeUSE"
+      ],
+      [
+       "夏羽由里_ゆり Yuri",
+       "LsB79ui8zGg"
+      ],
+      [
+       "Mika 鬼塚魅華",
+       "hpmMyD3j5MQ"
+      ],
+      [
+       "水縹そまる",
+       "7dDJBZbOHvs"
+      ],
+      [
+       "Akumu 阿庫姆",
+       "0MIzf1hTmIc"
+      ],
+      [
+       "霓奈KIKIRARA",
+       "e03ppaW_nrs"
+      ],
+      [
+       "花咲くれは",
+       "xRZot0cKo_g"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "Anime",
+     "apple": "jp/1638049033",
+     "spotify": "2xBibqkmXJ4NQCe8lJeZco",
+     "bpm": 160,
+     "range": {
+      "low": 61,
+      "high": 74,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -2,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable",
+       "happy",
+       "energetic"
+      ]
+     }
+    },
+    {
+     "rank": 4,
+     "title": "晚餐歌",
+     "artist": "tuki",
+     "covers": 15,
+     "cover_video": "XERVal8CfwE",
+     "performers": [
+      [
+       "瑪格麗特 · 諾爾絲",
+       "XERVal8CfwE"
+      ],
+      [
+       "常闇やみや Yami",
+       "B8Br6CXPyVs"
+      ],
+      [
+       "煦Hiyori",
+       "7GjWmeQKzME"
+      ],
+      [
+       "帕洛特パロト Paroto",
+       "xBdeHArfXgs"
+      ],
+      [
+       "菲兒琉卡Firliuka",
+       "DoP8VGNp40k"
+      ],
+      [
+       "Nanashi Yuki",
+       "udp9NijPHlI"
+      ],
+      [
+       "尼皮 NiPi",
+       "0UsnRgFrT2A"
+      ],
+      [
+       "柊稻貍_Hiiragi Inari",
+       "Tx9jNWrQw2w"
+      ],
+      [
+       "Mizune",
+       "UMI7scFuVLM"
+      ],
+      [
+       "阿垠 Gin",
+       "xmsYjoL1vpE"
+      ],
+      [
+       "StellArtemis 星月兔",
+       "uflEGUWXA0k"
+      ],
+      [
+       "Seri 星璃",
+       "nyQyfIa7CSM"
+      ],
+      [
+       "量產型猫飼步歌貳貳機 Fuka22",
+       "vFhf_-jyTzM"
+      ],
+      [
+       "巴巴鼬戈",
+       "sjHd-vpTiQQ"
+      ],
+      [
+       "計畫通行",
+       "HugYUxPaTIM"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null
+    },
+    {
+     "rank": 7,
+     "title": "食虫植物",
+     "artist": "理芽",
+     "covers": 14,
+     "cover_video": "IRi8ix8zafM",
+     "performers": [
+      [
+       "Oumua 埃穆亞",
+       "IRi8ix8zafM"
+      ],
+      [
+       "Topa 多帕",
+       "trrLxXbRjeM"
+      ],
+      [
+       "貝芮納・尤格里斯",
+       "KASe_sb9bIk"
+      ],
+      [
+       "巫菈妮亞",
+       "4egdpsH16ME"
+      ],
+      [
+       "安潔妲莉幽爾",
+       "JZe6Otg6QTw"
+      ],
+      [
+       "舞鎌 冬 Maikama Tou",
+       "d8q-H4zpJSk"
+      ],
+      [
+       "柚餓幽窮ch. zike",
+       "iPH7FBp-huE"
+      ],
+      [
+       "FII",
+       "WHCCm31_kqo"
+      ],
+      [
+       "橙Yuzumi",
+       "j_xYhETXkXc"
+      ],
+      [
+       "原瀬空 Parase Sora",
+       "huJYF5H0R5s"
+      ],
+      [
+       "暖杏nuanxing",
+       "B6XeWNRaZa4"
+      ],
+      [
+       "白音アヤ Shirone Aya",
+       "lAxQ19mX4KU"
+      ],
+      [
+       "星見遙 Haruka",
+       "bBtPlrstNLs"
+      ],
+      [
+       "夏羽由里_ゆり Yuri",
+       "i-t6O7rF3Ug"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1688521740",
+     "spotify": "5EVgCwenpUcpX55BtYboRq",
+     "bpm": 123,
+     "range": {
+      "low": 61,
+      "high": 70,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Indie Pop",
+       "Dance-pop"
+      ],
+      "mood": [
+       "danceable",
+       "party"
+      ],
+      "instrument": [
+       "synthesizer"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 7,
+     "title": "アイドル",
+     "artist": "YOASOBI",
+     "covers": 14,
+     "cover_video": "SUpXc-MoXQw",
+     "performers": [
+      [
+       "史黛菈 埃蕾諾亞",
+       "SUpXc-MoXQw"
+      ],
+      [
+       "亞諾・歐托亞 Yano Otoya",
+       "B4fvZAbCyPs"
+      ],
+      [
+       "艾茵莉思 Aynlice アインリス",
+       "6bzrJANIl4k"
+      ],
+      [
+       "Cecily 西西莉",
+       "VosigRluHwY"
+      ],
+      [
+       "HanaSaki 花咲",
+       "LXiln5ZkzBc"
+      ],
+      [
+       "Pool Loop 波·路譜",
+       "9_OBZyu9My8"
+      ],
+      [
+       "暁月夢",
+       "Bmh2IwFWKW0"
+      ],
+      [
+       "柊むらさき",
+       "XdrdtiAlFqM"
+      ],
+      [
+       "Möchikomame もちこまめ",
+       "xUrEyW7OIK0"
+      ],
+      [
+       "洛可洛斯特Loco Lost",
+       "9eUnyYP2sBk"
+      ],
+      [
+       "浠Mizuki",
+       "Db2Le06Vwz0"
+      ],
+      [
+       "RiRA 梨菈",
+       "88-f3RH9YA0"
+      ],
+      [
+       "森森鈴蘭",
+       "gF3n3SKpg3Q"
+      ],
+      [
+       "水縹そまる",
+       "AaCpthLd8cw"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1679278167",
+     "spotify": "7ovUcF5uHTBRzUpB6ZOmvt",
+     "bpm": 166,
+     "range": {
+      "low": 58,
+      "high": 77,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "vhigh",
+       "key": -5,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "party",
+       "danceable",
+       "energetic"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "flos",
+     "artist": "R Sound Design",
+     "covers": 13,
+     "cover_video": "oOLlWVIT9Vs",
+     "performers": [
+      [
+       "蕾莎 Resa",
+       "oOLlWVIT9Vs"
+      ],
+      [
+       "DONT U冬優奈奈",
+       "5he8bljx2WU"
+      ],
+      [
+       "謙Yuzuru",
+       "lUwXb7swnGU"
+      ],
+      [
+       "Lunoria 露諾莉雅•因卡倫",
+       "5y0rqosrkSQ"
+      ],
+      [
+       "冬雲凜Samui",
+       "7eV4DVH_53M"
+      ],
+      [
+       "雨水AmamizuRaindrop",
+       "w_cKtwV7t1w"
+      ],
+      [
+       "Misù 鹿咲ミス",
+       "1wJMoDXviKU"
+      ],
+      [
+       "星見遙 Haruka",
+       "zZhZfXR3zVg"
+      ],
+      [
+       "Akumu 阿庫姆",
+       "XgHaHyP80dw"
+      ],
+      [
+       "紫藤堇 Yukari",
+       "W8sk8zE0nWA"
+      ],
+      [
+       "Asa Ifrit",
+       "xR-_P2hwlYE"
+      ],
+      [
+       "斜胖XiePun",
+       "zIuqL7mDLvs"
+      ],
+      [
+       "HaruMaki",
+       "wxrfwXO1Epo"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "tw/1435764968",
+     "spotify": "0qEvefkCUltXldv8EPOSDV",
+     "bpm": 118,
+     "range": {
+      "low": 56,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 1,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "happy"
+      ]
+     }
+    },
+    {
+     "rank": 9,
+     "title": "フォニイ",
+     "artist": "ツミキ",
+     "covers": 13,
+     "cover_video": "P0lQq3Uh4CY",
+     "performers": [
+      [
+       "Topa 多帕",
+       "P0lQq3Uh4CY"
+      ],
+      [
+       "依可露 Ekorru",
+       "YVEc_Ngs7io"
+      ],
+      [
+       "奇露琪露",
+       "bVkhT2o_0Bo"
+      ],
+      [
+       "蕾·古露絲Re·GuLus",
+       "QaiYGomKELw"
+      ],
+      [
+       "清音零零7100",
+       "qNGyrJkRtw4"
+      ],
+      [
+       "暖杏nuanxing",
+       "hGGPpOWNDS8"
+      ],
+      [
+       "莉希特Licht",
+       "YC6--Q1S-8w"
+      ],
+      [
+       "sazki",
+       "jtYnCRkITkQ"
+      ],
+      [
+       "Mai 星崎麥麥",
+       "Uj8biELUvXk"
+      ],
+      [
+       "里歐 賀拉斯 Leo Horace",
+       "Wp6dKAonTvU"
+      ],
+      [
+       "白羽祈",
+       "4ToBqqtOtPM"
+      ],
+      [
+       "汐Seki",
+       "hZERiEU7bUg"
+      ],
+      [
+       "HaruMaki",
+       "8dn8Yhylc64"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1688513140",
+     "spotify": "2UUwBDALzJuThY88Ro2lD2",
+     "bpm": 170,
+     "range": {
+      "low": 62,
+      "high": 77,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "vhigh",
+       "key": 3,
+       "oct": -12
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable",
+       "party",
+       "energetic"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "打上花火",
+     "artist": "米津玄師",
+     "covers": 11,
+     "cover_video": "Xi1NXYbO1w4",
+     "performers": [
+      [
+       "人偶・薩賓娜 Panenka Sabina",
+       "Xi1NXYbO1w4"
+      ],
+      [
+       "Rico莉可",
+       "kjzcl0pEnnk"
+      ],
+      [
+       "Akari 灯理",
+       "lgX792RHUGc"
+      ],
+      [
+       "ORI 央莉",
+       "FRKw8-DiQ1E"
+      ],
+      [
+       "朝日 Asahi",
+       "DkDYMJcl-eE"
+      ],
+      [
+       "Sullyin 雪迎",
+       "xwEjN385LZ8"
+      ],
+      [
+       "希瑞莎・克拉克 Ceresa・Clark",
+       "gWWeO76hc88"
+      ],
+      [
+       "格莉絲 Glis",
+       "jlT0wp-G0hQ"
+      ],
+      [
+       "Hanari 月影はなり 哈娜莉",
+       "GI-qCryKy2s"
+      ],
+      [
+       "Aimu 深雪あいむ",
+       "eRoYZHoW4s4"
+      ],
+      [
+       "永眠",
+       "e0WMELvaW8c"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "kkbox": "Cs_XOi7d3ZiY3N-8lZ",
+     "genre": "J-Pop",
+     "apple": "tw/1538275670",
+     "spotify": "6y9aL2ilkD6UkOq2QJeNyi",
+     "bpm": 122,
+     "range": {
+      "low": 53,
+      "high": 69,
+      "m": {
+       "v": "high",
+       "key": -3,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Reggaeton",
+       "Tropical House"
+      ],
+      "mood": [
+       "danceable"
+      ]
+     }
+    },
+    {
+     "rank": 11,
+     "title": "Golden",
+     "artist": "HUNTR/X, EJAE, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast",
+     "covers": 11,
+     "cover_video": "k81YdsUtldM",
+     "performers": [
+      [
+       "伊莉西亞 Alicia",
+       "k81YdsUtldM"
+      ],
+      [
+       "卡妮娜 Kanína",
+       "BgRhbGCOhMc"
+      ],
+      [
+       "澄音琉璃",
+       "NIwl6V0kU-0"
+      ],
+      [
+       "狸野梨",
+       "JCLhTCpruHA"
+      ],
+      [
+       "艾斯特拉.韹星",
+       "DrK54B4zCSk"
+      ],
+      [
+       "Relive_梅迪歐 Meteor",
+       "HQkBrNU9kVE"
+      ],
+      [
+       "艾茵莉思 Aynlice アインリス",
+       "d_d8o8zLcWc"
+      ],
+      [
+       "森森鈴蘭",
+       "bDtFV29-3NA"
+      ],
+      [
+       "山宗人韋",
+       "PpuOOftgOGA"
+      ],
+      [
+       "銀河 Galaxy",
+       "ktBHgmk2maQ"
+      ],
+      [
+       "Gokusai Amae 極彩天繪",
+       "EZhtuLKvANo"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "K-Pop",
+     "apple": "tw/1820264150",
+     "spotify": "5Cp75TUMrHF6c8xbhdligS",
+     "bpm": 123,
+     "range": {
+      "low": 54,
+      "high": 71,
+      "m": {
+       "v": "vhigh",
+       "key": 3,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Dance-pop",
+       "Synth-pop"
+      ],
+      "mood": [
+       "danceable",
+       "party"
+      ],
+      "instrument": [
+       "synthesizer"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-11-18",
+   "rank_change": "history",
+   "fetched_at": "2026-11-18T09:58:41+08:00",
+   "stale": false
+  },
+  {
+   "id": "covers-90d",
+   "title": {
+    "zh": "近 90 天翻唱次數",
+    "en": "Most Covered · Last 90 Days",
+    "ja": "直近 90 日のカバー数"
+   },
+   "period": "2026/08/21 ~ 2026/11/18",
+   "source_url": "https://www.youtube.com/playlist?list=PLg42Bx1jWLfnUmAMCEEwsKE0yNUW5X6Jl",
+   "videos": 196,
+   "rows": [
+    {
+     "rank": 1,
+     "title": "I Really Want to Stay at Your House",
+     "artist": "JustCosplaySings",
+     "covers": 4,
+     "cover_video": "vRMRhQpKR4w",
+     "performers": [
+      [
+       "諾鴉・奈菲墨",
+       "vRMRhQpKR4w"
+      ],
+      [
+       "Nemesis 涅默",
+       "oPEMFJoiAxU"
+      ],
+      [
+       "Bunny 兔兔吐吐",
+       "HgD0S8Or-Ko"
+      ],
+      [
+       "璃Miri",
+       "iMA0N-Eqrr4"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "Anime",
+     "apple": "tw/1650440586",
+     "bpm": 120,
+     "range": {
+      "low": 59,
+      "high": 73,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -1,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "ただ声一つ",
+     "artist": "ロクデナシ",
+     "covers": 2,
+     "cover_video": "Ln9zJ9sk28I",
+     "performers": [
+      [
+       "小靜しずか",
+       "Ln9zJ9sk28I"
+      ],
+      [
+       "夜露妮亞",
+       "kpJhTCwjVcg"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1599674592",
+     "spotify": "2e1gUS6Wv8GS8ZT6FMeE1J",
+     "bpm": 130,
+     "range": {
+      "low": 58,
+      "high": 75,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -3,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "relaxed",
+       "happy"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "モニタリング",
+     "artist": "DECO*27",
+     "covers": 2,
+     "cover_video": "Yh2recpNjM0",
+     "performers": [
+      [
+       "FlaskTroupe 箱庭旅團",
+       "Yh2recpNjM0"
+      ],
+      [
+       "莓芊時戀 Ichigosen Tokikoi",
+       "CxgJbT0t8aI"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1775600454",
+     "spotify": "1iywVk6Xx1XmJwd0rExYI3",
+     "bpm": 132,
+     "range": {
+      "low": 60,
+      "high": 77,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "vhigh",
+       "key": -5,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Dance-pop"
+      ],
+      "mood": [
+       "danceable",
+       "party",
+       "energetic"
+      ],
+      "instrument": [
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "Magnetic",
+     "artist": "ILLIT",
+     "covers": 2,
+     "cover_video": "9ufbct_gmsY",
+     "performers": [
+      [
+       "緹露 Tilu",
+       "9ufbct_gmsY"
+      ],
+      [
+       "阿哇哇 Awawa",
+       "14KbowMNgB0"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "kkbox": "OoZ0jmuq32Aqaj806c",
+     "genre": "K-Pop",
+     "apple": "tw/1734500896",
+     "spotify": "1aKvZDoLGkNMxoRYgkckZG",
+     "bpm": 131,
+     "range": {
+      "low": 58,
+      "high": 68,
+      "m": {
+       "v": "high",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "House",
+       "Trap"
+      ],
+      "mood": [
+       "danceable",
+       "party"
+      ],
+      "instrument": [
+       "synthesizer"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "食虫植物",
+     "artist": "理芽",
+     "covers": 2,
+     "cover_video": "IRi8ix8zafM",
+     "performers": [
+      [
+       "Oumua 埃穆亞",
+       "IRi8ix8zafM"
+      ],
+      [
+       "Topa 多帕",
+       "trrLxXbRjeM"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1688521740",
+     "spotify": "5EVgCwenpUcpX55BtYboRq",
+     "bpm": 123,
+     "range": {
+      "low": 61,
+      "high": 70,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Indie Pop",
+       "Dance-pop"
+      ],
+      "mood": [
+       "danceable",
+       "party"
+      ],
+      "instrument": [
+       "synthesizer"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "唱",
+     "artist": "Ado",
+     "covers": 2,
+     "cover_video": "_rIcOjE7zMY",
+     "performers": [
+      [
+       "可可伊丹CocoEden",
+       "_rIcOjE7zMY"
+      ],
+      [
+       "CyU",
+       "KKHGyTHK2Fk"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1704093812",
+     "spotify": "2tlOVDJ3lQsUxz22vPJ4c4",
+     "bpm": 132,
+     "range": {
+      "low": 58,
+      "high": 76,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -4,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Dance-pop"
+      ],
+      "mood": [
+       "danceable",
+       "party",
+       "energetic"
+      ],
+      "instrument": [
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "キャットラビング",
+     "artist": "香椎モイミ",
+     "covers": 2,
+     "cover_video": "SxIkExmff64",
+     "performers": [
+      [
+       "Cesium 瑟思安",
+       "SxIkExmff64"
+      ],
+      [
+       "Kohaku 雪松琥珀",
+       "bCKfm3aP1sY"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1688513108",
+     "spotify": "2EjDBwyMAALFfKaaSUCRkz",
+     "bpm": 163,
+     "range": {
+      "low": 54,
+      "high": 69,
+      "m": {
+       "v": "high",
+       "key": -3,
+       "oct": 0
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable",
+       "party",
+       "energetic"
+      ],
+      "instrument": [
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "月が綺麗ねと言われたい!",
+     "artist": "柿崎ユウタ",
+     "covers": 2,
+     "cover_video": "TR3ftBbv0tA",
+     "performers": [
+      [
+       "宓Iseri",
+       "TR3ftBbv0tA"
+      ],
+      [
+       "伊諾 Ino",
+       "t9QaaH9wpjU"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "jp/1868879494",
+     "spotify": "3cliLu2E7uSa8L4mZLPBvQ",
+     "bpm": 160,
+     "range": {
+      "low": 49,
+      "high": 63,
+      "m": {
+       "v": "ok"
+      },
+      "f": {
+       "v": "low",
+       "key": -3,
+       "oct": 12
+      },
+      "fit": "m"
+     },
+     "tags": {
+      "genre": [
+       "Electro"
+      ],
+      "mood": [
+       "danceable",
+       "happy",
+       "energetic"
+      ],
+      "instrument": [
+       "drums",
+       "electricguitar"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "螺旋",
+     "artist": "9Lana",
+     "covers": 2,
+     "cover_video": "QmA1bA0NyYo",
+     "performers": [
+      [
+       "Earendel 厄倫蒂兒",
+       "QmA1bA0NyYo"
+      ],
+      [
+       "AOI from 狐狸假面 KitsuneKamen",
+       "8ZIdapJPdMk"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "kkbox": "LYBXezJ0B5Nio9XaQV",
+     "genre": "J-Pop",
+     "apple": "tw/6789014110",
+     "spotify": "0n4Vh3ndK96W7XySl6XpLf",
+     "bpm": 154,
+     "range": {
+      "low": 57,
+      "high": 76,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "high",
+       "key": -4,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad",
+       "Dance-pop"
+      ],
+      "mood": [
+       "danceable",
+       "party"
+      ],
+      "instrument": [
+       "guitar",
+       "synthesizer"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "点描の唄",
+     "artist": "Mrs. GREEN APPLE",
+     "covers": 2,
+     "cover_video": "rshsfIcMMlI",
+     "performers": [
+      [
+       "玥華 Getsuka",
+       "rshsfIcMMlI"
+      ],
+      [
+       "玥綾‧西米塔 Yuelin Simita HSVI",
+       "83fiimkViJ4"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "Rock",
+     "apple": "jp/1408505419",
+     "spotify": "1sIIlVrnPhrvmTrHtzM7tV",
+     "bpm": 76,
+     "range": {
+      "low": 57,
+      "high": 69,
+      "m": {
+       "v": "high",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "ok"
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "genre": [
+       "Ballad"
+      ],
+      "mood": [
+       "relaxed",
+       "sad"
+      ],
+      "instrument": [
+       "piano"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    },
+    {
+     "rank": 2,
+     "title": "刺到整身軀",
+     "artist": "春風 x 潤少 x 970 x DJ CK搖擺叔叔",
+     "covers": 2,
+     "cover_video": "lHpzGmElCdI",
+     "performers": [
+      [
+       "Eruru 白音エルル",
+       "lHpzGmElCdI"
+      ],
+      [
+       "xxhacucoxx 白白虹",
+       "Gus2znmfZrc"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null
+    },
+    {
+     "rank": 12,
+     "title": "numb numb",
+     "artist": "TAK",
+     "covers": 1,
+     "cover_video": "P_8CoG2lJOc",
+     "performers": [
+      [
+       "白月心宿shuku",
+       "P_8CoG2lJOc"
+      ]
+     ],
+     "last_rank": null,
+     "is_new": null,
+     "genre": "J-Pop",
+     "apple": "tw/6766820661",
+     "spotify": "0AmLImb5bR5gu2WtxvyKAL",
+     "bpm": 160,
+     "range": {
+      "low": 58,
+      "high": 77,
+      "m": {
+       "v": "vhigh",
+       "key": 0,
+       "oct": -12
+      },
+      "f": {
+       "v": "vhigh",
+       "key": -5,
+       "oct": 0
+      },
+      "fit": "f"
+     },
+     "tags": {
+      "mood": [
+       "danceable",
+       "party"
+      ],
+      "vocal": [
+       "female"
+      ]
+     }
+    }
+   ],
+   "period_key": "2026-08-21_2026-11-18",
+   "rank_change": "history",
+   "fetched_at": "2026-11-18T09:58:41+08:00",
+   "stale": false
+  }
+ ]
+}

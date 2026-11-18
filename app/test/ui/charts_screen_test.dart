@@ -82,7 +82,7 @@ void main() {
     await tester.pump();
     await settle(tester);
     expect(tester.takeException(), isNull);
-    for (final v in ['好樂迪', '錢櫃', 'JOYSOUND', 'DAM', 'KKBOX']) {
+    for (final v in ['好樂迪', '錢櫃', 'JOYSOUND', 'DAM', 'KKBOX', 'VTuber 翻唱']) {
       expect(find.descendant(of: find.byType(TabBar), matching: find.text(v)), findsOneWidget);
     }
     expect(find.widgetWithText(ChoiceChip, '國語點播'), findsOneWidget);
@@ -90,7 +90,8 @@ void main() {
     expect(find.text('網頁版榜單'), findsOneWidget);
     expect(find.text('甲乙丙丁'), findsOneWidget);
     expect(find.text('130 BPM'), findsWidgets);
-    expect(find.text('副歌 C4–D5'), findsWidgets);
+    expect(find.text('C4–D5'), findsWidgets, reason: 'the chorus range beside its bar');
+    expect(find.text('02657'), findsNothing, reason: 'no song numbers any more');
     expect(find.byTooltip('在 YouTube 搜尋'), findsWidgets);
     expect(find.byTooltip('試聽'), findsWidgets);
 
@@ -100,19 +101,25 @@ void main() {
     await openTab(tester, 'JOYSOUND');
     expect(find.widgetWithText(ChoiceChip, '綜合週榜'), findsOneWidget);
     expect(find.text('伯方の塩'), findsOneWidget);
-    expect(find.text('1143475'), findsOneWidget, reason: 'song id from the song page');
 
     await openTab(tester, 'DAM');
     expect(find.text('怪獣の花唄'), findsOneWidget, reason: 'the weekly chart by default');
     expect(find.textContaining('2026/11/08 ~ 2026/11/14'), findsOneWidget);
-    expect(find.text('5277-09'), findsOneWidget);
 
     await openTab(tester, 'KKBOX');
-    expect(find.text('曲號'), findsNothing, reason: 'KKBOX has no song numbers');
     expect(find.text('在 KKBOX 官網查看'), findsOneWidget);
+
+    await openTab(tester, 'VTuber 翻唱');
+    expect(find.text('CH4NGE'), findsOneWidget);
+    expect(find.text('19 次翻唱'), findsOneWidget);
+    expect(find.text('原唱'), findsOneWidget);
+    expect(find.text('在 YouTube 查看播放清單'), findsOneWidget);
+    await tester.tap(find.text('19 次翻唱'));
+    await tester.pumpAndSettle();
+    expect(find.text('可可伊丹CocoEden'), findsOneWidget);
   });
 
-  testWidgets('the listen menu opens each service, exact or by search', (tester) async {
+  testWidgets('the listen menu lists only the services that have the song', (tester) async {
     await pump(tester, fakeService());
     await tester.pump();
     await settle(tester);

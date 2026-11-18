@@ -17,8 +17,9 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 /// The chart sources. KKBOX is a streaming service rather than a KTV
-/// operator, but its charts sit beside theirs.
-enum KtvVendor { holiday, cashbox, joysound, dam, kkbox }
+/// operator, and the VTuber chart counts covers in a YouTube playlist of
+/// Taiwanese VTubers, but their charts sit beside the operators'.
+enum KtvVendor { holiday, cashbox, joysound, dam, kkbox, vtuber }
 
 class KtvCharts {
   KtvCharts._();
@@ -98,6 +99,8 @@ class ChartEntry {
     this.apple,
     this.spotify,
     this.kkbox,
+    this.covers,
+    this.performers = const [],
   });
 
   final int rank;
@@ -130,6 +133,11 @@ class ChartEntry {
   final String? spotify;
   final String? kkbox;
 
+  /// VTuber chart: how many covers, and who sang them (name, YouTube video id),
+  /// newest first.
+  final int? covers;
+  final List<({String name, String video})> performers;
+
   /// Places moved up (negative: down), or null when unknown or new.
   int? get movement => isNew || lastRank == null ? null : lastRank! - rank;
 
@@ -138,30 +146,25 @@ class ChartEntry {
   /// A YouTube search for this song: a plain results page, no API key.
   Uri get youtubeSearchUrl => Uri.https('www.youtube.com', '/results', {'search_query': _query});
 
-  /// The song's page on [s] (where it can be played), or a search there
-  /// when the site has no match for it. Opened in the browser: the service
-  /// plays it under its own terms; the app never handles the audio.
-  Uri listenUrl(ListenService s, {String region = 'tw'}) {
+  /// The song's page on [s], where it can be played, or null when the site
+  /// found no match there. Opened in the browser: the service plays it under
+  /// its own terms; the app never handles the audio.
+  Uri? listenUrl(ListenService s) {
     switch (s) {
       case ListenService.apple:
         final parts = apple?.split('/');
-        if (parts != null && parts.length == 2 && parts[1].isNotEmpty) return Uri.https('music.apple.com', '/${parts[0]}/song/${parts[1]}');
-        return Uri.https('music.apple.com', '/$region/search', {'term': _query});
+        return parts != null && parts.length == 2 && parts[1].isNotEmpty ? Uri.https('music.apple.com', '/${parts[0]}/song/${parts[1]}') : null;
       case ListenService.spotify:
-        if (spotify != null && spotify!.isNotEmpty) return Uri.https('open.spotify.com', '/track/$spotify');
-        return Uri.https('open.spotify.com', '/search/${Uri.encodeComponent(_query)}');
+        return spotify != null ? Uri.https('open.spotify.com', '/track/$spotify') : null;
       case ListenService.kkbox:
-        if (kkbox != null && kkbox!.isNotEmpty) return Uri.https('www.kkbox.com', '/tw/tc/song/$kkbox');
-        return Uri.https('www.kkbox.com', '/tw/tc/search', {'q': _query});
+        return kkbox != null ? Uri.https('www.kkbox.com', '/tw/tc/song/$kkbox') : null;
     }
   }
 
-  /// Whether [s] has this exact song (not just a search).
-  bool hasListen(ListenService s) => switch (s) {
-    ListenService.apple => (apple ?? '').contains('/'),
-    ListenService.spotify => (spotify ?? '').isNotEmpty,
-    ListenService.kkbox => (kkbox ?? '').isNotEmpty,
-  };
+  /// The services that have this song.
+  List<ListenService> get listenServices => [for (final s in ListenService.values) if (listenUrl(s) != null) s];
+
+  static Uri youtubeVideo(String id) => Uri.https('www.youtube.com', '/watch', {'v': id});
 
   factory ChartEntry.fromJson(Map<String, dynamic> j) {
     final songUrl = j['song_url'] as String?;
@@ -197,6 +200,11 @@ class ChartEntry {
       apple: str('apple'),
       spotify: str('spotify'),
       kkbox: str('kkbox'),
+      covers: (j['covers'] as num?)?.toInt(),
+      performers: [
+        for (final e in (j['performers'] as List? ?? const []))
+          if (e is List && e.length >= 2 && e[0] is String && e[1] is String) (name: e[0] as String, video: e[1] as String),
+      ],
     );
   }
 }

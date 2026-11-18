@@ -4,12 +4,15 @@
 // links to hear it on Apple Music, Spotify or KKBOX (opened in the browser).
 // A source is fetched the first time its tab is shown, and nothing before the
 // "Hot songs" page itself is.
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/ktv_charts.dart';
+import '../../services/settings.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/song_data.dart';
@@ -243,6 +246,7 @@ class _VendorSection extends StatelessWidget {
     ];
     final entries = chart?.entries ?? const <ChartEntry>[];
     final shown = state.expanded ? entries : entries.take(_collapsed).toList();
+    final own = _ownRange(context);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -284,7 +288,7 @@ class _VendorSection extends StatelessWidget {
               )
             else if (chart != null) ...[
               _HeaderRow(vendor: vendor, chart: chart),
-              for (var i = 0; i < shown.length; i++) _EntryRow(entry: shown[i], vendor: vendor, chart: chart, shaded: i.isOdd),
+              for (var i = 0; i < shown.length; i++) _EntryRow(entry: shown[i], vendor: vendor, chart: chart, own: own, shaded: i.isOdd),
               if (entries.length > _collapsed)
                 Align(
                   child: TextButton(
@@ -300,13 +304,13 @@ class _VendorSection extends StatelessWidget {
                 Icon(Icons.public, size: 16, color: cs.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(tr('charts.source', {'vendor': name}), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                  child: Text(tr(vendor == KtvVendor.vtuber ? 'charts.source.vtuber' : 'charts.source', {'vendor': name}), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
                 ),
                 if (chart?.board.sourceUrl != null)
                 TextButton.icon(
                   onPressed: () => launchUrl(Uri.parse(chart!.board.sourceUrl!)),
                   icon: const Icon(Icons.open_in_new, size: 16),
-                  label: Text(tr('charts.openSite', {'vendor': name})),
+                  label: Text(vendor == KtvVendor.vtuber ? tr('charts.openPlaylist') : tr('charts.openSite', {'vendor': name})),
                 ),
               ],
             ),
@@ -342,14 +346,20 @@ class _ErrorRow extends StatelessWidget {
 // Column widths shared by the header and the rows.
 const _rankW = 44.0;
 const _moveW = 64.0;
-const _noW = 96.0;
-const _ytW = 44.0;
+const _rangeW = 170.0;
+const _coversW = 120.0;
+const _btnW = 44.0;
 
-String _songNoLabel(KtvVendor v) => switch (v) {
-  KtvVendor.dam => tr('charts.songNo.dam'),
-  KtvVendor.joysound => tr('charts.songNo.joysound'),
-  _ => tr('charts.songNo'),
-};
+/// The singer's own range (MIDI keys held on the microphone), if measured.
+({int low, int high})? _ownRange(BuildContext context) {
+  try {
+    final keys = context.watch<AppSettings>().ownRangeKeys;
+    if (keys.isEmpty) return null;
+    return (low: keys.reduce(math.min), high: keys.reduce(math.max));
+  } catch (_) {
+    return null; // no settings (tests)
+  }
+}
 
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({required this.vendor, required this.chart});
@@ -367,23 +377,14 @@ class _HeaderRow extends StatelessWidget {
           SizedBox(width: _rankW, child: Text(tr('charts.rank'), style: style)),
           if (chart.hasMovement) const SizedBox(width: _moveW),
           Expanded(flex: 5, child: Text(tr('charts.song'), style: style)),
-          Expanded(flex: 4, child: Text(tr('charts.artist'), style: style)),
-          if (chart.hasSongNo) SizedBox(width: _noW, child: Text(_songNoLabel(vendor), style: style, textAlign: TextAlign.end)),
-          const SizedBox(width: _ytW * 2),
+          Expanded(flex: 4, child: Text(tr(vendor == KtvVendor.vtuber ? 'charts.original' : 'charts.artist'), style: style)),
+          SizedBox(width: _rangeW, child: Text(tr('charts.rangeCol'), style: style)),
+          if (vendor == KtvVendor.vtuber) SizedBox(width: _coversW, child: Text(tr('charts.covers'), style: style)),
+          const SizedBox(width: _btnW * 2),
         ],
       ),
     );
   }
-}
-
-/// `C4–D5`, with a tooltip on how it suits male and female voices.
-String _rangeText(ChartRange r) => '${noteName(r.low.toDouble())}–${noteName(r.high.toDouble())}';
-
-String _voiceText(({String verdict, int key})? v) {
-  if (v == null) return '—';
-  final verdict = tr('charts.fit.${v.verdict}');
-  if (v.key == 0) return verdict;
-  return '$verdict（${tr('charts.fit.key', {'k': v.key > 0 ? '+${v.key}' : '${v.key}'})}）';
 }
 
 /// A model tag in the UI language (genre names stay as they are).
@@ -394,11 +395,30 @@ String _tagText(String group, String tag) {
   return t == k ? tag : t;
 }
 
+String _voiceText(({String verdict, int key})? v) {
+  if (v == null) return '—';
+  final verdict = tr('charts.fit.${v.verdict}');
+  if (v.key == 0) return verdict;
+  return '$verdict（${tr('charts.fit.key', {'k': v.key > 0 ? '+${v.key}' : '${v.key}'})}）';
+}
+
+/// How the chorus sits in the singer's range: inside, or the key change that
+/// brings it in, or wider than the singer.
+enum _Fit { inside, shift, wider }
+
+({_Fit fit, int shift}) _fitTo(ChartRange r, ({int low, int high}) own) {
+  if (r.low >= own.low && r.high <= own.high) return (fit: _Fit.inside, shift: 0);
+  if (r.high - r.low > own.high - own.low) return (fit: _Fit.wider, shift: 0);
+  final shift = r.high > own.high ? own.high - r.high : own.low - r.low;
+  return (fit: _Fit.shift, shift: shift);
+}
+
 class _EntryRow extends StatelessWidget {
-  const _EntryRow({required this.entry, required this.vendor, required this.chart, required this.shaded});
+  const _EntryRow({required this.entry, required this.vendor, required this.chart, required this.own, required this.shaded});
   final ChartEntry entry;
   final KtvVendor vendor;
   final KtvChart chart;
+  final ({int low, int high})? own;
   final bool shaded;
 
   @override
@@ -407,15 +427,9 @@ class _EntryRow extends StatelessWidget {
     final cs = theme.colorScheme;
     final top3 = entry.rank <= 3;
     final small = theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
-    final range = entry.range;
     final details = <Widget>[
       if (entry.genre != null) Text(entry.genre!, style: small),
       if (entry.bpm != null) Tooltip(message: tr('charts.bpmTip'), child: Text('${entry.bpm} BPM', style: small)),
-      if (range != null)
-        Tooltip(
-          message: tr('charts.rangeTip', {'m': _voiceText(range.male), 'f': _voiceText(range.female)}),
-          child: Text(tr('charts.range', {'range': _rangeText(range)}), style: small),
-        ),
       if (entry.tags.isNotEmpty)
         Tooltip(
           message: [
@@ -456,14 +470,11 @@ class _EntryRow extends StatelessWidget {
             flex: 4,
             child: Text(entry.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
           ),
-          if (chart.hasSongNo)
-            SizedBox(
-              width: _noW,
-              child: Text(entry.songNo, textAlign: TextAlign.end, style: theme.textTheme.bodyMedium?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
-            ),
-          SizedBox(width: _ytW, child: _ListenMenu(entry: entry, region: KtvCharts.region(vendor))),
+          SizedBox(width: _rangeW, child: entry.range == null ? const SizedBox.shrink() : _RangeBar(range: entry.range!, own: own)),
+          if (vendor == KtvVendor.vtuber) SizedBox(width: _coversW, child: _CoversMenu(entry: entry)),
+          SizedBox(width: _btnW, child: _ListenMenu(entry: entry)),
           SizedBox(
-            width: _ytW,
+            width: _btnW,
             child: IconButton(
               tooltip: tr('charts.youtube'),
               icon: const Icon(Icons.smart_display_outlined, size: 20),
@@ -478,36 +489,169 @@ class _EntryRow extends StatelessWidget {
   }
 }
 
-/// Where to hear the song: the services' own pages, opened in the browser
-/// (an exact match when the site found one, else a search there).
+/// The chorus range on a small keyboard scale (E2–C6): a pill from its
+/// lowest to highest note over the singer's own range (a lighter band) when
+/// it is known, coloured by how well it fits, with the notes beside it.
+class _RangeBar extends StatelessWidget {
+  const _RangeBar({required this.range, required this.own});
+  final ChartRange range;
+  final ({int low, int high})? own;
+
+  static const _scaleLow = 40, _scaleHigh = 84; // E2 .. C6
+  static const _ok = Color(0xFF4CAF50), _shift = Color(0xFFFFB74D), _wide = Color(0xFFEF5350);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final notes = '${noteName(range.low.toDouble())}–${noteName(range.high.toDouble())}';
+    final o = own;
+    final fit = o == null ? null : _fitTo(range, o);
+    final color = switch (fit?.fit) {
+      null => cs.primary,
+      _Fit.inside => _ok,
+      _Fit.shift => _shift,
+      _Fit.wider => _wide,
+    };
+    final lines = [
+      tr('charts.rangeTip', {'range': notes}),
+      if (o != null)
+        '${tr('charts.yourRange', {'range': '${noteName(o.low.toDouble())}–${noteName(o.high.toDouble())}'})}：${switch (fit!.fit) {
+          _Fit.inside => tr('charts.fitYou.inside'),
+          _Fit.shift => tr('charts.fitYou.shift', {'k': fit.shift > 0 ? '+${fit.shift}' : '${fit.shift}'}),
+          _Fit.wider => tr('charts.fitYou.wider'),
+        }}',
+      tr('charts.rangeVoices', {'m': _voiceText(range.male), 'f': _voiceText(range.female)}),
+    ];
+    return Tooltip(
+      message: lines.join('\n'),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 84,
+            height: 14,
+            child: CustomPaint(
+              painter: _RangePainter(
+                low: range.low,
+                high: range.high,
+                own: o,
+                color: color,
+                track: cs.onSurface.withValues(alpha: 0.12),
+                band: cs.onSurface.withValues(alpha: 0.22),
+                scaleLow: _scaleLow,
+                scaleHigh: _scaleHigh,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(child: Text(notes, maxLines: 1, overflow: TextOverflow.fade, softWrap: false, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
+        ],
+      ),
+    );
+  }
+}
+
+class _RangePainter extends CustomPainter {
+  _RangePainter({required this.low, required this.high, required this.own, required this.color, required this.track, required this.band, required this.scaleLow, required this.scaleHigh});
+  final int low, high, scaleLow, scaleHigh;
+  final ({int low, int high})? own;
+  final Color color, track, band;
+
+  double _x(int midi, Size size) => (midi.clamp(scaleLow, scaleHigh) - scaleLow) / (scaleHigh - scaleLow) * size.width;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final mid = size.height / 2;
+    final r = Radius.circular(size.height / 2);
+    canvas.drawRRect(RRect.fromLTRBR(0, mid - 2, size.width, mid + 2, const Radius.circular(2)), Paint()..color = track);
+    final o = own;
+    if (o != null) {
+      canvas.drawRRect(RRect.fromLTRBR(_x(o.low, size), 1, _x(o.high, size), size.height - 1, r), Paint()..color = band);
+    }
+    final a = _x(low, size), b = math.max(_x(high, size), a + 3);
+    canvas.drawRRect(RRect.fromLTRBR(a, mid - 4, b, mid + 4, const Radius.circular(4)), Paint()..color = color);
+    // C4 tick, for orientation.
+    final c4 = _x(60, size);
+    canvas.drawLine(Offset(c4, size.height - 2), Offset(c4, size.height), Paint()..color = track.withValues(alpha: 0.6)..strokeWidth = 1);
+  }
+
+  @override
+  bool shouldRepaint(_RangePainter old) => old.low != low || old.high != high || old.own != own || old.color != color;
+}
+
+/// Where to hear the song: the services that have it, opened in the browser.
+/// Hidden when none does.
 class _ListenMenu extends StatelessWidget {
-  const _ListenMenu({required this.entry, required this.region});
+  const _ListenMenu({required this.entry});
   final ChartEntry entry;
-  final String region;
 
   static const _names = {ListenService.apple: 'Apple Music', ListenService.spotify: 'Spotify', ListenService.kkbox: 'KKBOX'};
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final exact = ListenService.values.where(entry.hasListen).toList();
+    final services = entry.listenServices;
+    if (services.isEmpty) return const SizedBox.shrink();
     return PopupMenuButton<ListenService>(
       tooltip: tr('charts.listen'),
-      icon: Icon(exact.isEmpty ? Icons.headphones_outlined : Icons.headphones, size: 20, color: exact.isEmpty ? cs.onSurfaceVariant : cs.primary),
-      onSelected: (s) => launchUrl(entry.listenUrl(s, region: region)),
+      icon: Icon(Icons.headphones, size: 20, color: Theme.of(context).colorScheme.primary),
+      onSelected: (s) => launchUrl(entry.listenUrl(s)!),
       itemBuilder: (_) => [
-        for (final s in ListenService.values)
+        for (final s in services)
           PopupMenuItem(
             value: s,
             child: Row(
               children: [
-                Icon(entry.hasListen(s) ? Icons.play_circle_outline : Icons.search, size: 18),
+                const Icon(Icons.play_circle_outline, size: 18),
                 const SizedBox(width: 10),
-                Text(tr(entry.hasListen(s) ? 'charts.listenOn' : 'charts.searchOn', {'service': _names[s]})),
+                Text(tr('charts.listenOn', {'service': _names[s]})),
               ],
             ),
           ),
       ],
+    );
+  }
+}
+
+/// VTuber chart: the cover count, opening a list of who sang it (each one's
+/// video on YouTube).
+class _CoversMenu extends StatelessWidget {
+  const _CoversMenu({required this.entry});
+  final ChartEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final n = entry.covers ?? entry.performers.length;
+    if (entry.performers.isEmpty) return Text(tr('charts.coverCount', {'n': n}));
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: PopupMenuButton<String>(
+        tooltip: tr('charts.coversTip'),
+        onSelected: (id) => launchUrl(ChartEntry.youtubeVideo(id)),
+        itemBuilder: (_) => [
+          for (final p in entry.performers)
+            PopupMenuItem(
+              value: p.video,
+              child: Row(
+                children: [
+                  const Icon(Icons.smart_display_outlined, size: 18),
+                  const SizedBox(width: 10),
+                  Flexible(child: Text(p.name, overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+            ),
+        ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(tr('charts.coverCount', {'n': n}), style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
+              Icon(Icons.arrow_drop_down, color: cs.primary),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
