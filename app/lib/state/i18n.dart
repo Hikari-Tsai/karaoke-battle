@@ -184,6 +184,11 @@ const Map<String, (String, String, String)> _table = {
   'folder.confirmBody': ('新位置：{path}\n\n要把現有資料一起搬過去嗎？', 'New location: {path}\n\nMove the existing data there?', '新しい場所：{path}\n\n既存のデータも移動しますか？'),
   'folder.move': ('搬移資料', 'Move data', 'データを移動'),
   'folder.useEmpty': ('只改位置（重新下載模型）', 'Switch only (models re-download)', '場所だけ変更（モデルは再ダウンロード）'),
+  'folder.leftovers': (
+    '資料已經全部搬到新位置。舊資料夾裡有幾個檔案正在使用中（例如記錄檔或 CUDA 套件），暫時刪不掉，下次啟動時會自動清除。',
+    'All data is in the new location. A few files in the old folder are still in use (such as the log or the CUDA pack) and could not be deleted yet; they are removed at the next start.',
+    'データはすべて新しい場所に移動しました。古いフォルダーの一部のファイル（ログや CUDA パックなど）は使用中のためまだ削除できません。次回起動時に自動で削除します。',
+  ),
   'folder.moving': ('搬移中…', 'Moving…', '移動中…'),
   'folder.busy': ('正在備歌，請等處理完成後再搬移資料夾。', 'A song is being prepared; wait until it finishes before moving the folder.', '曲の準備中です。完了してからフォルダを移動してください。'),
   'folder.bad': ('不能選擇目前資料夾本身、它裡面的資料夾，或包含它的資料夾。', 'Choose a folder that is not the current one, inside it, or containing it.', '現在のフォルダ自身、その中、またはそれを含むフォルダは選べません。'),

@@ -67,6 +67,11 @@ class AppPaths {
     final envRoot = env != null && env.isNotEmpty ? env : null;
     final resolved = resolveDataRoot(setting: await DataLocation.read(defaultRoot), env: envRoot, platformDefault: defaultRoot);
     final source = resolved.source;
+    // Old data folders a move could not finish removing (before the log or
+    // any model opens a file).
+    try {
+      await DataLocation.runPendingCleanup(defaultRoot, resolved.root);
+    } catch (_) {}
     final dir = Directory(resolved.root);
     await dir.create(recursive: true);
     final paths = AppPaths._(dir.path, defaultRoot: defaultRoot, envRoot: envRoot, source: source);
@@ -95,35 +100,135 @@ class AppPaths {
 }
 
 /// The user's choice of data folder, stored as <default>/location.json so it
-/// can be read before anything else is loaded.
+/// can be read before anything else is loaded. The same file lists old data
+/// folders whose files were still in use when the data was moved away; they
+/// are removed at the next start ([runPendingCleanup]).
 class DataLocation {
   DataLocation._();
 
-  static String _file(String defaultRoot) => p.join(defaultRoot, 'location.json');
+  static const fileName = 'location.json';
+  static String _file(String defaultRoot) => p.join(defaultRoot, fileName);
 
-  static Future<String?> read(String defaultRoot) async {
+  static Future<Map<String, dynamic>> _load(String defaultRoot) async {
     try {
       final f = File(_file(defaultRoot));
-      if (!await f.exists()) return null;
-      final root = (jsonDecode(await f.readAsString()) as Map<String, dynamic>)['root'] as String?;
-      return root == null || root.isEmpty ? null : root;
+      if (!await f.exists()) return {};
+      return jsonDecode(await f.readAsString()) as Map<String, dynamic>;
     } catch (_) {
-      return null;
+      return {};
     }
   }
+
+  static Future<void> _save(String defaultRoot, Map<String, dynamic> j) async {
+    final f = File(_file(defaultRoot));
+    final cleanup = (j['cleanup'] as List?) ?? const [];
+    if ((j['root'] as String?) == null && cleanup.isEmpty) {
+      if (await f.exists()) await f.delete();
+      return;
+    }
+    await Directory(defaultRoot).create(recursive: true);
+    await f.writeAsString(jsonEncode(j));
+  }
+
+  static Future<String?> read(String defaultRoot) async {
+    final root = (await _load(defaultRoot))['root'] as String?;
+    return root == null || root.isEmpty ? null : root;
+  }
+
+  /// Old data folders still to be removed.
+  static Future<List<String>> pendingCleanup(String defaultRoot) async =>
+      [for (final e in ((await _load(defaultRoot))['cleanup'] as List? ?? const [])) '$e'];
 
   /// Points the app at [root] from the next start (the App setting, which
   /// takes priority over KE_APP_SUPPORT).
   static Future<void> write(String defaultRoot, String root) async {
-    await Directory(defaultRoot).create(recursive: true);
-    await File(_file(defaultRoot)).writeAsString(jsonEncode({'root': root}));
+    final j = await _load(defaultRoot);
+    j['root'] = root;
+    j['cleanup'] = _without(await pendingCleanup(defaultRoot), root);
+    await _save(defaultRoot, j);
   }
 
   /// Clears the App setting: the next start uses KE_APP_SUPPORT or the
   /// platform default again.
   static Future<void> clear(String defaultRoot) async {
-    final f = File(_file(defaultRoot));
-    if (await f.exists()) await f.delete();
+    final j = await _load(defaultRoot);
+    j.remove('root');
+    j['cleanup'] = _without(await pendingCleanup(defaultRoot), defaultRoot);
+    await _save(defaultRoot, j);
+  }
+
+  /// Remembers [dir] for removal at the next start.
+  static Future<void> addCleanup(String defaultRoot, String dir) async {
+    final j = await _load(defaultRoot);
+    final list = await pendingCleanup(defaultRoot);
+    if (!list.any((e) => p.equals(e, dir))) list.add(dir);
+    j['cleanup'] = list;
+    await _save(defaultRoot, j);
+  }
+
+  /// [list] without folders that are, contain or sit inside [root].
+  static List<String> _without(List<String> list, String root) =>
+      [for (final e in list) if (!p.equals(e, root) && !p.isWithin(e, root) && !p.isWithin(root, e)) e];
+
+  /// Removes the old data folders left by a move (files that were in use,
+  /// such as the log or loaded CUDA DLLs on Windows). Run at start, before
+  /// anything opens files; never touches [currentRoot] or location.json.
+  static Future<void> runPendingCleanup(String defaultRoot, String currentRoot) async {
+    final list = await pendingCleanup(defaultRoot);
+    if (list.isEmpty) return;
+    final remaining = <String>[];
+    for (final dir in _without(list, currentRoot)) {
+      try {
+        if (!await Directory(dir).exists()) continue;
+        if (await deleteBestEffort(dir, keepTopLevel: {fileName}) > 0) remaining.add(dir);
+      } catch (_) {
+        remaining.add(dir);
+      }
+    }
+    final j = await _load(defaultRoot);
+    j['cleanup'] = remaining;
+    await _save(defaultRoot, j);
+  }
+
+  /// Deletes [dir] and everything in it as far as possible, skipping files
+  /// that cannot be removed (in use on Windows) instead of stopping at the
+  /// first one. Entries named in [keepTopLevel] directly inside [dir] are
+  /// kept (and so is [dir]). Returns how many entries are left.
+  static Future<int> deleteBestEffort(String dir, {Set<String> keepTopLevel = const {}}) async {
+    var left = 0;
+    Future<void> walk(Directory d, bool top) async {
+      List<FileSystemEntity> entries;
+      try {
+        entries = await d.list(followLinks: false).toList();
+      } catch (_) {
+        left++;
+        return;
+      }
+      for (final e in entries) {
+        if (top && keepTopLevel.contains(p.basename(e.path))) {
+          left++;
+          continue;
+        }
+        if (e is Directory) {
+          await walk(e, false);
+          continue;
+        }
+        try {
+          await e.delete();
+        } catch (_) {
+          left++;
+        }
+      }
+      try {
+        if (await d.list().isEmpty) await d.delete();
+      } catch (_) {
+        left++;
+      }
+    }
+
+    if (await Directory(dir).exists()) await walk(Directory(dir), true);
+    // The kept location.json is not a leftover.
+    return left - [for (final k in keepTopLevel) if (File(p.join(dir, k)).existsSync()) k].length;
   }
 
   /// Where data goes for a folder the user picked: the folder itself when it
@@ -147,37 +252,77 @@ class DataLocation {
   }
 
   /// Moves the whole data folder [from] -> [to] ([to] must not exist or be
-  /// empty). Renames when possible (same volume, instant); otherwise copies
-  /// every file, then deletes the source. [onProgress] gets 0..1 for copies.
-  static Future<void> move(String from, String to, {void Function(double)? onProgress}) async {
+  /// empty). Renames when possible (same volume, nothing in use, instant);
+  /// otherwise copies every file, calls [onCopied] (which points the app at
+  /// [to], so the data is never only in a half-deleted folder), then removes
+  /// the source as far as it can. Files still in use (Windows locks open
+  /// files and loaded DLLs) are left and, with [defaultRoot], removed at the
+  /// next start. Returns false when something was left. [onProgress] gets
+  /// 0..1 for copies.
+  static Future<bool> move(
+    String from,
+    String to, {
+    void Function(double)? onProgress,
+    Future<void> Function()? onCopied,
+    String? defaultRoot,
+  }) async {
     final target = Directory(to);
     if (await target.exists()) {
-      final hasEntries = await target.list().where((e) => !p.basename(e.path).startsWith('.')).isEmpty == false;
+      // location.json is the pointer file of the default folder, not data.
+      final hasEntries = await target.list().where((e) {
+        final n = p.basename(e.path);
+        return !n.startsWith('.') && n != fileName;
+      }).isEmpty == false;
       if (hasEntries) throw StateError('target folder is not empty');
-      await target.delete(recursive: true);
+      // An empty folder makes way for a rename; the default folder keeps
+      // its location.json, so the data is copied into it.
+      if (!await File(p.join(to, fileName)).exists()) await target.delete(recursive: true);
     }
     await target.parent.create(recursive: true);
-    try {
-      await Directory(from).rename(to);
-      onProgress?.call(1);
-      return;
-    } on FileSystemException {
-      // Different volume: copy, then remove the source.
+    if (!await target.exists()) {
+      try {
+        await Directory(from).rename(to);
+        onProgress?.call(1);
+        await onCopied?.call();
+        return true;
+      } on FileSystemException {
+        // Different volume, or files in use: copy, then remove the source.
+      }
     }
-    final files = await Directory(from).list(recursive: true, followLinks: false).where((e) => e is File).cast<File>().toList();
+    final createdTarget = !await target.exists();
+    final files = await Directory(from)
+        .list(recursive: true, followLinks: false)
+        .where((e) => e is File && !(p.equals(p.dirname(e.path), from) && p.basename(e.path) == fileName))
+        .cast<File>()
+        .toList();
     var total = 0;
     for (final f in files) {
       total += await f.length();
     }
     var done = 0;
-    for (final f in files) {
-      final rel = p.relative(f.path, from: from);
-      final dest = File(p.join(to, rel));
-      await dest.parent.create(recursive: true);
-      await f.copy(dest.path);
-      done += await f.length();
-      onProgress?.call(total == 0 ? 1 : done / total);
+    try {
+      for (final f in files) {
+        final rel = p.relative(f.path, from: from);
+        final dest = File(p.join(to, rel));
+        await dest.parent.create(recursive: true);
+        await f.copy(dest.path);
+        done += await f.length();
+        onProgress?.call(total == 0 ? 1 : done / total);
+      }
+    } catch (_) {
+      // Leave the target as it was, so the move can simply be tried again.
+      try {
+        if (createdTarget) {
+          await target.delete(recursive: true);
+        } else {
+          await deleteBestEffort(to, keepTopLevel: {fileName});
+        }
+      } catch (_) {}
+      rethrow;
     }
-    await Directory(from).delete(recursive: true);
+    await onCopied?.call();
+    final left = await deleteBestEffort(from, keepTopLevel: {fileName});
+    if (left > 0 && defaultRoot != null) await addCleanup(defaultRoot, from);
+    return left == 0;
   }
 }

@@ -17,6 +17,24 @@ void main() {
     await dir.delete(recursive: true);
   });
 
+  test('close releases app.log (to move the data folder) and init opens it again', () async {
+    await AppLog.init(dir.path);
+    AppLog.info('one');
+    await AppLog.close();
+    AppLog.info('while closed');
+    expect(AppLog.recent.last, endsWith('while closed'));
+    // Nothing holds the file: it can be moved away and recreated.
+    await File(p.join(dir.path, 'app.log')).rename(p.join(dir.path, 'moved.log'));
+    expect(await File(p.join(dir.path, 'moved.log')).readAsString(), contains('one'));
+    await AppLog.init(dir.path);
+    AppLog.info('two');
+    await AppLog.close();
+    final text = await File(p.join(dir.path, 'app.log')).readAsString();
+    expect(text, contains('while closed'));
+    expect(text, contains('two'));
+    expect(text, isNot(contains(' I one')), reason: 'lines already written are not written again');
+  });
+
   test('writes earlier and later lines to app.log', () async {
     AppLog.info('before init');
     await AppLog.init(dir.path, header: 'Karaoke Battle test');

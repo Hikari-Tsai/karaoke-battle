@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'ai_settings_dialog.dart';
+import '../../services/app_log.dart';
 import '../../services/app_paths.dart';
 import '../../services/backend_manager.dart';
 import '../../services/model_registry.dart';
@@ -136,6 +137,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (choice == null || !mounted) return;
     final progress = ValueNotifier<double>(0);
+    Future<void> pointAtTarget() => reset ? DataLocation.clear(paths.defaultRoot) : DataLocation.write(paths.defaultRoot, dest!);
+    var leftovers = false;
     if (choice == 'move' && !sameFolder) {
       showDialog<void>(
         context: context,
@@ -148,9 +151,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       );
+      // The open log would stop Windows from moving or deleting the folder.
+      await AppLog.close();
       try {
-        await DataLocation.move(paths.root, dest, onProgress: (v) => progress.value = v);
+        leftovers = !await DataLocation.move(
+          paths.root,
+          dest,
+          defaultRoot: paths.defaultRoot,
+          onProgress: (v) => progress.value = v,
+          // Written as soon as the copy is complete, before the source is
+          // removed: the app then never points at a half-deleted folder.
+          onCopied: pointAtTarget,
+        );
       } catch (e, st) {
+        await AppLog.init(paths.logs);
         if (mounted) Navigator.of(context).pop();
         if (e is StateError && '$e'.contains('not empty')) {
           _snack(tr('folder.notEmpty'));
@@ -162,11 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) Navigator.of(context).pop();
     } else {
       await Directory(dest).create(recursive: true);
-    }
-    if (reset) {
-      await DataLocation.clear(paths.defaultRoot); // back to KE_APP_SUPPORT / platform default
-    } else {
-      await DataLocation.write(paths.defaultRoot, dest);
+      await pointAtTarget(); // reset: back to KE_APP_SUPPORT / platform default
     }
     if (!mounted) return;
     await showDialog<void>(
@@ -174,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       barrierDismissible: false,
       builder: (c) => AlertDialog(
         title: Text(tr('folder.restartTitle')),
-        content: SelectableText(tr('folder.restartBody', {'path': dest})),
+        content: SelectableText('${tr('folder.restartBody', {'path': dest})}${leftovers ? '\n\n${tr('folder.leftovers')}' : ''}'),
         actions: [FilledButton(onPressed: () => exit(0), child: Text(tr('folder.quit')))],
       ),
     );

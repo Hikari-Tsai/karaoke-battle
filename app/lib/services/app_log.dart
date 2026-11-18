@@ -19,6 +19,9 @@ class AppLog {
   static const rotateBytes = 2 * 1024 * 1024;
 
   static final List<String> _lines = [];
+
+  /// Lines logged while no file was open (before [init], after [close]).
+  static final List<String> _unwritten = [];
   static IOSink? _sink;
   static String? _dir;
   static bool _hooked = false;
@@ -41,14 +44,28 @@ class AppLog {
       final sink = f.openWrite(mode: FileMode.append);
       sink.writeln('');
       sink.writeln('===== ${DateTime.now().toIso8601String()} ${header ?? ''}'.trimRight());
-      for (final l in _lines) {
+      for (final l in _unwritten) {
         sink.writeln(l);
       }
+      _unwritten.clear();
       _sink = sink;
     } catch (e) {
       _dir = null;
       debugPrint('AppLog: cannot open $logsDir: $e');
     }
+  }
+
+  /// Closes the log file (lines are still kept in memory), so the data
+  /// folder can be moved: Windows can neither rename nor delete an open
+  /// file. [init] opens it again.
+  static Future<void> close() async {
+    final sink = _sink;
+    _sink = null;
+    _dir = null;
+    try {
+      await sink?.flush();
+      await sink?.close();
+    } catch (_) {}
   }
 
   /// Records uncaught framework and platform errors (keeping Flutter's own
@@ -77,9 +94,15 @@ class AppLog {
     for (final line in redact(message).split('\n')) {
       final l = '$stamp $level $line';
       _lines.add(l);
-      _sink?.writeln(l);
+      final sink = _sink;
+      if (sink != null) {
+        sink.writeln(l);
+      } else {
+        _unwritten.add(l);
+      }
     }
     if (_lines.length > keepLines) _lines.removeRange(0, _lines.length - keepLines);
+    if (_unwritten.length > keepLines) _unwritten.removeRange(0, _unwritten.length - keepLines);
   }
 
   static void info(String message) => log('I', message);
@@ -156,5 +179,6 @@ class AppLog {
     _sink = null;
     _dir = null;
     _lines.clear();
+    _unwritten.clear();
   }
 }
