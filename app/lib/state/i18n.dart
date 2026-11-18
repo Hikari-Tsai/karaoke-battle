@@ -879,6 +879,23 @@ const Map<String, (String, String, String)> _table = {
   ),
   'settings.ytDlpInstallFailed': ('無法下載 yt-dlp：{error}', 'Could not download yt-dlp: {error}', 'yt-dlp をダウンロードできませんでした：{error}'),
   'settings.ytDlpUpdateFailed': ('無法更新 yt-dlp：{error}', 'Could not update yt-dlp: {error}', 'yt-dlp を更新できませんでした：{error}'),
+  'cert.title': ('無法驗證連線的安全憑證', 'Cannot verify the connection\'s certificate', '接続先の証明書を確認できません'),
+  'cert.body': (
+    '下載 {host} 的檔案時，無法驗證對方伺服器的安全憑證。常見原因是防毒軟體的「HTTPS 掃描」或「網頁防護」、公司或學校網路正在檢查連線內容，或這台電腦缺少根憑證。',
+    'While downloading from {host}, the server\'s security certificate could not be verified. This is usually an antivirus "HTTPS scanning" or "web protection" feature, a company or school network inspecting connections, or root certificates missing on this computer.',
+    '{host} からのダウンロード中に、サーバーのセキュリティ証明書を確認できませんでした。よくある原因は、ウイルス対策ソフトの「HTTPS スキャン」や「Web 保護」、会社や学校のネットワークによる通信の検査、またはこのパソコンにルート証明書がないことです。',
+  ),
+  'cert.safety': (
+    '這個檔案有固定的 SHA-256 檢查碼，下載後會核對，內容只要被改過就會拒絕安裝；下載時不會傳送任何個人資料。',
+    'This file has a fixed SHA-256 checksum and is checked after downloading: if its content was changed in any way, it is not installed. No personal data is sent while downloading.',
+    'このファイルには固定の SHA-256 チェックサムがあり、ダウンロード後に照合します。内容が少しでも変わっていればインストールしません。ダウンロード中に個人情報は送信されません。',
+  ),
+  'cert.question': (
+    '要略過憑證檢查、繼續下載嗎？這次開啟 App 期間，其他有檢查碼的下載也會直接略過憑證檢查。',
+    'Skip the certificate check and continue? Until the app is closed, other downloads that have a checksum will skip it too.',
+    '証明書の確認をスキップして続けますか？アプリを閉じるまで、チェックサムのある他のダウンロードも確認をスキップします。',
+  ),
+  'cert.continue': ('略過並繼續', 'Skip and continue', 'スキップして続ける'),
   'settings.ytDlpCheckLater': (
     '已經可以使用；只是暫時查不到有沒有更新的版本，之後可以再按「更新 yt-dlp」。（{error}）',
     'It is ready to use; only checking for a newer version failed for now. Press "Update yt-dlp" again later. ({error})',
@@ -939,6 +956,14 @@ const Map<String, (String, String, String)> _table = {
   'calibPrompt.doneTitle': ('量測完成', 'Latency measured', '測定完了'),
   'calibPrompt.done': ('延遲為 {ms} ms，已保存並套用到所有歌曲。', 'Latency is {ms} ms; it has been saved and applies to every song.', '遅延は {ms} ms です。保存され、すべての曲に適用されます。'),
   'calibPrompt.continue': ('開始預覽', 'Continue to preview', 'プレビューへ'),
+  'settings.latencyManual': ('手動調整', 'Adjust by hand', '手動で調整'),
+  'settings.latencyManualHint': (
+    '量不到或覺得不準時可以自己調：唱歌時音高線比音符晚出現就調大，比較早出現就調小。唱歌畫面的 −／+ 也能邊唱邊微調。',
+    'If calibration fails or seems off, set it yourself: when your pitch line shows up later than the notes, raise it; earlier, lower it. The −/+ buttons on the sing screen adjust it while you sing.',
+    '測定できない、またはずれていると感じるときは自分で調整できます。歌っているとき音程線が音符より遅れて出るなら大きく、早く出るなら小さくします。歌唱画面の −／+ でも歌いながら微調整できます。',
+  ),
+  'sing.latencyLess': ('延遲 −5 ms（音高線比音符早出現時按）', 'Latency −5 ms (when your pitch line is ahead of the notes)', '遅延 −5 ms（音程線が音符より早いとき）'),
+  'sing.latencyMore': ('延遲 +5 ms（音高線比音符晚出現時按）', 'Latency +5 ms (when your pitch line lags behind the notes)', '遅延 +5 ms（音程線が音符より遅れるとき）'),
   'settings.calibFail.title': ('量測失敗', 'Calibration failed', '測定に失敗しました'),
   'settings.calibFail.noClick': (
     '麥克風沒有聽到量測的聲音。請拿掉耳機改用喇叭外放、把系統音量調大，並確認「設定」中選的輸入裝置是你正在用的麥克風、輸出裝置是你正在聽的喇叭（S/PDIF、HDMI 這類數位輸出常常沒有接喇叭），麥克風的靜音也要關掉，然後再量一次。',

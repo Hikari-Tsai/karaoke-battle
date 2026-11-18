@@ -26,6 +26,16 @@ wheels (driver >= 527.41, compute capability 6.0+). That zip went away with the
 microsoft/onnxruntime repository (issue #7). An installed CUDA 12 pack keeps working with its own
 requirements; re-downloading replaces it with the CUDA 13 pack and deletes the old DLLs.
 
+Fallback source: every archive in `scripts/cuda_pack.json` has a `mirror` entry on
+[aaatmy/cuda-pack-win-x64](https://huggingface.co/aaatmy/cuda-pack-win-x64), a zip with only the DLLs the
+pack installs (byte-identical, per-DLL sha256 pinned) plus their license texts. The app tries it when
+the NuGet/PyPI download fails, except after the user declined to skip a certificate error.
+
+Certificate errors: a download with a pinned sha256 (CUDA pack, models, sidecars with a pinned hash)
+whose TLS certificate cannot be verified asks once per app session whether to continue without the
+check (`Downloader.certificatePrompt`, issue #6); the file is still verified against its hash. Checksum
+lists, redirects to "latest" files and API calls are never relaxed.
+
 ## Drawbacks per backend
 
 **CPU** (macOS fallback, Windows last resort)

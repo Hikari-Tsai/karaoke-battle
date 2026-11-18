@@ -45,12 +45,16 @@ class BackendDecision {
 }
 
 class CudaPackFile {
-  CudaPackFile({required this.url, required this.sha256, required this.bytes, required this.members});
+  CudaPackFile({required this.url, required this.sha256, required this.bytes, required this.members, this.mirror});
   final String url;
   final String sha256;
   final int bytes;
   /// archive member path -> file name to place in cuda_pack/
   final Map<String, String> members;
+
+  /// The same DLLs on the app's own Hugging Face mirror, tried when [url]
+  /// fails (a vanished release, as microsoft/onnxruntime in issue #7).
+  final CudaPackFile? mirror;
 }
 
 class CudaPackManifest {
@@ -101,6 +105,7 @@ class CudaPackManifest {
         sha256: m['sha256'] as String,
         bytes: ((m['size'] ?? m['bytes']) as num?)?.toInt() ?? 0,
         members: members,
+        mirror: m['mirror'] is Map<String, dynamic> ? parse(m['mirror'] as Map<String, dynamic>) : null,
       );
     }
 
@@ -183,15 +188,33 @@ class BackendManager extends ChangeNotifier {
     if (m == null) throw StateError('CUDA pack manifest missing');
     final total = m.totalBytes;
     var done = 0;
+    var cancelled = false;
+    cancel?.then((_) => cancelled = true);
     for (final f in m.files) {
-      final name = p.basename(Uri.parse(f.url).path);
-      final tmp = p.join(paths.cache, name);
-      await _dl.download(Uri.parse(f.url), tmp, sha256: f.sha256, cancel: cancel, onProgress: (dp) {
-        onProgress?.call('download $name', (done + dp.received) / total);
-      });
-      onProgress?.call('extract $name', (done + f.bytes) / total);
-      await _extractMembers(tmp, f.members, paths.cudaPack);
-      await File(tmp).delete();
+      Future<void> fetch(CudaPackFile src) async {
+        final name = p.basename(Uri.parse(src.url).path);
+        final tmp = p.join(paths.cache, name);
+        await _dl.download(Uri.parse(src.url), tmp, sha256: src.sha256, cancel: cancel, onProgress: (dp) {
+          onProgress?.call('download $name', ((done + dp.received) / total).clamp(0.0, 1.0));
+        });
+        onProgress?.call('extract $name', ((done + f.bytes) / total).clamp(0.0, 1.0));
+        await _extractMembers(tmp, src.members, paths.cudaPack);
+        await File(tmp).delete();
+      }
+
+      try {
+        await fetch(f);
+      } catch (e) {
+        final mirror = f.mirror;
+        // A declined certificate prompt would only come back for the mirror.
+        if (mirror == null || cancelled || e is CertificateException) rethrow;
+        try {
+          await fetch(mirror);
+        } catch (e2) {
+          if (cancelled) rethrow;
+          throw DownloadException('$e\n$e2');
+        }
+      }
       done += f.bytes;
     }
     // Drop what an older pack left behind (an install over the CUDA 12 pack

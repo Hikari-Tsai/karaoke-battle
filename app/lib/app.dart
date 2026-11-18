@@ -11,7 +11,9 @@ import 'services/song_library.dart';
 import 'state/app_services.dart';
 import 'state/i18n.dart';
 import 'state/setup_controller.dart';
+import 'services/downloader.dart';
 import 'ui/shell.dart';
+import 'ui/widgets/certificate_prompt.dart';
 import 'ui/widgets/error_report.dart';
 
 class KaraokeApp extends StatefulWidget {
@@ -23,10 +25,18 @@ class KaraokeApp extends StatefulWidget {
 
 class _KaraokeAppState extends State<KaraokeApp> {
   late Future<AppServices> _bootstrap;
+  final _navigator = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
     super.initState();
+    // A download whose server certificate cannot be verified asks first
+    // (issue #6); without a window to ask in, it fails as before.
+    Downloader.certificatePrompt = (url, error) async {
+      final ctx = _navigator.currentContext;
+      if (ctx == null || !ctx.mounted) return false;
+      return showCertificatePrompt(ctx, url, error);
+    };
     _bootstrap = bootstrapServices();
   }
 
@@ -41,6 +51,7 @@ class _KaraokeAppState extends State<KaraokeApp> {
         builder: (context, snap) {
           final s = snap.data;
           return MaterialApp(
+            navigatorKey: _navigator,
             title: tr('app.title'),
             debugShowCheckedModeBanner: false,
             // Material/Cupertino widget strings follow the UI language too.

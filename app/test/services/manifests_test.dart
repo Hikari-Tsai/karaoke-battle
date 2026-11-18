@@ -32,6 +32,14 @@ void main() {
       expect(Uri.parse(f.url).host, isNot('github.com'));
       expect(f.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
     }
+    // Every source has a byte-identical fallback on the app's own HF mirror.
+    for (final f in m.files) {
+      final mirror = f.mirror!;
+      expect(Uri.parse(mirror.url).host, 'huggingface.co');
+      expect(mirror.url, startsWith('https://huggingface.co/aaatmy/cuda-pack-win-x64/resolve/main/'));
+      expect(mirror.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
+      expect(mirror.members.values.toSet(), f.members.values.toSet());
+    }
     final all = m.installedNames;
     expect(all, containsAll(['onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'cudart64_13.dll', 'cublas64_13.dll', 'cublasLt64_13.dll', 'cufft64_12.dll', 'cudnn64_9.dll']));
     expect(all.length, all.toSet().length);

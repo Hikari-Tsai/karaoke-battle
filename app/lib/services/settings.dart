@@ -78,7 +78,11 @@ class AppSettings extends ChangeNotifier {
   int get sampleRate => _get('sample_rate', 48000);
   Future<void> setSampleRate(int sr) => _set('sample_rate', sr);
 
-  /// Round-trip latency measured by calibration (seconds); null = not calibrated.
+  /// Highest latency the manual controls allow (Bluetooth speakers reach 300 ms).
+  static const maxLatencySeconds = 0.6;
+
+  /// Round-trip latency measured by calibration or set by hand (seconds);
+  /// null = not calibrated.
   double? get latencySeconds => _prefs.getDouble('latency_seconds');
   Future<void> setLatencySeconds(double s) => _set('latency_seconds', s);
 

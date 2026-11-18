@@ -40,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Map<Backend, double?>? _bench;
   bool _benchRunning = false;
   bool _calibrating = false;
+  double? _latencyDraft; // while the latency slider is dragged
   String? _calibError;
   String? _calibDetails;
 
@@ -180,6 +181,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _snack(String msg) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _setLatency(double seconds) async {
+    final ms = (seconds * 1000).round().clamp(0, (AppSettings.maxLatencySeconds * 1000).round());
+    await context.read<AppServices>().settings.setLatencySeconds(ms / 1000);
+    if (mounted) setState(() => _latencyDraft = null);
+  }
 
   Future<void> _calibrate() async {
     final services = context.read<AppServices>();
@@ -463,6 +470,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(settings.latencySeconds == null ? tr('settings.notCalibrated') : '${(settings.latencySeconds! * 1000).toStringAsFixed(0)} ms'),
                 ],
               ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(tr('settings.latencyManual')),
+                  IconButton(
+                    tooltip: '-1 ms',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: _calibrating ? null : () => _setLatency((_latencyDraft ?? settings.latencySeconds ?? 0) - 0.001),
+                    icon: const Icon(Icons.remove, size: 18),
+                  ),
+                  Expanded(
+                    child: Slider(
+                      value: ((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).clamp(0, AppSettings.maxLatencySeconds * 1000).toDouble(),
+                      max: AppSettings.maxLatencySeconds * 1000,
+                      divisions: (AppSettings.maxLatencySeconds * 1000).round(),
+                      label: '${((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).round()} ms',
+                      onChanged: _calibrating ? null : (v) => setState(() => _latencyDraft = v / 1000),
+                      onChangeEnd: (v) => _setLatency(v / 1000),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '+1 ms',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: _calibrating ? null : () => _setLatency((_latencyDraft ?? settings.latencySeconds ?? 0) + 0.001),
+                    icon: const Icon(Icons.add, size: 18),
+                  ),
+                  SizedBox(width: 64, child: Text('${((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).round()} ms', textAlign: TextAlign.end)),
+                ],
+              ),
+              Text(tr('settings.latencyManualHint'), style: theme.textTheme.bodySmall),
               const SizedBox(height: 6),
               Text(tr('settings.calibrateHint'), style: theme.textTheme.bodySmall),
               if (_calibError != null) ...[

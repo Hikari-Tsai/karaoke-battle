@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:path/path.dart' as p;
 
 class DownloadProgress {
@@ -21,10 +22,63 @@ class DownloadException implements Exception {
   String toString() => 'DownloadException: $message';
 }
 
+/// Asks the user whether to go on although the server's TLS certificate
+/// could not be verified. [url] is what was being downloaded, [error] the
+/// TLS error. True continues.
+typedef CertificatePrompt = Future<bool> Function(Uri url, String error);
+
+/// The TLS certificate could not be verified and the download was not
+/// continued (nobody to ask, or the user said no).
+class CertificateException extends DownloadException {
+  CertificateException(super.message);
+}
+
+/// Whether [e] is a TLS certificate verification failure (an antivirus or a
+/// company proxy inspecting HTTPS, or missing root certificates).
+bool isCertificateError(Object e) {
+  final s = '$e';
+  return e is HandshakeException || s.contains('CERTIFICATE_VERIFY_FAILED') || s.contains('HandshakeException');
+}
+
 class Downloader {
-  Downloader({http.Client? client, this.idleTimeout = const Duration(seconds: 60), this.connectTimeout = const Duration(seconds: 30)})
-      : _client = client ?? http.Client();
+  Downloader({
+    http.Client? client,
+    http.Client? uncheckedClient,
+    this.idleTimeout = const Duration(seconds: 60),
+    this.connectTimeout = const Duration(seconds: 30),
+  })  : _client = client ?? http.Client(),
+        _uncheckedOverride = uncheckedClient;
   final http.Client _client;
+  final http.Client? _uncheckedOverride;
+  http.Client? _unchecked;
+
+  /// Set by the UI: asked once per app session before a download with a
+  /// pinned sha256 is retried without verifying the server's certificate
+  /// (issue #6). Those files are checked against their hash, so a server
+  /// that is not who it claims cannot slip in a different file. Downloads
+  /// without a hash, checksum lists and API calls are never retried this way.
+  static CertificatePrompt? certificatePrompt;
+  static bool _certificateAccepted = false;
+  static Future<bool>? _asking;
+
+  /// Forgets the user's answer (tests).
+  static void resetCertificateDecision() {
+    _certificateAccepted = false;
+    _asking = null;
+  }
+
+  static Future<bool> _mayIgnoreCertificate(Uri url, Object error) async {
+    if (_certificateAccepted) return true;
+    final prompt = certificatePrompt;
+    if (prompt == null) return false;
+    // Several downloads fail at once (the CUDA pack, a model): one dialog.
+    final ok = await (_asking ??= prompt(url, '$error').whenComplete(() => _asking = null));
+    if (ok) _certificateAccepted = true;
+    return ok;
+  }
+
+  http.Client get _uncheckedClient =>
+      _uncheckedOverride ?? (_unchecked ??= IOClient(HttpClient()..badCertificateCallback = (cert, host, port) => true));
 
   /// No byte for this long fails the download (a stalled connection would
   /// otherwise leave its progress bar stuck for good).
@@ -36,7 +90,33 @@ class Downloader {
   /// Downloads [url] to [destPath] (atomically via a .part file). Verifies
   /// [sha256] when given. [cancel] completes to abort, at once, also while
   /// connecting or while no data arrives.
+  ///
+  /// When the server's certificate cannot be verified and [sha256] is given,
+  /// [certificatePrompt] decides whether to retry without verifying it.
   Future<void> download(
+    Uri url,
+    String destPath, {
+    String? sha256,
+    void Function(DownloadProgress)? onProgress,
+    Future<void>? cancel,
+    Map<String, String>? headers,
+  }) async {
+    if (sha256 != null && _certificateAccepted) {
+      return _download(_uncheckedClient, url, destPath, sha256: sha256, onProgress: onProgress, cancel: cancel, headers: headers);
+    }
+    try {
+      return await _download(_client, url, destPath, sha256: sha256, onProgress: onProgress, cancel: cancel, headers: headers);
+    } catch (e) {
+      if (!isCertificateError(e)) rethrow;
+      if (sha256 == null || !await _mayIgnoreCertificate(url, e)) {
+        throw CertificateException('cannot verify the TLS certificate of ${url.host}: $e');
+      }
+      return _download(_uncheckedClient, url, destPath, sha256: sha256, onProgress: onProgress, cancel: cancel, headers: headers);
+    }
+  }
+
+  Future<void> _download(
+    http.Client client,
     Uri url,
     String destPath, {
     String? sha256,
@@ -58,7 +138,7 @@ class Downloader {
       if (!cancelled.isCompleted) cancelled.complete();
     });
     final resp = await Future.any([
-      _client.send(req).timeout(connectTimeout, onTimeout: () => throw DownloadException('no response from $url after ${connectTimeout.inSeconds} s')),
+      client.send(req).timeout(connectTimeout, onTimeout: () => throw DownloadException('no response from $url after ${connectTimeout.inSeconds} s')),
       cancelled.future.then<http.StreamedResponse>((_) => throw DownloadException('cancelled')),
     ]);
     if (resp.statusCode < 200 || resp.statusCode >= 300) {

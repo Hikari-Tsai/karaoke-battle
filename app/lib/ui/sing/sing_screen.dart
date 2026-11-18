@@ -1523,6 +1523,20 @@ class _LatencyRow extends StatelessWidget {
               style: theme.textTheme.labelSmall,
             ),
           ),
+          if (!s.recording && !s.calibrating) ...[
+            for (final (step, tip, icon) in [(-0.005, 'sing.latencyLess', Icons.remove), (0.005, 'sing.latencyMore', Icons.add)])
+              Tooltip(
+                message: tr(tip),
+                child: IconButton(
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 14,
+                  constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                  padding: EdgeInsets.zero,
+                  onPressed: s.ready ? () => s.setLatencyManually(s.latencyCompensation + step) : null,
+                  icon: Icon(icon),
+                ),
+              ),
+          ],
           // Only before singing: hidden while recording.
           if (s.calibrating)
             const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))

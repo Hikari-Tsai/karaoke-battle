@@ -14,6 +14,7 @@ import '../engine/engine.dart';
 import '../scoring/rhythm.dart';
 import '../services/model_registry.dart';
 import '../services/song_library.dart';
+import '../services/settings.dart';
 import 'app_services.dart';
 import 'beat_grid.dart';
 import 'ghost_notes.dart';
@@ -690,6 +691,17 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         notifyListeners();
       }
     }
+  }
+
+  /// Sets the latency by hand (the sing screen's -/+ buttons): applied at
+  /// once to the live pitch line and saved like a measured one.
+  Future<void> setLatencyManually(double seconds) async {
+    if (recording || calibrating) return;
+    final sec = (seconds * 1000).roundToDouble().clamp(0.0, AppSettings.maxLatencySeconds * 1000) / 1000;
+    _live?.latencyCompensation = sec;
+    latencyCompensation = sec;
+    notifyListeners();
+    await services.settings.setLatencySeconds(sec);
   }
 
   // ---- recording -----------------------------------------------------------------

@@ -53,7 +53,32 @@
     "not_extracted": [
       "runtimes/win-x64/native/onnxruntime_providers_tensorrt.dll (TensorRT EP, not used)",
       "runtimes/win-x64/native/*.lib, build*/ (build-time only)"
-    ]
+    ],
+    "mirror": {
+      "url": "https://huggingface.co/aaatmy/cuda-pack-win-x64/resolve/main/ort-1.31.1-gpu-win-x64.zip",
+      "size": 159587316,
+      "sha256": "6301550c1a46d5712427e8065c8abc0fc356b10caf8f5798c5dfcf037535e4f3",
+      "extract": [
+        {
+          "path": "onnxruntime.dll",
+          "size": 17719608,
+          "sha256": "e0b6cdd2b20b84c1bf75c1ddb661a1cc7ab3fca31b0d01cffd1c941e588d8637",
+          "required": true
+        },
+        {
+          "path": "onnxruntime_providers_shared.dll",
+          "size": 21816,
+          "sha256": "4eb58e0a90ab7f65a614a114e616367f5ff6ce54e3e23688f4ac9adebd8ce96f",
+          "required": true
+        },
+        {
+          "path": "onnxruntime_providers_cuda.dll",
+          "size": 196835128,
+          "sha256": "a4bdb2a7353876183d96bb2fedd1d6ab4ec9991652d8c30462a09a3a56299a5b",
+          "required": true
+        }
+      ]
+    }
   },
   "nvidia_wheels": [
     {
@@ -69,10 +94,24 @@
           "path": "nvidia/cu13/bin/x86_64/cudart64_13.dll",
           "size": 551024,
           "required": true,
-          "why": "loaded by name by the CUDA EP (not an import: the EP links cudart statically); tiny, kept so every lookup succeeds"
+          "why": "loaded by name by the CUDA EP (not an import: the EP links cudart statically); tiny, kept so every lookup succeeds",
+          "sha256": "16ab35d8150b6105b7e49da264d360db4ece090157ad48d226c1dc7254136008"
         }
       ],
-      "not_extracted": []
+      "not_extracted": [],
+      "mirror": {
+        "url": "https://huggingface.co/aaatmy/cuda-pack-win-x64/resolve/main/cuda-runtime-13.5.37-win-x64.zip",
+        "size": 229849,
+        "sha256": "852531c41ecd7e09b1e3bd3017591281abd70f3b9853a01a20cb136d1d048e2d",
+        "extract": [
+          {
+            "path": "cudart64_13.dll",
+            "size": 551024,
+            "sha256": "16ab35d8150b6105b7e49da264d360db4ece090157ad48d226c1dc7254136008",
+            "required": true
+          }
+        ]
+      }
     },
     {
       "package": "nvidia-cublas",
@@ -87,18 +126,39 @@
           "path": "nvidia/cu13/bin/x86_64/cublas64_13.dll",
           "size": 55212656,
           "required": true,
-          "why": "direct import of onnxruntime_providers_cuda.dll"
+          "why": "direct import of onnxruntime_providers_cuda.dll",
+          "sha256": "db5a1d5a0ed0ef126e005fc7449d3584353aaeb8739a18d716fe74be1254a3da"
         },
         {
           "path": "nvidia/cu13/bin/x86_64/cublasLt64_13.dll",
           "size": 499102832,
           "required": true,
-          "why": "direct import of onnxruntime_providers_cuda.dll and of cublas64_13.dll"
+          "why": "direct import of onnxruntime_providers_cuda.dll and of cublas64_13.dll",
+          "sha256": "ca478e1ea932f883ef4fc284f8f33d910079df4e77f9a2ec38d9b4387795f96f"
         }
       ],
       "not_extracted": [
         "nvidia/cu13/bin/x86_64/nvblas64_13.dll (BLAS drop-in, unused)"
-      ]
+      ],
+      "mirror": {
+        "url": "https://huggingface.co/aaatmy/cuda-pack-win-x64/resolve/main/cublas-13.10.0.20-win-x64.zip",
+        "size": 427122699,
+        "sha256": "2eee328552e13342904b58367e974655c74833ea96cf7b0529017cb573cc4822",
+        "extract": [
+          {
+            "path": "cublas64_13.dll",
+            "size": 55212656,
+            "sha256": "db5a1d5a0ed0ef126e005fc7449d3584353aaeb8739a18d716fe74be1254a3da",
+            "required": true
+          },
+          {
+            "path": "cublasLt64_13.dll",
+            "size": 499102832,
+            "sha256": "ca478e1ea932f883ef4fc284f8f33d910079df4e77f9a2ec38d9b4387795f96f",
+            "required": true
+          }
+        ]
+      }
     },
     {
       "package": "nvidia-cufft",
@@ -113,12 +173,26 @@
           "path": "nvidia/cu13/bin/x86_64/cufft64_12.dll",
           "size": 236194928,
           "required": true,
-          "why": "loaded at run time by the CUDA EP (DFT/STFT kernels); CUDA 13 ships cuFFT 12"
+          "why": "loaded at run time by the CUDA EP (DFT/STFT kernels); CUDA 13 ships cuFFT 12",
+          "sha256": "26097e3b1b1a260d783db53086f2b3dd08418af94bf9112350dd1593eaf50842"
         }
       ],
       "not_extracted": [
         "nvidia/cu13/bin/x86_64/cufftw64_12.dll (FFTW shim, unused)"
-      ]
+      ],
+      "mirror": {
+        "url": "https://huggingface.co/aaatmy/cuda-pack-win-x64/resolve/main/cufft-12.5.0.14-win-x64.zip",
+        "size": 164356795,
+        "sha256": "1282b4e38d455e4127eb31047a031a6564b905111459a07b047dc7fa7b62a476",
+        "extract": [
+          {
+            "path": "cufft64_12.dll",
+            "size": 236194928,
+            "sha256": "26097e3b1b1a260d783db53086f2b3dd08418af94bf9112350dd1593eaf50842",
+            "required": true
+          }
+        ]
+      }
     },
     {
       "package": "nvidia-cudnn-cu13",
@@ -133,64 +207,141 @@
           "path": "nvidia/cudnn/bin/cudnn64_9.dll",
           "size": 272496,
           "required": true,
-          "why": "loaded at run time by the CUDA EP; shim that loads the sub-libraries below"
+          "why": "loaded at run time by the CUDA EP; shim that loads the sub-libraries below",
+          "sha256": "4a9e4377b8dd01bbbfacfef70fc5ce0bcedac0c4a6467b08be64ee9b3a21d012"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_graph64_9.dll",
           "size": 125943920,
           "required": true,
-          "why": "cudnn 9 graph API core"
+          "why": "cudnn 9 graph API core",
+          "sha256": "6413db6e0b4bb57750797084d0b88ed7bf1e90d714f48b6d5795eae06049cc84"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_ops64_9.dll",
           "size": 33099376,
           "required": true,
-          "why": "pointwise/reduction/normalisation ops"
+          "why": "pointwise/reduction/normalisation ops",
+          "sha256": "cca7dd430d34a3a95808d119537776e0d469e147a8adab25b304ec9a81897f3c"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_cnn64_9.dll",
           "size": 1462384,
           "required": true,
-          "why": "convolution front end (MDX-Net, GAME encoder)"
+          "why": "convolution front end (MDX-Net, GAME encoder)",
+          "sha256": "557cc789dd5151ba9d512f831f3b50cbbf94a1919b6577d4d19227445324434b"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_adv64_9.dll",
           "size": 89196656,
           "required": true,
-          "why": "RNN/attention; loaded lazily by cudnn64_9 - keep so cudnn initialises identically to a full install"
+          "why": "RNN/attention; loaded lazily by cudnn64_9 - keep so cudnn initialises identically to a full install",
+          "sha256": "9e8e03ccf577409c779c29307133ebff855d8cba24e2bf3557cd669c753d66e2"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_engines_precompiled64_9.dll",
           "size": 219385456,
           "required": true,
-          "why": "precompiled conv engines (used for every conv plan)"
+          "why": "precompiled conv engines (used for every conv plan)",
+          "sha256": "6def0d87bef6e51c0615e04089b621ef02a5e4a5edbf1525960d33817b79ad4d"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_engines_runtime_compiled64_9.dll",
           "size": 38390896,
           "required": true,
-          "why": "runtime-compiled engines (fallback plans)"
+          "why": "runtime-compiled engines (fallback plans)",
+          "sha256": "01e81f1a691174e5b259d24323f483a10dfa8a34313bf2eba2a2f1d86eae12e4"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_engines_tensor_ir64_9.dll",
           "size": 156784,
           "required": true,
-          "why": "loaded by cudnn_graph"
+          "why": "loaded by cudnn_graph",
+          "sha256": "2acad24ea4bdf289476b15d16bb2fe5ffea0e8b1f4aa76c65a06eb2b8d2e815f"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_ext64_9.dll",
           "size": 130160,
           "required": true,
-          "why": "loaded by cudnn_graph"
+          "why": "loaded by cudnn_graph",
+          "sha256": "51b2efd1d94140b400de39e635da5bfcfdf1d058100c75a482b426e14bcb231d"
         },
         {
           "path": "nvidia/cudnn/bin/cudnn_heuristic64_9.dll",
           "size": 94795376,
           "required": true,
-          "why": "engine heuristics; needed for plan selection"
+          "why": "engine heuristics; needed for plan selection",
+          "sha256": "0946e0391135f4a813eae28f727fbff8dfa208ad31ffb450007f43336946fe3c"
         }
       ],
-      "not_extracted": []
+      "not_extracted": [],
+      "mirror": {
+        "url": "https://huggingface.co/aaatmy/cuda-pack-win-x64/resolve/main/cudnn-9.28.1.4-cuda13-win-x64.zip",
+        "size": 406170715,
+        "sha256": "300e563433c11e639ae9360030b5d24b7b43d288a5bd89d6f8b71116f0abe3b8",
+        "extract": [
+          {
+            "path": "cudnn64_9.dll",
+            "size": 272496,
+            "sha256": "4a9e4377b8dd01bbbfacfef70fc5ce0bcedac0c4a6467b08be64ee9b3a21d012",
+            "required": true
+          },
+          {
+            "path": "cudnn_graph64_9.dll",
+            "size": 125943920,
+            "sha256": "6413db6e0b4bb57750797084d0b88ed7bf1e90d714f48b6d5795eae06049cc84",
+            "required": true
+          },
+          {
+            "path": "cudnn_ops64_9.dll",
+            "size": 33099376,
+            "sha256": "cca7dd430d34a3a95808d119537776e0d469e147a8adab25b304ec9a81897f3c",
+            "required": true
+          },
+          {
+            "path": "cudnn_cnn64_9.dll",
+            "size": 1462384,
+            "sha256": "557cc789dd5151ba9d512f831f3b50cbbf94a1919b6577d4d19227445324434b",
+            "required": true
+          },
+          {
+            "path": "cudnn_adv64_9.dll",
+            "size": 89196656,
+            "sha256": "9e8e03ccf577409c779c29307133ebff855d8cba24e2bf3557cd669c753d66e2",
+            "required": true
+          },
+          {
+            "path": "cudnn_engines_precompiled64_9.dll",
+            "size": 219385456,
+            "sha256": "6def0d87bef6e51c0615e04089b621ef02a5e4a5edbf1525960d33817b79ad4d",
+            "required": true
+          },
+          {
+            "path": "cudnn_engines_runtime_compiled64_9.dll",
+            "size": 38390896,
+            "sha256": "01e81f1a691174e5b259d24323f483a10dfa8a34313bf2eba2a2f1d86eae12e4",
+            "required": true
+          },
+          {
+            "path": "cudnn_engines_tensor_ir64_9.dll",
+            "size": 156784,
+            "sha256": "2acad24ea4bdf289476b15d16bb2fe5ffea0e8b1f4aa76c65a06eb2b8d2e815f",
+            "required": true
+          },
+          {
+            "path": "cudnn_ext64_9.dll",
+            "size": 130160,
+            "sha256": "51b2efd1d94140b400de39e635da5bfcfdf1d058100c75a482b426e14bcb231d",
+            "required": true
+          },
+          {
+            "path": "cudnn_heuristic64_9.dll",
+            "size": 94795376,
+            "sha256": "0946e0391135f4a813eae28f727fbff8dfa208ad31ffb450007f43336946fe3c",
+            "required": true
+          }
+        ]
+      }
     }
   ],
   "runtime_dll_dependency_summary": {
@@ -207,5 +358,6 @@
     ],
     "verified_how": "PE import and delay-import tables of the NuGet DLLs plus a string scan for LoadLibrary names, 2026-11-18"
   },
-  "self_test": "after installing, call ke_runtime_create(install_dir/onnxruntime.dll, KE_EP_CUDA, device, 0) and ke_runtime_selftest(rt, swiftf0.onnx); on failure fall back to DirectML and offer re-download (docs/BACKENDS.md)"
+  "self_test": "after installing, call ke_runtime_create(install_dir/onnxruntime.dll, KE_EP_CUDA, device, 0) and ke_runtime_selftest(rt, swiftf0.onnx); on failure fall back to DirectML and offer re-download (docs/BACKENDS.md)",
+  "mirror_note": "Every source has a \"mirror\" on https://huggingface.co/aaatmy/cuda-pack-win-x64: a zip with just the DLLs the pack installs (byte-identical to the ones extracted from the source, per-member sha256 below) plus their license texts. The app tries it when the source fails."
 }
