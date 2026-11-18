@@ -214,6 +214,14 @@ KE_API int  ke_f0_extract(ke_runtime* rt, const char* swiftf0_model_path, const 
  */
 KE_API int  ke_reverb_render_wav(const char* input_wav, const char* output_wav, float mix, float tail_seconds);
 
+/* Aligns a backing track (an official instrumental or karaoke track) with a
+ * song's original mix and writes the result as JSON to out_json: the delay to
+ * apply to the backing (seconds; positive = pad its start), a verdict
+ * (aligned / drift / mismatch), confidence, speed drift (ppm), the scatter
+ * of the per-window delays, residual (cancellation) level, gain and key
+ * difference, plus the per-window measurements. WAV inputs, any rate. */
+KE_API int  ke_align_backing_wav(const char* mix_wav, const char* backing_wav, const char* out_json);
+
 /* ------------------------------------------------------------------ */
 /* Live audio: capture + pitch tracking + playback with one clock      */
 /* ------------------------------------------------------------------ */

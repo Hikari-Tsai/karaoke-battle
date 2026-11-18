@@ -164,6 +164,18 @@ int main(int argc, char** argv) {
         ke_runtime_destroy(rt);
         return 0;
     }
+    if (cmd == "align-backing") {
+        // ke_cli align-backing --mix mix.wav --backing backing.wav [--out result.json]
+        const std::string out = a.count("out") ? a["out"] : std::string("align.json");
+        auto t0 = std::chrono::steady_clock::now();
+        int rc = ke_align_backing_wav(a["mix"].c_str(), a["backing"].c_str(), out.c_str());
+        auto t1 = std::chrono::steady_clock::now();
+        if (rc != KE_OK) { fprintf(stderr, "align error %d: %s\n", rc, ke_last_error()); return 1; }
+        FILE* f = fopen(out.c_str(), "rb");
+        if (f) { char buf[4096]; size_t k; while ((k = fread(buf, 1, sizeof buf, f)) > 0) fwrite(buf, 1, k, stdout); fclose(f); }
+        printf("\naligned in %.3fs -> %s\n", std::chrono::duration<double>(t1 - t0).count(), out.c_str());
+        return 0;
+    }
     if (cmd == "reverb") {
         // ke_cli reverb --in voice.wav --out wet.wav [--mix 0.3] [--tail 4]
         const float mix = a.count("mix") ? static_cast<float>(atof(a["mix"].c_str())) : 0.3f;

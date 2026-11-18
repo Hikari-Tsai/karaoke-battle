@@ -67,6 +67,8 @@ set(KE_SOURCES
   src/dsp/latency_probe.cpp
   src/dsp/hall_reverb.cpp
   src/dsp/reverb_api.cpp
+  src/dsp/align.cpp
+  src/dsp/align_api.cpp
   third_party/cloudseed/DSP/Biquad.cpp
   third_party/cloudseed/DSP/RandomBuffer.cpp
   src/models/swiftf0.cpp
