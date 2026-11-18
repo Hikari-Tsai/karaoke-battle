@@ -14,6 +14,7 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/live_trace.dart';
+import '../../state/loudness.dart';
 import '../../state/lyrics.dart';
 import '../../state/replay_session.dart';
 import '../../state/scoring_bridge.dart';
@@ -258,6 +259,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           const _KeyboardToggle(),
           // The engine reverberates the voice live: every change is heard at once.
           VoiceFxButton(showReturn: false, offColor: theme.colorScheme.onSurfaceVariant, onPreview: s.setReverb),
+          _VolumeSlider(session: s),
           if (s.hasVoice) _BalanceSlider(session: s),
           const SizedBox(width: 8),
           ValueListenableBuilder<double>(
@@ -279,6 +281,60 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           ),
         ]),
       ),
+    );
+  }
+}
+
+/// Master volume of the replay: the speaker mutes it (for this replay), the
+/// slider sets the level (saved), heard while dragging.
+class _VolumeSlider extends StatefulWidget {
+  const _VolumeSlider({required this.session});
+  final ReplaySession session;
+
+  @override
+  State<_VolumeSlider> createState() => _VolumeSliderState();
+}
+
+class _VolumeSliderState extends State<_VolumeSlider> {
+  double? _drag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = widget.session;
+    final v = _drag ?? context.watch<AppSettings>().replayVolume;
+    final level = s.muted ? tr('sing.mute') : (SongLoudness.gainDb(v) ?? tr('sing.mute'));
+    final icon = s.muted || v <= 0 ? Icons.volume_off : (v < 0.5 ? Icons.volume_down : Icons.volume_up);
+    return Tooltip(
+      message: tr('replay.volumeTip', {'level': level}),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        IconButton(
+          tooltip: s.muted ? tr('replay.unmute') : tr('replay.mute'),
+          onPressed: s.toggleMute,
+          icon: Icon(icon, color: s.muted ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant),
+        ),
+        SizedBox(
+          width: 110,
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(showValueIndicator: ShowValueIndicator.onDrag),
+            child: Slider(
+              value: v,
+              max: 2,
+              label: SongLoudness.gainDb(v) ?? tr('sing.mute'),
+              onChanged: (x) {
+                // Snaps to 0 dB near it, so "as recorded" is easy to find.
+                final y = (x - 1).abs() < 0.04 ? 1.0 : x;
+                setState(() => _drag = y);
+                s.setVolume(y);
+              },
+              onChangeEnd: (x) {
+                setState(() => _drag = null);
+                context.read<AppSettings>().setReplayVolume((x - 1).abs() < 0.04 ? 1.0 : x);
+              },
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }

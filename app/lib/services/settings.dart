@@ -162,6 +162,10 @@ class AppSettings extends ChangeNotifier {
   double get replayBalance => _get('replay_balance', 0.0);
   Future<void> setReplayBalance(double v) => _set('replay_balance', v.clamp(-1.0, 1.0).toDouble());
 
+  /// Replay master volume (linear gain, 0 to 2 = +6 dB); 1 = as recorded.
+  double get replayVolume => _get('replay_volume', 1.0);
+  Future<void> setReplayVolume(double v) => _set('replay_volume', v.clamp(0.0, 2.0).toDouble());
+
   /// Rhythm-game judgement pop-ups while recording.
   bool get liveJudgements => _get('live_judgements', true);
   Future<void> setLiveJudgements(bool v) => _set('live_judgements', v);

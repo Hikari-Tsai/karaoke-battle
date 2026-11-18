@@ -42,6 +42,25 @@ class ReplaySession extends ChangeNotifier implements PlaybackClock {
   void _applySettings() {
     setReverb(settings.reverbOn, settings.reverbMix);
     setBalance(settings.replayBalance);
+    setVolume(settings.replayVolume);
+  }
+
+  /// Muted for this replay only (the saved volume is kept).
+  bool muted = false;
+  double _volume = 1;
+
+  /// Master volume (linear gain), heard at once, also while dragging.
+  void setVolume(double gain) {
+    _volume = gain;
+    try {
+      _live?.volume = muted ? 0 : gain;
+    } catch (_) {}
+  }
+
+  void toggleMute() {
+    muted = !muted;
+    setVolume(_volume);
+    notifyListeners();
   }
 
   /// Music (-1) to voice (+1) balance, heard at once (see [replayStemGains]).

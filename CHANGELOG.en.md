@@ -9,6 +9,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 ## Unreleased
 
 ### Added
+- A master volume bar in replays: the speaker mutes, the slider goes up to +6 dB, and the level is remembered.
 - "MIDI guide": besides the accompaniment and the original guide vocal, you can now pick the accompaniment with the melody played on a synth. It follows the notes on the roll, including your note edits and key changes, and its level is matched to the accompaniment.
 
 ### Improved
