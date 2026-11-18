@@ -74,7 +74,7 @@ native C++ engine, all ML models downloaded on first run from Hugging Face (`aaa
 | Platform | Base (always shipped) | Optional pack (downloaded on demand) |
 | --- | --- | --- |
 | macOS | ORT 1.23.2 universal2, CPU EP (CoreML EP tried for fixed-shape models) | none |
-| Windows | ORT DirectML 1.24.4 (`onnxruntime.dll` + `DirectML.dll`) | CUDA pack: ORT 1.31.1 `win-x64-gpu_cuda12` + cudart/cublas/cufft/cudnn 9 DLLs (from PyPI `nvidia-*-cu12` wheels) |
+| Windows | ORT DirectML 1.24.4 (`onnxruntime.dll` + `DirectML.dll`) | CUDA pack: ORT 1.31.1 CUDA 13 build (NuGet `Microsoft.ML.OnnxRuntime.Gpu.Windows`) + cudart/cublas/cufft/cudnn 9 DLLs (from the PyPI CUDA 13 `nvidia-*` wheels) |
 
 Backend order: CUDA → DirectML → CPU. Decision tree and dialogs: `docs/BACKENDS.md`.
 

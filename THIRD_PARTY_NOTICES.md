@@ -23,7 +23,7 @@
 
 | Component | License | Notes |
 | --- | --- | --- |
-| ONNX Runtime CUDA build 1.31.1 + NVIDIA CUDA 12 runtime / cuDNN 9 DLLs | MIT / NVIDIA EULA (redistributable runtime) | Windows CUDA pack, optional |
+| ONNX Runtime CUDA build 1.31.1 (NuGet) + NVIDIA CUDA 13 runtime / cuBLAS / cuFFT / cuDNN 9 DLLs | MIT / NVIDIA EULA (redistributable runtime) | Windows CUDA pack, optional |
 | yt-dlp | Unlicense | sidecar |
 | FFmpeg (LGPL build) | LGPL 2.1+ | sidecar; the app runs it as a separate process |
 | Deno | MIT | sidecar, JS runtime for yt-dlp |

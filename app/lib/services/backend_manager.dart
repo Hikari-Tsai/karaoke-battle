@@ -3,7 +3,7 @@
 // Decision tree (docs/BACKENDS.md):
 //   macOS                         -> CPU (CoreML tried per model), no dialog
 //   Windows, no NVIDIA GPU        -> DirectML (or CPU when no GPU)
-//   Windows, NVIDIA, driver old   -> dialog: update driver (>= 527.41), use DirectML meanwhile
+//   Windows, NVIDIA, driver old   -> dialog: update driver (>= 580.88 for the CUDA 13 pack), use DirectML meanwhile
 //   Windows, NVIDIA, no CUDA pack -> dialog: download pack (size), or DirectML
 //   Windows, CUDA pack present    -> self-test; on failure fall back to DirectML + offer re-download
 import 'dart:convert';
@@ -54,11 +54,31 @@ class CudaPackFile {
 }
 
 class CudaPackManifest {
-  CudaPackManifest({required this.minDriverVersion, required this.ortVersion, required this.files});
-  final int minDriverVersion; // e.g. 52741 for 527.41
+  CudaPackManifest({
+    required this.minDriverVersion,
+    required this.ortVersion,
+    required this.files,
+    this.cudaMajor = 12,
+    this.minCudaDriverApi = 12000,
+    this.minComputeCapability = 6.0,
+  });
+  final int minDriverVersion; // e.g. 58088 for 580.88 (shown to the user)
   final String ortVersion;
   final List<CudaPackFile> files;
+
+  /// CUDA major version of the libraries in this pack.
+  final int cudaMajor;
+
+  /// Lowest cuDriverGetVersion (e.g. 13000 = CUDA 13.0) that runs this pack.
+  final int minCudaDriverApi;
+
+  /// Lowest GPU compute capability the pack has kernels for.
+  final double minComputeCapability;
+
   int get totalBytes => files.fold(0, (a, f) => a + f.bytes);
+
+  /// File names the pack places in cuda_pack/.
+  Set<String> get installedNames => {for (final f in files) ...f.members.values};
 
   /// Parses scripts/cuda_pack.json: "onnxruntime" {url, sha256, size, extract:[{path, required}]}
   /// plus "nvidia_wheels": [same shape]. Every extracted member is flattened into cuda_pack/.
@@ -92,16 +112,20 @@ class CudaPackManifest {
     for (final f in (j['files'] as List? ?? const [])) {
       files.add(parse(f as Map<String, dynamic>));
     }
-    final req = j['requirements'];
+    final req = j['requirements'] is Map<String, dynamic> ? j['requirements'] as Map<String, dynamic> : const <String, dynamic>{};
     var minDrv = (j['min_driver_version'] as num?)?.toInt() ?? 52741;
-    if (req is Map<String, dynamic> && req['driver_min_windows'] is String) {
+    if (req['driver_min_windows'] is String) {
       final parts = (req['driver_min_windows'] as String).split('.');
       if (parts.length == 2) minDrv = int.parse(parts[0]) * 100 + int.parse(parts[1]);
     }
+    final major = (j['cuda_major'] as num?)?.toInt() ?? 12;
     return CudaPackManifest(
       minDriverVersion: minDrv,
       ortVersion: (j['onnxruntime'] is Map<String, dynamic> ? j['onnxruntime']['version'] : j['ort_version']) as String? ?? '',
       files: files,
+      cudaMajor: major,
+      minCudaDriverApi: (req['min_cuda_driver_api'] as num?)?.toInt() ?? major * 1000,
+      minComputeCapability: double.tryParse('${req['min_compute_capability'] ?? ''}') ?? (major >= 13 ? 7.5 : 6.0),
     );
   }
 }
@@ -119,8 +143,6 @@ class BackendManager extends ChangeNotifier {
   String? lastSelftestError;
   double? lastSelftestMs;
   CudaPackManifest? _manifest;
-
-  static const minCudaDriver = 52741; // Windows driver 527.41 for CUDA 12.x
 
   // ---- CUDA pack ------------------------------------------------------------
 
@@ -145,6 +167,17 @@ class BackendManager extends ChangeNotifier {
     return true;
   }
 
+  /// CUDA major version of the installed pack: 12 for the packs before
+  /// 2026-11 (ORT's GitHub cuda12 zip), 13 for the NuGet based one, null
+  /// when it cannot tell. An installed CUDA 12 pack keeps working and keeps
+  /// its own (lower) driver requirement; it is only replaced on request.
+  Future<int?> installedPackCudaMajor() async {
+    for (final (name, major) in [('cublas64_13.dll', 13), ('cublas64_12.dll', 12)]) {
+      if (await File(p.join(paths.cudaPack, name)).exists()) return major;
+    }
+    return null;
+  }
+
   Future<void> installCudaPack({void Function(String stage, double fraction)? onProgress, Future<void>? cancel}) async {
     final m = await cudaPackManifest();
     if (m == null) throw StateError('CUDA pack manifest missing');
@@ -160,6 +193,18 @@ class BackendManager extends ChangeNotifier {
       await _extractMembers(tmp, f.members, paths.cudaPack);
       await File(tmp).delete();
       done += f.bytes;
+    }
+    // Drop what an older pack left behind (an install over the CUDA 12 pack
+    // would otherwise keep about 2.5 GB of unused DLLs). A file still loaded
+    // by this process cannot be deleted on Windows; it goes next time.
+    final keep = m.installedNames.map((n) => n.toLowerCase()).toSet();
+    await for (final e in Directory(paths.cudaPack).list()) {
+      final name = p.basename(e.path).toLowerCase();
+      if (e is File && name.endsWith('.dll') && !keep.contains(name)) {
+        try {
+          await e.delete();
+        } catch (_) {}
+      }
     }
     notifyListeners();
   }
@@ -209,14 +254,21 @@ class BackendManager extends ChangeNotifier {
         final g = nvidia.first;
         final drv = g.cudaDriverVersion;
         final cc = double.tryParse(g.computeCapability ?? '') ?? 0;
-        if (drv == null || drv < 12000 || cc < 6.0 || g.vramMb < 4096) {
+        // The requirements of the pack that would run: the installed one
+        // (an old CUDA 12 pack keeps its lower ones) or the one we download.
+        final installed = await cudaPackInstalled();
+        final m = await cudaPackManifest();
+        final oldPack = installed && await installedPackCudaMajor() == 12;
+        final minApi = oldPack ? 12000 : (m?.minCudaDriverApi ?? 13000);
+        final minCc = oldPack ? 6.0 : (m?.minComputeCapability ?? 7.5);
+        if (drv == null || drv < minApi || cc < minCc || g.vramMb < 4096) {
           d = BackendDecision(
             recommended: Backend.directml,
-            dialog: drv == null ? BackendDialog.driverTooOld : (cc < 6.0 || g.vramMb < 4096 ? BackendDialog.usingDirectml : BackendDialog.driverTooOld),
+            dialog: drv == null ? BackendDialog.driverTooOld : (cc < minCc || g.vramMb < 4096 ? BackendDialog.usingDirectml : BackendDialog.driverTooOld),
             gpus: gpus,
             detail: 'driver=${drv ?? 'none'} cc=${g.computeCapability ?? '?'} vram=${g.vramMb}MB',
           );
-        } else if (!await cudaPackInstalled()) {
+        } else if (!installed) {
           d = BackendDecision(recommended: Backend.cuda, dialog: BackendDialog.cudaPackMissing, gpus: gpus);
         } else {
           d = BackendDecision(recommended: Backend.cuda, dialog: BackendDialog.none, gpus: gpus);

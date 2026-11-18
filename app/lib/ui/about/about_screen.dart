@@ -35,7 +35,7 @@ class _AboutScreenState extends State<AboutScreen> {
     ('jf open huninn 2.1 (jf open 粉圓) — justfont; Hanzi from Kosugi Maru (MOTOYA) — lyrics font', 'SIL OFL 1.1', 'https://github.com/justfont/open-huninn-font', false),
     ('Whisper large-v3 — OpenAI (ONNX export: onnx-community; lyrics recognition)', 'Apache-2.0', 'https://huggingface.co/openai/whisper-large-v3', false),
     ('mecab-ipadic — Nara Institute of Science and Technology (NAIST)', 'NAIST / ICOT terms', 'https://huggingface.co/aaatmy/kuromoji-ipadic-pack', false),
-    ('ONNX Runtime', 'MIT', 'https://github.com/microsoft/onnxruntime', false),
+    ('ONNX Runtime', 'MIT', 'https://onnxruntime.ai', false),
     ('miniaudio', 'MIT-0', 'https://github.com/mackron/miniaudio', false),
     ('pocketfft', 'BSD-3-Clause', 'https://github.com/mreineck/pocketfft', false),
     ('signalsmith-stretch', 'MIT', 'https://github.com/Signalsmith-Audio/signalsmith-stretch', false),

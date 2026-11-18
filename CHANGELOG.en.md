@@ -18,6 +18,9 @@ Each version lists what was added, improved and fixed. The app's new-version not
 - Japanese lyrics get romaji whatever their source: not only YouTube's Japanese subtitles but also Whisper recognition, imported subtitle files, pasted lyrics and lyrics edited by hand, whenever the text is Japanese, even on a song set to Chinese.
 - Switching between the accompaniment and the guide vocal is instant: both are loaded when the song opens, so a switch is a 20 ms crossfade instead of a gap of about 2 s, and it works while recording too. Songs also open faster: resampling the audio is about 20 times quicker and runs in the background, so the screen no longer freezes while it loads.
 
+### Fixed
+- The Windows CUDA pack downloads again. Its download link broke when Microsoft took ONNX Runtime off GitHub (#7); it now comes from NuGet and PyPI and moves to CUDA 13: about 1.2 GB instead of 1.9 GB, but it needs a GTX 16 / RTX 20 series or newer GPU and driver 580.88 or newer. An already installed CUDA pack keeps working; downloading it again replaces it with the new one and deletes the old files.
+
 ## 1.1.6 — 2026-11-17
 
 ### Added

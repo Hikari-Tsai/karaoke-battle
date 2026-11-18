@@ -25,7 +25,7 @@ Windows 版的程式碼簽章由 SignPath.io 免費提供，憑證由 SignPath F
 
 ## [首次啟動](https://github.com/Hikari-Tsai/karaoke-battle/blob/{{TAG}}/docs/INSTALL.md#首次啟動)
 
-1. Windows 會先偵測顯示卡：NVIDIA 且驅動 ≥ 527.41 建議下載 CUDA 執行環境（約 1.9 GB）；其他顯示卡用 DirectML；沒有獨顯用 CPU。備援只影響備歌速度，不影響評分。
+1. Windows 會先偵測顯示卡：NVIDIA（GTX 16 / RTX 20 系列以上）且驅動 ≥ 580.88 建議下載 CUDA 執行環境（約 1.2 GB）；其他顯示卡用 DirectML；沒有獨顯用 CPU。備援只影響備歌速度，不影響評分。
 2. 下載模型（約 500 MB，來自 Hugging Face `aaatmy/*`，自動驗證 SHA-256）。
 3. yt-dlp、Deno、ffmpeg 由 App 自動下載。
 

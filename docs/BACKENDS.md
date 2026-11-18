@@ -14,11 +14,17 @@ Runtime with one execution provider (EP) chosen at start-up. Preference order:
 | --- | --- | --- |
 | macOS CPU / CoreML | `libonnxruntime.1.23.2.dylib` (universal2) | bundled in `<App>.app/Contents/Frameworks` |
 | Windows DirectML / CPU | `onnxruntime.dll` 1.24.4 + `DirectML.dll` 1.15.4 | bundled next to the exe |
-| Windows CUDA | `onnxruntime.dll` 1.31.1 (`win-x64-gpu_cuda12`) + `onnxruntime_providers_cuda.dll` + CUDA 12.9 / cuDNN 9.27 DLLs | downloaded on demand into `<app support>/cuda_pack/` - `scripts/cuda_pack.json` (1.89 GB download, 2.59 GB on disk) |
+| Windows CUDA | `onnxruntime.dll` 1.31.1 (NuGet `Microsoft.ML.OnnxRuntime.Gpu.Windows`, a CUDA 13 build) + `onnxruntime_providers_cuda.dll` + CUDA 13 (cuBLAS 13.10, cuFFT 12.5) / cuDNN 9.28 DLLs from PyPI | downloaded on demand into `<app support>/cuda_pack/` - `scripts/cuda_pack.json` (1.16 GB download, 1.61 GB on disk) |
 
-Requirements for the CUDA pack: NVIDIA GPU, **driver >= 527.41** (CUDA 12 baseline on
-Windows), ~2.6 GB free disk, VC++ 2022 redistributable. Compute capability 7.5+ (GTX 16xx /
-RTX 20xx or newer) is recommended; older cards fall back to PTX JIT on first run (slow start).
+Requirements for the CUDA pack: NVIDIA GPU with compute capability 7.5+ (GTX 16xx / RTX 20xx
+or newer; CUDA 13 dropped Maxwell, Pascal and Volta), **driver >= 580.88** (R580, the CUDA 13
+baseline; the app checks cuDriverGetVersion >= 13000), ~1.7 GB free disk, VC++ 2022
+redistributable.
+
+Until 2026-11 the pack was ORT's `onnxruntime-win-x64-gpu_cuda12` zip from GitHub plus CUDA 12.9
+wheels (driver >= 527.41, compute capability 6.0+). That zip went away with the
+microsoft/onnxruntime repository (issue #7). An installed CUDA 12 pack keeps working with its own
+requirements; re-downloading replaces it with the CUDA 13 pack and deletes the old DLLs.
 
 ## Drawbacks per backend
 
@@ -50,7 +56,7 @@ RTX 20xx or newer) is recommended; older cards fall back to PTX JIT on first run
 
 **CUDA** (Windows, NVIDIA only)
 
-* Fastest. Costs a 1.9 GB download and ~2.6 GB disk. Needs a recent driver. The pack carries
+* Fastest. Costs a 1.2 GB download and ~1.6 GB disk. Needs a recent driver. The pack carries
   its own `onnxruntime.dll` (1.31.1), so it replaces the DirectML build for that session.
 
 ## Decision tree (run at start-up and when the user changes the backend setting)
@@ -62,7 +68,7 @@ start
      |- ke_system_gpu_info_json(): any adapter with vendor == "nvidia"?
      |   |- no ---------------------------------------------> DirectML (adapter 0 / user choice). Dialog W1 once.
      |   |- yes
-     |       |- driver version < 527.41? --------------------> DirectML now. Dialog W2 (update driver).
+     |       |- CUDA driver API < 13.0 (12.0 with an installed CUDA 12 pack)? -> DirectML now. Dialog W2 (update driver).
      |       |- cuda_pack present and manifest sha256 OK?
      |       |   |- no -------------------------------------> DirectML now. Dialog W3 (offer download, size).
      |       |   |- yes
@@ -94,8 +100,8 @@ Notes for `services/backend.dart`:
 ## Dialog texts
 
 Primary language is Traditional Chinese (zh-TW); English second. `{size}` is
-`download_total_human` from `scripts/cuda_pack.json` (currently `1.89 GB`), `{disk}` the
-installed size (`2.59 GB`), `{driver}` the detected driver version, `{gpu}` the adapter name.
+`download_total_human` from `scripts/cuda_pack.json` (currently `1.16 GB`), `{disk}` the
+installed size (`1.61 GB`), `{driver}` the detected driver version, `{gpu}` the adapter name.
 
 ### W1 - Windows, no NVIDIA GPU (DirectML selected)
 
@@ -119,18 +125,18 @@ DirectML limitations:
 Scoring accuracy is unaffected; only processing speed differs.
 Buttons: [OK] [Settings...]  ☐ Don't show again
 
-### W2 - NVIDIA GPU with driver < 527.41
+### W2 - NVIDIA GPU with driver < 580.88
 
 **zh-TW**
 標題：請更新 NVIDIA 驅動程式
-內容：偵測到 {gpu}，但驅動程式版本 {driver} 太舊。CUDA 加速需要 527.41 或更新的驅動程式。
+內容：偵測到 {gpu}，但驅動程式版本 {driver} 太舊。CUDA 加速需要 580.88 或更新的驅動程式。
 更新前將暫時使用 DirectML（速度較慢，評分結果相同）。
 請到 NVIDIA 官方網站或 GeForce Experience / NVIDIA App 下載最新驅動程式，安裝後重新啟動本程式。
 按鈕：[前往 NVIDIA 下載頁面] [先用 DirectML]
 
 **English**
 Title: Please update your NVIDIA driver
-Body: Detected {gpu}, but driver version {driver} is too old. CUDA acceleration requires driver 527.41 or newer.
+Body: Detected {gpu}, but driver version {driver} is too old. CUDA acceleration requires driver 580.88 or newer.
 Until then DirectML will be used (slower, same scoring results).
 Download the latest driver from nvidia.com or GeForce Experience / NVIDIA App, install it and restart this application.
 Buttons: [Open NVIDIA download page] [Use DirectML for now]

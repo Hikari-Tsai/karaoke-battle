@@ -6,7 +6,7 @@ Karaoke Battle 的技術重點整理。細節見 [ARCHITECTURE.md](ARCHITECTURE.
 
 * Flutter 桌面 UI，透過 dart:ffi 呼叫 C++17 原生引擎，**不需要 Python**。
 * 引擎在執行時動態載入 ONNX Runtime（不連結），macOS 出 universal 版（Apple Silicon + Intel）。
-* Windows 依序嘗試 CUDA → DirectML → CPU；CUDA 執行環境（約 1.9 GB）只在需要時下載。備援只影響備歌速度，不影響評分。
+* Windows 依序嘗試 CUDA → DirectML → CPU；CUDA 執行環境（約 1.2 GB）只在需要時下載。備援只影響備歌速度，不影響評分。
 * 安裝包 55–65 MB。模型約 500 MB，首次執行時從 Hugging Face `aaatmy/*` 下載並以 SHA-256 驗證，每次啟動都會檢查完整性。
 
 ## 備歌流程（全部在本機）

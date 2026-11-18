@@ -107,9 +107,9 @@ const Map<String, (String, String, String)> _table = {
   'backend.title': ('運算後端', 'Compute backend', '計算バックエンド'),
   'backend.driverOld.title': ('NVIDIA 驅動程式太舊', 'NVIDIA driver too old', 'NVIDIA ドライバーが古すぎます'),
   'backend.driverOld.body': (
-    '偵測到 NVIDIA 顯示卡，但驅動程式版本不支援 CUDA 12（需 527.41 以上）。更新驅動後可啟用 CUDA 加速；在此之前將使用 DirectML。',
-    'An NVIDIA GPU was found but the driver does not support CUDA 12 (527.41 or newer required). Update the driver to enable CUDA; DirectML will be used meanwhile.',
-    'NVIDIA GPU を検出しましたが、ドライバーが CUDA 12 に対応していません（527.41 以降が必要）。ドライバーを更新すると CUDA が使えます。それまでは DirectML を使用します。',
+    '偵測到 NVIDIA 顯示卡，但驅動程式版本不支援 CUDA 13（需 580.88 以上）。更新驅動後可啟用 CUDA 加速；在此之前將使用 DirectML。',
+    'An NVIDIA GPU was found but the driver does not support CUDA 13 (580.88 or newer required). Update the driver to enable CUDA; DirectML will be used meanwhile.',
+    'NVIDIA GPU を検出しましたが、ドライバーが CUDA 13 に対応していません（580.88 以降が必要）。ドライバーを更新すると CUDA が使えます。それまでは DirectML を使用します。',
   ),
   'backend.driverOld.link': ('前往 NVIDIA 下載驅動', 'Open NVIDIA driver download', 'NVIDIA ドライバーのダウンロードを開く'),
   'backend.useDirectml': ('先用 DirectML', 'Use DirectML for now', 'とりあえず DirectML を使う'),

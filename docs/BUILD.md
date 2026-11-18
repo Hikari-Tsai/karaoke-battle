@@ -167,10 +167,10 @@ karaoke_battle.app/
 
   ```
   <app support>\cuda_pack\
-    onnxruntime.dll                           ORT 1.31.1 win-x64-gpu_cuda12 (CPU + CUDA EPs)
+    onnxruntime.dll                           ORT 1.31.1 CUDA 13 build from NuGet (CPU + CUDA EPs)
     onnxruntime_providers_shared.dll
     onnxruntime_providers_cuda.dll
-    cudart64_12.dll  cublas64_12.dll  cublasLt64_12.dll  cufft64_11.dll
+    cudart64_13.dll  cublas64_13.dll  cublasLt64_13.dll  cufft64_12.dll
     cudnn64_9.dll  cudnn_graph64_9.dll  cudnn_ops64_9.dll  cudnn_cnn64_9.dll  cudnn_adv64_9.dll
     cudnn_engines_precompiled64_9.dll  cudnn_engines_runtime_compiled64_9.dll
     cudnn_engines_tensor_ir64_9.dll  cudnn_ext64_9.dll  cudnn_heuristic64_9.dll

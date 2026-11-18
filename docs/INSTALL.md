@@ -5,7 +5,7 @@
 | | macOS | Windows |
 | --- | --- | --- |
 | 版本 | macOS 12 以上，Apple Silicon 或 Intel（Universal） | Windows 10 64 位元以上 |
-| 加速 | CPU（Apple Silicon 建議 M1 以上） | NVIDIA 顯示卡 + 驅動 527.41 以上可用 CUDA；其他顯示卡用 DirectML；沒有獨顯用 CPU |
+| 加速 | CPU（Apple Silicon 建議 M1 以上） | NVIDIA 顯示卡（GTX 16 / RTX 20 系列以上）+ 驅動 580.88 以上可用 CUDA；其他顯示卡用 DirectML；沒有獨顯用 CPU |
 | 磁碟 | 模型約 500 MB；每首歌約 100 到 300 MB（含影片）；Windows CUDA pack 另需約 2.6 GB | |
 | 其他 | 麥克風、耳機（避免伴奏被麥克風收進去） | |
 
@@ -31,7 +31,7 @@
 ## 首次啟動
 
 1. **選擇運算後端**（只有 Windows 會問）：
-   * 有 NVIDIA 顯示卡且驅動夠新 → 建議下載 **CUDA 執行環境**（約 1.9 GB），備歌速度最快。
+   * 有 NVIDIA 顯示卡且驅動夠新 → 建議下載 **CUDA 執行環境**（約 1.2 GB），備歌速度最快。
    * 驅動太舊 → 先到 [NVIDIA 驅動下載](https://www.nvidia.com/Download/index.aspx) 更新，期間可先用 DirectML。
    * AMD / Intel 顯示卡 → DirectML；沒有獨顯 → CPU。備援只影響備歌速度，不影響評分。
 2. **下載模型**（約 500 MB，從 Hugging Face `aaatmy/*`，自動驗證 SHA-256）：按「全部下載」。
