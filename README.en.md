@@ -206,6 +206,7 @@ Thanks to the friends who tested the app and reported problems before the offici
 * **あはあは**: volume adjustment in replays, the keyboard on the left of the piano roll, and pitch detection with practice in preview; suggested a master volume bar for replays; found the delay when switching between the accompaniment and the guide vocal (now both load together and convert in the background) and that AI and hand-typed lyrics had no romaji; proposed the MIDI guide; tested Taiwanese songs.
 * **皮卡**: backtesting with the original song, and feedback detection.
 * **羽之扉扉**: found that preview (practice) and scored recording were easy to mix up, which led to the new mode indicators.
+* **魷魷已損壞**: suggested importing your own backing track.
 
 ### Models and libraries
 

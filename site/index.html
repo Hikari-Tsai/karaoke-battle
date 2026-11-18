@@ -235,6 +235,7 @@
             <li data-i18n="te9"><b>先進的轉譜模型與演算法</b>使用內建抗雜訊的GAME模型結合分離模型與抗雜訊演算法，盡可能降低誤判率。</li>
             <li data-i18n="te10"><b>AI演唱建議（需連網）</b>透過關鍵資料檔案與 LLM 互動取得歌曲演唱建議，可使用 API Key，或自行把數據貼到慣用的聊天 AI 內進行分析（這將會消耗您少許 Token）。</li>
             <li data-i18n="te11"><b>API Key 以系統鑰匙圈加密保存</b>macOS 存在登入鑰匙圈；Windows 以 AES-GCM 加密，金鑰放在認證管理員。Key 不會寫進設定檔、記錄檔或問題回報，只透過 HTTPS 傳給你選的 AI 服務。</li>
+            <li data-i18n="te12"><b>自行匯入伴奏的自動對齊（開發中）</b>可以用官方伴奏或 KTV 伴奏取代自動分離的伴奏：先比對兩邊的節奏強度曲線找出大致偏移，再用波形互相關精確對齊到單一取樣以下，並自動檢查速度漂移、不同版本與升降 Key。</li>
           </ul>
           <p class="more"><a href="https://github.com/Hikari-Tsai/karaoke-battle/blob/main/docs/TECH.md" data-i18n="te.more">完整技術說明</a></p>
         </div>
@@ -324,6 +325,10 @@
               <div class="thx-who"><img class="thx-avatar" src="assets/avatars/uchififi.jpg" alt="" width="52" height="52" loading="lazy" /><h3>羽之扉扉</h3></div>
               <p data-i18n="thx.t9">發現預覽（練習）模式與評分模式容易混淆的問題，促成新增的模式標示 UI。</p>
               <p class="thx-links"><a href="https://www.youtube.com/@uchififi" target="_blank" rel="noopener" aria-label="羽之扉扉 YouTube"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8zM9.75 15.02V8.98L15.5 12z"/></svg>YouTube</a><a href="https://x.com/uchi_fifi" target="_blank" rel="noopener" aria-label="羽之扉扉 X"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>X</a><a href="https://www.twitch.tv/uchififi" target="_blank" rel="noopener" aria-label="羽之扉扉 Twitch"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M4.3 3 3 6.4v13.4h4.6V22h2.6l2.4-2.2h3.7L21 15.1V3H4.3zm15 11.3-2.9 2.8h-4.6l-2.4 2.3v-2.3H5.5V4.6h13.8v9.7zM16.4 7.8h-1.7v4.7h1.7V7.8zm-4.6 0h-1.7v4.7h1.7V7.8z"/></svg>Twitch</a></p>
+            </li>
+            <li>
+              <div class="thx-who"><span class="thx-avatar thx-initial" aria-hidden="true">魷</span><h3>魷魷已損壞</h3></div>
+              <p data-i18n="thx.t10">提供自行匯入伴奏的想法。</p>
             </li>
           </ul>
           <p class="section-lead thx-issues" data-i18n="thx.issues">也感謝在 GitHub 回報問題的使用者：tobiki1205（<a href="https://github.com/Hikari-Tsai/karaoke-battle/issues/6" target="_blank" rel="noopener">#6 無法下載</a>）、evelyn1030118（<a href="https://github.com/Hikari-Tsai/karaoke-battle/issues/5" target="_blank" rel="noopener">#5 延遲測量沒有發出咖咖聲音</a>）、dainanavt87-bit（<a href="https://github.com/Hikari-Tsai/karaoke-battle/issues/4" target="_blank" rel="noopener">#4 無法更新 yt-dlp</a>）。</p>
