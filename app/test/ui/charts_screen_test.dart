@@ -92,6 +92,7 @@ void main() {
     expect(find.text('130 BPM'), findsWidgets);
     expect(find.text('C4–D5'), findsWidgets, reason: 'the chorus range beside its bar');
     expect(find.text('02657'), findsNothing, reason: 'no song numbers any more');
+    expect(find.textContaining('2026 · Columbia Records China'), findsOneWidget, reason: 'release year and label under the artist');
     expect(find.byTooltip('在 YouTube 搜尋'), findsWidgets);
     expect(find.byTooltip('試聽'), findsWidgets);
 

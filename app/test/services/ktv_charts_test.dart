@@ -32,6 +32,8 @@ void main() {
       expect((e.range!.low, e.range!.high, e.range!.fit), (60, 74, 'f'));
       expect(e.range!.female, (verdict: 'high', key: -2));
       expect(e.range!.male, (verdict: 'vhigh', key: 0));
+      expect((e.year, e.released, e.album), ('2026', '2026-07-02', '甲乙丙丁Strangers - Single'));
+      expect(e.label, startsWith('Columbia Records China'));
     });
 
     test('JOYSOUND takes its song id from the song page; KKBOX has no numbers', () {

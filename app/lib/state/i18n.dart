@@ -1027,10 +1027,36 @@ const Map<String, (String, String, String)> _table = {
   'settings.restartNote': ('變更於下次處理／演唱時生效', 'Applies to the next prep/sing session', '次回の処理／歌唱から適用されます'),
   // KTV charts
   'charts.title': ('熱門歌單', 'Hot songs', '人気曲'),
-  'charts.intro': (
-    '台灣與日本 KTV 的點歌排行、KKBOX 單曲榜與台灣 VTuber 翻唱榜，來自每天更新的「KTV 熱門榜單」，附上曲風、BPM 與副歌音域（量過你的音域時，會標出合不合你唱）。資料會存在本機，連不上網路時顯示上次的內容；按右上角可重新整理。',
-    'Request charts from karaoke operators in Taiwan and Japan, the KKBOX single charts and the Taiwanese VTuber cover charts, from the daily-updated KTV Charts site, with genre, BPM and chorus range (compared with your own range once you have measured it). They are kept on this computer, so the last copy shows when you are offline; use the button at the top right to refresh.',
-    '台湾と日本のカラオケ事業者のリクエストランキング、KKBOX のシングルランキング、台湾 VTuber のカバーランキングを、毎日更新される「KTV ランキング」サイトから表示します。ジャンル・BPM・サビの音域付き（音域を測っていれば、あなたに合うかも表示）。データはこのパソコンに保存され、オフラインのときは前回の内容を表示します。右上のボタンで再読み込みできます。',
+  // One intro per source tab: who publishes the chart and what it counts.
+  'charts.about.holiday': (
+    '好樂迪（Holiday KTV）是台灣的連鎖 KTV 業者。這裡是各門市點歌機的每週點播排行，分國語、台語、粵語、英語、日語、韓語、越南語，以及國語、台語新歌，並附上週名次的升降。',
+    'Holiday KTV is a karaoke chain in Taiwan. These are the weekly request charts from the song machines in its branches, by language (Mandarin, Taiwanese, Cantonese, English, Japanese, Korean, Vietnamese) plus new Mandarin and Taiwanese songs, with the movement since last week.',
+    'ホリデイKTV（好樂迪）は台湾のカラオケチェーンです。各店舗の選曲機の週間リクエストランキングで、北京語・台湾語・広東語・英語・日本語・韓国語・ベトナム語と、北京語・台湾語の新曲に分かれ、前週からの順位変動も表示します。',
+  ),
+  'charts.about.cashbox': (
+    '錢櫃（Cashbox Party）是台灣的連鎖 KTV 業者。這裡是各門市的每週點播排行，分國語、台語、粵語、日語、英語的熱門歌，以及國語、台語新歌，並附上週名次的升降。',
+    'Cashbox Party is a karaoke chain in Taiwan. These are the weekly request charts from its branches: the most requested Mandarin, Taiwanese, Cantonese, Japanese and English songs plus new Mandarin and Taiwanese songs, with the movement since last week.',
+    '銭櫃（キャッシュボックス）は台湾のカラオケチェーンです。各店舗の週間リクエストランキングで、北京語・台湾語・広東語・日本語・英語の人気曲と、北京語・台湾語の新曲に分かれ、前週からの順位変動も表示します。',
+  ),
+  'charts.about.joysound': (
+    'JOYSOUND 是日本 Xing（エクシング）公司的卡拉 OK 系統，裝在日本各地的 KTV 店家。這裡是全國點歌機的點播排行，有日榜、週榜、月榜，以及動畫、VOCALOID、演歌、西洋歌曲等分類。',
+    'JOYSOUND is the karaoke system of Xing Inc., found in karaoke venues all over Japan. These are the request charts from its machines nationwide: daily, weekly and monthly, plus anime, VOCALOID, enka and Western songs.',
+    'JOYSOUND は株式会社エクシングのカラオケシステムで、全国のカラオケ店に導入されています。全国の機器のリクエストランキングで、日間・週間・月間と、アニメ・ボカロ・演歌・洋楽などの分類があります。',
+  ),
+  'charts.about.dam': (
+    'DAM 是日本第一興商（DAIICHIKOSHO）的卡拉 OK 系統，裝在日本各地的 KTV 店家。這裡是全國點歌機的點播排行，有日榜、週榜、月榜、急上升榜，以及動畫、VOCALOID、VTuber、演歌、西洋歌曲、對唱等分類。',
+    'DAM is the karaoke system of DAIICHIKOSHO, found in karaoke venues all over Japan. These are the request charts from its machines nationwide: daily, weekly and monthly, the fastest risers, plus anime, VOCALOID, VTuber, enka, Western songs and duets.',
+    'DAM は株式会社第一興商のカラオケシステムで、全国のカラオケ店に導入されています。全国の機器のリクエストランキングで、日間・週間・月間・急上昇と、アニメ・ボカロ・VTuber・演歌・洋楽・デュエットなどの分類があります。',
+  ),
+  'charts.about.kkbox': (
+    'KKBOX 是台灣起家的音樂串流平台。這裡是 KKBOX 風雲榜依收聽次數排出的單曲日榜與週榜，分華語、台語、西洋、日語、韓語、粵語，以及華語新歌。串流排行反映大家最近在聽什麼，不是 KTV 點播次數。',
+    'KKBOX is a music streaming service that started in Taiwan. These are the daily and weekly single charts of the KKBOX Charts, ranked by plays: Mandopop, Taiwanese, Western, Japanese, Korean, Cantonese and new Mandopop releases. They show what people are listening to, not what they request at karaoke.',
+    'KKBOX は台湾発の音楽ストリーミングサービスです。KKBOX 風雲榜の再生回数によるシングルの日間・週間ランキングで、中国語・台湾語・洋楽・日本語・韓国語・広東語と中国語の新曲に分かれます。カラオケのリクエスト数ではなく、最近よく聴かれている曲の指標です。',
+  ),
+  'charts.about.vtuber': (
+    '由「KTV 熱門榜單」整理：統計一份收錄台灣 VTuber 翻唱影片的 YouTube 播放清單裡，每首歌被多少位 VTuber 翻唱過，分累計與近 90 天兩個榜。點翻唱次數就能看每位 VTuber 的翻唱影片。',
+    'Compiled by KTV Charts from a YouTube playlist of covers by Taiwanese VTubers: how many VTubers have covered each song, all time and in the last 90 days. Click the cover count to watch each VTuber\'s cover.',
+    'KTV ランキングが、台湾の VTuber のカバー動画を集めた YouTube 再生リストをもとに、各曲が何人の VTuber にカバーされたかを集計しています。累計と直近 90 日の 2 つのランキングがあり、カバー数をクリックすると各 VTuber のカバー動画を見られます。',
   ),
   'charts.refresh': ('重新整理', 'Refresh', '再読み込み'),
   'charts.region.tw': ('台灣', 'Taiwan', '台湾'),
@@ -1113,6 +1139,8 @@ const Map<String, (String, String, String)> _table = {
   'charts.coversTip': ('看 VTuber 的翻唱影片', 'Watch the VTuber covers', 'VTuber のカバー動画を見る'),
   'charts.source.vtuber': ('資料來源：台灣 VTuber 翻唱的 YouTube 播放清單，經 KTV 熱門榜單整理', 'Source: a YouTube playlist of Taiwanese VTuber covers, via KTV Charts', 'データ提供：台湾 VTuber のカバー動画の YouTube 再生リスト（KTV ランキング経由）'),
   'charts.openPlaylist': ('在 YouTube 查看播放清單', 'View the playlist on YouTube', 'YouTube で再生リストを見る'),
+  'charts.album': ('專輯：{album}', 'Album: {album}', 'アルバム：{album}'),
+  'charts.released': ('發行：{date}，{label}', 'Released {date} by {label}', '発売：{date}（{label}）'),
   'charts.youtube': ('在 YouTube 搜尋', 'Search on YouTube', 'YouTube で検索'),
   // about
   // rules

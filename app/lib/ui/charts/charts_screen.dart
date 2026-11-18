@@ -166,7 +166,7 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Text(tr('charts.intro'), style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            Text(tr('charts.about.${vendor.name}'), style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 16),
             _VendorSection(
               key: ValueKey(vendor),
@@ -468,7 +468,13 @@ class _EntryRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             flex: 4,
-            child: Text(entry.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(entry.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                if (entry.year != null || entry.label != null) _ReleaseLine(entry: entry, style: small),
+              ],
+            ),
           ),
           SizedBox(width: _rangeW, child: entry.range == null ? const SizedBox.shrink() : _RangeBar(range: entry.range!, own: own)),
           if (vendor == KtvVendor.vtuber) SizedBox(width: _coversW, child: _CoversMenu(entry: entry)),
@@ -484,6 +490,30 @@ class _EntryRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Release year and record label, when known; the tooltip adds the album
+/// and the full date.
+class _ReleaseLine extends StatelessWidget {
+  const _ReleaseLine({required this.entry, required this.style});
+  final ChartEntry entry;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = [?entry.year, ?entry.label].join(' · ');
+    final tip = [
+      if (entry.album != null) tr('charts.album', {'album': entry.album}),
+      if (entry.released != null || entry.label != null) tr('charts.released', {'date': entry.released ?? entry.year ?? '—', 'label': entry.label ?? '—'}),
+    ].join('\n');
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Tooltip(
+        message: tip,
+        child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
       ),
     );
   }

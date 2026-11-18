@@ -101,6 +101,10 @@ class ChartEntry {
     this.kkbox,
     this.covers,
     this.performers = const [],
+    this.year,
+    this.released,
+    this.label,
+    this.album,
   });
 
   final int rank;
@@ -137,6 +141,13 @@ class ChartEntry {
   /// newest first.
   final int? covers;
   final List<({String name, String video})> performers;
+
+  /// Release details (MusicBrainz, Apple Music, the National Central Library
+  /// ISRC records): year, date (`yyyy-MM-dd`), record label and album.
+  final String? year;
+  final String? released;
+  final String? label;
+  final String? album;
 
   /// Places moved up (negative: down), or null when unknown or new.
   int? get movement => isNew || lastRank == null ? null : lastRank! - rank;
@@ -185,6 +196,12 @@ class ChartEntry {
       return v is String && v.isNotEmpty ? v : null;
     }
 
+    final info = j['info'] is Map ? (j['info'] as Map) : const {};
+    String? infoStr(String k) {
+      final v = info[k];
+      return v is String && v.trim().isNotEmpty ? v.trim() : (v is num ? '$v' : null);
+    }
+
     return ChartEntry(
       rank: (j['rank'] as num).toInt(),
       title: j['title'] as String? ?? '',
@@ -205,6 +222,10 @@ class ChartEntry {
         for (final e in (j['performers'] as List? ?? const []))
           if (e is List && e.length >= 2 && e[0] is String && e[1] is String) (name: e[0] as String, video: e[1] as String),
       ],
+      year: infoStr('year'),
+      released: infoStr('released'),
+      label: infoStr('label'),
+      album: infoStr('album'),
     );
   }
 }
