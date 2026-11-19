@@ -60,8 +60,11 @@ mkdir -p "$APP/Contents/Frameworks"
 cp ../engine/build/libkaraoke_engine.dylib "$APP/Contents/Frameworks/"
 cp ../engine/third_party/onnxruntime/osx-universal2/lib/libonnxruntime.1.23.2.dylib "$APP/Contents/Frameworks/"
 
-# 5. Re-sign (the bundle changed). Ad-hoc is enough to run locally:
+# 5. Re-sign (the bundle changed). Ad-hoc is enough to run locally, but the app
+#    itself must keep its entitlements: without them file pickers fail
+#    (ENTITLEMENT_NOT_FOUND) and the microphone is not declared.
 codesign --force --deep --sign - "$APP"
+codesign --force --sign - --entitlements macos/Runner/Release.entitlements "$APP"
 open "$APP"
 ```
 

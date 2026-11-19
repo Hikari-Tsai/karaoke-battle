@@ -243,8 +243,13 @@ jobs:
           APP="${{ steps.bundle.outputs.app }}"
           # Re-sign so the bundle (with the added dylibs) at least launches locally;
           # Gatekeeper will still require right-click > Open on other Macs.
+          # Nested code first, then the app WITH its entitlements: without them
+          # file_picker refuses to open (ENTITLEMENT_NOT_FOUND) and the
+          # microphone permission is not declared.
           codesign --force --deep --sign - "$APP"
+          codesign --force --sign - --entitlements app/macos/Runner/Release.entitlements "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -d --entitlements - "$APP" | grep -q files.user-selected.read-write
 
       # ------------------------------------------------------------------ DMG
       - name: Create DMG
