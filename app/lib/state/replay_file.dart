@@ -3,6 +3,9 @@
 // judged against, the sung pitch curve and the score. The dry vocal travels
 // as an MP3 next to it (`voice.file` names it); exports are a .zip of both.
 // Only format version 2 is read; earlier development formats are refused.
+// Subtitles the player added themselves (imported, pasted, typed or
+// recognised; not the video's own) travel in the optional `lyrics` field,
+// so the receiver sees the same lyrics; older apps ignore it.
 //
 // Imported files are untrusted: every field is type- and size-checked, no
 // path from the file is ever used, and only a YouTube video id is kept for
@@ -11,6 +14,7 @@
 import 'dart:convert';
 
 import '../scoring/models.dart' show upgradeScoreJson;
+import 'lyrics.dart';
 import 'track_timeline.dart';
 
 class ReplayFormatException implements Exception {
@@ -84,6 +88,7 @@ class ReplayFile {
     required this.score,
     this.voiceFile,
     this.trackTimeline = const [],
+    this.lyrics,
   });
 
   static const formatName = 'karaoke-battle-replay';
@@ -95,6 +100,9 @@ class ReplayFile {
   static const maxF0Frames = 400000; // ~107 min at 16 ms
   static const maxString = 300;
   static const maxVoiceBytes = 40 * 1024 * 1024;
+  static const maxLyricTracks = 8;
+  static const maxLyricLines = 5000;
+  static const maxLyricText = 500;
 
   /// Audio file types a replay's `voice.file` may name.
   static const voiceExtensions = ['mp3'];
@@ -124,6 +132,9 @@ class ReplayFile {
   final Map<String, dynamic> score; // score.json
   final String? voiceFile; // the vocal MP3 next to the JSON (bare file name)
 
+  /// The player's own subtitle tracks (offsets applied, no romaji), or null.
+  final Lyrics? lyrics;
+
   bool get hasVoice => voiceFile != null;
   double get total => (score['total'] as num).toDouble();
   String get rank => score['rank'] as String;
@@ -146,6 +157,19 @@ class ReplayFile {
         'take_f0': takeF0,
         'score': score,
         'voice': voiceFile != null ? {'codec': 'mp3', 'file': voiceFile} : null,
+        if (lyrics != null && !lyrics!.isEmpty)
+          'lyrics': {
+            'primary': lyrics!.primary,
+            'tracks': [
+              for (final t in lyrics!.tracks)
+                {
+                  'lang': t.lang,
+                  'source': t.source.name,
+                  'label': ?t.label,
+                  'lines': [for (final l in t.lines) {'start': l.start, 'end': l.end, 'text': l.text}],
+                },
+            ],
+          },
       };
 
   String encode() => jsonEncode(toJson());
@@ -201,7 +225,48 @@ class ReplayFile {
       takeF0: _validF0(_map(root['take_f0'], 'take_f0')),
       score: _validScore(_map(root['score'], 'score')),
       voiceFile: voiceFile,
+      lyrics: _validLyrics(root['lyrics']),
     );
+  }
+
+  static final _lyricKey = RegExp(r'^[A-Za-z0-9-]{1,40}$');
+
+  /// The shared subtitles, checked like everything else; unusable tracks are
+  /// dropped instead of refusing the replay. YouTube tracks are not accepted
+  /// (the receiver fetches those from the video).
+  static Lyrics? _validLyrics(Object? raw) {
+    if (raw is! Map) return null;
+    final tracksRaw = raw['tracks'];
+    if (tracksRaw is! List) return null;
+    final tracks = <LyricTrack>[];
+    for (final t in tracksRaw.take(maxLyricTracks)) {
+      if (t is! Map) continue;
+      final lang = t['lang'], source = LyricSource.values.asNameMap()[t['source']], linesRaw = t['lines'];
+      if (lang is! String || !_lyricKey.hasMatch(lang) || source == null || source == LyricSource.youtube) continue;
+      if (linesRaw is! List || linesRaw.isEmpty || linesRaw.length > maxLyricLines) continue;
+      if (tracks.any((e) => e.lang == lang)) continue;
+      final lines = <LyricLine>[];
+      for (final l in linesRaw) {
+        if (l is! Map) continue;
+        final a = l['start'], b = l['end'], text = l['text'];
+        if (a is! num || b is! num || !a.isFinite || !b.isFinite || a < 0 || b < a || b > 24 * 3600) continue;
+        if (text is! String || text.trim().isEmpty) continue;
+        lines.add(LyricLine(a.toDouble(), b.toDouble(), text.length > maxLyricText ? text.substring(0, maxLyricText) : text));
+      }
+      if (lines.isEmpty) continue;
+      lines.sort((x, y) => x.start.compareTo(y.start));
+      final label = t['label'];
+      tracks.add(LyricTrack(
+        lang: lang,
+        auto: false,
+        lines: lines,
+        source: source,
+        label: label is String && label.isNotEmpty ? (label.length > maxString ? label.substring(0, maxString) : label) : null,
+      ));
+    }
+    if (tracks.isEmpty) return null;
+    final primary = raw['primary'];
+    return Lyrics(tracks: tracks, primary: tracks.any((t) => t.lang == primary) ? primary as String : tracks.first.lang);
   }
 
   static Map<String, dynamic> _map(Object? v, String what) {

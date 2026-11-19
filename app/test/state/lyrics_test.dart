@@ -229,4 +229,47 @@ how are you
     final chinese = LyricTrack(lang: 'zh-x-whisper', auto: false, lines: [for (final t in zh) LyricLine(0, 1, t)]);
     expect(chinese.wantsRomaji, isFalse);
   });
+
+  group('sharing with a replay', () {
+    LyricTrack track(String lang, LyricSource source, List<(double, double, String)> lines, {double offset = 0, String? label}) =>
+        LyricTrack(lang: lang, auto: false, source: source, label: label, offset: offset, lines: [for (final l in lines) LyricLine(l.$1, l.$2, l.$3)]);
+
+    test('only the user\'s own tracks are shared, with offsets applied', () {
+      final song = Lyrics(tracks: [
+        track('ja', LyricSource.youtube, [(1, 2, 'yt')]),
+        track('ja-x-import', LyricSource.imported, [(1, 2, 'mine')], offset: 0.5, label: 'a.srt'),
+        track('ja-x-whisper', LyricSource.whisper, [(1, 2, 'heard')]),
+      ], primary: 'ja-x-import');
+      final s = sharedLyrics(song)!;
+      expect([for (final t in s.tracks) t.lang], ['ja-x-import', 'ja-x-whisper']);
+      expect(s.primary, 'ja-x-import');
+      expect(s.tracks.first.lines.single.start, 1.5);
+      expect(s.tracks.first.label, 'a.srt');
+      expect(sharedLyrics(Lyrics(tracks: [track('ja', LyricSource.youtube, [(1, 2, 'yt')])], primary: 'ja')), isNull);
+      // The main lyrics are YouTube's: the first shared track leads.
+      expect(sharedLyrics(Lyrics(tracks: song.tracks, primary: 'ja'))!.primary, 'ja-x-import');
+    });
+
+    test('merging adds new tracks once and makes them the main lyrics over YouTube ones', () {
+      final shared = Lyrics(tracks: [track('ja-x-import', LyricSource.imported, [(1, 2, 'mine')], label: 'a.srt')], primary: 'ja-x-import');
+      final song = Lyrics(tracks: [track('ja', LyricSource.youtube, [(1, 2, 'yt')])], primary: 'ja', secondary: 'ja-x-import');
+      expect(mergeSharedLyrics(song, shared), isTrue);
+      expect(song.primary, 'ja-x-import');
+      expect(song.secondary, isNull);
+      expect(song.tracks.last.label, 'a.srt');
+      expect(mergeSharedLyrics(song, shared), isFalse, reason: 'already there');
+      expect(song.tracks.length, 2);
+    });
+
+    test('a song with the user\'s own main lyrics keeps them; same key gets a new one', () {
+      final shared = Lyrics(tracks: [track('ja-x-import', LyricSource.imported, [(1, 2, 'theirs')])], primary: 'ja-x-import');
+      final song = Lyrics(tracks: [track('ja-x-import', LyricSource.imported, [(1, 2, 'mine')])], primary: 'ja-x-import');
+      expect(mergeSharedLyrics(song, shared), isTrue);
+      expect([for (final t in song.tracks) t.lang], ['ja-x-import', 'ja-x-import2']);
+      expect(song.primary, 'ja-x-import', reason: 'the user\'s own lyrics stay the main ones');
+      final empty = Lyrics.empty();
+      expect(mergeSharedLyrics(empty, shared), isTrue);
+      expect(empty.primary, 'ja-x-import');
+    });
+  });
 }

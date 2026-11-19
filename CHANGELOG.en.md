@@ -8,6 +8,9 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 ## Unreleased
 
+### Added
+- Exported replays now carry the subtitles you added yourself (an imported subtitle file, pasted or typed lyrics, AI-generated subtitles; not the video's own YouTube subtitles). The first time the other person watches the replay they are added to their copy of the song, and become its main lyrics unless they have their own.
+
 ### Fixed
 - After importing a backing track, takes that had been replayed before still played the old separated accompaniment. A replay now remembers which backing file it was mixed from and is mixed again when the backing changes (or goes back to the separated one).
 

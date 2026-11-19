@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:karaoke_battle/scoring/models.dart' show scaledTotal;
+import 'package:karaoke_battle/state/lyrics.dart';
 import 'package:karaoke_battle/state/replay_file.dart';
 import 'package:karaoke_battle/state/track_timeline.dart';
 
@@ -178,5 +179,57 @@ void main() {
     ]) {
       expect(youtubeIdFromUrl(url), isNull, reason: url);
     }
+  });
+
+  test('shared subtitles travel with the replay; older files have none', () {
+    expect(ReplayFile.parse(sample().encode()).lyrics, isNull);
+    final j = sample().toJson()
+      ..['lyrics'] = {
+        'primary': 'ja-x-import',
+        'tracks': [
+          {
+            'lang': 'ja-x-import',
+            'source': 'imported',
+            'label': 'song.srt',
+            'lines': [
+              {'start': 2.0, 'end': 3.0, 'text': 'second'},
+              {'start': 1.0, 'end': 2.0, 'text': 'first'},
+            ],
+          },
+          {'lang': 'ja-x-edit', 'source': 'edited', 'lines': [{'start': 1.0, 'end': 2.0, 'text': 'x'}]},
+        ],
+      };
+    final l = ReplayFile.parse(jsonEncode(j)).lyrics!;
+    expect([for (final t in l.tracks) t.lang], ['ja-x-import', 'ja-x-edit']);
+    expect(l.primary, 'ja-x-import');
+    expect(l.tracks.first.source, LyricSource.imported);
+    expect(l.tracks.first.label, 'song.srt');
+    expect([for (final x in l.tracks.first.lines) x.text], ['first', 'second'], reason: 'sorted by time');
+    // Written back the same way.
+    final again = ReplayFile.parse(ReplayFile.parse(jsonEncode(j)).encode()).lyrics!;
+    expect(again.tracks.first.lines.length, 2);
+  });
+
+  test('bad shared subtitles are dropped without refusing the replay', () {
+    Map<String, dynamic> withTracks(List<Object?> tracks) => sample().toJson()..['lyrics'] = {'primary': 'zz', 'tracks': tracks};
+    final line = {'start': 1.0, 'end': 2.0, 'text': 'ok'};
+    final r = ReplayFile.parse(jsonEncode(withTracks([
+      {'lang': 'ja', 'source': 'youtube', 'lines': [line]}, // the video's own: fetched from YouTube instead
+      {'lang': '../etc', 'source': 'imported', 'lines': [line]}, // not a track key
+      {'lang': 'ja-x-import', 'source': 'nope', 'lines': [line]},
+      {'lang': 'ja-x-manual', 'source': 'manual', 'lines': [{'start': 3.0, 'end': 1.0, 'text': 'backwards'}, {'start': 'a', 'end': 1, 'text': 'x'}]},
+      'not a map',
+      {'lang': 'zh-x-import', 'source': 'imported', 'lines': [line, {'start': 2.0, 'end': 2.5, 'text': '   '}]},
+    ])));
+    expect(r.total, 91.0);
+    expect([for (final t in r.lyrics!.tracks) t.lang], ['zh-x-import']);
+    expect(r.lyrics!.tracks.single.lines.length, 1);
+    expect(r.lyrics!.primary, 'zh-x-import', reason: 'unknown primary falls back to the first track');
+    expect(ReplayFile.parse(jsonEncode(sample().toJson()..['lyrics'] = 'x')).lyrics, isNull);
+    final long = 'あ' * 2000;
+    final big = ReplayFile.parse(jsonEncode(withTracks([
+      {'lang': 'ja-x-import', 'source': 'imported', 'lines': [{'start': 0, 'end': 1, 'text': long}]},
+    ])));
+    expect(big.lyrics!.tracks.single.lines.single.text.length, ReplayFile.maxLyricText);
   });
 }

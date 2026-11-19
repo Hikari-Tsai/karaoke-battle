@@ -5,11 +5,11 @@ void main() {
   tearDown(() => I18n.notifier.value = 'zh');
 
   test('every key resolves in all three languages and differs from the key', () {
-    final keys = ['nav.library', 'sing.record', 'results.total', 'settings.uiLanguage', 'backend.cudaMissing.body', 'library.deleteConfirm', 'settings.ytDlpInstalled', 'settings.ytDlpInstallFailed', 'settings.ytDlpUpdateFailed', 'sidecars.ytDlpInstalling', 'sidecars.ytDlpInstalled', 'ytdlp.title', 'ytdlp.broken', 'ytdlp.pathOnly', 'ytdlp.failed', 'ytdlp.repair', 'ytdlp.working', 'ytdlp.done', 'ytdlp.dontRemind', 'sing.modePreview', 'sing.modePreviewTip', 'sing.modeRecording', 'sing.modeCountdown', 'sing.countdownHint', 'sing.cancelRecord', 'sing.midiGuide', 'sing.midiGuideTip', 'settings.wideKeyRange', 'settings.wideKeyRangeHint', 'backing.import', 'backing.title', 'backing.warn.drift', 'backing.warn.key', 'backing.warn.bands', 'backing.offsetPad', 'backing.offsetCut', 'backing.previewHint', 'backing.revertBody', 'library.exportMidi', 'library.midiNoNotes', 'library.midiSaved'];
+    final keys = ['nav.library', 'sing.record', 'results.total', 'settings.uiLanguage', 'backend.cudaMissing.body', 'library.deleteConfirm', 'settings.ytDlpInstalled', 'settings.ytDlpInstallFailed', 'settings.ytDlpUpdateFailed', 'sidecars.ytDlpInstalling', 'sidecars.ytDlpInstalled', 'ytdlp.title', 'ytdlp.broken', 'ytdlp.pathOnly', 'ytdlp.failed', 'ytdlp.repair', 'ytdlp.working', 'ytdlp.done', 'ytdlp.dontRemind', 'sing.modePreview', 'sing.modePreviewTip', 'sing.modeRecording', 'sing.modeCountdown', 'sing.countdownHint', 'sing.cancelRecord', 'sing.midiGuide', 'sing.midiGuideTip', 'settings.wideKeyRange', 'settings.wideKeyRangeHint', 'backing.import', 'backing.title', 'backing.warn.drift', 'backing.warn.key', 'backing.warn.bands', 'backing.offsetPad', 'backing.offsetCut', 'backing.previewHint', 'backing.revertBody', 'library.exportMidi', 'library.midiNoNotes', 'library.midiSaved', 'export.lyrics', 'replays.lyricsAdded'];
     for (final lang in I18n.supported) {
       I18n.notifier.value = lang;
       for (final k in keys) {
-        final s = tr(k, {'gpu': 'X', 'size': '1 GB', 'title': 'T', 'error': 'E', 'path': 'P', 'ppm': 5, 'n': 2, 'ms': '7.0', 's': '0.7'});
+        final s = tr(k, {'gpu': 'X', 'size': '1 GB', 'title': 'T', 'error': 'E', 'path': 'P', 'ppm': 5, 'n': 2, 'ms': '7.0', 's': '0.7', 'names': 'a.srt'});
         expect(s, isNot(equals(k)), reason: '$k missing in $lang');
         expect(s, isNot(contains('{')), reason: '$k has unreplaced args in $lang');
       }

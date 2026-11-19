@@ -5,11 +5,15 @@
 //                       notes.json    the reference notes it was judged on
 //                       take_f0.json  score.json  take.json  take.wav.json
 //                       vocal.mp3     the vocal as received (when included)
+//                       lyrics.json   the player's own subtitles (when shared)
 //                       take.wav      the vocal decoded for playback
 //
 // Exports are a .zip: "<title> <score>.json" plus "<title> <score> vocal.mp3"
 // (the dry recording), which the JSON names in voice.file. The JSON carries
-// the song's YouTube video id when it has one, so the importer can fetch it.
+// the song's YouTube video id when it has one, so the importer can fetch it,
+// and the subtitles the player added themselves (imported, pasted, typed or
+// recognised), which are added to the song the first time the replay is
+// watched with it.
 //
 // The take files use the same names as a song's takes/<id>/ folder, so the
 // replay screen plays an imported replay like one of the user's own takes.
@@ -24,9 +28,11 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../scoring/models.dart' show upgradeScoreJson;
+import '../state/lyrics.dart';
 import '../state/replay_archive.dart';
 import '../state/replay_file.dart';
 import 'app_paths.dart';
+import 'prep_pipeline.dart';
 import 'replay_mix.dart';
 import 'sidecars.dart';
 import 'song_library.dart';
@@ -48,6 +54,7 @@ class ImportedReplay {
     this.language = '',
     this.sourceType = 'file',
     this.songId,
+    this.lyricsAddedTo,
   });
 
   final String id;
@@ -67,7 +74,12 @@ class ImportedReplay {
   /// Local song this replay plays against (null until found / added).
   String? songId;
 
+  /// The song the shared subtitles were last added to, so they are added
+  /// once (and stay deleted if the user removes them).
+  String? lyricsAddedTo;
+
   String get notesJson => p.join(dir, 'notes.json');
+  String get lyricsJson => p.join(dir, 'lyrics.json');
   TakeInfo get take => TakeInfo(id: id, dir: dir, createdAt: createdAt, total: total, rank: rank);
 
   Map<String, dynamic> toJson() => {
@@ -84,6 +96,7 @@ class ImportedReplay {
         'language': language,
         'source_type': sourceType,
         'song_id': songId,
+        'lyrics_added_to': ?lyricsAddedTo,
       };
 
   static ImportedReplay fromJson(String dir, Map<String, dynamic> j) => ImportedReplay(
@@ -101,6 +114,7 @@ class ImportedReplay {
         language: j['language'] as String? ?? '',
         sourceType: j['source_type'] as String? ?? 'file',
         songId: j['song_id'] as String?,
+        lyricsAddedTo: j['lyrics_added_to'] as String?,
       );
 }
 
@@ -162,6 +176,26 @@ class ReplayLibrary extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Adds the replay's shared subtitles to [song] (once per song). Returns
+  /// whether the song's lyrics changed.
+  Future<bool> addSharedLyrics(ImportedReplay r, Song song, PrepPipeline pipeline) async {
+    if (r.lyricsAddedTo == song.id) return false;
+    final f = File(r.lyricsJson);
+    if (!await f.exists()) return false;
+    final Lyrics shared;
+    try {
+      shared = Lyrics.fromJson(jsonDecode(await f.readAsString()) as Map<String, dynamic>);
+    } catch (_) {
+      return false;
+    }
+    final lyrics = await pipeline.loadLyrics(song);
+    final changed = mergeSharedLyrics(lyrics, shared);
+    if (changed) await pipeline.saveLyrics(song, lyrics);
+    r.lyricsAddedTo = song.id;
+    await File(p.join(r.dir, 'meta.json')).writeAsString(jsonEncode(r.toJson()));
+    return changed;
+  }
+
   Future<void> delete(ImportedReplay r) async {
     final d = Directory(r.dir);
     if (await d.exists()) await d.delete(recursive: true);
@@ -216,6 +250,7 @@ class ReplayLibrary extends ChangeNotifier {
       }));
       // The replay screen maps take time with track_start_offset - latency.
       await File(p.join(dir, 'take.wav.json')).writeAsString(jsonEncode({'track_start_offset': r.timeOffset, 'latency': 0.0}));
+      if (r.lyrics != null) await File(p.join(dir, 'lyrics.json')).writeAsString(jsonEncode(r.lyrics!.toJson()));
       var hasVoice = false;
       if (r.voiceFile != null) {
         // voiceFile is a validated bare name, so it is only a lookup key here.
@@ -324,10 +359,21 @@ class ReplayLibrary extends ChangeNotifier {
       takeF0: readJson(take.f0Json),
       score: upgradeScoreJson(readJson(take.scoreJson)),
       voiceFile: vocalName,
+      lyrics: await _sharedLyrics(files.lyricsJson),
     );
     final zip = Archive()..addFile(ArchiveFile.string('$baseName.json', file.encode()));
     // MP3 is already compressed: store it as is.
     if (vocal != null) zip.addFile(ArchiveFile.noCompress(vocalName!, vocal.length, vocal));
     return ZipEncoder().encodeBytes(zip);
+  }
+
+  static Future<Lyrics?> _sharedLyrics(String path) async {
+    try {
+      final f = File(path);
+      if (!await f.exists()) return null;
+      return sharedLyrics(Lyrics.fromJson(jsonDecode(await f.readAsString()) as Map<String, dynamic>));
+    } catch (_) {
+      return null;
+    }
   }
 }

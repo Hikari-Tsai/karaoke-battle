@@ -1,5 +1,6 @@
 // "Export replay": asks for the player name, then saves a .zip holding the
 // replay JSON and the dry a cappella vocal, which someone else can import.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +10,8 @@ import 'package:provider/provider.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../../state/lyrics.dart';
+import '../lyrics/lyrics_actions.dart' show lyricTrackLabel;
 import '../widgets/error_report.dart';
 
 /// Base name for the exported files: `<title> <score>` without characters
@@ -38,10 +41,19 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
   bool _busy = false;
   String? _error;
 
+  /// Names of the user's own subtitle tracks that go into the replay.
+  List<String> _lyrics = const [];
+
   @override
   void initState() {
     super.initState();
-    _name = TextEditingController(text: context.read<AppServices>().settings.playerName);
+    final services = context.read<AppServices>();
+    _name = TextEditingController(text: services.settings.playerName);
+    try {
+      final f = File(services.library.files(widget.song).lyricsJson);
+      final shared = f.existsSync() ? sharedLyrics(Lyrics.fromJson(jsonDecode(f.readAsStringSync()) as Map<String, dynamic>)) : null;
+      _lyrics = [for (final t in shared?.tracks ?? const <LyricTrack>[]) lyricTrackLabel(t)];
+    } catch (_) {}
   }
 
   @override
@@ -116,6 +128,14 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
               const SizedBox(width: 8),
               Expanded(child: Text(tr(hasVoice ? 'export.contents' : 'export.noVoice'), style: theme.textTheme.bodySmall)),
             ]),
+            if (_lyrics.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(children: [
+                Icon(Icons.subtitles_outlined, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(child: Text(tr('export.lyrics', {'names': _lyrics.join('、')}), style: theme.textTheme.bodySmall)),
+              ]),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: theme.colorScheme.error)),

@@ -209,6 +209,71 @@ class Lyrics {
 }
 
 // ---------------------------------------------------------------------------
+// Sharing with a replay
+// ---------------------------------------------------------------------------
+
+/// The tracks a replay export carries: the player's own (imported, pasted,
+/// typed, edited or recognised), not the video's subtitles, which the
+/// receiver fetches from YouTube. Offsets are applied and romaji left out
+/// (the receiver adds its own). Null when there are none.
+Lyrics? sharedLyrics(Lyrics song) {
+  final tracks = [
+    for (final t in song.tracks)
+      if (t.source != LyricSource.youtube && t.lines.isNotEmpty)
+        LyricTrack(
+          lang: t.lang,
+          auto: false,
+          source: t.source,
+          label: t.label,
+          lines: [for (final l in t.shownLines) LyricLine(l.start, l.end, l.text)],
+        ),
+  ];
+  if (tracks.isEmpty) return null;
+  final primary = song.primaryTrack?.lang;
+  return Lyrics(tracks: tracks, primary: tracks.any((t) => t.lang == primary) ? primary : tracks.first.lang);
+}
+
+bool _sameLines(List<LyricLine> a, List<LyricLine> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i].text != b[i].text || (a[i].start - b[i].start).abs() > 1e-3 || (a[i].end - b[i].end).abs() > 1e-3) return false;
+  }
+  return true;
+}
+
+/// Adds a replay's shared tracks to a song's lyrics: tracks the song already
+/// has (same lines) are not added twice. The replay's main lyrics become the
+/// song's main lyrics unless the song's are the user's own work. Returns
+/// whether anything changed.
+bool mergeSharedLyrics(Lyrics song, Lyrics shared) {
+  var changed = false;
+  String? sharedPrimary;
+  for (final t in shared.tracks) {
+    String? key;
+    for (final e in song.tracks) {
+      if (_sameLines(e.shownLines, t.lines)) {
+        key = e.lang;
+        break;
+      }
+    }
+    if (key == null) {
+      key = song.uniqueKey(t.lang);
+      song.tracks.add(LyricTrack(lang: key, auto: false, lines: [...t.lines], source: t.source, label: t.label));
+      changed = true;
+    }
+    if (t.lang == shared.primary) sharedPrimary = key;
+  }
+  final current = song.primaryTrack;
+  final userOwn = current != null && current.source != LyricSource.youtube && current.source != LyricSource.whisper;
+  if (sharedPrimary != null && song.primary != sharedPrimary && (!userOwn || current.lang == sharedPrimary)) {
+    song.primary = sharedPrimary;
+    if (song.secondary == sharedPrimary) song.secondary = null;
+    changed = true;
+  }
+  return changed;
+}
+
+// ---------------------------------------------------------------------------
 // Track selection
 // ---------------------------------------------------------------------------
 

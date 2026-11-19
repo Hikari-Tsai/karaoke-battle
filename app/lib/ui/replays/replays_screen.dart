@@ -280,6 +280,10 @@ class _ReplayCardState extends State<_ReplayCard> {
   Future<void> _watch(Song song) async {
     await _linked(song);
     if (!mounted) return;
+    // The player's own subtitles came with the replay: add them to the song.
+    final services = context.read<AppServices>();
+    if (await services.replays.addSharedLyrics(r, song, services.pipeline)) _snack(tr('replays.lyricsAdded'));
+    if (!mounted) return;
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: song, take: r.take, notesJsonPath: r.notesJson, player: _player)));
   }
 

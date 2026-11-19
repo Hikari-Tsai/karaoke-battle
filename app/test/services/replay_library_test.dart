@@ -3,14 +3,21 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:karaoke_battle/engine/engine.dart';
 import 'package:karaoke_battle/services/app_paths.dart';
+import 'package:karaoke_battle/services/backend_manager.dart';
+import 'package:karaoke_battle/services/model_registry.dart';
+import 'package:karaoke_battle/services/prep_pipeline.dart';
+import 'package:karaoke_battle/services/settings.dart';
 import 'package:karaoke_battle/services/replay_library.dart';
 import 'package:karaoke_battle/services/sidecars.dart';
 import 'package:karaoke_battle/services/song_library.dart';
+import 'package:karaoke_battle/state/lyrics.dart';
 import 'package:karaoke_battle/state/replay_archive.dart';
 import 'package:karaoke_battle/state/replay_file.dart';
 import 'package:karaoke_battle/ui/replays/export_replay_dialog.dart';
 import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
 
 ReplayFile _file({String? yt = 'trrLxXbRjeM', String title = '食虫植物'}) => ReplayFile(
       player: 'Hikari',
@@ -121,6 +128,59 @@ void main() {
 
     final r = (await replays.import((File(p.join(tmp.path, 'x.zip'))..writeAsBytesSync(zip)).path)).single;
     expect(ReplayLibrary.findSong(library, r)?.id, song.id);
+  });
+
+  test('the player\'s own subtitles are exported and added to the song once', () async {
+    PackageInfo.setMockInitialValues(appName: 'kb', packageName: 'kb', version: '9.9.9', buildNumber: '1', buildSignature: '');
+    SharedPreferences.setMockInitialValues({});
+    final library = SongLibrary(paths);
+    final mine = await library.create(title: 'Local Song', sourceType: SourceType.file, language: 'ja');
+    final files = library.files(mine);
+    final f = _file(yt: null, title: 'Local Song');
+    File(files.notesJson).writeAsStringSync(jsonEncode(f.notes));
+    File(files.lyricsJson).writeAsStringSync(jsonEncode(Lyrics(tracks: [
+      LyricTrack(lang: 'ja', auto: true, source: LyricSource.youtube, lines: const [LyricLine(1, 2, 'yt')]),
+      LyricTrack(lang: 'ja-x-import', auto: false, source: LyricSource.imported, label: 'mine.srt', offset: 0.25, lines: const [LyricLine(1, 2, 'こんにちは', romaji: 'konnichiwa')]),
+    ], primary: 'ja-x-import').toJson()));
+    final takeDir = Directory(p.join(files.dir, 'takes', 't1'))..createSync(recursive: true);
+    final take = TakeInfo(id: 't1', dir: takeDir.path, createdAt: DateTime.utc(2026, 10, 28), total: 88.5, rank: 'S');
+    File(take.f0Json).writeAsStringSync(jsonEncode(f.takeF0));
+    File(take.scoreJson).writeAsStringSync(jsonEncode(f.score));
+
+    final zip = await replays.export(song: mine, files: files, take: take, player: 'P', baseName: 'Local Song 88.5');
+    final text = unpackReplays(zip).replays.single.text;
+    final shared = ReplayFile.parse(text).lyrics!;
+    expect([for (final t in shared.tracks) t.lang], ['ja-x-import'], reason: 'the YouTube track is not shared');
+    expect(shared.tracks.single.lines.single.start, 1.25, reason: 'offset applied');
+    expect(text, isNot(contains('konnichiwa')), reason: 'romaji is not shared');
+
+    // On the other computer: same title, its own lyrics from the video only.
+    final r = (await replays.import((File(p.join(tmp.path, 'x.zip'))..writeAsBytesSync(zip)).path)).single;
+    expect(File(r.lyricsJson).existsSync(), isTrue);
+    final theirs = await library.create(title: 'Local Song', sourceType: SourceType.file, language: 'ja');
+    File(library.files(theirs).lyricsJson)
+        .writeAsStringSync(jsonEncode(Lyrics(tracks: [LyricTrack(lang: 'ja', auto: true, source: LyricSource.youtube, lines: const [LyricLine(1, 2, 'yt')])], primary: 'ja').toJson()));
+    final settings = await AppSettings.load();
+    final pipeline = PrepPipeline(
+      library: library,
+      sidecars: Sidecars(paths, SidecarCatalog({})),
+      models: ModelStore(paths),
+      backend: BackendManager(Engine.instance, paths, settings),
+      settings: settings,
+    );
+    expect(await replays.addSharedLyrics(r, theirs, pipeline), isTrue);
+    var lyrics = await pipeline.loadLyrics(theirs);
+    expect(lyrics.primaryTrack!.lines.single.text, 'こんにちは');
+    expect(lyrics.primaryTrack!.label, 'mine.srt');
+    // Once per song: deleting the track afterwards sticks, also after a reload.
+    lyrics.tracks.removeWhere((t) => t.source == LyricSource.imported);
+    lyrics.primary = 'ja';
+    await pipeline.saveLyrics(theirs, lyrics);
+    final again = ReplayLibrary(paths, Sidecars(paths, SidecarCatalog({})));
+    await again.reload();
+    expect(await again.addSharedLyrics(again.items.single, theirs, pipeline), isFalse);
+    lyrics = await pipeline.loadLyrics(theirs);
+    expect(lyrics.tracks.length, 1);
   });
 
   test('suggested file name drops characters file systems reject', () {
