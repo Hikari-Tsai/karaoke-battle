@@ -654,6 +654,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: settings.octaveInvariant,
                 onChanged: settings.setOctaveInvariant,
               ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(tr('settings.wideKeyRange')),
+                subtitle: Text(tr('settings.wideKeyRangeHint')),
+                value: settings.wideKeyRange,
+                onChanged: settings.setWideKeyRange,
+              ),
             ],
           ),
           // ---- AI singing tips: service and API key ----------------------------------------

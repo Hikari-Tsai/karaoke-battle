@@ -170,6 +170,11 @@ class AppSettings extends ChangeNotifier {
   double get replayVolume => _get('replay_volume', 1.0);
   Future<void> setReplayVolume(double v) => _set('replay_volume', v.clamp(0.0, 2.0).toDouble());
 
+  /// Key change range: ±6 semitones by default, ±12 (an octave) when widened.
+  bool get wideKeyRange => _get('wide_key_range', false);
+  Future<void> setWideKeyRange(bool v) => _set('wide_key_range', v);
+  int get keyRange => wideKeyRange ? 12 : 6;
+
   /// Rhythm-game judgement pop-ups while recording.
   bool get liveJudgements => _get('live_judgements', true);
   Future<void> setLiveJudgements(bool v) => _set('live_judgements', v);

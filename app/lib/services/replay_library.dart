@@ -30,6 +30,7 @@ import 'app_paths.dart';
 import 'replay_mix.dart';
 import 'sidecars.dart';
 import 'song_library.dart';
+import '../state/track_timeline.dart';
 
 class ImportedReplay {
   ImportedReplay({
@@ -207,7 +208,12 @@ class ReplayLibrary extends ChangeNotifier {
       await File(p.join(dir, 'notes.json')).writeAsString(jsonEncode(r.notes));
       await File(p.join(dir, 'take_f0.json')).writeAsString(jsonEncode(r.takeF0));
       await File(p.join(dir, 'score.json')).writeAsString(jsonEncode(r.score));
-      await File(p.join(dir, 'take.json')).writeAsString(jsonEncode({'pitch_shift': r.pitchShift, 'track': r.track, 'imported': true}));
+      await File(p.join(dir, 'take.json')).writeAsString(jsonEncode({
+        'pitch_shift': r.pitchShift,
+        'track': r.track,
+        if (r.trackTimeline.isNotEmpty) 'track_timeline': [for (final e in r.trackTimeline) e.toJson()],
+        'imported': true,
+      }));
       // The replay screen maps take time with track_start_offset - latency.
       await File(p.join(dir, 'take.wav.json')).writeAsString(jsonEncode({'track_start_offset': r.timeOffset, 'latency': 0.0}));
       var hasVoice = false;
@@ -270,10 +276,12 @@ class ReplayLibrary extends ChangeNotifier {
   }) async {
     Map<String, dynamic> readJson(String path) => jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
     var pitchShift = 0.0, track = 'inst', start = 0.0, latency = 0.0;
+    var timeline = const <TrackSwitch>[];
     try {
       final info = readJson(take.infoJson);
       pitchShift = (info['pitch_shift'] as num?)?.toDouble() ?? 0;
       track = info['track'] as String? ?? 'inst';
+      timeline = TrackSwitch.listFromJson(info['track_timeline']);
     } catch (_) {}
     try {
       final side = readJson('${take.wav}.json');
@@ -310,6 +318,7 @@ class ReplayLibrary extends ChangeNotifier {
       createdAt: take.createdAt,
       pitchShift: pitchShift,
       track: track,
+      trackTimeline: timeline,
       timeOffset: start - latency,
       notes: readJson(await take.notesFor(files.notesJson)),
       takeF0: readJson(take.f0Json),

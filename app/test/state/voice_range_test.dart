@@ -39,6 +39,17 @@ void main() {
     expect(up, lessThanOrEqualTo(SongRange.maxShift));
   });
 
+  test('a widened key range (±12) finds a fit that ±6 cannot', () {
+    // A high female melody (D4..E5) for a male voice: about 9 semitones too high.
+    final r = SongRange.of(melody([(62, 2), (66, 4), (69, 4), (72, 4), (74, 3), (76, 1)]));
+    final narrow = r.bestShift(VoiceZone.male);
+    expect(narrow, -SongRange.maxShift, reason: 'as far as ±6 goes');
+    expect(r.verdict(VoiceZone.male, narrow.toDouble()).fit, isNot(RangeFit.fits));
+    final wide = r.bestShift(VoiceZone.male, maxShift: 12);
+    expect(wide, inInclusiveRange(-12, -7));
+    expect(r.verdict(VoiceZone.male, wide.toDouble()).fit, RangeFit.fits);
+  });
+
   test('the tessitura is weighted by time: one short high note does not decide', () {
     final r = SongRange.of(melody([for (var i = 0; i < 10; i++) (60.0, 2.0), (76, 0.2)]));
     expect(r.highest, 76);

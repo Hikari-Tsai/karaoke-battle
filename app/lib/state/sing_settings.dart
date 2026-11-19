@@ -64,7 +64,7 @@ class SongSingSettings {
     if (j['v'] == null && volume == 1.0) volume = null;
     return SongSingSettings(
       track: track == 'inst' || track == 'mix' || track == 'midi' ? track as String : null,
-      pitchShift: num_('pitch_shift', -6, 6)?.roundToDouble() ?? 0,
+      pitchShift: num_('pitch_shift', -12, 12)?.roundToDouble() ?? 0,
       volume: volume,
       octaveAlign: j['octave_align'] is bool ? j['octave_align'] as bool : true,
       windowSeconds: num_('window_seconds', 4, 16) ?? 8,

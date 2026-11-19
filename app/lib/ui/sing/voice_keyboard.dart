@@ -172,7 +172,7 @@ class _KeyStepper extends StatelessWidget {
           IconButton(
             tooltip: locked ?? tr('keyboard.keyDown'),
             visualDensity: VisualDensity.compact,
-            onPressed: enabled && s.pitchShift > -SongRange.maxShift ? () => s.setPitchShift(s.pitchShift - 1) : null,
+            onPressed: enabled && s.pitchShift > -s.keyRange ? () => s.setPitchShift(s.pitchShift - 1) : null,
             icon: const Icon(Icons.remove, size: 18),
           ),
           SizedBox(
@@ -186,7 +186,7 @@ class _KeyStepper extends StatelessWidget {
           IconButton(
             tooltip: locked ?? tr('keyboard.keyUp'),
             visualDensity: VisualDensity.compact,
-            onPressed: enabled && s.pitchShift < SongRange.maxShift ? () => s.setPitchShift(s.pitchShift + 1) : null,
+            onPressed: enabled && s.pitchShift < s.keyRange ? () => s.setPitchShift(s.pitchShift + 1) : null,
             icon: const Icon(Icons.add, size: 18),
           ),
         ]);
@@ -291,7 +291,7 @@ class _AutoTransposeButton extends StatelessWidget {
       menuChildren: [
         for (final z in VoiceZone.all)
           Builder(builder: (context) {
-            final best = s.songRange.bestShift(z);
+            final best = s.songRange.bestShift(z, maxShift: s.keyRange);
             final current = best == s.pitchShift.round();
             return MenuItemButton(
               leadingIcon: Icon(_Verdicts.iconOf(z.type), color: _Verdicts.colorOf(z.type)),
@@ -303,7 +303,7 @@ class _AutoTransposeButton extends StatelessWidget {
         // The singer's own range, once found (else greyed with a hint).
         Builder(builder: (context) {
           final own = s.ownRange;
-          final best = own == null ? null : s.songRange.bestShift(own);
+          final best = own == null ? null : s.songRange.bestShift(own, maxShift: s.keyRange);
           return MenuItemButton(
             leadingIcon: Icon(Icons.mic, color: own == null ? null : ownZoneColor),
             trailingIcon: best != null && best == s.pitchShift.round() ? const Icon(Icons.check, size: 16) : null,

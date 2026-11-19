@@ -11,6 +11,7 @@
 import 'dart:convert';
 
 import '../scoring/models.dart' show upgradeScoreJson;
+import 'track_timeline.dart';
 
 class ReplayFormatException implements Exception {
   ReplayFormatException(this.code, [this.detail = '']);
@@ -82,6 +83,7 @@ class ReplayFile {
     required this.takeF0,
     required this.score,
     this.voiceFile,
+    this.trackTimeline = const [],
   });
 
   static const formatName = 'karaoke-battle-replay';
@@ -111,7 +113,11 @@ class ReplayFile {
   final ReplaySong song;
   final DateTime createdAt;
   final double pitchShift;
-  final String track; // inst | mix
+  final String track; // inst | mix | midi: what played at the end of the take
+
+  /// What played under the singer and when it changed (older files: none).
+  /// Replays play the accompaniment; this is kept for a faithful replay later.
+  final List<TrackSwitch> trackTimeline;
   final double timeOffset; // take time + offset = track time
   final Map<String, dynamic> notes; // notes.json (notes, excluded_spans)
   final Map<String, dynamic> takeF0; // take_f0.json
@@ -133,6 +139,7 @@ class ReplayFile {
           'created_at': createdAt.toIso8601String(),
           'pitch_shift': pitchShift,
           'track': track,
+          if (trackTimeline.isNotEmpty) 'track_timeline': [for (final e in trackTimeline) e.toJson()],
           'time_offset': timeOffset,
         },
         'notes': notes,
@@ -187,7 +194,8 @@ class ReplayFile {
       ),
       createdAt: _date(take['created_at']),
       pitchShift: _num(take['pitch_shift'], 'take.pitch_shift').clamp(-24.0, 24.0),
-      track: track == 'mix' ? 'mix' : 'inst',
+      track: track == 'mix' || track == 'midi' ? track : 'inst',
+      trackTimeline: TrackSwitch.listFromJson(take['track_timeline']),
       timeOffset: _num(take['time_offset'], 'take.time_offset').clamp(-30.0, 30.0),
       notes: _validNotes(_map(root['notes'], 'notes')),
       takeF0: _validF0(_map(root['take_f0'], 'take_f0')),

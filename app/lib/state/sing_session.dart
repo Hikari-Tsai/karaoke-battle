@@ -26,6 +26,7 @@ import 'loudness.dart';
 import 'sing_settings.dart';
 import 'scoring_bridge.dart';
 import 'song_data.dart';
+import 'track_timeline.dart';
 import 'voice_range.dart';
 
 /// What plays under the singer: the accompaniment, the original mix (guide
@@ -133,7 +134,9 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       _trackSet = true;
       track = TrackKind.values.asNameMap()[v.track] ?? TrackKind.inst;
     }
-    pitchShift = v.pitchShift;
+    // A key saved while the range was widened is brought back into the
+    // current range.
+    pitchShift = v.pitchShift.clamp(-keyRange, keyRange).toDouble();
     if (v.volume != null) {
       volume = v.volume!;
       volumeAuto = false;
@@ -251,7 +254,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// AI key change into a male or female range, or the singer's own.
   void autoTranspose(VoiceType voice) {
     final zone = voice == VoiceType.you ? ownRange : VoiceZone.of(voice);
-    if (zone != null) setPitchShift(songRange.bestShift(zone).toDouble());
+    if (zone != null) setPitchShift(songRange.bestShift(zone, maxShift: keyRange).toDouble());
   }
   final F0Curve refF0;
 
@@ -298,6 +301,13 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   TrackKind _mainKind = TrackKind.inst;
   bool _hasAlt = false;
   int _stemIndex(TrackKind t) => (t == TrackKind.midi ? TrackKind.inst : t) == _mainKind ? 0 : 1;
+
+  /// What played under the singer during the current take: the track at the
+  /// start (time 0) and every switch, on the song timeline. Saved with the
+  /// take (`track_timeline`) so a replay could reproduce it one day; replays
+  /// use the accompaniment for now.
+  List<TrackSwitch> _trackLog = const [];
+  static double _round3(double v) => (v * 1000).roundToDouble() / 1000;
 
   /// The MIDI guide plays over the accompaniment, so it needs one (and notes).
   bool get canMidiGuide => hasInst && !notes.isEmpty;
@@ -424,6 +434,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     final l = _live;
     if (t == track || l == null || !_canPlay(t)) return;
     try {
+      if (recording) _trackLog.add(TrackSwitch(_round3(l.position), t.name));
       track = t;
       _trackSet = true;
       _saveSoon();
@@ -441,9 +452,12 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// replay is rendered in the key saved with it.
   bool get canChangeKey => ready && !recording;
 
+  /// ±6 semitones, or ±12 when widened in Settings.
+  int get keyRange => services.settings.keyRange;
+
   void setPitchShift(double semitones) {
     if (recording) return;
-    pitchShift = semitones.clamp(-6, 6).roundToDouble();
+    pitchShift = semitones.clamp(-keyRange, keyRange).roundToDouble();
     _live?.pitchShift = pitchShift;
     judge?.pitchShift = pitchShift;
     _saveSoon();
@@ -730,6 +744,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       l.startCapture(runtime: rt, swiftF0ModelPath: model, mode: mode == 0 ? 0 : 1);
       recording = true;
       recordStartedAt = DateTime.now();
+      _trackLog = [TrackSwitch(0, track.name)];
       l.play();
     } catch (e) {
       initError = '$e';
@@ -765,6 +780,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       'latency': latencyCompensation,
       'started_at': (recordStartedAt ?? DateTime.now()).toIso8601String(),
       'track': track.name,
+      'track_timeline': [for (final e in _trackLog) e.toJson()],
       'duration': elapsed,
     }));
     return take;

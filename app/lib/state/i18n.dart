@@ -1053,6 +1053,12 @@ const Map<String, (String, String, String)> _table = {
   'settings.separation.best': ('最佳（雙模型）', 'Best (two models)', '最高品質（2 モデル）'),
   'settings.defaultLanguage': ('預設歌詞語言', 'Default lyrics language', '既定の歌詞言語'),
   'settings.noiseGate': ('麥克風噪音門檻', 'Microphone noise gate', 'マイクのノイズゲート'),
+  'settings.wideKeyRange': ('升降 Key 放寬到 ±12', 'Widen the key range to ±12', 'キー変更の範囲を ±12 に広げる'),
+  'settings.wideKeyRangeHint': (
+    '關閉時升降 Key 的範圍是 ±6；打開後可以調到 ±12（整整一個八度），一鍵移調也會在這個範圍內找。移調越多音質越容易失真。',
+    'Off, the key can move ±6 semitones; on, up to ±12 (a full octave), and the one-tap key change searches that far too. The further it moves, the more the sound degrades.',
+    'オフのときキーは ±6 まで、オンにすると ±12（ちょうど 1 オクターブ）まで変更でき、ワンタッチ移調もその範囲で探します。大きく移調するほど音質が劣化しやすくなります。',
+  ),
   'settings.octaveInvariant': ('允許八度音演唱', 'Allow singing in another octave', 'オクターブ違いの歌唱を許可'),
   'settings.octaveInvariantHint': (
     '唱高八度或低八度都算正確，並自動偵測整首移調',

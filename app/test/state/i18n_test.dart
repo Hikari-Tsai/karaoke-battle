@@ -5,7 +5,7 @@ void main() {
   tearDown(() => I18n.notifier.value = 'zh');
 
   test('every key resolves in all three languages and differs from the key', () {
-    final keys = ['nav.library', 'sing.record', 'results.total', 'settings.uiLanguage', 'backend.cudaMissing.body', 'library.deleteConfirm', 'settings.ytDlpInstalled', 'settings.ytDlpInstallFailed', 'settings.ytDlpUpdateFailed', 'sidecars.ytDlpInstalling', 'sidecars.ytDlpInstalled', 'ytdlp.title', 'ytdlp.broken', 'ytdlp.pathOnly', 'ytdlp.failed', 'ytdlp.repair', 'ytdlp.working', 'ytdlp.done', 'ytdlp.dontRemind', 'sing.modePreview', 'sing.modePreviewTip', 'sing.modeRecording', 'sing.modeCountdown', 'sing.countdownHint', 'sing.cancelRecord', 'sing.midiGuide', 'sing.midiGuideTip'];
+    final keys = ['nav.library', 'sing.record', 'results.total', 'settings.uiLanguage', 'backend.cudaMissing.body', 'library.deleteConfirm', 'settings.ytDlpInstalled', 'settings.ytDlpInstallFailed', 'settings.ytDlpUpdateFailed', 'sidecars.ytDlpInstalling', 'sidecars.ytDlpInstalled', 'ytdlp.title', 'ytdlp.broken', 'ytdlp.pathOnly', 'ytdlp.failed', 'ytdlp.repair', 'ytdlp.working', 'ytdlp.done', 'ytdlp.dontRemind', 'sing.modePreview', 'sing.modePreviewTip', 'sing.modeRecording', 'sing.modeCountdown', 'sing.countdownHint', 'sing.cancelRecord', 'sing.midiGuide', 'sing.midiGuideTip', 'settings.wideKeyRange', 'settings.wideKeyRangeHint'];
     for (final lang in I18n.supported) {
       I18n.notifier.value = lang;
       for (final k in keys) {

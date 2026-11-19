@@ -1983,7 +1983,7 @@ class _Controls extends StatelessWidget {
                   Text(tr('sing.pitchShift')),
                 IconButton(
                   tooltip: s.recording ? tr('sing.keyLocked') : null,
-                  onPressed: enabled && s.canChangeKey
+                  onPressed: enabled && s.canChangeKey && s.pitchShift > -s.keyRange
                       ? () => s.setPitchShift(s.pitchShift - 1)
                       : null,
                   icon: const Icon(Icons.remove),
@@ -1998,7 +1998,7 @@ class _Controls extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: s.recording ? tr('sing.keyLocked') : null,
-                  onPressed: enabled && s.canChangeKey
+                  onPressed: enabled && s.canChangeKey && s.pitchShift < s.keyRange
                       ? () => s.setPitchShift(s.pitchShift + 1)
                       : null,
                   icon: const Icon(Icons.add),

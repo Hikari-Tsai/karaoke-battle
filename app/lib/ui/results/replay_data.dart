@@ -49,17 +49,16 @@ class ReplayData {
 /// imported replay carries the sharer's).
 Future<ReplayData> loadReplayData(AppServices services, Song song, TakeInfo take, {String? notesJsonPath}) async {
   final files = services.library.files(song);
-  var track = 'inst';
   var pitchShift = 0.0;
   double? takeSeconds;
   try {
     final info = jsonDecode(await File(take.infoJson).readAsString()) as Map<String, dynamic>;
     pitchShift = (info['pitch_shift'] as num?)?.toDouble() ?? 0;
-    track = info['track'] as String? ?? 'inst';
     takeSeconds = (info['duration'] as num?)?.toDouble();
   } catch (_) {}
-  var backing = track == 'mix' ? files.mixWav : files.instWav;
-  if (!await File(backing).exists()) backing = await File(files.instWav).exists() ? files.instWav : files.mixWav;
+  // Replays always play the accompaniment, whatever was heard while singing
+  // (the take keeps that in `track_timeline` for a later, faithful replay).
+  final backing = await File(files.instWav).exists() ? files.instWav : files.mixWav;
   final offset = await SingSession.takeTimeOffset(take);
 
   final notesPath = notesJsonPath ?? await take.notesFor(files.notesJson);

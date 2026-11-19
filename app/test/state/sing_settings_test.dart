@@ -13,6 +13,11 @@ void main() {
     expect(SongSingSettings.fromJson({'track': 'karaoke'}).track, isNull);
   });
 
+  test('a key saved within ±12 is kept; beyond it is clamped', () {
+    expect(SongSingSettings.fromJson({'pitch_shift': -9}).pitchShift, -9);
+    expect(SongSingSettings.fromJson({'pitch_shift': 20}).pitchShift, 12);
+  });
+
   test('each song keeps what was last set for it', () async {
     final a = '${tmp.path}/a.json', b = '${tmp.path}/b.json';
     await const SongSingSettings(track: 'mix', pitchShift: -2, volume: 0.3, octaveAlign: false, windowSeconds: 12, metronomeOn: true, metronomeGain: 0.9).save(a);
@@ -43,7 +48,7 @@ void main() {
     f.writeAsStringSync('{"track":"karaoke","pitch_shift":9.4,"volume":-1,"window_seconds":"x","octave_align":1,"metronome_gain":7}');
     final s = await SongSingSettings.load(f.path);
     expect(s.track, isNull);
-    expect(s.pitchShift, 6);
+    expect(s.pitchShift, 9, reason: 'files keep up to ±12; the session clamps to the current range');
     expect(s.volume, 0);
     f.writeAsStringSync('{"volume":1.0,"pitch_shift":2}');
     expect((await SongSingSettings.load(f.path)).volume, isNull, reason: '0.7.11 always wrote the default 1.0');

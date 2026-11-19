@@ -74,6 +74,7 @@ class SongRange {
 
   bool get isEmpty => notes.isEmpty;
 
+  /// Default key change range (the widened one is ±12, see AppSettings.keyRange).
   static const maxShift = 6;
 
   factory SongRange.of(NoteList n) {
@@ -125,9 +126,9 @@ class SongRange {
     return total > 0 ? (above / total, below / total) : (0.0, 0.0);
   }
 
-  /// The key change (-6..+6) for [zone], from the original key (see the
-  /// header): 0 when the original key fits.
-  int bestShift(VoiceZone zone) {
+  /// The key change (-[maxShift]..+[maxShift]) for [zone], from the original
+  /// key (see the header): 0 when the original key fits.
+  int bestShift(VoiceZone zone, {int maxShift = maxShift}) {
     if (isEmpty) return 0;
     if (verdict(zone, 0).fit == RangeFit.fits) return 0;
     final fitting = [

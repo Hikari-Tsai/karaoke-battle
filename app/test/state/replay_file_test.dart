@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:karaoke_battle/scoring/models.dart' show scaledTotal;
 import 'package:karaoke_battle/state/replay_file.dart';
+import 'package:karaoke_battle/state/track_timeline.dart';
 
 ReplayFile sample({String? voice}) => ReplayFile(
       player: 'Hikari',
@@ -42,6 +43,37 @@ void main() {
     expect(r.rank, 'S');
     expect(r.hasVoice, isTrue);
     expect(r.voiceFile, '食虫植物 91.0 vocal.mp3');
+  });
+
+  test('the track timeline travels with the replay; older files have none', () {
+    final base = sample();
+    final withLog = ReplayFile(
+      player: base.player,
+      exportedAt: base.exportedAt,
+      appVersion: base.appVersion,
+      song: base.song,
+      createdAt: base.createdAt,
+      pitchShift: base.pitchShift,
+      track: 'midi',
+      timeOffset: base.timeOffset,
+      notes: base.notes,
+      takeF0: base.takeF0,
+      score: base.score,
+      trackTimeline: const [TrackSwitch(0, 'inst'), TrackSwitch(12.345, 'mix'), TrackSwitch(40.5, 'midi')],
+    );
+    final r = ReplayFile.parse(withLog.encode());
+    expect(r.track, 'midi');
+    expect([for (final e in r.trackTimeline) (e.t, e.track)], [(0.0, 'inst'), (12.345, 'mix'), (40.5, 'midi')]);
+    expect(ReplayFile.parse(base.encode()).trackTimeline, isEmpty);
+    // A malformed timeline is dropped, not the replay.
+    final j = jsonDecode(withLog.encode()) as Map<String, dynamic>;
+    (j['take'] as Map)['track_timeline'] = [
+      {'t': -1, 'track': 'inst'},
+    ];
+    expect(ReplayFile.parse(jsonEncode(j)).trackTimeline, isEmpty);
+    expect(TrackSwitch.listFromJson([
+      {'t': 1, 'track': 'karaoke'},
+    ]), isEmpty);
   });
 
   test('rejects non-JSON, other formats and newer versions', () {
