@@ -23,6 +23,7 @@ import '../widgets/rank.dart';
 import '../widgets/brand.dart';
 import '../widgets/error_report.dart';
 import 'add_song_dialog.dart';
+import 'backing_import_dialog.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -354,6 +355,7 @@ class _SongCardState extends State<_SongCard> {
                           _Badge(text: tr('source.${song.sourceType.name}'), icon: song.sourceType == SourceType.youtube ? Icons.smart_display : Icons.insert_drive_file),
                           _Badge(text: tr('lang.${song.language}')),
                           if (_hasLyrics(services.library.files(song).lyricsJson)) _Badge(text: tr('library.lyrics'), icon: Icons.subtitles),
+                          if (services.library.files(song).hasUserInst) _Badge(text: tr('backing.badge'), icon: Icons.library_music),
                           _Badge(
                             text: tr('stage.${stage.name}'),
                             color: stage == PrepStage.done ? const Color(0xFF2E7D32) : (stage == PrepStage.failed ? cs.error : cs.secondaryContainer),
@@ -407,6 +409,8 @@ class _SongCardState extends State<_SongCard> {
                       'lyricsEdit' => openLyricsEditor(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       'lyricsPaste' => pasteLyrics(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       'lyricsWhisper' => recognizeLyrics(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
+                      'backingImport' => importBackingTrack(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
+                      'backingRevert' => revertBackingTrack(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       _ => null,
                     },
                     itemBuilder: (_) => [
@@ -417,6 +421,13 @@ class _SongCardState extends State<_SongCard> {
                       PopupMenuItem(value: 'lyricsPaste', child: ListTile(leading: const Icon(Icons.content_paste), title: Text(tr('lyrics.paste')))),
                       PopupMenuItem(value: 'lyricsEdit', child: ListTile(leading: const Icon(Icons.edit_note), title: Text(tr('lyrics.edit')))),
                       PopupMenuItem(value: 'lyricsWhisper', child: ListTile(leading: const Icon(Icons.graphic_eq), title: Text(tr('lyrics.whisper')))),
+                      // Needs the prepared song (its separated tracks to align with).
+                      if (song.stage == PrepStage.done) ...[
+                        const PopupMenuDivider(),
+                        PopupMenuItem(value: 'backingImport', child: ListTile(leading: const Icon(Icons.library_music_outlined), title: Text(tr('backing.import')))),
+                        if (services.library.files(song).hasUserInst)
+                          PopupMenuItem(value: 'backingRevert', child: ListTile(leading: const Icon(Icons.restore), title: Text(tr('backing.revert')))),
+                      ],
                     ],
                   ),
                 ],

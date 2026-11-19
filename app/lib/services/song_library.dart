@@ -99,6 +99,15 @@ class SongFiles {
   String get mixWav => p.join(dir, 'mix.wav');
   String get vocalsWav => p.join(dir, 'vocals.wav');
   String get instWav => p.join(dir, 'inst.wav');
+
+  /// A backing track the user imported and aligned (BackingImport), with
+  /// what it came from; it stands in for [instWav] while it exists.
+  String get userInstWav => p.join(dir, 'inst.user.wav');
+  String get userInstJson => p.join(dir, 'inst.user.json');
+  bool get hasUserInst => File(userInstWav).existsSync();
+
+  /// The accompaniment to play: the imported one, else the separated one.
+  String get backingWav => hasUserInst ? userInstWav : instWav;
   String get videoMp4 => p.join(dir, 'video.mp4');
   String get thumbJpg => p.join(dir, 'thumb.jpg');
   String get lyricsJson => p.join(dir, 'lyrics.json');

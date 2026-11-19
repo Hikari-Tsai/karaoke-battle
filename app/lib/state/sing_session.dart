@@ -291,10 +291,11 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   bool _hudDirty = false;
 
   bool get ready => _live != null && initError == null;
-  bool get hasInst => File(files.instWav).existsSync();
+  /// An accompaniment: the separated one, or one the user imported.
+  bool get hasInst => File(files.backingWav).existsSync();
   bool get hasMix => File(files.mixWav).existsSync();
 
-  String _pathOf(TrackKind t) => t == TrackKind.inst ? files.instWav : files.mixWav;
+  String _pathOf(TrackKind t) => t == TrackKind.inst ? files.backingWav : files.mixWav;
 
   /// Both stems are loaded at once (see [init]): the accompaniment as the
   /// engine's main stem when it exists, the original mix as its alt stem.

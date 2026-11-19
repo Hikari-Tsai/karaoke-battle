@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../engine/engine.dart';
+import '../services/backing_import.dart';
 import '../services/ai_keys.dart';
 import '../services/app_log.dart';
 import '../services/app_paths.dart';
@@ -46,6 +47,9 @@ class AppServices {
 
   /// API keys for AI singing advice (system keychain).
   final AiKeyStore aiKeys;
+
+  /// Importing and aligning the user's own backing tracks.
+  late final BackingImport backingImport = BackingImport(library: library, sidecars: sidecars, engine: engine, paths: paths, pipeline: pipeline);
 
   /// Path of the SwiftF0 model file (may not exist yet).
   String get swiftF0ModelPath => models.pathOf(ModelRegistry.swiftF0, 'model.onnx');

@@ -58,7 +58,7 @@ Future<ReplayData> loadReplayData(AppServices services, Song song, TakeInfo take
   } catch (_) {}
   // Replays always play the accompaniment, whatever was heard while singing
   // (the take keeps that in `track_timeline` for a later, faithful replay).
-  final backing = await File(files.instWav).exists() ? files.instWav : files.mixWav;
+  final backing = await File(files.backingWav).exists() ? files.backingWav : files.mixWav;
   final offset = await SingSession.takeTimeOffset(take);
 
   final notesPath = notesJsonPath ?? await take.notesFor(files.notesJson);

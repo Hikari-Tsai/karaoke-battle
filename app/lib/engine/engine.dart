@@ -141,6 +141,27 @@ class Engine {
 
   final EngineBindings bindings;
   final String libraryPath;
+
+  /// Aligns a backing track with [reference] (best the separated
+  /// accompaniment) and writes the result JSON to [outJson], on a worker
+  /// isolate (it takes about a second). Throws [EngineException].
+  Future<void> alignBacking({required String reference, required String backing, required String outJson}) async {
+    // Only plain values cross into the isolate (not this Engine).
+    final lib = libraryPath;
+    final r = await Isolate.run<(int, String)>(() {
+      final b = EngineBindings(DynamicLibrary.open(lib));
+      final a = reference.toNativeUtf8(), c = backing.toNativeUtf8(), o = outJson.toNativeUtf8();
+      try {
+        final rc = b.alignBackingWav(a, c, o);
+        return (rc, rc == KeError.ok ? '' : 'ke_align_backing_wav: ${b.lastErrorString()}');
+      } finally {
+        calloc.free(a);
+        calloc.free(c);
+        calloc.free(o);
+      }
+    });
+    if (r.$1 != KeError.ok) throw EngineException(r.$1, r.$2);
+  }
   final _log = StreamController<String>.broadcast();
   Stream<String> get logs => _log.stream;
   final List<String> recentLogs = [];

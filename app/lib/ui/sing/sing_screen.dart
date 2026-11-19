@@ -1939,6 +1939,9 @@ class _Controls extends StatelessWidget {
                     ButtonSegment(
                       value: TrackKind.inst,
                       label: Text(tr('sing.inst')),
+                      // Marked when it is a backing track the user imported.
+                      icon: s.files.hasUserInst ? const Icon(Icons.library_music, size: 16) : null,
+                      tooltip: s.files.hasUserInst ? tr('backing.tooltip') : null,
                       enabled: s.hasInst,
                     ),
                     ButtonSegment(

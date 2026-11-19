@@ -132,6 +132,8 @@ class EngineBindings {
             int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>)>('ke_audio_load_track_with_voice'),
         audioLoadTracks = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>),
             int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>)>('ke_audio_load_tracks'),
+        alignBackingWav = lib.lookupFunction<Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>),
+            int Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>)>('ke_align_backing_wav'),
         audioSelectTrack = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Int32),
             int Function(Pointer<KeAudio>, int)>('ke_audio_select_track'),
         audioSetGuideNotes = lib.lookupFunction<
@@ -218,6 +220,7 @@ class EngineBindings {
   final int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>) audioLoadTrackWithVoice;
   final int Function(Pointer<KeAudio>, Pointer<Utf8>, Pointer<Utf8>) audioLoadTracks;
   final int Function(Pointer<KeAudio>, int) audioSelectTrack;
+  final int Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>) alignBackingWav;
   final int Function(Pointer<KeAudio>, Pointer<Double>, Pointer<Double>, Pointer<Double>, int) audioSetGuideNotes;
   final int Function(Pointer<KeAudio>, int) audioSetGuide;
   final int Function(Pointer<KeAudio>) audioUnloadTrack;

@@ -412,7 +412,8 @@ class PrepPipeline extends ChangeNotifier {
         if (known != null && known.inst != null && known.mix != null) return known;
         Future<TrackLoudness?> measure(String wav, TrackLoudness? had) async =>
             had ?? (await File(wav).exists() ? await sidecars.measureLoudness(wav) : null);
-        final l = SongLoudness(inst: await measure(f.instWav, known?.inst), mix: await measure(f.mixWav, known?.mix));
+        // The accompaniment as played: an imported one when there is one.
+        final l = SongLoudness(inst: await measure(f.backingWav, known?.inst), mix: await measure(f.mixWav, known?.mix));
         if (l.inst == null && l.mix == null) return known;
         if (await Directory(f.dir).exists()) await l.save(f.loudnessJson);
         return l;
