@@ -303,9 +303,7 @@ class _VendorSection extends StatelessWidget {
               children: [
                 Icon(Icons.public, size: 16, color: cs.onSurfaceVariant),
                 const SizedBox(width: 6),
-                Expanded(
-                  child: Text(tr(vendor == KtvVendor.vtuber ? 'charts.source.vtuber' : 'charts.source', {'vendor': name}), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-                ),
+                Expanded(child: _SourceLine(vendor: vendor, name: name)),
                 if (chart?.board.sourceUrl != null)
                 TextButton.icon(
                   onPressed: () => launchUrl(Uri.parse(chart!.board.sourceUrl!)),
@@ -317,6 +315,48 @@ class _VendorSection extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Source: the operator's website, collected by ktv-charts", with the repo
+/// name linking to its GitHub page.
+class _SourceLine extends StatelessWidget {
+  const _SourceLine({required this.vendor, required this.name});
+  final KtvVendor vendor;
+  final String name;
+
+  static const repoName = 'ktv-charts';
+  static final repoUrl = Uri.parse('https://github.com/Hikari-Tsai/ktv-charts');
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    const mark = '\u0000';
+    final parts = tr(vendor == KtvVendor.vtuber ? 'charts.source.vtuber' : 'charts.source', {'vendor': name, 'repo': mark}).split(mark);
+    return Text.rich(
+      TextSpan(children: [
+        TextSpan(text: parts.first),
+        if (parts.length > 1) ...[
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => launchUrl(repoUrl),
+                child: Tooltip(
+                  message: repoUrl.toString(),
+                  child: Text(repoName, style: style?.copyWith(color: theme.colorScheme.primary, decoration: TextDecoration.underline, decorationColor: theme.colorScheme.primary)),
+                ),
+              ),
+            ),
+          ),
+          TextSpan(text: parts.sublist(1).join()),
+        ],
+      ]),
+      style: style,
     );
   }
 }

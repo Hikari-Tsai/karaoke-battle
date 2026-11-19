@@ -88,6 +88,8 @@ void main() {
     expect(find.widgetWithText(ChoiceChip, '國語點播'), findsOneWidget);
     expect(find.text('在 好樂迪 官網查看'), findsOneWidget);
     expect(find.text('網頁版榜單'), findsOneWidget);
+    expect(find.text('ktv-charts'), findsOneWidget, reason: 'the footer names and links the repo');
+    expect(find.textContaining('資料來源：好樂迪 官網，由'), findsOneWidget);
     expect(find.text('甲乙丙丁'), findsOneWidget);
     expect(find.text('130 BPM'), findsWidgets);
     expect(find.text('C4–D5'), findsWidgets, reason: 'the chorus range beside its bar');
