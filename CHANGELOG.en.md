@@ -11,6 +11,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 ### Added
 - Import backing track: "Import backing track…" in a song's ⋯ menu swaps the separated accompaniment for an official instrumental or a karaoke track. It is aligned automatically, with the result and a confidence; a speed difference, a possibly different version, a key change or bass out of step with the other instruments is pointed out. Nudge it by dragging the two waveforms or with ±1/10/100 ms buttons, and check by ear with "vocals + backing" and "song − backing". Once applied it plays when singing, under the MIDI guide and in replays, and you can go back to the separated accompaniment at any time.
 - A "Widen the key range to ±12" switch in Settings: the key still moves ±6 by default; with it on, up to ±12 (a full octave), and the one-tap key change searches that far too.
+- Download melody MIDI: "Download melody MIDI" in a song's ⋯ menu saves the melody the MIDI guide plays (with your note edits) as a Standard MIDI File. Its tempo map follows the detected or manually set beats, bars start on the downbeats and the lyrics are included, so it lines up with the song in a DAW.
 
 ### Improved
 - Hot songs layout: the artist, release year and label now sit under the title, and the old artist column shows coloured tags (genre, BPM, mood, instruments, vocals, each in its own colour).

@@ -2,9 +2,11 @@
 import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../services/midi_export.dart';
 import '../../services/prep_pipeline.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
@@ -263,6 +265,22 @@ class _SongCardState extends State<_SongCard> {
     services.pipeline.enqueue(widget.song);
   }
 
+  /// Saves the reference melody (with the edits, the beat grid as tempo map
+  /// and the lyrics) as a Standard MIDI File.
+  Future<void> _exportMidi() async {
+    final services = context.read<AppServices>();
+    final messenger = ScaffoldMessenger.of(context);
+    final bytes = await MelodyMidi.forSong(services.library.files(widget.song), title: widget.song.title);
+    if (bytes == null) {
+      messenger.showSnackBar(SnackBar(content: Text(tr('library.midiNoNotes'))));
+      return;
+    }
+    final name = widget.song.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final uri = await FilePicker.saveFile(fileName: '$name.mid', bytes: bytes);
+    if (uri == null) return;
+    messenger.showSnackBar(SnackBar(content: Text(tr('library.midiSaved', {'path': uri.toFilePath()}))));
+  }
+
   Future<void> _delete() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -411,6 +429,7 @@ class _SongCardState extends State<_SongCard> {
                       'lyricsWhisper' => recognizeLyrics(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       'backingImport' => importBackingTrack(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       'backingRevert' => revertBackingTrack(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
+                      'midiExport' => _exportMidi(),
                       _ => null,
                     },
                     itemBuilder: (_) => [
@@ -424,6 +443,7 @@ class _SongCardState extends State<_SongCard> {
                       // Needs the prepared song (its separated tracks to align with).
                       if (song.stage == PrepStage.done) ...[
                         const PopupMenuDivider(),
+                        PopupMenuItem(value: 'midiExport', child: ListTile(leading: const Icon(Icons.piano_outlined), title: Text(tr('library.exportMidi')))),
                         PopupMenuItem(value: 'backingImport', child: ListTile(leading: const Icon(Icons.library_music_outlined), title: Text(tr('backing.import')))),
                         if (services.library.files(song).hasUserInst)
                           PopupMenuItem(value: 'backingRevert', child: ListTile(leading: const Icon(Icons.restore), title: Text(tr('backing.revert')))),
