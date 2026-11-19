@@ -6,7 +6,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 <!-- Keep the `## X.Y.Z — YYYY-MM-DD` headings: the app finds versions by them. -->
 
-## Unreleased
+## 1.1.9 — 2026-11-20
 
 ### Added
 - Import backing track: "Import backing track…" in a song's ⋯ menu swaps the separated accompaniment for an official instrumental or a karaoke track. It is aligned automatically, with the result and a confidence; a speed difference, a possibly different version, a key change or bass out of step with the other instruments is pointed out. Nudge it by dragging the two waveforms or with ±1/10/100 ms buttons, and check by ear with "vocals + backing" and "song − backing". Once applied it plays when singing, under the MIDI guide and in replays, and you can go back to the separated accompaniment at any time.
@@ -16,6 +16,9 @@ Each version lists what was added, improved and fixed. The app's new-version not
 ### Improved
 - Hot songs layout: the artist, release year and label now sit under the title, and the old artist column shows coloured tags (genre, BPM, mood, instruments, vocals, each in its own colour).
 - Replays always play the accompaniment, even if you switched to the guide vocal or MIDI guide while singing. When you switched between accompaniment, guide vocal and MIDI guide during a take is now saved with it (and travels in shared replays), so a replay can reproduce it one day.
+
+### Fixed
+- macOS: in 1.1.8 file dialogs did not open (importing subtitles, adding a local file or importing a replay failed). The build re-signed the app without its entitlements; it now keeps them.
 
 ## 1.1.8 — 2026-11-18
 
