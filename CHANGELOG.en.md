@@ -12,6 +12,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 - A "Widen the key range to ±12" switch in Settings: the key still moves ±6 by default; with it on, up to ±12 (a full octave), and the one-tap key change searches that far too.
 
 ### Improved
+- Hot songs layout: the artist, release year and label now sit under the title, and the old artist column shows coloured tags (genre, BPM, mood, instruments, vocals, each in its own colour).
 - Replays always play the accompaniment, even if you switched to the guide vocal or MIDI guide while singing. When you switched between accompaniment, guide vocal and MIDI guide during a take is now saved with it (and travels in shared replays), so a replay can reproduce it one day.
 
 ## 1.1.8 — 2026-11-18

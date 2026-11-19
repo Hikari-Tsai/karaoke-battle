@@ -113,7 +113,8 @@ void main() {
     await openTab(tester, 'VTuber 翻唱');
     expect(find.text('CH4NGE'), findsOneWidget);
     expect(find.text('19 次翻唱'), findsOneWidget);
-    expect(find.text('原唱'), findsOneWidget);
+    expect(find.text('歌名／原唱'), findsOneWidget);
+    expect(find.text('標籤'), findsOneWidget);
     expect(find.text('在 YouTube 查看播放清單'), findsOneWidget);
     await tester.tap(find.text('19 次翻唱'));
     await tester.pumpAndSettle();

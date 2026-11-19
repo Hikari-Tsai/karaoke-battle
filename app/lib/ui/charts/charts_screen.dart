@@ -376,8 +376,8 @@ class _HeaderRow extends StatelessWidget {
         children: [
           SizedBox(width: _rankW, child: Text(tr('charts.rank'), style: style)),
           if (chart.hasMovement) const SizedBox(width: _moveW),
-          Expanded(flex: 5, child: Text(tr('charts.song'), style: style)),
-          Expanded(flex: 4, child: Text(tr(vendor == KtvVendor.vtuber ? 'charts.original' : 'charts.artist'), style: style)),
+          Expanded(flex: 5, child: Text(tr(vendor == KtvVendor.vtuber ? 'charts.songOriginal' : 'charts.songArtist'), style: style)),
+          Expanded(flex: 4, child: Text(tr('charts.tags'), style: style)),
           SizedBox(width: _rangeW, child: Text(tr('charts.rangeCol'), style: style)),
           if (vendor == KtvVendor.vtuber) SizedBox(width: _coversW, child: Text(tr('charts.covers'), style: style)),
           const SizedBox(width: _btnW * 2),
@@ -427,17 +427,6 @@ class _EntryRow extends StatelessWidget {
     final cs = theme.colorScheme;
     final top3 = entry.rank <= 3;
     final small = theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
-    final details = <Widget>[
-      if (entry.genre != null) Text(entry.genre!, style: small),
-      if (entry.bpm != null) Tooltip(message: tr('charts.bpmTip'), child: Text('${entry.bpm} BPM', style: small)),
-      if (entry.tags.isNotEmpty)
-        Tooltip(
-          message: [
-            for (final e in entry.tags.entries) '${tr('charts.tag.${e.key}')}：${e.value.map((t) => _tagText(e.key, t)).join('、')}',
-          ].join('\n'),
-          child: Icon(Icons.sell_outlined, size: 14, color: cs.onSurfaceVariant),
-        ),
-    ];
     return Container(
       color: shaded ? cs.surfaceContainerHighest.withValues(alpha: 0.35) : null,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
@@ -457,25 +446,12 @@ class _EntryRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(entry.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
-                if (details.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Wrap(spacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: details),
-                  ),
+                _ArtistLine(entry: entry, style: small),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            flex: 4,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(entry.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
-                if (entry.year != null || entry.label != null) _ReleaseLine(entry: entry, style: small),
-              ],
-            ),
-          ),
+          Expanded(flex: 4, child: _TagChips(entry: entry)),
           SizedBox(width: _rangeW, child: entry.range == null ? const SizedBox.shrink() : _RangeBar(range: entry.range!, own: own)),
           if (vendor == KtvVendor.vtuber) SizedBox(width: _coversW, child: _CoversMenu(entry: entry)),
           SizedBox(width: _btnW, child: _ListenMenu(entry: entry)),
@@ -495,28 +471,95 @@ class _EntryRow extends StatelessWidget {
   }
 }
 
-/// Release year and record label, when known; the tooltip adds the album
-/// and the full date.
-class _ReleaseLine extends StatelessWidget {
-  const _ReleaseLine({required this.entry, required this.style});
+/// The artist, then the release year and record label when known; the
+/// tooltip adds the album and the full date.
+class _ArtistLine extends StatelessWidget {
+  const _ArtistLine({required this.entry, required this.style});
   final ChartEntry entry;
   final TextStyle? style;
 
   @override
   Widget build(BuildContext context) {
-    final text = [?entry.year, ?entry.label].join(' · ');
+    final release = [?entry.year, ?entry.label].join(' · ');
     final tip = [
       if (entry.album != null) tr('charts.album', {'album': entry.album}),
       if (entry.released != null || entry.label != null) tr('charts.released', {'date': entry.released ?? entry.year ?? '—', 'label': entry.label ?? '—'}),
     ].join('\n');
+    final line = Text.rich(
+      TextSpan(children: [
+        TextSpan(text: entry.artist, style: style?.copyWith(fontSize: (style?.fontSize ?? 12) + 1, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.82))),
+        if (release.isNotEmpty) TextSpan(text: '  ·  $release'),
+      ]),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
     return Padding(
       padding: const EdgeInsets.only(top: 2),
-      child: Tooltip(
-        message: tip,
-        child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
-      ),
+      child: tip.isEmpty ? line : Tooltip(message: tip, child: line),
     );
   }
+}
+
+/// Coloured tags: the genre (iTunes) and tempo, then the model tags by group
+/// (genre, mood, instruments, vocals), each group in its own colour. Up to
+/// [_max] are shown; the rest are in the tooltip of a "+N" chip.
+class _TagChips extends StatelessWidget {
+  const _TagChips({required this.entry});
+  final ChartEntry entry;
+
+  static const _max = 6;
+  static const _colors = <String, Color>{
+    'itunes': Color(0xFFB39DDB), // violet
+    'bpm': Color(0xFF90A4AE), // grey blue
+    'genre': Color(0xFF4DB6AC), // teal
+    'mood': Color(0xFFFFB74D), // amber
+    'instrument': Color(0xFF64B5F6), // blue
+    'vocal': Color(0xFFF48FB1), // pink
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final tags = <(String group, String text, String tip)>[
+      if (entry.genre != null) ('itunes', entry.genre!, tr('charts.tag.itunes')),
+      if (entry.bpm != null) ('bpm', '${entry.bpm} BPM', tr('charts.bpmTip')),
+      for (final g in const ['genre', 'mood', 'instrument', 'vocal'])
+        for (final t in entry.tags[g] ?? const <String>[]) (g, _tagText(g, t), tr('charts.tag.$g')),
+    ];
+    // The same genre named by both sources is shown once.
+    final seen = <String>{};
+    final unique = [for (final t in tags) if (seen.add(t.$2.toLowerCase())) t];
+    final shown = unique.take(_max).toList(), rest = unique.skip(_max).toList();
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        for (final (g, text, tip) in shown) Tooltip(message: tip, child: _Chip(text: text, color: _colors[g]!)),
+        if (rest.isNotEmpty)
+          Tooltip(
+            message: [for (final (_, text, tip) in rest) '$tip：$text'].join('\n'),
+            child: _Chip(text: '+${rest.length}', color: _colors['bpm']!),
+          ),
+      ],
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.16),
+      border: Border.all(color: color.withValues(alpha: 0.45)),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(text, style: TextStyle(fontSize: 11.5, height: 1.3, color: color, fontWeight: FontWeight.w600)),
+  );
 }
 
 /// The chorus range on a small keyboard scale (E2–C6): a pill from its
