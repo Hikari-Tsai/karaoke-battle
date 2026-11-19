@@ -7,12 +7,6 @@
 
 [SHA256SUMS.txt](https://github.com/Hikari-Tsai/karaoke-battle/releases/download/{{TAG}}/SHA256SUMS.txt) 可用來核對下載的檔案。
 
-## 程式碼簽章政策（Code signing policy）
-
-Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)。
-Windows 版的程式碼簽章由 SignPath.io 免費提供，憑證由 SignPath Foundation 核發；簽章範圍、團隊角色與隱私權政策見
-[程式碼簽章政策](https://github.com/Hikari-Tsai/karaoke-battle/blob/{{TAG}}/docs/CODE_SIGNING.md)。
-
 ## 安裝
 
 完整步驟見 [安裝與使用說明](https://github.com/Hikari-Tsai/karaoke-battle/blob/{{TAG}}/docs/INSTALL.md)。

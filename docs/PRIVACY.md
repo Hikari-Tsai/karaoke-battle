@@ -1,34 +1,6 @@
-# 程式碼簽章政策（Code signing policy）
+# 隱私權政策（Privacy policy）
 
-[中文](CODE_SIGNING.md) · [English](CODE_SIGNING.en.md) · [日本語](CODE_SIGNING.ja.md)
-
-Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)
-
-Windows 版由 SignPath.io 免費提供程式碼簽章，憑證由 SignPath Foundation 核發。
-
-> 目前狀態：已向 SignPath Foundation 申請，審核通過前的 Windows 版仍未簽章，
-> 開啟時 SmartScreen 會出現「Windows 已保護您的電腦」。
-
-## 簽什麼
-
-* 只簽這個儲存庫的原始碼由 GitHub Actions（[`.github/workflows/build.yml`](../.github/workflows/build.yml)）
-  建置出來的檔案：`karaoke_battle.exe` 與 `karaoke_engine.dll`。
-* 一起放在 zip 裡的上游檔案（Flutter、ONNX Runtime、DirectML、media_kit 等 DLL）不用本專案的憑證簽章，
-  保留上游原本的簽章（若有）。
-* 每個版本都要由下面的核准者在 SignPath 手動核准後才會簽章。
-* macOS 版不在此政策內（macOS 用 Apple 的簽章與公證）。
-
-## 團隊角色
-
-| 角色 | 成員 |
-| --- | --- |
-| 提交者與審查者（Committers and reviewers） | [Hikari-Tsai](https://github.com/Hikari-Tsai) |
-| 核准者（Approvers） | [Hikari-Tsai](https://github.com/Hikari-Tsai)（儲存庫擁有者） |
-
-外部貢獻者的 Pull Request 都要經過審查才會合併，建置腳本與 CI 設定的變更也一樣。
-所有成員的 GitHub 與 SignPath 帳號都啟用雙重驗證。
-
-## 隱私權政策
+[中文](PRIVACY.md) · [English](PRIVACY.en.md) · [日本語](PRIVACY.ja.md)
 
 Karaoke Battle 沒有帳號、沒有遙測、沒有使用分析，也不會把錄音、歌曲或演唱紀錄上傳到任何地方；
 這些檔案都留在你的電腦上（位置見 [安裝與使用說明 → 資料位置](INSTALL.md#資料位置)）。
@@ -42,7 +14,7 @@ App 只會為了下列用途連上網路。這些都是一般的 HTTPS 請求，
 | Hugging Face（`huggingface.co`） | 你按下下載模型時 | 只有下載請求 |
 | PyPI（`files.pythonhosted.org`） | 你在 Windows 選擇下載 CUDA 執行環境時 | 只有下載請求 |
 | YouTube 等影音網站（透過 yt-dlp） | 你貼上連結新增歌曲時 | 你貼的連結 |
-| KTV 與串流排行榜網站（好樂迪、錢櫃、JOYSOUND、DAM、KKBOX） | 「熱門歌單」頁載入排行榜時 | 只有讀取排行榜的請求 |
+| KTV Charts 網站（`hikari-tsai.github.io`，GitHub Pages） | 「熱門歌單」頁載入排行榜時（好樂迪、錢櫃、JOYSOUND、DAM、KKBOX 的榜單由該網站整理） | 只有讀取排行榜的請求 |
 | Anthropic 或 OpenAI | 只有在你填入自己的 API Key 並要求 AI 演唱建議時 | 這次演唱的分析摘要（文字，不含錄音；歌名可選擇隱藏）與你的 API Key |
 
 「回報問題」只會在瀏覽器打開 GitHub 的問題表單，內容由你確認後自己送出。

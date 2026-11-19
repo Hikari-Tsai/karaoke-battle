@@ -34,9 +34,7 @@ F0 曲線を表示し、歌い終わると音程、リズム、安定感、ビ�
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest/download/KaraokeBattle-windows-x64.zip"><picture><source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg=="><img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4?style=for-the-badge&labelColor=005A9E&logo=data:image/svg%2bxml;base64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDBoMTEuMnYxMS4ySDB6TTEyLjggMEgyNHYxMS4ySDEyLjh6TTAgMTIuOGgxMS4yVjI0SDB6TTEyLjggMTIuOEgyNFYyNEgxMi44eiIvPjwvc3ZnPg==" height="44" alt="Windows 版をダウンロード（10／11 x64）"></picture></a>
 </p>
 
-<p align="center">無料・オープンソース（MIT）· <a href="docs/INSTALL.md">インストール手順</a> · <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases">すべてのバージョンと更新履歴</a> · <a href="docs/CODE_SIGNING.ja.md">コード署名ポリシー（Code signing policy）</a></p>
-
-<p align="center"><sub>Windows 版のコード署名は SignPath.io が無償で提供し、証明書は SignPath Foundation が発行しています（Free code signing provided by SignPath.io, certificate by SignPath Foundation）。</sub></p>
+<p align="center">無料・オープンソース（MIT）· <a href="docs/INSTALL.md">インストール手順</a> · <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases">すべてのバージョンと更新履歴</a> · <a href="docs/PRIVACY.ja.md">プライバシーポリシー</a></p>
 
 <p align="center"><sub>macOS：DMG を開いてアプリを「アプリケーション」へドラッグ。初回はアプリを右クリック →「開く」。<br>Windows：解凍して <code>karaoke_battle.exe</code> を実行。初回起動時にモデル（約 500 MB）を自動でダウンロードします。</sub></p>
 

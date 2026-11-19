@@ -134,8 +134,6 @@ window.KB_I18N = {
       "in.first": "The models, about 500 MB, download automatically.",
       "dl.install": "Installation guide (in Chinese)",
       "dl.releases": "All versions and release notes",
-      "dl.signing": "Code signing policy",
-      "dl.signnote": "Free code signing provided by SignPath.io, certificate by SignPath Foundation (Windows build).",
       "legal.h2": "Copyright notice",
       "legal.1": "<b>It is only a tool</b>Karaoke Battle does not provide or distribute any songs, videos or lyrics.",
       "legal.2": "<b>Make sure your sources are lawful</b>Before you use a song or video, make sure it comes from a legitimate, lawful source, and follow copyright law and each platform’s terms of service (such as YouTube’s).",
@@ -175,7 +173,7 @@ window.KB_I18N = {
       "ft.report": "Report a problem",
       "ft.contrib": "Contributing",
       "ft.thanks": "Acknowledgments",
-      "ft.signing": "Code signing and privacy",
+      "ft.privacy": "Privacy policy",
       "ft.p1": "The code is MIT licensed. The weights of the GAME transcription model are non-commercial (CC BY-NC-SA 4.0), so use of the whole app is bound by those terms.",
       "ft.p2": "Intro film demo song: <a href='https://legacy.soundscape.net/a/120325' target='_blank' rel='noopener'>多帕 Topa, 冬天．我們不說再見</a>. Feature clips demo song: Josh Woodward, Swansong (CC BY)."
   },
@@ -310,8 +308,6 @@ window.KB_I18N = {
       "in.first": "モデル（約 500 MB）を自動でダウンロードします。",
       "dl.install": "インストール手順（中国語）",
       "dl.releases": "すべてのバージョンと更新履歴",
-      "dl.signing": "コード署名ポリシー（Code signing policy）",
-      "dl.signnote": "Windows 版のコード署名は SignPath.io が無償で提供し、証明書は SignPath Foundation が発行しています（Free code signing provided by SignPath.io, certificate by SignPath Foundation）。",
       "legal.h2": "著作権について",
       "legal.1": "<b>本ソフトはツールです</b>Karaoke Battle が楽曲・動画・歌詞を提供したり配布したりすることはありません。",
       "legal.2": "<b>入手元の正当性を確認してください</b>使用する楽曲や動画の入手元が正当かつ合法であることを必ず確認し、著作権法と各プラットフォームの利用規約（YouTube の利用規約など）を守ってください。",
@@ -351,7 +347,7 @@ window.KB_I18N = {
       "ft.report": "問題を報告",
       "ft.contrib": "協力する",
       "ft.thanks": "謝辞",
-      "ft.signing": "コード署名とプライバシー",
+      "ft.privacy": "プライバシーポリシー",
       "ft.p1": "コードは MIT ライセンスです。採譜モデル GAME の重みは非商用ライセンス（CC BY-NC-SA 4.0）のため、アプリ全体の利用もその条件に従います。",
       "ft.p2": "紹介動画のデモ曲：<a href='https://legacy.soundscape.net/a/120325' target='_blank' rel='noopener'>多帕 Topa「冬天．我們不說再見」</a>。機能画面のデモ曲：Josh Woodward「Swansong」（CC BY）。"
   }
