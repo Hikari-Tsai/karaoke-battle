@@ -29,7 +29,8 @@ class ReplayStems {
   return (b > 0 ? fade(b) : 1.0, b < 0 ? fade(-b) : 1.0);
 }
 
-const _stemsVersion = 1;
+/// 2: the cache records which backing file it was made from.
+const _stemsVersion = 2;
 
 String _backingPath(String takeDir) => p.join(takeDir, 'replay_backing.wav');
 String _voicePath(String takeDir) => p.join(takeDir, 'replay_voice.wav');
@@ -66,7 +67,10 @@ Future<ReplayStems> ensureReplayStems(
 }) async {
   final backOut = _backingPath(takeDir), voiceOut = _voicePath(takeDir);
   final hasVoice = voiceWav != null && await File(voiceWav).exists();
-  if (await _cached(takeDir, hasVoice)) return ReplayStems(backOut, hasVoice ? voiceOut : null);
+  final source = await _backingStamp(backingWav);
+  if (await replayStemsCached(takeDir, hasVoice: hasVoice, backingWav: backingWav)) {
+    return ReplayStems(backOut, hasVoice ? voiceOut : null);
+  }
   await deleteReplayCache(takeDir);
   final ff = await sidecars.resolve(SidecarKind.ffmpeg);
   if (ff == null) throw StateError('ffmpeg not available');
@@ -99,14 +103,26 @@ Future<ReplayStems> ensureReplayStems(
     // Float, so the boost cannot clip before the engine's limiter.
     await _render(sidecars, ff, voiceWav, voice, 'pcm_f32le', voiceOut);
   }
-  await File(_metaPath(takeDir)).writeAsString(jsonEncode({'v': _stemsVersion, 'voice': hasVoice}));
+  await File(_metaPath(takeDir)).writeAsString(jsonEncode({'v': _stemsVersion, 'voice': hasVoice, 'backing': source}));
   return ReplayStems(backOut, hasVoice ? voiceOut : null);
 }
 
-Future<bool> _cached(String takeDir, bool hasVoice) async {
+/// Which backing file a cache was made from: a different file (an imported
+/// backing track, or going back to the separated one) or the same file
+/// written again means the replay must be mixed again.
+Future<Map<String, Object>> _backingStamp(String path) async {
+  final st = await File(path).stat();
+  return {'path': p.normalize(path), 'size': st.size, 'modified': st.modified.millisecondsSinceEpoch};
+}
+
+/// Whether the replay stems in [takeDir] can be reused for [backingWav].
+Future<bool> replayStemsCached(String takeDir, {required bool hasVoice, required String backingWav}) async {
   try {
     final meta = jsonDecode(await File(_metaPath(takeDir)).readAsString()) as Map;
     if (meta['v'] != _stemsVersion || meta['voice'] != hasVoice) return false;
+    final made = meta['backing'];
+    final now = await _backingStamp(backingWav);
+    if (made is! Map || made['path'] != now['path'] || made['size'] != now['size'] || made['modified'] != now['modified']) return false;
     for (final f in [_backingPath(takeDir), if (hasVoice) _voicePath(takeDir)]) {
       final file = File(f);
       if (!await file.exists() || await file.length() <= 1024) return false;

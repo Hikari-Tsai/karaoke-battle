@@ -6,6 +6,11 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 <!-- Keep the `## X.Y.Z — YYYY-MM-DD` headings: the app finds versions by them. -->
 
+## Unreleased
+
+### Fixed
+- After importing a backing track, takes that had been replayed before still played the old separated accompaniment. A replay now remembers which backing file it was mixed from and is mixed again when the backing changes (or goes back to the separated one).
+
 ## 1.1.9 — 2026-11-20
 
 ### Added
