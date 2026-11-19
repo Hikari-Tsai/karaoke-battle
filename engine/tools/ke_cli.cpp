@@ -165,10 +165,12 @@ int main(int argc, char** argv) {
         return 0;
     }
     if (cmd == "align-backing") {
-        // ke_cli align-backing --mix mix.wav --backing backing.wav [--out result.json]
+        // ke_cli align-backing --ref inst.wav --backing backing.wav [--out result.json]
+        // (--ref: the separated accompaniment, best; --mix: the original mix also works)
         const std::string out = a.count("out") ? a["out"] : std::string("align.json");
         auto t0 = std::chrono::steady_clock::now();
-        int rc = ke_align_backing_wav(a["mix"].c_str(), a["backing"].c_str(), out.c_str());
+        const std::string ref = a.count("ref") ? a["ref"] : a["mix"];
+        int rc = ke_align_backing_wav(ref.c_str(), a["backing"].c_str(), out.c_str());
         auto t1 = std::chrono::steady_clock::now();
         if (rc != KE_OK) { fprintf(stderr, "align error %d: %s\n", rc, ke_last_error()); return 1; }
         FILE* f = fopen(out.c_str(), "rb");

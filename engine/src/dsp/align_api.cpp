@@ -21,10 +21,10 @@ int load_mono_8k(const char* path, std::vector<float>& out) {
 }
 }  // namespace
 
-KE_API int ke_align_backing_wav(const char* mix_wav, const char* backing_wav, const char* out_json) {
-    if (!mix_wav || !backing_wav || !out_json) return ke::fail(KE_ERR_INVALID_ARG, "null path");
+KE_API int ke_align_backing_wav(const char* reference_wav, const char* backing_wav, const char* out_json) {
+    if (!reference_wav || !backing_wav || !out_json) return ke::fail(KE_ERR_INVALID_ARG, "null path");
     std::vector<float> mix, backing;
-    if (int rc = load_mono_8k(mix_wav, mix); rc != KE_OK) return rc;
+    if (int rc = load_mono_8k(reference_wav, mix); rc != KE_OK) return rc;
     if (int rc = load_mono_8k(backing_wav, backing); rc != KE_OK) return rc;
     const auto r = ke::align::align_backing(mix, backing, kAlignRate);
     FILE* f = fopen(out_json, "wb");

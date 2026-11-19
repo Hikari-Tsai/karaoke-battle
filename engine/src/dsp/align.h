@@ -26,6 +26,17 @@ struct Window {
     bool used = false;     // counted in the fit
 };
 
+// Residual offset of one frequency band after the overall delay is applied
+// (GCC-PHAT on that band only): every band should agree with the others when
+// the two are the same mix.
+struct Band {
+    double lo = 0, hi = 0;    // Hz
+    double offset_ms = 0;     // more delay this band would want (same sign as Result::delay)
+    double coherence = 0;     // PHAT peak height, 0..1 (how clearly the band lines up)
+    double energy = 0;        // share of the reference's energy in this band
+    bool used = false;        // clear enough to count in band_spread_ms
+};
+
 struct Result {
     // Delay to apply to the backing so it lines up with the mix: positive =
     // pad the start with silence, negative = cut that much from its start.
@@ -42,9 +53,16 @@ struct Result {
     double confidence = 0;         // 0..1
     std::string verdict;           // aligned | drift | mismatch
     std::vector<Window> windows;
+    // Per-band check (same version only): bands that disagree mean the two
+    // were mixed or rendered differently (e.g. a plugin delaying the bass).
+    std::vector<Band> bands;
+    double band_spread_ms = 0;     // max - min offset over the used bands
+    bool band_warning = false;     // band_spread_ms above 2 ms
 };
 
-// Both mono at the same sample rate.
+// Both mono at the same sample rate. The reference is best the song's
+// separated accompaniment (same timeline as the mix, without the vocal onsets
+// that otherwise blur the match); the original mix also works.
 Result align_backing(const std::vector<float>& mix, const std::vector<float>& backing, int sample_rate);
 
 std::string to_json(const Result& r);

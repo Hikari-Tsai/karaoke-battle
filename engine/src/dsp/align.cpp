@@ -298,6 +298,65 @@ Result align_backing(const std::vector<float>& mix, const std::vector<float>& ba
     r.cancel_db = median(cancels);
     r.gain = median(gains);
 
+    // 4. Band check: on up to 60 s of the overlap, the residual offset of
+    // each band with GCC-PHAT (only the phase counts, so the loudest band
+    // does not decide for the others).
+    if (r.verdict == "aligned") {
+        const long Df = std::lround(r.delay * sr);
+        const long blo = std::max<long>(0, Df), bhi = std::min<long>(mix.size(), static_cast<long>(backing.size()) + Df);
+        const long L = std::min<long>(bhi - blo, 60L * sr);
+        if (L > 4L * sr) {
+            const long s0 = blo + (bhi - blo - L) / 2;
+            std::vector<float> x(mix.begin() + s0, mix.begin() + s0 + L), y(backing.begin() + (s0 - Df), backing.begin() + (s0 - Df) + L);
+            size_t nfft = 1;
+            while (nfft < static_cast<size_t>(2 * L)) nfft <<= 1;
+            cvec X, Y;
+            rfft(x, nfft, X);
+            rfft(y, nfft, Y);
+            double etotal = 0;
+            for (size_t k = 1; k < X.size(); ++k) etotal += std::norm(X[k]);
+            const long M = sr * 20 / 1000;  // +-20 ms
+            const double edges[][2] = {{30, 150}, {150, 500}, {500, 1500}, {1500, 0.475 * sr}};
+            std::vector<double> used_offsets;
+            for (const auto& e : edges) {
+                const size_t k0 = static_cast<size_t>(std::ceil(e[0] * nfft / sr)), k1 = std::min(X.size() - 1, static_cast<size_t>(e[1] * nfft / sr));
+                if (k1 <= k0) continue;
+                cvec C(X.size(), {0.f, 0.f});
+                double eb = 0;
+                for (size_t k = k0; k <= k1; ++k) {
+                    const auto c = X[k] * std::conj(Y[k]);
+                    const float mag = std::abs(c);
+                    if (mag > 0) C[k] = c / mag;
+                    eb += std::norm(X[k]);
+                }
+                const auto rr = irfft(C, nfft);  // rr[l] = sum x[t + l] y[t]
+                auto at = [&](long l) { return double(rr[l >= 0 ? static_cast<size_t>(l) : nfft + l]); };
+                long lb = 0;
+                double vb = -1e30;
+                for (long l = -M; l <= M; ++l)
+                    if (at(l) > vb) vb = at(l), lb = l;
+                double frac = 0;
+                const double a = at(lb - 1), b = at(lb), c = at(lb + 1), den = a - 2 * b + c;
+                if (den < 0) frac = 0.5 * (a - c) / den;
+                Band band;
+                band.lo = e[0];
+                band.hi = e[1];
+                band.offset_ms = 1000.0 * (lb + frac) / sr;
+                // A perfectly coherent band gives a peak of (bins / nfft) * 2.
+                band.coherence = std::clamp(vb * nfft / (2.0 * double(k1 - k0 + 1)), 0.0, 1.0);
+                band.energy = etotal > 0 ? eb / etotal : 0;
+                band.used = band.coherence >= 0.1 && band.energy >= 0.01;
+                if (band.used) used_offsets.push_back(band.offset_ms);
+                r.bands.push_back(band);
+            }
+            if (used_offsets.size() >= 2) {
+                const auto [mn, mx] = std::minmax_element(used_offsets.begin(), used_offsets.end());
+                r.band_spread_ms = *mx - *mn;
+                r.band_warning = r.band_spread_ms > 2.0;
+            }
+        }
+    }
+
     // Key: compare mean chroma of the two.
     const auto cm = chroma(mix, sr), cb = chroma(backing, sr);
     double kbv = -2, ksec = -2;
@@ -331,7 +390,15 @@ std::string to_json(const Result& r) {
                  w.delay, w.corr, w.cancel_db, w.gain, w.used ? "true" : "false");
         s += buf;
     }
-    s += "]}";
+    s += "],\"bands\":[";
+    for (size_t i = 0; i < r.bands.size(); ++i) {
+        const auto& b = r.bands[i];
+        snprintf(buf, sizeof buf, "%s{\"lo\":%.0f,\"hi\":%.0f,\"offset_ms\":%.3f,\"coherence\":%.3f,\"energy\":%.3f,\"used\":%s}", i ? "," : "",
+                 b.lo, b.hi, b.offset_ms, b.coherence, b.energy, b.used ? "true" : "false");
+        s += buf;
+    }
+    snprintf(buf, sizeof buf, "],\"band_spread_ms\":%.3f,\"band_warning\":%s}", r.band_spread_ms, r.band_warning ? "true" : "false");
+    s += buf;
     return s;
 }
 
