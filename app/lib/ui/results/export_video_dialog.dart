@@ -14,6 +14,7 @@ import '../../state/i18n.dart';
 import '../widgets/error_report.dart';
 import '../replays/export_replay_dialog.dart' show replayBaseName;
 import 'video_export.dart';
+import '../widgets/app_dialog.dart';
 
 Future<void> showExportVideoDialog(BuildContext context, {required Song song, required TakeInfo take}) async {
   final settings = context.read<AppServices>().settings;
@@ -22,7 +23,7 @@ Future<void> showExportVideoDialog(BuildContext context, {required Song song, re
   final name = TextEditingController(text: settings.playerName);
   final ok = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
+    builder: (ctx) => AppDialog(
       icon: const Icon(Icons.copyright, size: 32),
       title: Text(tr('video.copyrightTitle')),
       content: SizedBox(
@@ -58,7 +59,6 @@ Future<void> showExportVideoDialog(BuildContext context, {required Song song, re
   if (uri == null || !context.mounted) return;
   await showDialog<void>(
     context: context,
-    barrierDismissible: false,
     builder: (_) => _ExportVideoDialog(song: song, take: take, outPath: uri.toFilePath()),
   );
 }
@@ -150,7 +150,11 @@ class _ExportVideoDialogState extends State<_ExportVideoDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final busy = !_done && _error == null;
-    return AlertDialog(
+    return AppDialog(
+      // While rendering, closing is the cancel button: the dialog closes
+      // once the render has stopped and the partial file is removed.
+      onClose: busy ? () => setState(() => _cancel.complete()) : null,
+      canClose: !(busy && _cancel.isCompleted),
       title: Text(tr('video.title')),
       content: SizedBox(
         width: 440,

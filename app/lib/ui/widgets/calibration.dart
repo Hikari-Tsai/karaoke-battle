@@ -6,6 +6,7 @@ import '../../engine/engine_bindings.dart' show KeError;
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import 'error_report.dart';
+import 'app_dialog.dart';
 
 /// Maps a calibration failure to a localized explanation with a fix.
 String calibrationAdvice(Object e) {
@@ -93,7 +94,6 @@ Future<void> showCalibrationPromptIfNeeded(BuildContext context, AppServices ser
   if (s.latencySeconds != null || s.calibrationPromptDismissed) return;
   await showDialog<void>(
     context: context,
-    barrierDismissible: false,
     builder: (_) => _CalibrationPrompt(services: services),
   );
 }
@@ -144,7 +144,9 @@ class _CalibrationPromptState extends State<_CalibrationPrompt> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final done = _result != null;
-    return AlertDialog(
+    return AppDialog(
+      onClose: _close, // as "skip" / "continue"
+      canClose: !_running,
       icon: Icon(done ? Icons.check_circle : Icons.timer_outlined, size: 36, color: done ? const Color(0xFF30D158) : cs.primary),
       title: Text(done ? tr('calibPrompt.doneTitle') : tr('calibPrompt.title')),
       content: SizedBox(

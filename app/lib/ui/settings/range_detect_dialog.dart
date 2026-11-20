@@ -18,16 +18,17 @@ import '../../state/song_data.dart';
 import '../../state/voice_range.dart';
 import '../sing/voice_keyboard.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 Future<void> showRangeDetectDialog(BuildContext context) =>
-    showDialog<void>(context: context, barrierDismissible: false, builder: (_) => const RangeDetectDialog());
+    showDialog<void>(context: context, builder: (_) => const RangeDetectDialog());
 
 /// First use: no range yet and not dismissed. Returns when the user saved,
 /// skipped or chose not to be asked again.
 Future<void> showRangePromptIfNeeded(BuildContext context, AppServices services) async {
   final s = services.settings;
   if (s.ownRangeKeys.isNotEmpty || s.rangePromptDismissed) return;
-  await showDialog<void>(context: context, barrierDismissible: false, builder: (_) => const RangeDetectDialog(firstUse: true));
+  await showDialog<void>(context: context, builder: (_) => const RangeDetectDialog(firstUse: true));
 }
 
 class RangeDetectDialog extends StatefulWidget {
@@ -111,7 +112,7 @@ class _RangeDetectDialogState extends State<RangeDetectDialog> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return AlertDialog(
+    return AppDialog(
       icon: widget.firstUse ? Icon(Icons.piano, size: 36, color: theme.colorScheme.primary) : null,
       title: Text(tr(widget.firstUse ? 'rangePrompt.title' : 'ownRange.detectTitle')),
       content: SizedBox(
@@ -197,6 +198,8 @@ class _RangeDetectDialogState extends State<RangeDetectDialog> with SingleTicker
           builder: (context, keys, _) => FilledButton(onPressed: keys.isEmpty ? null : _save, child: Text(tr('ownRange.save'))),
         ),
       ],
+      // First use: closing is skipping (keeps "don't ask again").
+      onClose: widget.firstUse ? _skip : null,
     );
   }
 }

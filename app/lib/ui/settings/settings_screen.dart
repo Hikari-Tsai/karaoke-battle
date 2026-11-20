@@ -29,6 +29,7 @@ import '../startup/ytdlp_dialog.dart';
 import '../widgets/brand.dart';
 import '../widgets/voice_fx.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -125,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     final choice = await showDialog<String>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => AppDialog(
         title: Text(tr('folder.confirmTitle')),
         content: Text(tr('folder.confirmBody', {'path': dest})),
         actions: [
@@ -143,7 +144,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (c) => AlertDialog(
+        // Files are being moved: this cannot be cancelled.
+        builder: (c) => AppDialog(
+          canClose: false,
           title: Text(tr('folder.moving')),
           content: ValueListenableBuilder<double>(
             valueListenable: progress,
@@ -182,7 +185,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (c) => AlertDialog(
+      // The data folder has changed: the app must restart.
+      builder: (c) => AppDialog(
+        canClose: false,
         title: Text(tr('folder.restartTitle')),
         content: SelectableText('${tr('folder.restartBody', {'path': dest})}${leftovers ? '\n\n${tr('folder.leftovers')}' : ''}'),
         actions: [FilledButton(onPressed: () => exit(0), child: Text(tr('folder.quit')))],

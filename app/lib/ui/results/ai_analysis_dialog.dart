@@ -27,9 +27,10 @@ import '../../state/i18n.dart';
 import '../replays/export_replay_dialog.dart' show replayBaseName;
 import '../settings/ai_settings_dialog.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 Future<void> showAiAnalysisDialog(BuildContext context, {required Song song, required TakeInfo take}) {
-  return showDialog<void>(context: context, barrierDismissible: false, builder: (_) => _AiAnalysisDialog(song: song, take: take));
+  return showDialog<void>(context: context, builder: (_) => _AiAnalysisDialog(song: song, take: take));
 }
 
 enum _View { menu, asking, result, failed }
@@ -239,6 +240,16 @@ class _AiAnalysisDialogState extends State<_AiAnalysisDialog> {
     setState(() => _view = _View.menu);
   }
 
+  /// The X, Esc and a click outside: stops a question still being asked and
+  /// closes.
+  void _close() {
+    if (_view == _View.asking) {
+      _cancelled = true;
+      _client?.close();
+    }
+    Navigator.of(context).pop();
+  }
+
   Future<void> _copyAdvice() async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     await Clipboard.setData(ClipboardData(text: _saved!.advice.toPlainText()));
@@ -257,7 +268,9 @@ class _AiAnalysisDialogState extends State<_AiAnalysisDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AppDialog(
+      onClose: _close,
+      canClose: !_busy, // a save panel is open
       title: Text(tr('advice.title')),
       content: SizedBox(
         width: 560,

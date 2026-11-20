@@ -14,6 +14,7 @@ import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
 import '../startup/setup_rows.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 /// What to do: recognise with Whisper, or time [pasted] lyrics (with
 /// Whisper when [useWhisper], else from the notes).
@@ -55,7 +56,6 @@ class LanguageChips extends StatelessWidget {
 Future<bool> showRecognizeDialog(BuildContext context, Song song, RecognizeRequest request) async {
   final ok = await showDialog<bool>(
     context: context,
-    barrierDismissible: false,
     builder: (_) => _RecognizeDialog(song: song, request: request),
   );
   return ok ?? false;
@@ -100,7 +100,17 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
   void dispose() {
     _services.pipeline.removeListener(_onPipeline);
     _tick?.cancel();
+    if (!_cancel.isCompleted) _cancel.complete(); // closed: stop a run still going
     super.dispose();
+  }
+
+  /// The cancel buttons, the X, Esc and a click outside: stops a download
+  /// or a run in progress (the engine stops at its next step in the
+  /// background and nothing is saved) and closes at once.
+  void _cancelAndClose() {
+    if (_phase == _Phase.downloading) context.read<SetupController>().cancel(_recognizer.model);
+    if (_phase == _Phase.running && !_cancel.isCompleted) _cancel.complete();
+    Navigator.of(context).pop(false);
   }
 
   bool get _needsWhisper => widget.request.useWhisper;
@@ -138,6 +148,7 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
       }
       return;
     }
+    if (!mounted) return; // closed meanwhile
     await _run();
   }
 
@@ -227,7 +238,7 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
           Text(tr('recognize.langHint'), style: muted),
         ];
         actions = [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(tr('cancel'))),
+          TextButton(onPressed: _cancelAndClose, child: Text(tr('cancel'))),
           FilledButton.icon(
             onPressed: () {
               setState(() => _phase = _Phase.checking);
@@ -251,13 +262,7 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
           ],
         ];
         actions = [
-          TextButton(
-            onPressed: () {
-              if (_phase == _Phase.downloading) context.read<SetupController>().cancel(model);
-              Navigator.of(context).pop(false);
-            },
-            child: Text(tr('cancel')),
-          ),
+          TextButton(onPressed: _cancelAndClose, child: Text(tr('cancel'))),
           if (_phase == _Phase.needModel)
             FilledButton.icon(onPressed: _download, icon: const Icon(Icons.download), label: Text(tr('recognize.download', {'size': formatBytes(model.totalBytes)}))),
         ];
@@ -272,7 +277,7 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
             Text(tr('stage.${st.stage.name}'), style: muted),
           ],
         ];
-        actions = [TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(tr('cancel')))];
+        actions = [TextButton(onPressed: _cancelAndClose, child: Text(tr('cancel')))];
       case _Phase.running:
         final stageText = switch (_stage) {
           'load' || 'decode' => tr('recognize.loading'),
@@ -291,15 +296,7 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
           ],
         ];
         actions = [
-          TextButton(
-            // Closes at once: the engine stops at its next step in the
-            // background and nothing is saved.
-            onPressed: () {
-              if (!_cancel.isCompleted) _cancel.complete();
-              Navigator.of(context).pop(false);
-            },
-            child: Text(tr('cancel')),
-          ),
+          TextButton(onPressed: _cancelAndClose, child: Text(tr('cancel'))),
         ];
       case _Phase.failed:
         body = [SelectableText(_error, style: TextStyle(color: theme.colorScheme.error))];
@@ -308,11 +305,12 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(tr('close'))),
         ];
     }
-    return AlertDialog(
+    return AppDialog(
       icon: Icon(widget.request.pasted != null ? Icons.format_align_left : Icons.graphic_eq),
       title: Text(_title),
       content: SizedBox(width: 460, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: body)),
       actions: actions,
+      onClose: _cancelAndClose,
     );
   }
 }

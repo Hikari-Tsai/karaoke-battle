@@ -7,6 +7,7 @@ import '../../services/model_registry.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import 'recognize_dialog.dart';
+import '../widgets/app_dialog.dart';
 
 /// The pasted text and how to time it, or null when cancelled.
 Future<RecognizeRequest?> showPasteLyricsDialog(BuildContext context) =>
@@ -36,7 +37,7 @@ class _PasteLyricsDialogState extends State<_PasteLyricsDialog> {
     final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final size = formatBytes(ModelRegistry.whisperLarge.totalBytes);
     final installed = context.read<AppServices>().models.isInstalled(ModelRegistry.whisperLarge);
-    return AlertDialog(
+    return AppDialog(
       icon: const Icon(Icons.content_paste),
       title: Text(tr('paste.title')),
       content: SizedBox(

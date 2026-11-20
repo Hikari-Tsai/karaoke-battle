@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/settings.dart';
 import '../../state/i18n.dart';
+import 'app_dialog.dart';
 
 const _onColor = Color(0xFFFFD60A);
 
@@ -15,7 +16,7 @@ Future<bool> confirmVocalReturn(BuildContext context) async {
   if (st.vocalReturnWarned) return true;
   final ok = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
+    builder: (ctx) => AppDialog(
       icon: const Icon(Icons.headphones, size: 32),
       title: Text(tr('voiceFx.warnTitle')),
       content: SizedBox(width: 420, child: Text(tr('voiceFx.warnBody'))),

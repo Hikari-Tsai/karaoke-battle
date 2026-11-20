@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../widgets/app_dialog.dart';
 
 const kLanguages = ['zh', 'ja', 'yue', 'en'];
 const kMediaExtensions = ['mp4', 'mkv', 'webm', 'mov', 'mp3', 'm4a', 'wav', 'flac', 'ogg', 'aac'];
@@ -107,7 +108,8 @@ class _AddSongDialogState extends State<AddSongDialog> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final hasUrl = _url.text.trim().isNotEmpty;
-    return AlertDialog(
+    return AppDialog(
+      canClose: !_busy, // as the cancel button
       title: Text(tr('library.add')),
       content: SizedBox(
         width: 560,

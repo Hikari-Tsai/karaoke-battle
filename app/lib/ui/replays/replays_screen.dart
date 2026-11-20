@@ -21,6 +21,7 @@ import '../results/replay_screen.dart';
 import '../widgets/brand.dart';
 import '../widgets/rank.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 /// File types the import accepts: the exported .zip, or an unzipped .json
 /// (its vocal .mp3 is read from beside it).
@@ -75,7 +76,7 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
       if (ReplayLibrary.findSong(services.library, r) != null) continue;
       final ok = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => AppDialog(
           title: Text(tr('replays.includedAskTitle')),
           content: Text(tr('replays.includedAskBody', {'title': r.title})),
           actions: [
@@ -107,7 +108,7 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
       final url = youtubeWatchUrl(yt);
       final ok = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => AppDialog(
           title: Text(tr('replays.ytAskTitle')),
           content: SelectableText(tr('replays.ytAskBody', {'title': r.title, 'url': url})),
           actions: [
@@ -277,16 +278,22 @@ class _ReplayCardState extends State<_ReplayCard> {
     final songs = services.library.songs;
     final picked = await showDialog<Song>(
       context: context,
-      builder: (ctx) => SimpleDialog(
+      builder: (ctx) => AppDialog(
         title: Text(tr('replays.chooseSong')),
-        children: [
-          if (songs.isEmpty) Padding(padding: const EdgeInsets.all(24), child: Text(tr('library.empty'))),
-          for (final s in songs)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(s),
-              child: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-        ],
+        contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (songs.isEmpty) Padding(padding: const EdgeInsets.all(24), child: Text(tr('library.empty'))),
+              for (final s in songs)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(s),
+                  child: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
+            ]),
+          ),
+        ),
       ),
     );
     if (picked != null) await services.replays.link(r, picked.id);
@@ -295,7 +302,7 @@ class _ReplayCardState extends State<_ReplayCard> {
   Future<void> _delete() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AppDialog(
         title: Text(tr('replays.deleteTitle')),
         content: Text(tr('replays.deleteBody', {'title': r.title, 'player': _player})),
         actions: [
@@ -345,7 +352,7 @@ class _ReplayCardState extends State<_ReplayCard> {
     final thumb = song != null ? services.library.files(song).shownThumb : (r.hasCover ? r.cover : null);
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AppDialog(
         contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
         content: SizedBox(
           width: 420,

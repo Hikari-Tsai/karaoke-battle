@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../services/app_log.dart';
 import '../../services/problem_report.dart';
 import '../../state/i18n.dart';
+import 'app_dialog.dart';
 
 /// "Report bug" for [error]; logs the error once when it appears.
 class ReportBugButton extends StatefulWidget {
@@ -50,7 +51,7 @@ class _ReportBugButtonState extends State<ReportBugButton> {
 Future<void> showErrorDialog(BuildContext context, Object error, {StackTrace? stack, String? where, String? title, String? message}) =>
     showDialog<void>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => AppDialog(
         title: Text(title ?? tr('error')),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560, maxHeight: 360),

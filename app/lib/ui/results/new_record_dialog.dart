@@ -21,6 +21,7 @@ import '../../state/i18n.dart';
 import '../../state/scoring_bridge.dart';
 import '../widgets/rank.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 /// Download page linked from every share ("come and play").
 const kShareDownloadUrl = '${UpdateChecker.repoUrl}/releases/latest';
@@ -141,7 +142,7 @@ class _NewRecordDialogState extends State<_NewRecordDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final prev = widget.previousBest;
-    return AlertDialog(
+    return AppDialog(
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       content: SizedBox(
         width: 460,

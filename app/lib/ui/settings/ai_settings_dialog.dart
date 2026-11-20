@@ -17,6 +17,7 @@ import '../../advice/ai_advice.dart';
 import '../../services/settings.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../widgets/app_dialog.dart';
 
 const _keyPages = {
   'claude': 'https://console.anthropic.com/settings/keys',
@@ -151,7 +152,7 @@ class _AiSettingsDialogState extends State<_AiSettingsDialog> {
     final name = tr('ai.provider.$p');
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AppDialog(
         title: Text(tr('ai.deleteConfirm.title')),
         content: SizedBox(width: 400, child: Text(tr('ai.deleteConfirm.body', {'provider': name, 'service': _serviceNames[p]}))),
         actions: [
@@ -249,7 +250,8 @@ class _AiSettingsDialogState extends State<_AiSettingsDialog> {
     final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final enabled = !_loading && !_busy;
     final p = _provider;
-    return AlertDialog(
+    return AppDialog(
+      canClose: !_busy, // as the cancel button
       title: Text(tr('ai.dialogTitle')),
       content: SizedBox(
         width: 520,

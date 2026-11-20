@@ -16,6 +16,7 @@ import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
 import '../lyrics/lyrics_actions.dart' show lyricTrackLabel;
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 /// Base name for the exported files: `<title> <score>` without characters
 /// file systems reject (and no leading or doubled dots).
@@ -136,7 +137,8 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasVoice = File(widget.take.wav).existsSync();
-    return AlertDialog(
+    return AppDialog(
+      canClose: !_busy, // as the cancel button
       scrollable: true,
       title: Text(tr('export.title')),
       content: SizedBox(

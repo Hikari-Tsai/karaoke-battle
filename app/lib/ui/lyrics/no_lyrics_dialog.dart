@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../services/song_library.dart';
 import '../../state/i18n.dart';
 import 'lyrics_actions.dart';
+import '../widgets/app_dialog.dart';
 
 Future<void> showNoLyricsDialog(BuildContext context, Song song) async {
   final choice = await showDialog<String>(
@@ -25,7 +26,7 @@ Future<void> showNoLyricsDialog(BuildContext context, Song song) async {
         );
       }
 
-      return AlertDialog(
+      return AppDialog(
         icon: const Icon(Icons.subtitles_off_outlined),
         title: Text(tr('lyrics.none.title')),
         content: SizedBox(

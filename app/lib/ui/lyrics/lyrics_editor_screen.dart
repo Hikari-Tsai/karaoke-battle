@@ -20,6 +20,7 @@ import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
 import '../text_focus.dart';
 import 'lyrics_actions.dart';
+import '../widgets/app_dialog.dart';
 
 class _Row {
   _Row(this.start, this.end, String text) : text = TextEditingController(text: text) {
@@ -283,7 +284,7 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
     final c = TextEditingController();
     final text = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AppDialog(
         title: Text(tr('lyrics.editor.paste')),
         content: SizedBox(
           width: 520,
@@ -316,7 +317,7 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
     final c = TextEditingController();
     final v = await showDialog<double>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AppDialog(
         title: Text(tr('lyrics.editor.shift')),
         content: TextField(
           controller: c,
@@ -427,7 +428,7 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
   Future<bool> _confirmDiscard() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AppDialog(
         title: Text(tr('lyrics.editor.discardTitle')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),

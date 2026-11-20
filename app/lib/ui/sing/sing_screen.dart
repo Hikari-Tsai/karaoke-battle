@@ -35,6 +35,7 @@ import '../widgets/metronome_icon.dart';
 import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 class SingScreen extends StatefulWidget {
   const SingScreen({super.key, required this.song});
@@ -199,7 +200,7 @@ class _SingScreenState extends State<SingScreen>
     final s = _session!;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => AppDialog(
         title: Text(tr('edit.restoreTitle')),
         content: Text(tr('edit.restoreBody')),
         actions: [

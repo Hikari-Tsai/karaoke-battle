@@ -8,6 +8,7 @@ import '../../state/beat_grid.dart';
 import '../../state/i18n.dart';
 import '../../state/sing_session.dart';
 import '../widgets/metronome_icon.dart';
+import '../widgets/app_dialog.dart';
 
 /// Returns the new override, or null when cancelled.
 Future<TempoOverride?> showTempoDialog(
@@ -118,7 +119,7 @@ class _TempoDialogState extends State<_TempoDialog> {
       focusNode: _focus,
       autofocus: true,
       onKeyEvent: _onKey,
-      child: AlertDialog(
+      child: AppDialog(
         title: Text(tr('tempo.title')),
         content: SizedBox(
           width: 460,

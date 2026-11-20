@@ -12,6 +12,7 @@ import '../../services/settings.dart';
 import '../../services/sing_history.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../widgets/app_dialog.dart';
 
 Future<void> showSetlistDialog(BuildContext context, {required DateTime day, required List<HistoryEntry> entries}) {
   return showDialog<void>(context: context, builder: (_) => _SetlistDialog(day: day, entries: entries));
@@ -65,7 +66,7 @@ class _SetlistDialogState extends State<_SetlistDialog> {
     final text = _text(settings);
     final today = dayOf(DateTime.now()) == widget.day;
     final t = _start;
-    return AlertDialog(
+    return AppDialog(
       title: Text(tr('setlist.title', {'date': formatDay(widget.day)})),
       scrollable: true,
       content: SizedBox(

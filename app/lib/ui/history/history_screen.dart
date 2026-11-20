@@ -13,6 +13,7 @@ import '../results/results_screen.dart';
 import 'setlist_dialog.dart';
 import '../widgets/brand.dart';
 import '../widgets/rank.dart';
+import '../widgets/app_dialog.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, this.active = true});
@@ -381,7 +382,7 @@ class _RemoveDialogState extends State<_RemoveDialog> {
     final e = widget.entry;
     final t = e.startedAt.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');
-    return AlertDialog(
+    return AppDialog(
       title: Text(tr('history.removeTitle')),
       content: SizedBox(
         width: 440,
@@ -431,7 +432,7 @@ class _ClearDialogState extends State<_ClearDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return AlertDialog(
+    return AppDialog(
       title: Text(tr('history.clearTitle')),
       content: SizedBox(
         width: 440,

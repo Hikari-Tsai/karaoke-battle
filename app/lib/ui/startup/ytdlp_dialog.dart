@@ -10,6 +10,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 enum YtDlpIssue { broken, pathOnly, failed }
 
@@ -29,7 +30,6 @@ Future<void> showYtDlpLaunchDialog(BuildContext context) async {
 /// [detail] is the PATH yt-dlp for [YtDlpIssue.pathOnly], otherwise the error.
 Future<void> showYtDlpDialog(BuildContext context, YtDlpIssue issue, String detail) => showDialog<void>(
       context: context,
-      barrierDismissible: false,
       builder: (_) => _YtDlpDialog(issue: issue, detail: detail),
     );
 
@@ -71,7 +71,9 @@ class _YtDlpDialogState extends State<_YtDlpDialog> {
       YtDlpIssue.failed => tr('ytdlp.failed'),
     };
     final error = _result == null ? (widget.issue == YtDlpIssue.pathOnly ? null : widget.detail) : (done ? null : _result!.message);
-    return AlertDialog(
+    return AppDialog(
+      onClose: _close, // as "later" (keeps "don't remind me")
+      canClose: !busy,
       title: Text(tr('ytdlp.title')),
       content: SizedBox(
         width: 480,

@@ -10,6 +10,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
 import 'lyrics_actions.dart';
+import '../widgets/app_dialog.dart';
 
 /// Asks which track and format, then where to save. Says so when the song
 /// has no subtitles.
@@ -51,7 +52,7 @@ class _ExportLyricsDialogState extends State<_ExportLyricsDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final lines = _track.lines.where((l) => l.text.trim().isNotEmpty).length;
-    return AlertDialog(
+    return AppDialog(
       title: Text(tr('lyrics.exportTitle')),
       content: SizedBox(
         width: 420,

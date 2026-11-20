@@ -4,14 +4,14 @@
 import 'package:flutter/material.dart';
 
 import '../../state/i18n.dart';
+import 'app_dialog.dart';
 
 Future<bool> showCertificatePrompt(BuildContext context, Uri url, String error) async {
   final ok = await showDialog<bool>(
     context: context,
-    barrierDismissible: false,
     builder: (context) {
       final theme = Theme.of(context);
-      return AlertDialog(
+      return AppDialog(
         icon: Icon(Icons.gpp_maybe_outlined, color: theme.colorScheme.error),
         title: Text(tr('cert.title')),
         content: SizedBox(

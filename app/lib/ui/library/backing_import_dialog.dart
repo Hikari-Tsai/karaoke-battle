@@ -17,6 +17,7 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/error_report.dart';
+import '../widgets/app_dialog.dart';
 
 const _audioExtensions = ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'mp4', 'webm'];
 
@@ -25,7 +26,7 @@ Future<bool> importBackingTrack(BuildContext context, Song song) async {
   final picked = await FilePicker.pickFiles(dialogTitle: tr('backing.pickTitle'), type: FileType.custom, allowedExtensions: _audioExtensions);
   final path = picked.isEmpty ? null : picked.first.path;
   if (path == null || !context.mounted) return false;
-  final ok = await showDialog<bool>(context: context, barrierDismissible: false, builder: (_) => _BackingImportDialog(song: song, source: path));
+  final ok = await showDialog<bool>(context: context, builder: (_) => _BackingImportDialog(song: song, source: path));
   return ok ?? false;
 }
 
@@ -33,7 +34,7 @@ Future<bool> importBackingTrack(BuildContext context, Song song) async {
 Future<bool> revertBackingTrack(BuildContext context, Song song) async {
   final yes = await showDialog<bool>(
     context: context,
-    builder: (c) => AlertDialog(
+    builder: (c) => AppDialog(
       title: Text(tr('backing.revertTitle')),
       content: Text(tr('backing.revertBody')),
       actions: [
@@ -175,7 +176,8 @@ class _BackingImportDialogState extends State<_BackingImportDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return AlertDialog(
+    return AppDialog(
+      canClose: !_applying, // as the cancel button
       title: Text(tr('backing.title')),
       content: SizedBox(
         width: 760,

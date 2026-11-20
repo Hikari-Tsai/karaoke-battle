@@ -32,6 +32,7 @@ import '../widgets/brand.dart';
 import '../widgets/error_report.dart';
 import 'add_song_dialog.dart';
 import 'backing_import_dialog.dart';
+import '../widgets/app_dialog.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -241,8 +242,9 @@ class _SongCardState extends State<_SongCard> {
     final nav = Navigator.of(context);
     showDialog<void>(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
+      // Scoring cannot be stopped part way.
+      builder: (_) => AppDialog(
+        canClose: false,
         content: ValueListenableBuilder<TakeProcessing>(
           valueListenable: progress,
           builder: (_, p, _) => Column(mainAxisSize: MainAxisSize.min, children: [
@@ -350,8 +352,9 @@ class _SongCardState extends State<_SongCard> {
     final nav = Navigator.of(context);
     showDialog<void>(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
+      // Scoring cannot be stopped part way.
+      builder: (_) => AppDialog(
+        canClose: false,
         content: ValueListenableBuilder<TakeProcessing>(
           valueListenable: progress,
           builder: (_, p, _) => Column(mainAxisSize: MainAxisSize.min, children: [
@@ -422,7 +425,7 @@ class _SongCardState extends State<_SongCard> {
       context: context,
       builder: (c) {
         final cs = Theme.of(c).colorScheme;
-        return AlertDialog(
+        return AppDialog(
           title: Text(tr('library.deleteTakeTitle')),
           content: SizedBox(
             width: 420,
@@ -475,7 +478,7 @@ class _SongCardState extends State<_SongCard> {
   Future<void> _delete() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => AppDialog(
         title: Text(tr('deleteForever')),
         content: Text(tr('library.deleteConfirm', {'title': widget.song.title})),
         actions: [
@@ -759,7 +762,7 @@ class _ImportTakeDialogState extends State<_ImportTakeDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return AlertDialog(
+    return AppDialog(
       icon: const Icon(Icons.bug_report_outlined),
       title: Text(tr('debug.importTake')),
       content: SizedBox(
@@ -807,7 +810,7 @@ class _HiddenSongsDialog extends StatelessWidget {
     final settings = context.watch<AppSettings>();
     final hidden = settings.hiddenSongs;
     final songs = library.songs.where((s) => hidden.contains(s.id)).toList();
-    return AlertDialog(
+    return AppDialog(
       title: Text(tr('library.hiddenTitle')),
       content: SizedBox(
         width: 520,
@@ -894,7 +897,10 @@ class _TakeRow extends StatelessWidget {
               border: Border.all(color: color.withValues(alpha: 0.7)),
             )
           : null,
-      child: ListTile(
+      // Its own Material, so the best take's highlight does not hide the ink.
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
         dense: true,
         onTap: onView,
         leading: t.total == null
@@ -938,7 +944,7 @@ class _TakeRow extends StatelessWidget {
           else
             TextButton(onPressed: onView, child: Text(tr('library.viewResult'))),
         ]),
-      ),
+      )),
     );
   }
 }
