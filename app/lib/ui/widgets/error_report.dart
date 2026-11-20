@@ -73,6 +73,7 @@ void showErrorSnack(BuildContext context, Object error, {String? text, StackTrac
   messenger.showSnackBar(SnackBar(
     content: Text(text ?? '${tr('error')}: $error'),
     duration: const Duration(seconds: 8),
+    persist: false, // an action makes it stay by default
     action: SnackBarAction(label: tr('report.bug'), onPressed: () => openProblemReport(context, error: error)),
   ));
 }

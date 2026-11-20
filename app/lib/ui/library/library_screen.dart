@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/midi_export.dart';
+import '../../services/dev_mode.dart';
 import '../../services/prep_pipeline.dart';
 import '../../services/settings.dart';
 import '../../services/song_cover.dart';
@@ -336,7 +337,8 @@ class _SongCardState extends State<_SongCard> {
   /// lined up with the song, then scores it and opens the results as after
   /// singing (or leaves it in the list to score with the Score button).
   Future<void> _importTake() async {
-    if (!kDebugMode) return;
+    // kDebugMode first: a constant false in releases, so this is compiled out.
+    if (!kDebugMode || !devFeatures(context.read<AppSettings>())) return;
     final services = context.read<AppServices>();
     final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['wav', 'mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus']);
     final source = picked.isEmpty ? null : picked.first.path;
@@ -465,6 +467,7 @@ class _SongCardState extends State<_SongCard> {
     await settings.setSongHidden(song.id, true);
     messenger?.showSnackBar(SnackBar(
       content: Text(tr('library.hidden', {'title': song.title})),
+      persist: false, // an action makes it stay by default
       action: SnackBarAction(label: tr('history.undo'), onPressed: () => settings.setSongHidden(song.id, false)),
     ));
   }
@@ -650,8 +653,8 @@ class _SongCardState extends State<_SongCard> {
                         PopupMenuItem(value: 'backingImport', child: ListTile(leading: const Icon(Icons.library_music_outlined), title: Text(tr('backing.import')))),
                         if (services.library.files(song).hasUserInst)
                           PopupMenuItem(value: 'backingRevert', child: ListTile(leading: const Icon(Icons.restore), title: Text(tr('backing.revert')))),
-                        // Only in debug builds (flutter run); compiled out of releases.
-                        if (kDebugMode) ...[
+                        // Only in debug builds with 開發模式 on; compiled out of releases.
+                        if (kDebugMode && devFeatures(context.read<AppSettings>())) ...[
                           const PopupMenuDivider(),
                           PopupMenuItem(
                             value: 'importTake',
@@ -928,12 +931,12 @@ class _TakeRow extends StatelessWidget {
             IconButton(tooltip: tr('export.button'), onPressed: onExport, icon: const Icon(Icons.ios_share)),
           if (onExportVideo != null)
             IconButton(tooltip: tr('video.button'), onPressed: onExportVideo, icon: const Icon(Icons.movie_outlined)),
+          if (onDelete != null)
+            IconButton(tooltip: tr('library.deleteTake'), onPressed: onDelete, icon: Icon(Icons.delete_outline, color: cs.onSurfaceVariant)),
           if (onScore != null)
             TextButton(onPressed: onScore, child: Text(tr('library.scoreTake')))
           else
             TextButton(onPressed: onView, child: Text(tr('library.viewResult'))),
-          if (onDelete != null)
-            IconButton(tooltip: tr('library.deleteTake'), onPressed: onDelete, icon: Icon(Icons.delete_outline, color: cs.onSurfaceVariant)),
         ]),
       ),
     );

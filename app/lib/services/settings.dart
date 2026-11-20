@@ -159,6 +159,11 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Debug builds: the sidebar's 開發模式 switch (see dev_mode.dart). Has
+  /// no effect in a release build.
+  bool get devMode => _get('dev_mode', true);
+  Future<void> setDevMode(bool v) => _set('dev_mode', v);
+
   /// Library: songs hidden from the list (ids), until restored from the
   /// hidden songs. Their files, takes and history stay as they are.
   Set<String> get hiddenSongs => {...?_prefs.getStringList('hidden_songs')};

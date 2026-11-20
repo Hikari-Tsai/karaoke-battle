@@ -3,11 +3,13 @@
 // instead of the app.
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/problem_report.dart';
+import '../services/settings.dart';
 import '../services/song_library.dart';
 import '../services/update_checker.dart';
 import '../state/app_services.dart';
@@ -138,6 +140,8 @@ class _AppShellState extends State<AppShell> {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    // Debug builds only (compiled out of releases).
+                    if (kDebugMode) ...[const _DevModeSwitch(), const SizedBox(height: 8)],
                     _RailLink(
                       icon: Icons.info_outline,
                       selectedIcon: Icons.info,
@@ -189,6 +193,38 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Debug builds only: turns the developer features on or off. Off, the app
+/// looks as it does when released (apart from this switch).
+class _DevModeSwitch extends StatelessWidget {
+  const _DevModeSwitch();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final settings = context.watch<AppSettings>();
+    final on = settings.devMode;
+    return Tooltip(
+      message: tr('dev.modeHint'),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => settings.setDevMode(!on),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            SizedBox(
+              height: 24,
+              child: FittedBox(child: Switch(value: on, onChanged: settings.setDevMode)),
+            ),
+            const SizedBox(height: 2),
+            Text(tr('dev.mode'), style: theme.textTheme.labelSmall?.copyWith(color: on ? cs.tertiary : cs.onSurfaceVariant, fontWeight: on ? FontWeight.w700 : null)),
+          ]),
+        ),
       ),
     );
   }

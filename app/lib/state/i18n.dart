@@ -287,6 +287,8 @@ const Map<String, (String, String, String)> _table = {
   'library.cancelled': ('已取消', 'Cancelled', 'キャンセルしました'),
   'library.showFolder': ('顯示資料夾', 'Show folder', 'フォルダを表示'),
   // Debug builds only (flutter run): never shown in a release.
+  'dev.mode': ('開發模式', 'Dev mode', '開発モード'),
+  'dev.modeHint': ('只有偵錯版有這個開關。關閉時，畫面和正式版相同。', 'Only debug builds have this switch. Off, the app looks as released.', 'デバッグ版だけのスイッチです。オフにするとリリース版と同じ画面になります。'),
   'debug.importTake': ('匯入演唱檔案（偵錯）', 'Import a vocal take (debug)', '歌唱ファイルを読み込む（デバッグ）'),
   'debug.importBody': (
     '把這個人聲檔當成這首歌的一次演唱存起來，和唱完一樣會出現在演唱紀錄。只有偵錯模式看得到這個功能。',

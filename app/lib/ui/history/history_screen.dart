@@ -80,6 +80,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (!mounted) return;
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
       content: Text(tr(deleteToo ? 'history.removedDeleted' : 'history.removed')),
+      persist: false, // an action makes it stay by default
       action: deleteToo
           ? null
           : SnackBarAction(
