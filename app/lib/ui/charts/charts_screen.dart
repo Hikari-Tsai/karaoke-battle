@@ -387,6 +387,7 @@ class _ErrorRow extends StatelessWidget {
 const _rankW = 44.0;
 const _moveW = 64.0;
 const _rangeW = 170.0;
+const _bpmW = 64.0;
 const _coversW = 120.0;
 const _btnW = 44.0;
 
@@ -418,6 +419,7 @@ class _HeaderRow extends StatelessWidget {
           if (chart.hasMovement) const SizedBox(width: _moveW),
           Expanded(flex: 5, child: Text(tr(vendor == KtvVendor.vtuber ? 'charts.songOriginal' : 'charts.songArtist'), style: style)),
           Expanded(flex: 4, child: Text(tr('charts.tags'), style: style)),
+          SizedBox(width: _bpmW, child: Text('BPM', style: style)),
           SizedBox(width: _rangeW, child: Text(tr('charts.rangeCol'), style: style)),
           if (vendor == KtvVendor.vtuber) SizedBox(width: _coversW, child: Text(tr('charts.covers'), style: style)),
           const SizedBox(width: _btnW * 2),
@@ -492,6 +494,16 @@ class _EntryRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(flex: 4, child: _TagChips(entry: entry)),
+          // The tempo in a column of its own.
+          SizedBox(
+            width: _bpmW,
+            child: entry.bpm == null
+                ? Text('—', style: small)
+                : Tooltip(
+                    message: tr('charts.bpmTip'),
+                    child: Text('${entry.bpm}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontFeatures: const [FontFeature.tabularFigures()])),
+                  ),
+          ),
           SizedBox(width: _rangeW, child: entry.range == null ? const SizedBox.shrink() : _RangeBar(range: entry.range!, own: own)),
           if (vendor == KtvVendor.vtuber) SizedBox(width: _coversW, child: _CoversMenu(entry: entry)),
           SizedBox(width: _btnW, child: _ListenMenu(entry: entry)),
@@ -541,7 +553,7 @@ class _ArtistLine extends StatelessWidget {
   }
 }
 
-/// Coloured tags: the genre (iTunes) and tempo, then the model tags by group
+/// Coloured tags: the genre (iTunes), then the model tags by group
 /// (genre, mood, instruments, vocals), each group in its own colour. Up to
 /// [_max] are shown; the rest are in the tooltip of a "+N" chip.
 class _TagChips extends StatelessWidget {
@@ -551,7 +563,7 @@ class _TagChips extends StatelessWidget {
   static const _max = 6;
   static const _colors = <String, Color>{
     'itunes': Color(0xFFB39DDB), // violet
-    'bpm': Color(0xFF90A4AE), // grey blue
+    'more': Color(0xFF90A4AE), // grey blue, the "+N" chip
     'genre': Color(0xFF4DB6AC), // teal
     'mood': Color(0xFFFFB74D), // amber
     'instrument': Color(0xFF64B5F6), // blue
@@ -562,7 +574,6 @@ class _TagChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final tags = <(String group, String text, String tip)>[
       if (entry.genre != null) ('itunes', entry.genre!, tr('charts.tag.itunes')),
-      if (entry.bpm != null) ('bpm', '${entry.bpm} BPM', tr('charts.bpmTip')),
       for (final g in const ['genre', 'mood', 'instrument', 'vocal'])
         for (final t in entry.tags[g] ?? const <String>[]) (g, _tagText(g, t), tr('charts.tag.$g')),
     ];
@@ -578,7 +589,7 @@ class _TagChips extends StatelessWidget {
         if (rest.isNotEmpty)
           Tooltip(
             message: [for (final (_, text, tip) in rest) '$tip：$text'].join('\n'),
-            child: _Chip(text: '+${rest.length}', color: _colors['bpm']!),
+            child: _Chip(text: '+${rest.length}', color: _colors['more']!),
           ),
       ],
     );

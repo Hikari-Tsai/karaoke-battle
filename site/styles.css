@@ -152,6 +152,15 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 .demo-total { display: flex; align-items: center; gap: 10px; margin: 0; flex: none; }
 .demo-total b { font-size: 52px; font-weight: 900; line-height: 1; color: var(--yellow); font-variant-numeric: tabular-nums; text-shadow: 0 0 28px rgba(249, 216, 74, 0.35); }
 .rank-sss { background: linear-gradient(135deg, #fff3a6, var(--yellow) 45%, #f2a93b); color: #111; font-weight: 900; font-size: 17px; letter-spacing: 0.04em; padding: 4px 11px; border-radius: 8px; box-shadow: 0 0 18px rgba(249, 216, 74, 0.45); }
+/* The six sub-scores in the app's colours (app/lib/ui/widgets/score_colors.dart):
+   pitch, rhythm, stability, vibrato, expression, long notes, in that order. */
+.demo-bars li, .scores li { --c: var(--lav); }
+.demo-bars li:nth-child(1), .scores li:nth-child(1) { --c: #bf5af2; }
+.demo-bars li:nth-child(2), .scores li:nth-child(2) { --c: #ff4fa3; }
+.demo-bars li:nth-child(3), .scores li:nth-child(3) { --c: #64d2ff; }
+.demo-bars li:nth-child(4), .scores li:nth-child(4) { --c: #30d158; }
+.demo-bars li:nth-child(5), .scores li:nth-child(5) { --c: #ff9f0a; }
+.demo-bars li:nth-child(6), .scores li:nth-child(6) { --c: #f9d84a; }
 .demo-bars { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .demo-bars li { display: grid; grid-template-columns: 4.6em 1fr 2.4em; align-items: center; gap: 12px; font-size: 14px; }
 :root:lang(en) .demo-bars li { grid-template-columns: 6.4em 1fr 2.4em; }
@@ -159,10 +168,9 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 .demo-bars span { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .demo-bars em { font-style: normal; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
 .demo-bars i { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
-.demo-bars i::after { content: ""; display: block; width: var(--w, 0); height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--magenta), var(--lav)); transform-origin: 0 50%; }
+.demo-bars i::after { content: ""; display: block; width: var(--w, 0); height: 100%; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, transparent), var(--c)); transform-origin: 0 50%; }
 /* A full 100 shows in gold; what lost points stays lavender so it stands out. */
-.demo-bars li.full i::after { background: linear-gradient(90deg, #f2a93b, var(--yellow)); }
-.demo-bars li.full em { color: var(--yellow); }
+.demo-bars li.full em { color: var(--c); }
 .demo-bars li.na i { background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.06) 0 4px, transparent 4px 8px); }
 .demo-bars li.na em { color: var(--muted); font-weight: 400; }
 .demo-judge { margin-top: 20px; }
@@ -270,7 +278,8 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 .scores b { font-size: 20px; }
 .scores em { font-style: normal; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
 .scores i { grid-column: 1 / -1; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
-.scores i::after { content: ""; display: block; width: var(--w); height: 100%; border-radius: 5px; background: var(--lav); transform-origin: 0 50%; }
+.scores i::after { content: ""; display: block; width: var(--w); height: 100%; border-radius: 5px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, transparent), var(--c)); transform-origin: 0 50%; }
+.scores b::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); vertical-align: 2px; }
 /* main.js adds .anim, then .in once the list scrolls into view: the bars grow to the right. */
 .scores.anim i::after { transform: scaleX(0); }
 .scores.anim.in i::after { transform: scaleX(1); transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1); }

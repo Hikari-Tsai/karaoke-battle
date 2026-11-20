@@ -6,6 +6,11 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 <!-- Keep the `## X.Y.Z — YYYY-MM-DD` headings: the app finds versions by them. -->
 
+## Unreleased
+
+### Improved
+- In Hot songs the BPM is a column of its own (between the tags and the chorus range) instead of a tag, so songs' tempos compare at a glance. The six sub-score bars of the website's SSS demos and "How the score works", and of the demo cards on the app's Scoring rules page, use the same colours as the app's results card.
+
 ## 1.2.0 — 2026-11-21
 
 ### Added

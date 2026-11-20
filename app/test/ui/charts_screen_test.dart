@@ -91,7 +91,9 @@ void main() {
     expect(find.text('ktv-charts'), findsOneWidget, reason: 'the footer names and links the repo');
     expect(find.textContaining('資料來源：好樂迪 官網，由'), findsOneWidget);
     expect(find.text('甲乙丙丁'), findsOneWidget);
-    expect(find.text('130 BPM'), findsWidgets);
+    expect(find.text('BPM'), findsOneWidget, reason: 'the tempo has its own column');
+    expect(find.text('130'), findsWidgets);
+    expect(find.text('130 BPM'), findsNothing, reason: 'no longer one of the tags');
     expect(find.text('C4–D5'), findsWidgets, reason: 'the chorus range beside its bar');
     expect(find.text('02657'), findsNothing, reason: 'no song numbers any more');
     expect(find.textContaining('2026 · Columbia Records China'), findsOneWidget, reason: 'release year and label under the artist');

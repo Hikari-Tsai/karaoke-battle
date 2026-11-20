@@ -18,6 +18,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../replays/replays_screen.dart' show replayImportError;
 import '../shell.dart';
+import '../widgets/score_colors.dart';
 import '../widgets/shine.dart';
 import 'demo_video_dialog.dart';
 
@@ -387,7 +388,13 @@ class _DemoCardState extends State<_DemoCard> {
       const Padding(padding: EdgeInsets.symmetric(vertical: 18), child: Divider(height: 1, thickness: 1, color: _line)),
       // --- the six sub-scores, one after another ---
       for (var i = 0; i < _barKeys.length; i++) ...[
-        _Bar(label: tr('results.${_barKeys[i]}'), value: d.bars[i], progress: _at(0.08 + i * 0.05, 0.55 + i * 0.05), shine: _shine(loop, delay: 0.04 * i)),
+        _Bar(
+          label: tr('results.${_barKeys[i]}'),
+          value: d.bars[i],
+          color: subScoreColor(_barKeys[i]),
+          progress: _at(0.08 + i * 0.05, 0.55 + i * 0.05),
+          shine: _shine(loop, delay: 0.04 * i),
+        ),
         if (i < _barKeys.length - 1) const SizedBox(height: 10),
       ],
       const SizedBox(height: 22),
@@ -644,13 +651,16 @@ class _SssBadge extends StatelessWidget {
       );
 }
 
-/// One sub-score: gold when full, magenta to lavender otherwise, striped when
+/// One sub-score in its colour (the same everywhere in the app), striped when
 /// not scored. [progress] 0..1 fills it (the entrance); full bars glint when
 /// [shine] passes.
 class _Bar extends StatelessWidget {
-  const _Bar({required this.label, required this.value, this.progress = 1, this.shine});
+  const _Bar({required this.label, required this.value, required this.color, this.progress = 1, this.shine});
   final String label;
   final int? value;
+
+  /// The sub-score's colour (score_colors.dart), as everywhere in the app.
+  final Color color;
   final double progress;
   final double? shine;
 
@@ -677,7 +687,7 @@ class _Bar extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: Stack(fit: StackFit.expand, children: [
                           DecoratedBox(
-                            decoration: BoxDecoration(gradient: LinearGradient(colors: full ? const [_orange, _yellow] : const [_magenta, _lav])),
+                            decoration: BoxDecoration(gradient: LinearGradient(colors: [color.withValues(alpha: 0.55), color])),
                           ),
                           if (full && shine != null) ShineBand(position: shine!, strength: 0.9),
                         ]),
@@ -696,7 +706,7 @@ class _Bar extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: v == null ? FontWeight.w400 : FontWeight.w800,
-            color: v == null ? _muted : (full && progress >= 1 ? _yellow : Colors.white),
+            color: v == null ? _muted : (full && progress >= 1 ? color : Colors.white),
             fontFeatures: _tabular,
           ),
         ),
