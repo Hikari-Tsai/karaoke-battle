@@ -6,7 +6,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 <!-- Keep the `## X.Y.Z — YYYY-MM-DD` headings: the app finds versions by them. -->
 
-## Unreleased
+## 1.2.0 — 2026-11-21
 
 ### Added
 - The results' "Note analysis" table has a "Lyric" column: the lyrics are matched to the notes by time, a character per note in Chinese, Japanese and Korean and a word per note otherwise, with "～" on a note that holds the previous syllable. Lyrics are timed by line only, so a syllable or two may be off; the table says so.
