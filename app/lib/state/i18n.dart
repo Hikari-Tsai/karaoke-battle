@@ -461,7 +461,7 @@ const Map<String, (String, String, String)> _table = {
   'lyrics.editor.kPlay': ('播放／暫停', 'play / pause', '再生／一時停止'),
   'lyrics.editor.kStamp': ('在這行打點', 'stamp this line', 'この行に打点'),
   'lyrics.editor.kEnd': ('標記上一行結束', "mark the previous line's end", '前の行の終わりを打点'),
-  'lyrics.editor.kSeek': ('倒退／快轉 2 秒', 'back / forward 2 s', '2 秒戻る／進む'),
+  'lyrics.editor.kSeek': ('倒退／快轉 2 秒（文字框外）', 'back / forward 2 s (outside text fields)', '2 秒戻る／進む（テキスト欄の外）'),
   'lyrics.editor.kEsc': ('離開文字框', 'leave the text field', 'テキスト欄を抜ける'),
   'lyrics.editor.nextStamp': ('點一下：從這行開始打點', 'Click to stamp from this line', 'クリックでこの行から打点'),
   'lyrics.editor.exportSrt': ('匯出 SRT', 'Export SRT', 'SRT で書き出す'),

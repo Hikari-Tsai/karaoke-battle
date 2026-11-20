@@ -18,6 +18,7 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
+import '../text_focus.dart';
 import 'lyrics_actions.dart';
 
 class _Row {
@@ -30,6 +31,7 @@ class _Row {
   final TextEditingController text;
   final startC = TextEditingController();
   final endC = TextEditingController();
+  final textFocus = FocusNode(); // the lyric field: the caret follows stamping
 
   void setStart(double? v) {
     start = v;
@@ -47,6 +49,7 @@ class _Row {
     text.dispose();
     startC.dispose();
     endC.dispose();
+    textFocus.dispose();
   }
 }
 
@@ -181,6 +184,7 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
   void _stamp() {
     if (_cursor >= _rows.length) return;
     final t = _pos;
+    final caretInRows = focusedTextField() != null;
     setState(() {
       _remember();
       final row = _rows[_cursor];
@@ -193,6 +197,20 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
       _cursor++;
     });
     _reveal(_cursor);
+    // Typing along: the caret moves on to the line that is stamped next.
+    if (caretInRows && _cursor < _rows.length) _focusText(_rows[_cursor]);
+  }
+
+  void _focusText(_Row r) {
+    void go() {
+      if (mounted && r.textFocus.context != null) r.textFocus.requestFocus();
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (r.textFocus.context != null) return go();
+      // Not built yet: wait for _reveal's scroll.
+      Future.delayed(const Duration(milliseconds: 260), go);
+    });
   }
 
   /// Shift+Enter: the line stamped last ends now (a pause follows it).
@@ -436,26 +454,33 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
 
   // ---- keys ------------------------------------------------------------------------
 
-  bool get _typing => FocusManager.instance.primaryFocus?.context?.widget is EditableText;
-
   KeyEventResult _onKey(FocusNode _, KeyEvent e) {
     if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
     final k = e.logicalKey;
-    if (_typing) {
+    // The shortcuts work in the text fields too, except while an input method
+    // (Zhuyin, Pinyin, Japanese, ...) is composing: then Enter picks the
+    // candidate, Space converts and Esc cancels. Otherwise Esc leaves the field.
+    final field = focusedTextField();
+    if (field != null) {
+      if (isComposing(field)) return KeyEventResult.ignored;
       if (k == LogicalKeyboardKey.escape) {
         _pageFocus.requestFocus();
         return KeyEventResult.handled;
       }
-      return KeyEventResult.ignored;
     }
-    final shift = HardwareKeyboard.instance.isShiftPressed;
-    if (k == LogicalKeyboardKey.space && e is KeyDownEvent) {
+    final kb = HardwareKeyboard.instance;
+    final shift = kb.isShiftPressed;
+    // Ctrl / Cmd / Alt + Space or Enter are system keys (Ctrl+Space switches
+    // the input method), not play / stamp; Shift+Space types a space.
+    final other = kb.isControlPressed || kb.isMetaPressed || kb.isAltPressed;
+    if (k == LogicalKeyboardKey.space && e is KeyDownEvent && !other && !shift) {
       _togglePlay();
-    } else if ((k == LogicalKeyboardKey.enter || k == LogicalKeyboardKey.numpadEnter) && e is KeyDownEvent) {
+    } else if ((k == LogicalKeyboardKey.enter || k == LogicalKeyboardKey.numpadEnter) && e is KeyDownEvent && !other) {
       shift ? _stampEnd() : _stamp();
-    } else if (k == LogicalKeyboardKey.arrowLeft) {
+    } else if (k == LogicalKeyboardKey.arrowLeft && field == null) {
+      // In a text field the arrows move the caret.
       _seek(math.max(0, _pos - 2));
-    } else if (k == LogicalKeyboardKey.arrowRight) {
+    } else if (k == LogicalKeyboardKey.arrowRight && field == null) {
       _seek(_pos + 2);
     } else if (k == LogicalKeyboardKey.keyZ && (HardwareKeyboard.instance.isMetaPressed || HardwareKeyboard.instance.isControlPressed)) {
       _doUndo();
@@ -760,7 +785,14 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
         final r = _rows[i];
         final isCursor = i == _cursor;
         final isPlaying = i == playing;
-        return Container(
+        // The line the caret is in is the one Enter stamps.
+        return Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onFocusChange: (f) {
+            if (f && _cursor != i) setState(() => _cursor = i);
+          },
+          child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
           decoration: BoxDecoration(
             color: isPlaying ? cs.primaryContainer.withValues(alpha: 0.45) : (isCursor ? cs.tertiaryContainer.withValues(alpha: 0.25) : null),
@@ -818,6 +850,7 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
             Expanded(
               child: TextField(
                 controller: r.text,
+                focusNode: r.textFocus,
                 style: theme.textTheme.bodyLarge,
                 decoration: deco(tr('lyrics.editor.text')),
                 onChanged: (_) {
@@ -855,6 +888,7 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
               ],
             ),
           ]),
+          ),
         );
       },
     );

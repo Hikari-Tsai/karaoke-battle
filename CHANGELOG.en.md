@@ -10,8 +10,10 @@ Each version lists what was added, improved and fixed. The app's new-version not
 
 ### Added
 - Exported replays now carry the subtitles you added yourself (an imported subtitle file, pasted or typed lyrics, AI-generated subtitles; not the video's own YouTube subtitles). The first time the other person watches the replay they are added to their copy of the song, and become its main lyrics unless they have their own.
+- In the lyrics editor, the line Enter stamps now follows the text caret: click into a line and Enter stamps that line; after stamping, the caret moves on to the next line, so you can type and stamp as you listen.
 
 ### Fixed
+- In the lyrics editor, typing with a Chinese (Zhuyin, Pinyin) or Japanese input method, Enter to pick a candidate or Space to convert triggered the "stamp" or "play / pause" shortcuts. The editor now checks whether the input method is composing: while it is, Enter, Space and Esc go to the input method (pick, convert, cancel); once the text is committed the shortcuts work as usual, without leaving the field. Ctrl / Cmd / Alt with Space or Enter no longer trigger shortcuts either (such as Ctrl+Space to switch input methods); Shift+Space types a space. In a text field the left / right arrows now move the caret; they skip back / forward only outside the fields.
 - After importing a backing track, takes that had been replayed before still played the old separated accompaniment. A replay now remembers which backing file it was mixed from and is mixed again when the backing changes (or goes back to the separated one).
 
 ## 1.1.9 — 2026-11-20
