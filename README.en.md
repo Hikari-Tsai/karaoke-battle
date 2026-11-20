@@ -202,11 +202,11 @@ Thanks to the friends who tested the app and reported problems before the offici
 * **妮亞露**: tested 30XX-series GPUs; found songs whose setup could be blocked, the felt latency while recording, and "Sing again" resetting the settings; proposed showing where imported lyrics come from, confirming permanent deletes and a visible "Download again" button after a failed download; found the large loudness differences between downloaded songs and proposed mastering them in the background.
 * **貝拉子**: found the FFmpeg download version and path problems.
 * **東爺**: found the bug with Chinese characters in paths.
-* **あはあは**: volume adjustment in replays, the keyboard on the left of the piano roll, and pitch detection with practice in preview; suggested a master volume bar for replays; found the delay when switching between the accompaniment and the guide vocal (now both load together and convert in the background) and that AI and hand-typed lyrics had no romaji; proposed the MIDI guide; tested Taiwanese songs.
-* **皮卡**: backtesting with the original song, and feedback detection.
-* **羽之扉扉**: found that preview (practice) and scored recording were easy to mix up, which led to the new mode indicators.
+* **あはあは**: volume adjustment in replays, the keyboard on the left of the piano roll, and pitch detection with practice in preview; suggested a master volume bar for replays; found the delay when switching between the accompaniment and the guide vocal (now both load together and convert in the background) and that AI and hand-typed lyrics had no romaji; proposed the MIDI guide; tested Taiwanese songs; added the advanced mode that widens the key range to ±12.
+* **皮卡**: backtesting with the original song, feedback detection, and the replay delay problem.
+* **羽之扉扉**: found that practice mode and contest mode were easy to mix up.
 * **魷魷已損壞**: suggested importing your own backing track.
-* **莓子熊 (Mecokuma)** ([YouTube](https://www.youtube.com/@mecokuma) · [X](https://x.com/mecokuma)): suggested a daily setlist log to make streaming easier.
+* **莓子熊 (Mecokuma)** ([YouTube](https://www.youtube.com/@mecokuma) · [X](https://x.com/mecokuma)): suggested the setlist, OBS integration and hiding songs from the library, among other features.
 
 ### Models and libraries
 
