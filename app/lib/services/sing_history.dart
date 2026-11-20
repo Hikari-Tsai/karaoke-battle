@@ -1,6 +1,7 @@
 // The sing history ("演唱紀錄"): every scored take of every song, newest first.
 // Clearing it only hides what came before a moment (the recordings and the
-// library's best scores stay) unless the user also asks to delete them.
+// library's best scores stay) unless the user also asks to delete them; a
+// single take can be removed the same way.
 //
 // For streams, a day's songs can be written out as a setlist (clock times
 // or a timeline for YouTube timestamps), and the app keeps a setlist log per
@@ -28,7 +29,12 @@ class HistoryEntry {
 
   /// When the singing started (the take folder is named when it stopped).
   DateTime get startedAt => started ?? take.createdAt;
+
+  String get key => historyKey(song, take);
 }
+
+/// Names one take across songs, for takes removed from the history.
+String historyKey(Song song, TakeInfo take) => '${song.id}/${take.id}';
 
 /// A sing day starts at this hour, so a stream past midnight stays one day.
 const kDayStartHour = 5;
@@ -39,13 +45,15 @@ DateTime dayOf(DateTime t) {
   return DateTime(l.year, l.month, l.day);
 }
 
-/// Scored takes of [library]'s songs sung after [clearedAt], newest first.
-Future<List<HistoryEntry>> loadSingHistory(SongLibrary library, {DateTime? clearedAt}) async {
+/// Scored takes of [library]'s songs sung after [clearedAt] and not in
+/// [hidden] (see [historyKey]), newest first.
+Future<List<HistoryEntry>> loadSingHistory(SongLibrary library, {DateTime? clearedAt, Set<String> hidden = const {}}) async {
   final out = <HistoryEntry>[];
   for (final song in library.songs) {
     for (final take in await library.takes(song)) {
       if (take.total == null) continue;
       if (clearedAt != null && !take.createdAt.isAfter(clearedAt)) continue;
+      if (hidden.contains(historyKey(song, take))) continue;
       final (started, seconds) = await _takeMeta(take);
       out.add(HistoryEntry(song, take, started: started, seconds: seconds));
     }
@@ -182,12 +190,13 @@ class SetlistLog {
     });
   }
 
-  /// Writes today's setlist (every scored take today, cleared or not), and
-  /// the files of earlier days that do not have one yet.
+  /// Writes today's setlist (every scored take today, cleared or not, but
+  /// not takes removed one by one), and the files of earlier days that do
+  /// not have one yet.
   Future<void> write({DateTime? now}) async {
     final today = dayOf(now ?? DateTime.now());
     final byDay = <DateTime, List<HistoryEntry>>{};
-    for (final e in await loadSingHistory(library)) {
+    for (final e in await loadSingHistory(library, hidden: settings.historyHidden)) {
       (byDay[dayOf(e.startedAt)] ??= []).add(e);
     }
     await Directory(dir).create(recursive: true);

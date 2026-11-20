@@ -173,4 +173,30 @@ void main() {
     expect(formatSungTime(const Duration(minutes: 12, seconds: 30)), '12 分 30 秒');
     expect(summarizeHistory(const []).best, isNull);
   });
+
+  test('a single take removed from the history leaves the list and the setlist log, not the library', () async {
+    SharedPreferences.setMockInitialValues({'setlist_scores': false});
+    I18n.notifier.value = 'zh';
+    final settings = await AppSettings.load();
+    final a = await library.create(title: '晴天', sourceType: SourceType.file);
+    take(a, '2026-11-20T21:05:00', 88, startedAt: '2026-11-20T21:01:00');
+    final bad = take(a, '2026-11-20T21:20:00', 40, startedAt: '2026-11-20T21:16:00');
+    final all = await loadSingHistory(library);
+    final gone = all.firstWhere((e) => e.take.total == 40);
+    expect(gone.key, '${a.id}/${p.basename(bad.path)}');
+
+    await settings.setHistoryHidden({gone.key});
+    expect((await AppSettings.load()).historyHidden, {gone.key});
+    final shown = await loadSingHistory(library, hidden: settings.historyHidden);
+    expect(shown.map((e) => e.take.total), [88]);
+    expect(bad.existsSync(), isTrue, reason: 'the recording stays');
+    expect((await library.takes(a)).length, 2);
+
+    final log = SetlistLog(library, settings, p.join(tmp.path, 'setlist'));
+    await log.write(now: DateTime(2026, 11, 20, 22));
+    expect(File(log.todayFile).readAsStringSync(), '🎤 2026-11-20 歌單（1 首）\n1. 21:01  晴天\n');
+
+    await settings.setHistoryHidden({});
+    expect((await loadSingHistory(library, hidden: settings.historyHidden)).length, 2, reason: 'undo');
+  });
 }

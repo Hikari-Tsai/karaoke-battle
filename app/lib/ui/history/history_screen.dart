@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../services/settings.dart';
 import '../../services/sing_history.dart';
 import '../../services/song_library.dart';
+import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../results/results_screen.dart';
 import 'setlist_dialog.dart';
@@ -51,13 +52,45 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _reload() async {
     final seq = ++_loadSeq;
-    final entries = await loadSingHistory(_library, clearedAt: context.read<AppSettings>().historyClearedAt);
+    final settings = context.read<AppSettings>();
+    final entries = await loadSingHistory(_library, clearedAt: settings.historyClearedAt, hidden: settings.historyHidden);
     if (mounted && seq == _loadSeq) setState(() => _entries = entries);
   }
 
   Future<void> _open(HistoryEntry e) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ResultsScreen(song: e.song, take: e.take)));
     if (mounted) _reload();
+  }
+
+  /// Removes one take from the list (and the setlist log); with the box
+  /// ticked its recording is deleted as well. Removing alone can be undone.
+  Future<void> _remove(HistoryEntry e) async {
+    final deleteToo = await showDialog<bool>(context: context, builder: (_) => _RemoveDialog(entry: e));
+    if (deleteToo == null || !mounted) return;
+    final services = context.read<AppServices>();
+    final settings = services.settings;
+    if (deleteToo) {
+      await _library.deleteTakes(e.song, [e.take]);
+    } else {
+      await settings.setHistoryHidden({...settings.historyHidden, e.key});
+      services.setlistLog.update();
+    }
+    if (!mounted) return;
+    await _reload();
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+      content: Text(tr(deleteToo ? 'history.removedDeleted' : 'history.removed')),
+      action: deleteToo
+          ? null
+          : SnackBarAction(
+              label: tr('history.undo'),
+              onPressed: () async {
+                await settings.setHistoryHidden(settings.historyHidden..remove(e.key));
+                services.setlistLog.update();
+                if (mounted) _reload();
+              },
+            ),
+    ));
   }
 
   Future<void> _clear() async {
@@ -155,7 +188,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ]),
         ));
       }
-      items.add(_HistoryRow(entry: e, files: _library.files(e.song), onOpen: () => _open(e)));
+      items.add(_HistoryRow(entry: e, files: _library.files(e.song), onOpen: () => _open(e), onRemove: () => _remove(e)));
     }
     return ListView(padding: const EdgeInsets.all(12), children: items);
   }
@@ -263,10 +296,10 @@ class _StatTile extends StatelessWidget {
 }
 
 class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({required this.entry, required this.files, required this.onOpen});
+  const _HistoryRow({required this.entry, required this.files, required this.onOpen, required this.onRemove});
   final HistoryEntry entry;
   final SongFiles files;
-  final VoidCallback onOpen;
+  final VoidCallback onOpen, onRemove;
 
   static const _order = ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'long_tone'];
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
@@ -316,9 +349,67 @@ class _HistoryRow extends StatelessWidget {
             RankChip(rank: t.rank, fontSize: 12),
             const SizedBox(width: 8),
             TextButton(onPressed: onOpen, child: Text(tr('library.viewResult'))),
+            IconButton(
+              onPressed: onRemove,
+              tooltip: tr('history.remove'),
+              icon: Icon(Icons.delete_outline, size: 20, color: cs.onSurfaceVariant),
+            ),
           ]),
         ),
       ),
+    );
+  }
+}
+
+/// Remove one take from the list; optionally delete its recording too. Pops
+/// null (cancel), false (list only) or true (also delete).
+class _RemoveDialog extends StatefulWidget {
+  const _RemoveDialog({required this.entry});
+  final HistoryEntry entry;
+
+  @override
+  State<_RemoveDialog> createState() => _RemoveDialogState();
+}
+
+class _RemoveDialogState extends State<_RemoveDialog> {
+  bool _delete = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final e = widget.entry;
+    final t = e.startedAt.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return AlertDialog(
+      title: Text(tr('history.removeTitle')),
+      content: SizedBox(
+        width: 440,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            '${e.song.title}\n${formatDay(dayOf(t))} ${two(t.hour)}:${two(t.minute)} · ${e.take.total!.toStringAsFixed(1)} ${e.take.rank ?? ''}'.trimRight(),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(tr('history.removeBody')),
+          const SizedBox(height: 8),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _delete,
+            onChanged: (v) => setState(() => _delete = v ?? false),
+            title: Text(tr('history.deleteTake')),
+            subtitle: Text(tr('history.deleteTakeHint'), style: TextStyle(color: _delete ? cs.error : null)),
+          ),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('cancel'))),
+        FilledButton(
+          style: _delete ? FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError) : null,
+          onPressed: () => Navigator.pop(context, _delete),
+          child: Text(tr(_delete ? 'history.removeAndDelete' : 'history.remove')),
+        ),
+      ],
     );
   }
 }

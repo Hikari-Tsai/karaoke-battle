@@ -151,6 +151,24 @@ class AppSettings extends ChangeNotifier {
     }
   }
 
+  /// Sing history: single takes removed from the list (and the setlist
+  /// log), as `historyKey`s. The recordings stay unless deleted too.
+  Set<String> get historyHidden => {...?_prefs.getStringList('history_hidden')};
+  Future<void> setHistoryHidden(Set<String> keys) async {
+    await _prefs.setStringList('history_hidden', keys.toList()..sort());
+    notifyListeners();
+  }
+
+  /// Library: songs hidden from the list (ids), until restored from the
+  /// hidden songs. Their files, takes and history stay as they are.
+  Set<String> get hiddenSongs => {...?_prefs.getStringList('hidden_songs')};
+  Future<void> setSongHidden(String id, bool hidden) async {
+    final ids = hiddenSongs;
+    hidden ? ids.add(id) : ids.remove(id);
+    await _prefs.setStringList('hidden_songs', ids.toList()..sort());
+    notifyListeners();
+  }
+
   /// Setlists (copied text and the setlist log) show each song's score.
   bool get setlistScores => _get('setlist_scores', true);
   Future<void> setSetlistScores(bool v) => _set('setlist_scores', v);
