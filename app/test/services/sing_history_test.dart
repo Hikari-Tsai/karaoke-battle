@@ -71,6 +71,22 @@ void main() {
     expect((await loadSingHistory(library, clearedAt: settings.historyClearedAt)).length, 2);
   });
 
+  test('the start point counts from its moment on and can move back', () async {
+    SharedPreferences.setMockInitialValues({});
+    final settings = await AppSettings.load();
+    final a = await library.create(title: 'A', sourceType: SourceType.file);
+    take(a, '2026-11-18T20:00:00', 80);
+    take(a, '2026-11-20T09:00:00', 90);
+
+    // Sung exactly at the start: counted.
+    await settings.setHistoryClearedAt(DateTime.parse('2026-11-20T09:00:00'));
+    expect((await loadSingHistory(library, clearedAt: settings.historyClearedAt)).single.take.total, 90);
+
+    // Moved back to an earlier day: the earlier take is listed again.
+    await settings.setHistoryClearedAt(DateTime(2026, 11, 18, kDayStartHour));
+    expect((await loadSingHistory(library, clearedAt: settings.historyClearedAt)).length, 2);
+  });
+
   test('deleting takes removes only that song\'s take folders and tells the cards', () async {
     final a = await library.create(title: 'A', sourceType: SourceType.file);
     final b = await library.create(title: 'B', sourceType: SourceType.file);

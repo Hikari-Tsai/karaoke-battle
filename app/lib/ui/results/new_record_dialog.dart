@@ -21,6 +21,7 @@ import '../../state/i18n.dart';
 import '../../state/scoring_bridge.dart';
 import '../widgets/rank.dart';
 import '../widgets/shine.dart';
+import '../widgets/score_colors.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
 
@@ -344,7 +345,7 @@ class ShareCard extends StatelessWidget {
                               child: LinearProgressIndicator(
                                 value: (score.subScores[k]! / 100).clamp(0.0, 1.0),
                                 minHeight: 7,
-                                color: rc,
+                                color: subScoreColor(k), // as on the scoring rules page
                                 backgroundColor: Colors.white12,
                               ),
                             ),

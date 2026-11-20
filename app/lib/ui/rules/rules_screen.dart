@@ -10,6 +10,7 @@ import '../../state/i18n.dart';
 import '../widgets/brand.dart';
 import '../widgets/rank.dart';
 import '../widgets/reveal.dart';
+import '../widgets/score_colors.dart';
 import '../widgets/shine.dart';
 import 'sss_demos.dart';
 
@@ -28,13 +29,16 @@ class RulesScreen extends StatelessWidget {
   }
 
   // (i18n key suffix, weight %, icon, colour)
-  static const _items = <(String, int, IconData, Color)>[
-    ('pitch', 40, Icons.music_note, Color(0xFFBF5AF2)),
-    ('rhythm', 20, Icons.timer_outlined, Color(0xFFFF4FA3)),
-    ('stability', 10, Icons.horizontal_rule, Color(0xFF64D2FF)),
-    ('vibrato', 10, Icons.waves, Color(0xFF30D158)),
-    ('expression', 10, Icons.volume_up_outlined, Color(0xFFFF9F0A)),
-    ('longTone', 10, Icons.straighten, Color(0xFFF9D84A)),
+  static final _items = <(String, int, IconData, Color)>[
+    for (final (k, w, icon) in const [
+      ('pitch', 40, Icons.music_note),
+      ('rhythm', 20, Icons.timer_outlined),
+      ('stability', 10, Icons.horizontal_rule),
+      ('vibrato', 10, Icons.waves),
+      ('expression', 10, Icons.volume_up_outlined),
+      ('longTone', 10, Icons.straighten),
+    ])
+      (k, w, icon, subScoreColor(k)),
   ];
 
   static const _ranks = <(String, String)>[

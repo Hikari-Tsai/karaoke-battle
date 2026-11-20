@@ -140,7 +140,8 @@ class AppSettings extends ChangeNotifier {
   bool get rollKeyboard => _get('roll_keyboard', true);
   Future<void> setRollKeyboard(bool v) => _set('roll_keyboard', v);
 
-  /// Sing history: takes up to this moment were cleared from the list.
+  /// Sing history: its start point. The stats and the list count takes from
+  /// this moment on; null counts all of them. Nothing is deleted.
   DateTime? get historyClearedAt => DateTime.tryParse(_prefs.getString('history_cleared_at') ?? '');
   Future<void> setHistoryClearedAt(DateTime? t) async {
     if (t == null) {

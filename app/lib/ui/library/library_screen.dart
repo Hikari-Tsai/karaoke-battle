@@ -11,6 +11,7 @@ import '../../services/midi_export.dart';
 import '../../services/dev_mode.dart';
 import '../../services/prep_pipeline.dart';
 import '../../services/settings.dart';
+import '../../services/sing_history.dart';
 import '../../services/song_cover.dart';
 import '../../services/song_library.dart';
 import '../../services/take_import.dart';
@@ -33,6 +34,8 @@ import '../widgets/error_report.dart';
 import 'add_song_dialog.dart';
 import 'backing_import_dialog.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/reveal.dart';
+import '../widgets/stats_card.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -43,6 +46,75 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   bool _dragging = false;
+  late final SongLibrary _library = context.read<SongLibrary>();
+
+  /// Every scored take (history clearing does not apply here), for the
+  /// stats card at the top.
+  HistoryStats? _stats;
+  int _statsSeq = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _library.addListener(_loadStats);
+    _library.takesChanged.addListener(_loadStats);
+    _loadStats();
+  }
+
+  @override
+  void dispose() {
+    _library.removeListener(_loadStats);
+    _library.takesChanged.removeListener(_loadStats);
+    super.dispose();
+  }
+
+  Future<void> _loadStats() async {
+    final seq = ++_statsSeq;
+    final entries = await loadSingHistory(_library);
+    if (mounted && seq == _statsSeq) setState(() => _stats = summarizeHistory(entries));
+  }
+
+  Widget _statsCard(List<Song> songs) {
+    final stats = _stats;
+    String whole(double v) => '${v.round()}';
+    final best = stats?.best;
+    final ready = songs.where((s) => s.stage == PrepStage.done).length;
+    return StatsCard(icon: Icons.library_music_outlined, title: tr('library.statsTitle'), tiles: [
+      StatTile(icon: Icons.library_music_outlined, color: const Color(0xFFBF5AF2), label: tr('library.stat.songs'), value: songs.length.toDouble(), format: whole),
+      StatTile(icon: Icons.check_circle_outline, color: const Color(0xFF30D158), label: tr('library.stat.ready'), value: ready.toDouble(), format: whole),
+      StatTile(icon: Icons.mic_none, color: const Color(0xFFFF4FA3), label: tr('library.stat.sung'), value: (stats?.songs ?? 0).toDouble(), format: whole),
+      StatTile(icon: Icons.equalizer, color: const Color(0xFFFF9F0A), label: tr('history.stat.takes'), value: (stats?.takes ?? 0).toDouble(), format: whole),
+      StatTile(
+        icon: Icons.timer_outlined,
+        color: const Color(0xFF64D2FF),
+        label: tr('history.stat.time'),
+        value: (stats?.sung.inSeconds ?? 0).toDouble(),
+        format: (v) => formatSungTime(Duration(seconds: v.round())),
+      ),
+      if (best != null)
+        StatTile(
+          icon: Icons.emoji_events_outlined,
+          color: trophyColor,
+          label: tr('history.stat.best'),
+          value: best.take.total!,
+          format: (v) => v.toStringAsFixed(1),
+          valueColor: rankColor(best.take.rank),
+          trailing: RankChip(rank: best.take.rank, fontSize: 12),
+          note: best.song.title,
+          highlight: true,
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ResultsScreen(song: best.song, take: best.take))),
+        ),
+    ]);
+  }
+
+  /// A reading width, centred, with room on both sides (as the History).
+  static Widget _centred(Widget child, {Key? key}) => Center(
+        key: key,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1080),
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 28), child: child),
+        ),
+      );
 
   Future<void> _onDrop(DropDoneDetails d) async {
     final services = context.read<AppServices>();
@@ -114,9 +186,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   );
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: songs.length,
-                  itemBuilder: (context, i) => _SongCard(key: ValueKey(songs[i].id), song: songs[i], status: pipeline.statusOf(songs[i].id)),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  itemCount: songs.length + 1,
+                  itemBuilder: (context, i) {
+                    if (i == 0) return _centred(Padding(padding: const EdgeInsets.only(bottom: 12), child: _statsCard(songs)));
+                    final song = songs[i - 1];
+                    // The first screenful comes in one after another.
+                    return _centred(
+                      key: ValueKey(song.id),
+                      FadeSlideIn(
+                        delay: Duration(milliseconds: i <= 10 ? 40 * i : 0),
+                        offset: 12,
+                        duration: const Duration(milliseconds: 600),
+                        child: _SongCard(key: ValueKey('card-${song.id}'), song: song, status: pipeline.statusOf(song.id)),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -153,6 +238,7 @@ class _SongCard extends StatefulWidget {
 class _SongCardState extends State<_SongCard> {
   List<TakeInfo>? _takes;
   bool _expanded = false;
+  bool _hover = false;
   late final SongLibrary _library = context.read<SongLibrary>();
 
   @override
@@ -517,9 +603,35 @@ class _SongCardState extends State<_SongCard> {
     final hasCover = song.sourceType == SourceType.file && File(services.library.files(song).coverJpg).existsSync();
     final best = _best;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    // The best take's rank colour down the left edge (grey before any).
+    final accent = best != null ? rankColor(best.rank) : cs.outlineVariant;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: _hover ? cs.surfaceContainerHigh : cs.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _hover ? accent.withValues(alpha: 0.5) : cs.outlineVariant.withValues(alpha: 0.25)),
+          boxShadow: [if (_hover) BoxShadow(color: accent.withValues(alpha: 0.12), blurRadius: 20)],
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Stack(children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 4,
+              child: DecoratedBox(
+                decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [accent, accent.withValues(alpha: 0.4)])),
+              ),
+            ),
+            Padding(
+        padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -532,12 +644,16 @@ class _SongCardState extends State<_SongCard> {
                     child: Tooltip(
                       message: ready ? tr('library.sing') : '',
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(10),
                         child: SizedBox(
                           width: 128,
                           height: 72,
                           child: Stack(fit: StackFit.expand, children: [
-                            _thumb(song, services.library.files(song).shownThumb, cs),
+                            AnimatedScale(
+                              scale: _hover ? 1.06 : 1,
+                              duration: const Duration(milliseconds: 300),
+                              child: _thumb(song, services.library.files(song).shownThumb, cs),
+                            ),
                             if (ready)
                               Center(
                                 child: Container(
@@ -557,7 +673,7 @@ class _SongCardState extends State<_SongCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(song.title, style: theme.textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(song.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
                       Wrap(
                         spacing: 8,
@@ -587,7 +703,15 @@ class _SongCardState extends State<_SongCard> {
                       children: [
                         const Icon(Icons.emoji_events, color: trophyColor, size: 22),
                         const SizedBox(width: 4),
-                        Text(best.total!.toStringAsFixed(1), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: rankColor(best.rank))),
+                        Text(
+                          best.total!.toStringAsFixed(1),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: rankColor(best.rank),
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            shadows: [if (rankTier(best.rank) > 0) Shadow(color: rankColor(best.rank).withValues(alpha: 0.45), blurRadius: 14)],
+                          ),
+                        ),
                         const SizedBox(width: 6),
                         RankChip(rank: best.rank),
                       ],
@@ -716,6 +840,9 @@ class _SongCardState extends State<_SongCard> {
                   ),
             ],
           ],
+        ),
+            ),
+          ]),
         ),
       ),
     );

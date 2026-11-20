@@ -45,14 +45,15 @@ DateTime dayOf(DateTime t) {
   return DateTime(l.year, l.month, l.day);
 }
 
-/// Scored takes of [library]'s songs sung after [clearedAt] and not in
-/// [hidden] (see [historyKey]), newest first.
+/// Scored takes of [library]'s songs sung from [clearedAt] on (the History's
+/// start point; null: all of them) and not in [hidden] (see [historyKey]),
+/// newest first.
 Future<List<HistoryEntry>> loadSingHistory(SongLibrary library, {DateTime? clearedAt, Set<String> hidden = const {}}) async {
   final out = <HistoryEntry>[];
   for (final song in library.songs) {
     for (final take in await library.takes(song)) {
       if (take.total == null) continue;
-      if (clearedAt != null && !take.createdAt.isAfter(clearedAt)) continue;
+      if (clearedAt != null && take.createdAt.isBefore(clearedAt)) continue;
       if (hidden.contains(historyKey(song, take))) continue;
       final (started, seconds) = await _takeMeta(take);
       out.add(HistoryEntry(song, take, started: started, seconds: seconds));

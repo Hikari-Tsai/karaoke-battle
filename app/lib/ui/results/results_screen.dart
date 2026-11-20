@@ -14,6 +14,7 @@ import '../../state/i18n.dart';
 import '../rules/rules_screen.dart';
 import '../widgets/info_tip.dart';
 import '../widgets/shine.dart';
+import '../widgets/score_colors.dart';
 import '../widgets/rank.dart';
 import 'new_record_dialog.dart';
 import 'score_reveal.dart';
@@ -747,7 +748,8 @@ class _SubScoreBar extends StatelessWidget {
                   LinearProgressIndicator(
                     value: value! * progress / 100,
                     minHeight: 8,
-                    color: cs.primary,
+                    // The sub-score's colour, as on the scoring rules page.
+                    color: subScoreColor(tipKey),
                     backgroundColor: cs.surfaceContainerHighest,
                   ),
                   // Filled in: a band of light now and then, as on the demo cards.

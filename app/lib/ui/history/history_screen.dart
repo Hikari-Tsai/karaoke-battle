@@ -15,7 +15,7 @@ import '../widgets/brand.dart';
 import '../widgets/rank.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/reveal.dart';
-import '../widgets/shine.dart';
+import '../widgets/stats_card.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, this.active = true});
@@ -97,29 +97,62 @@ class _HistoryScreenState extends State<HistoryScreen> {
     ));
   }
 
-  Future<void> _clear() async {
+  /// 重新起算: the stats and the list start from now. Nothing is deleted;
+  /// the start point can be moved back at any time (undo, or the range).
+  Future<void> _countFromNow() async {
     final entries = _entries ?? const <HistoryEntry>[];
-    if (entries.isEmpty) return;
-    final deleteToo = await showDialog<bool>(context: context, builder: (_) => _ClearDialog(count: entries.length));
-    if (deleteToo == null || !mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AppDialog(
+        title: Text(tr('history.clearTitle')),
+        content: SizedBox(width: 440, child: Text(tr('history.clearBody', {'n': entries.length}))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('history.clear'))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
     final settings = context.read<AppSettings>();
-    // Everything listed is at or before the newest take.
-    final now = DateTime.now();
-    final newest = entries.first.take.createdAt;
-    await settings.setHistoryClearedAt(newest.isAfter(now) ? newest : now);
-    if (deleteToo) {
-      final bySong = <Song, List<TakeInfo>>{};
-      for (final e in entries) {
-        (bySong[e.song] ??= []).add(e.take);
-      }
-      for (final MapEntry(key: song, value: takes) in bySong.entries) {
-        await _library.deleteTakes(song, takes);
-      }
-    }
+    final before = settings.historyClearedAt;
+    await _setStart(DateTime.now());
     if (!mounted) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+      content: Text(tr('history.cleared')),
+      persist: false, // an action makes it stay by default
+      action: SnackBarAction(label: tr('history.undo'), onPressed: () => _setStart(before)),
+    ));
+  }
+
+  Future<void> _setStart(DateTime? start) async {
+    await context.read<AppSettings>().setHistoryClearedAt(start);
     await _reload();
-    if (!mounted) return;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(tr(deleteToo ? 'history.clearedDeleted' : 'history.cleared'))));
+  }
+
+  /// The date range on the stats card: choose where the stats start (a day,
+  /// now, or all takes).
+  Future<void> _pickStart() async {
+    final settings = context.read<AppSettings>();
+    final current = settings.historyClearedAt;
+    final choice = await showDialog<String>(context: context, builder: (_) => _StartDialog(start: current));
+    if (choice == null || !mounted) return;
+    switch (choice) {
+      case 'all':
+        await _setStart(null);
+      case 'now':
+        await _setStart(DateTime.now());
+      case 'date':
+        final today = dayOf(DateTime.now());
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: current == null ? today : dayOf(current),
+          firstDate: DateTime(2020),
+          lastDate: today,
+          helpText: tr('history.startTitle'),
+        );
+        // From the start of that sing day (days begin at kDayStartHour).
+        if (picked != null && mounted) await _setStart(DateTime(picked.year, picked.month, picked.day, kDayStartHour));
+    }
   }
 
   void _setlist(DateTime day) {
@@ -147,8 +180,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: OutlinedButton.icon(
-              onPressed: entries == null || entries.isEmpty ? null : _clear,
-              icon: const Icon(Icons.delete_sweep_outlined),
+              onPressed: entries == null || entries.isEmpty ? null : _countFromNow,
+              icon: const Icon(Icons.restart_alt),
               label: Text(tr('history.clear')),
             ),
           ),
@@ -164,6 +197,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     Text(tr('history.empty'), style: theme.textTheme.bodyLarge),
                     const SizedBox(height: 4),
                     Text(tr('history.emptyHint'), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                    // Counting from a start point: the earlier takes are still there.
+                    if (context.watch<AppSettings>().historyClearedAt case final start?) ...[
+                      const SizedBox(height: 16),
+                      Text(tr('history.emptySince', {'date': formatDay(dayOf(start))}), style: theme.textTheme.bodyMedium),
+                      const SizedBox(height: 10),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        FilledButton.tonalIcon(onPressed: () => _setStart(null), icon: const Icon(Icons.history), label: Text(tr('history.startAll'))),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(onPressed: _pickStart, icon: const Icon(Icons.event_outlined), label: Text(tr('history.startTip'))),
+                      ]),
+                    ],
                   ]),
                 )
               : _list(context, entries),
@@ -174,7 +218,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final items = <Widget>[
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: _StatsHeader(stats: summarizeHistory(entries), onOpenBest: _open),
+        child: _StatsHeader(stats: summarizeHistory(entries), start: context.read<AppSettings>().historyClearedAt, onOpenBest: _open, onPickStart: _pickStart),
       ),
     ];
     DateTime? day;
@@ -255,36 +299,41 @@ class _DayHeader extends StatelessWidget {
 /// the average and the best take (tap it to open its result). The numbers
 /// count up and the tiles come in one after another.
 class _StatsHeader extends StatelessWidget {
-  const _StatsHeader({required this.stats, required this.onOpenBest});
+  const _StatsHeader({required this.stats, required this.start, required this.onOpenBest, required this.onPickStart});
   final HistoryStats stats;
+
+  /// Where the stats start (null: all takes); the range opens [onPickStart].
+  final DateTime? start;
   final void Function(HistoryEntry) onOpenBest;
+  final VoidCallback onPickStart;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final best = stats.best;
-    final range = stats.first == null
-        ? null
-        : stats.first == stats.last
-            ? formatDay(stats.first!)
-            : tr('history.range', {'from': formatDay(stats.first!), 'to': formatDay(stats.last!)});
+    final range = start != null
+        ? tr('history.since', {'date': formatDay(dayOf(start!))})
+        : stats.first == null
+            ? tr('history.startAll')
+            : stats.first == stats.last
+                ? formatDay(stats.first!)
+                : tr('history.range', {'from': formatDay(stats.first!), 'to': formatDay(stats.last!)});
     String whole(double v) => '${v.round()}';
     String tenth(double v) => v.toStringAsFixed(1);
     final tiles = <Widget>[
-      _StatTile(icon: Icons.mic_none, color: const Color(0xFFFF4FA3), label: tr('history.stat.takes'), value: stats.takes.toDouble(), format: whole),
-      _StatTile(icon: Icons.library_music_outlined, color: const Color(0xFFBF5AF2), label: tr('history.stat.songs'), value: stats.songs.toDouble(), format: whole),
-      _StatTile(
+      StatTile(icon: Icons.mic_none, color: const Color(0xFFFF4FA3), label: tr('history.stat.takes'), value: stats.takes.toDouble(), format: whole),
+      StatTile(icon: Icons.library_music_outlined, color: const Color(0xFFBF5AF2), label: tr('history.stat.songs'), value: stats.songs.toDouble(), format: whole),
+      StatTile(
         icon: Icons.timer_outlined,
         color: const Color(0xFF64D2FF),
         label: tr('history.stat.time'),
         value: stats.sung.inSeconds.toDouble(),
         format: (v) => formatSungTime(Duration(seconds: v.round())),
       ),
-      _StatTile(icon: Icons.calendar_today_outlined, color: const Color(0xFF30D158), label: tr('history.stat.days'), value: stats.days.toDouble(), format: whole),
+      StatTile(icon: Icons.calendar_today_outlined, color: const Color(0xFF30D158), label: tr('history.stat.days'), value: stats.days.toDouble(), format: whole),
       if (stats.average != null)
-        _StatTile(icon: Icons.equalizer, color: const Color(0xFFFF9F0A), label: tr('history.stat.avg'), value: stats.average!, format: tenth),
+        StatTile(icon: Icons.equalizer, color: const Color(0xFFFF9F0A), label: tr('history.stat.avg'), value: stats.average!, format: tenth),
       if (best != null)
-        _StatTile(
+        StatTile(
           icon: Icons.emoji_events_outlined,
           color: trophyColor,
           label: tr('history.stat.best'),
@@ -297,160 +346,13 @@ class _StatsHeader extends StatelessWidget {
           onTap: () => onOpenBest(best),
         ),
     ];
-    return FadeSlideIn(
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF3D1546), Color(0xFF241640), Color(0xFF16141F)]),
-          border: Border.all(color: const Color(0x33C8BEFA)),
-          boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 30, offset: Offset(0, 12))],
-        ),
-        child: Stack(children: [
-          // A soft glow drifting across.
-          Positioned.fill(
-            child: ShineTicker(
-              builder: (context, t) => DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(-0.8 + 1.6 * (t == null ? 0.5 : shinePulse(t, period: 12)), -0.6),
-                    radius: 1.2,
-                    colors: const [Color(0x33FF4FA3), Color(0x00FF4FA3)],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Row(children: [
-                const Icon(Icons.insights, size: 20, color: Color(0xFFC8BEFA)),
-                const SizedBox(width: 8),
-                Text(tr('history.statsTitle'), style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
-                const Spacer(),
-                if (range != null) Text(range, style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFAAA6BA))),
-              ]),
-              const SizedBox(height: 14),
-              LayoutBuilder(builder: (context, c) {
-                // All across when there is room, else three per row.
-                final per = c.maxWidth >= 900 ? tiles.length : 3;
-                const gap = 10.0;
-                final w = (c.maxWidth - gap * (per - 1)) / per;
-                return Wrap(spacing: gap, runSpacing: gap, children: [
-                  for (final (i, t) in tiles.indexed)
-                    SizedBox(width: w, child: FadeSlideIn(delay: Duration(milliseconds: 80 + 70 * i), offset: 12, child: t)),
-                ]);
-              }),
-            ]),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _StatTile extends StatefulWidget {
-  const _StatTile({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.value,
-    required this.format,
-    this.note,
-    this.valueColor,
-    this.trailing,
-    this.highlight = false,
-    this.onTap,
-  });
-  final IconData icon;
-  final Color color;
-  final String label;
-  final double value;
-  final String Function(double) format;
-  final String? note;
-  final Color? valueColor;
-  final Widget? trailing;
-  final bool highlight;
-  final VoidCallback? onTap;
-
-  @override
-  State<_StatTile> createState() => _StatTileState();
-}
-
-class _StatTileState extends State<_StatTile> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final w = widget;
-    final border = w.highlight ? w.color.withValues(alpha: _hover ? 0.9 : 0.55) : const Color(0x1FFFFFFF);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        transform: Matrix4.translationValues(0, _hover && w.onTap != null ? -2 : 0, 0),
-        decoration: BoxDecoration(
-          color: const Color(0x14FFFFFF),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: border),
-          boxShadow: [if (w.highlight) BoxShadow(color: w.color.withValues(alpha: _hover ? 0.3 : 0.15), blurRadius: 18)],
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: w.onTap,
-            borderRadius: BorderRadius.circular(14),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [w.color, w.color.withValues(alpha: 0.5)]),
-                      boxShadow: [BoxShadow(color: w.color.withValues(alpha: 0.35), blurRadius: 10)],
-                    ),
-                    child: Icon(w.icon, size: 15, color: const Color(0xFF111111)),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(w.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFC9C4D8))),
-                  ),
-                ]),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: CountUp(
-                        value: w.value,
-                        format: w.format,
-                        delay: const Duration(milliseconds: 150),
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: w.valueColor ?? Colors.white,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (w.trailing != null) ...[const SizedBox(width: 6), w.trailing!],
-                ]),
-                if (w.note != null) ...[
-                  const SizedBox(height: 2),
-                  Text(w.note!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFFAAA6BA))),
-                ],
-              ]),
-            ),
-          ),
-        ),
-      ),
+    return StatsCard(
+      icon: Icons.insights,
+      title: tr('history.statsTitle'),
+      trailing: range,
+      onTrailingTap: onPickStart,
+      trailingTooltip: tr('history.startTip'),
+      tiles: tiles,
     );
   }
 }
@@ -620,45 +522,35 @@ class _RemoveDialogState extends State<_RemoveDialog> {
 
 /// Clear the list; optionally delete the recordings too. Pops null (cancel),
 /// false (list only) or true (also delete).
-class _ClearDialog extends StatefulWidget {
-  const _ClearDialog({required this.count});
-  final int count;
-
-  @override
-  State<_ClearDialog> createState() => _ClearDialogState();
-}
-
-class _ClearDialogState extends State<_ClearDialog> {
-  bool _delete = false;
+/// Where the History's stats and list start: pops 'date' (pick a day),
+/// 'now' or 'all', or null.
+class _StartDialog extends StatelessWidget {
+  const _StartDialog({required this.start});
+  final DateTime? start;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    Widget option(String value, IconData icon, String label, {bool selected = false}) => ListTile(
+          leading: Icon(icon, color: selected ? cs.primary : null),
+          title: Text(label, style: selected ? TextStyle(color: cs.primary, fontWeight: FontWeight.w700) : null),
+          trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          onTap: () => Navigator.pop(context, value),
+        );
     return AppDialog(
-      title: Text(tr('history.clearTitle')),
+      title: Text(tr('history.startTitle')),
       content: SizedBox(
-        width: 440,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(tr('history.clearBody', {'n': widget.count})),
-          const SizedBox(height: 8),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            value: _delete,
-            onChanged: (v) => setState(() => _delete = v ?? false),
-            title: Text(tr('history.deleteTakes')),
-            subtitle: Text(tr('history.deleteTakesHint'), style: TextStyle(color: _delete ? cs.error : null)),
-          ),
+        width: 420,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(tr('history.startBody'), style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+          const SizedBox(height: 12),
+          option('date', Icons.event_outlined, start == null ? tr('history.startPick') : '${tr('history.startPick')}（${tr('history.since', {'date': formatDay(dayOf(start!))})}）', selected: start != null),
+          option('now', Icons.restart_alt, tr('history.startNow')),
+          option('all', Icons.history, tr('history.startAll'), selected: start == null),
         ]),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('cancel'))),
-        FilledButton(
-          style: _delete ? FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError) : null,
-          onPressed: () => Navigator.pop(context, _delete),
-          child: Text(tr(_delete ? 'history.clearAndDelete' : 'history.clear')),
-        ),
-      ],
     );
   }
 }
