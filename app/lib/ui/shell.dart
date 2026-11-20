@@ -15,6 +15,7 @@ import '../state/i18n.dart';
 import '../state/setup_controller.dart';
 import 'about/about_screen.dart';
 import 'charts/charts_screen.dart';
+import 'history/history_screen.dart';
 import 'rules/rules_screen.dart';
 import 'library/library_screen.dart';
 import 'lyrics/no_lyrics_dialog.dart';
@@ -38,8 +39,9 @@ class _AppShellState extends State<AppShell> {
   static int _lastIndex = 0;
   static bool _startupDoneGlobal = false;
   static bool _readyGlobal = false;
-  static const _chartsIndex = 2;
-  static const _aboutIndex = 6; // at the bottom of the rail, with the links
+  static const _historyIndex = 1;
+  static const _chartsIndex = 3;
+  static const _aboutIndex = 7; // at the bottom of the rail, with the links
   int _index = _lastIndex;
   bool _checking = !_readyGlobal;
 
@@ -153,6 +155,7 @@ class _AppShellState extends State<AppShell> {
             ),
             destinations: [
               NavigationRailDestination(icon: const Icon(Icons.library_music_outlined), selectedIcon: const Icon(Icons.library_music), label: Text(tr('nav.library'))),
+              NavigationRailDestination(icon: const Icon(Icons.history), label: Text(tr('nav.history'))),
               NavigationRailDestination(icon: const Icon(Icons.ondemand_video_outlined), selectedIcon: const Icon(Icons.ondemand_video), label: Text(tr('nav.replays'))),
               NavigationRailDestination(icon: const Icon(Icons.leaderboard_outlined), selectedIcon: const Icon(Icons.leaderboard), label: Text(tr('nav.charts'))),
               // A teaser for a feature still to come: greyed out and does nothing.
@@ -175,6 +178,7 @@ class _AppShellState extends State<AppShell> {
               index: _index,
               children: [
                 const LibraryScreen(),
+                HistoryScreen(active: _index == _historyIndex),
                 const ReplaysScreen(),
                 ChartsScreen(active: _index == _chartsIndex),
                 const SizedBox.shrink(), // the ladder teaser has no page yet

@@ -140,6 +140,21 @@ class AppSettings extends ChangeNotifier {
   bool get rollKeyboard => _get('roll_keyboard', true);
   Future<void> setRollKeyboard(bool v) => _set('roll_keyboard', v);
 
+  /// Sing history: takes up to this moment were cleared from the list.
+  DateTime? get historyClearedAt => DateTime.tryParse(_prefs.getString('history_cleared_at') ?? '');
+  Future<void> setHistoryClearedAt(DateTime? t) async {
+    if (t == null) {
+      await _prefs.remove('history_cleared_at');
+      notifyListeners();
+    } else {
+      await _set('history_cleared_at', t.toIso8601String());
+    }
+  }
+
+  /// Setlists (copied text and the setlist log) show each song's score.
+  bool get setlistScores => _get('setlist_scores', true);
+  Future<void> setSetlistScores(bool v) => _set('setlist_scores', v);
+
   /// Results: the rolling-score ticks and the new-record cheer.
   bool get resultSounds => _get('result_sounds', true);
   Future<void> setResultSounds(bool v) => _set('result_sounds', v);

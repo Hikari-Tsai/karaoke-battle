@@ -252,6 +252,18 @@ class SongLibrary extends ChangeNotifier {
     return out;
   }
 
+  /// Deletes [takes] of [song] (recordings, pitch and score) for good.
+  Future<void> deleteTakes(Song song, Iterable<TakeInfo> takes) async {
+    final root = p.normalize(files(song).takesDir);
+    for (final t in takes) {
+      // Only ever a folder inside this song's takes.
+      if (p.dirname(p.normalize(t.dir)) != root) continue;
+      final d = Directory(t.dir);
+      if (await d.exists()) await d.delete(recursive: true);
+    }
+    markTakesChanged(files(song));
+  }
+
   Future<TakeInfo> newTake(Song s) async {
     final id = DateTime.now().toIso8601String().replaceAll(':', '_').split('.').first;
     final dir = files(s).takeDir(id);

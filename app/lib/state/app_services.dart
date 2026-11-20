@@ -17,6 +17,7 @@ import '../services/model_registry.dart';
 import '../services/prep_pipeline.dart';
 import '../services/replay_library.dart';
 import '../services/settings.dart';
+import '../services/sing_history.dart';
 import '../services/sidecars.dart';
 import '../services/song_library.dart';
 import 'i18n.dart';
@@ -48,6 +49,9 @@ class AppServices {
   /// API keys for AI singing advice (system keychain).
   final AiKeyStore aiKeys;
 
+  /// Today's setlist in setlist/ (for OBS), rewritten as takes are scored.
+  late final SetlistLog setlistLog = SetlistLog(library, settings, paths.setlists);
+
   /// Importing and aligning the user's own backing tracks.
   late final BackingImport backingImport = BackingImport(library: library, sidecars: sidecars, engine: engine, paths: paths, pipeline: pipeline);
 
@@ -55,6 +59,7 @@ class AppServices {
   String get swiftF0ModelPath => models.pathOf(ModelRegistry.swiftF0, 'model.onnx');
 
   void dispose() {
+    setlistLog.stop();
     pipeline.dispose();
     library.dispose();
     backend.dispose();
@@ -120,7 +125,7 @@ Future<AppServices> bootstrapServices() async {
     library: library,
     pipeline: pipeline,
     replays: replays,
-  );
+  )..setlistLog.start();
 }
 
 /// First line of a run in the log: app version and OS.

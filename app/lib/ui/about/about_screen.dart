@@ -119,6 +119,16 @@ class _AboutScreenState extends State<AboutScreen> {
     }
   }
 
+  /// The early testers section of the README in the UI language.
+  static String _thanksUrl() {
+    final (file, anchor) = switch (I18n.lang) {
+      'en' => ('README.en.md', 'early-testers'),
+      'ja' => ('README.ja.md', '早期テスター'),
+      _ => ('README.md', '早期測試者'),
+    };
+    return '${UpdateChecker.repoUrl}/blob/main/$file#${Uri.encodeComponent(anchor)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -192,6 +202,8 @@ class _AboutScreenState extends State<AboutScreen> {
             onPressed: () => launchUrl(Uri.parse('${UpdateChecker.repoUrl}/blob/main/docs/CITATIONS.md')),
             child: Text(tr('about.citations')),
           ),
+          // The testers and contributors are thanked in the README, not in the app.
+          TextButton(onPressed: () => launchUrl(Uri.parse(_thanksUrl())), child: Text(tr('about.thanks'))),
           TextButton(onPressed: () => showLicensePage(context: context, applicationName: tr('app.title')), child: const Text('Flutter package licenses')),
         ],
       ),

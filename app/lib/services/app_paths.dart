@@ -95,6 +95,9 @@ class AppPaths {
   String get cudaPack => p.join(root, 'cuda_pack');
   String get logs => p.join(root, 'logs');
 
+  /// Setlists of each day's singing (and today.txt for OBS).
+  String get setlists => p.join(root, 'setlist');
+
   String modelDir(String modelId) => p.join(models, modelId);
   String songDir(String songId) => p.join(songs, songId);
 }
