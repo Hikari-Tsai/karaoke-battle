@@ -177,7 +177,9 @@ class EngineBindings {
         audioCalibrateLatency = lib.lookupFunction<Int32 Function(Pointer<KeAudio>, Pointer<Double>),
             int Function(Pointer<KeAudio>, Pointer<Double>)>('ke_audio_calibrate_latency'),
         audioInputLevelDb =
-            lib.lookupFunction<Float Function(Pointer<KeAudio>), double Function(Pointer<KeAudio>)>('ke_audio_input_level_db');
+            lib.lookupFunction<Float Function(Pointer<KeAudio>), double Function(Pointer<KeAudio>)>('ke_audio_input_level_db'),
+        audioSilentSeconds =
+            lib.lookupFunction<Double Function(Pointer<KeAudio>), double Function(Pointer<KeAudio>)>('ke_audio_silent_seconds');
 
   final DynamicLibrary lib;
 
@@ -241,6 +243,7 @@ class EngineBindings {
   final int Function(Pointer<KeAudio>, Pointer<Utf8>) audioSaveCapture;
   final int Function(Pointer<KeAudio>, Pointer<Double>) audioCalibrateLatency;
   final double Function(Pointer<KeAudio>) audioInputLevelDb;
+  final double Function(Pointer<KeAudio>) audioSilentSeconds;
 
   /// Reads a "query then fill" JSON string function.
   String readString(int Function(Pointer<Utf8>, int, Pointer<Size>) fn) {

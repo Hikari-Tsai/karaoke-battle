@@ -249,6 +249,16 @@ void main() {
     }
   }, skip: (available && swiftF0 != null) ? false : 'KE_TEST_SWIFTF0 not set');
 
+  test('a running device reports that it calls back (stall detection, issue #8)', () async {
+    final live = LiveAudio.create(Engine.instance, sampleRate: 48000);
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(live.silentSeconds, lessThan(0.3));
+    } finally {
+      live.dispose();
+    }
+  }, skip: available ? false : 'engine not built');
+
   test('latency can be measured again on a device that is already open', () async {
     final live = LiveAudio.create(Engine.instance, sampleRate: 48000);
     try {

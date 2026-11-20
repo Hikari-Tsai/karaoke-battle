@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart';
 
 import '../engine/engine.dart';
 import '../scoring/rhythm.dart';
+import '../services/app_log.dart';
 import '../services/model_registry.dart';
 import '../services/song_library.dart';
 import '../services/settings.dart';
@@ -324,6 +325,30 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// Renders the notes into the engine's MIDI guide (debounced: note edits
   /// call this on every drag step).
   Timer? _guideTimer;
+
+  /// The audio device has not called back for a while (issue #8): the
+  /// microphone delivers nothing, so playback and capture are both stopped.
+  bool deviceStalled = false;
+  static const stallSeconds = 2.0;
+  Timer? _stallTimer;
+
+  void _watchDevice() {
+    _stallTimer?.cancel();
+    _stallTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      final l = _live;
+      if (l == null) return;
+      final silent = l.silentSeconds;
+      final stalled = silent > stallSeconds;
+      if (stalled == deviceStalled) return;
+      deviceStalled = stalled;
+      if (stalled) {
+        AppLog.warn('audio device stalled: no callback for ${silent.toStringAsFixed(1)} s (the microphone delivers nothing)');
+      } else {
+        AppLog.info('audio device running again');
+      }
+      notifyListeners();
+    });
+  }
   void _syncGuideSoon() {
     _guideTimer?.cancel();
     _guideTimer = Timer(const Duration(milliseconds: 250), _syncGuide);
@@ -382,6 +407,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       initError = '$e';
     }
     _startMonitor();
+    if (_live != null) _watchDevice();
     notifyListeners();
     // Songs prepared before loudness was measured: measure now (a second or
     // two with ffmpeg) and apply it if the volume is still automatic.
@@ -876,6 +902,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   @override
   void dispose() {
     _guideTimer?.cancel();
+    _stallTimer?.cancel();
     if (_saveTimer != null) _saveNow();
     final l = _live;
     _live = null;

@@ -1010,6 +1010,11 @@ const Map<String, (String, String, String)> _table = {
     'If calibration fails or seems off, set it yourself: when your pitch line shows up later than the notes, raise it; earlier, lower it. The −/+ buttons on the sing screen adjust it while you sing.',
     '測定できない、またはずれていると感じるときは自分で調整できます。歌っているとき音程線が音符より遅れて出るなら大きく、早く出るなら小さくします。歌唱画面の −／+ でも歌いながら微調整できます。',
   ),
+  'sing.deviceStalled': (
+    '音訊裝置停住了：麥克風（輸入裝置）一直沒有送出聲音，所以播放和錄音都無法進行。請確認麥克風有接好、沒有被其他程式（例如 Discord、OBS）佔用；也可以到「設定」換一個輸入裝置，再重新開啟這首歌。',
+    'The audio device has stopped: the microphone (input device) is not delivering any sound, so neither playback nor recording can run. Check that the microphone is connected and not taken by another program (such as Discord or OBS), or pick another input device in Settings and open the song again.',
+    'オーディオデバイスが止まっています。マイク（入力デバイス）から音が届いていないため、再生も録音もできません。マイクが正しく接続され、他のプログラム（Discord、OBS など）に占有されていないか確認するか、「設定」で別の入力デバイスを選んでから曲を開き直してください。',
+  ),
   'sing.latencyLess': ('延遲 −5 ms（音高線比音符早出現時按）', 'Latency −5 ms (when your pitch line is ahead of the notes)', '遅延 −5 ms（音程線が音符より早いとき）'),
   'sing.latencyMore': ('延遲 +5 ms（音高線比音符晚出現時按）', 'Latency +5 ms (when your pitch line lags behind the notes)', '遅延 +5 ms（音程線が音符より遅れるとき）'),
   'settings.calibFail.title': ('量測失敗', 'Calibration failed', '測定に失敗しました'),
@@ -1024,9 +1029,9 @@ const Map<String, (String, String, String)> _table = {
     'オーディオデバイスを開けませんでした。マイクとスピーカーが接続され、他のアプリに占有されていないこと、このアプリにマイクの使用を許可していることを確認してください（macOS：システム設定 > プライバシーとセキュリティ > マイク、Windows：設定 > プライバシーとセキュリティ > マイク）。サンプルレートを 44100 Hz にするか、別のデバイスを選ぶ方法もあります。',
   ),
   'settings.calibFail.timeout': (
-    '音訊裝置沒有回應。請確認選的輸入與輸出裝置都已連接，必要時改選其他裝置或重新插拔後再試。',
-    'The audio device did not respond. Check that the selected input and output devices are connected; pick other devices or reconnect them, then try again.',
-    'オーディオデバイスが応答しません。選択した入力・出力デバイスが接続されているか確認し、必要に応じて別のデバイスを選ぶか接続し直してから、もう一度お試しください。',
+    '音訊裝置沒有回應，通常是麥克風（輸入裝置）沒有送出聲音。請確認麥克風有接好、沒有被其他程式（例如 Discord、OBS）佔用，必要時改選其他輸入裝置或重新插拔後再試。',
+    'The audio device did not respond, usually because the microphone (input device) delivers no sound. Check that it is connected and not taken by another program (such as Discord or OBS); pick another input device or reconnect it, then try again.',
+    'オーディオデバイスが応答しません。多くはマイク（入力デバイス）から音が届いていないためです。マイクが接続され、他のプログラム（Discord、OBS など）に占有されていないか確認し、必要に応じて別の入力デバイスを選ぶか接続し直してから、もう一度試してください。',
   ),
   'settings.calibFail.busy': (
     '目前正在播放或錄音，無法量測。請先關閉預覽或演唱畫面再試。',

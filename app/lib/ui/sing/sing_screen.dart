@@ -604,6 +604,28 @@ class _SingScreenState extends State<SingScreen>
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                     child: Column(
                       children: [
+                        if (s.deviceStalled && s.initError == null)
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: cs.errorContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.mic_off_outlined, color: cs.onErrorContainer),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: SelectableText(
+                                    tr('sing.deviceStalled'),
+                                    style: TextStyle(color: cs.onErrorContainer),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (s.initError != null)
                           Container(
                             width: double.infinity,

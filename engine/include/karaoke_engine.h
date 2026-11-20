@@ -353,6 +353,13 @@ KE_API int  ke_audio_calibrate_latency(ke_audio* a, double* roundtrip_seconds);
 /* Current input level (RMS dBFS) for a mic meter. */
 KE_API float ke_audio_input_level_db(ke_audio* a);
 
+/* Seconds since the device last called back (since it started, if it never
+ * did). A duplex device is driven by its capture side: when the microphone
+ * delivers nothing (in use by another program, a stuck USB device) there
+ * are no callbacks at all, so playback and capture both stop. Normally a
+ * few milliseconds; the app reports a device that stays silent. */
+KE_API double ke_audio_silent_seconds(ke_audio* a);
+
 #ifdef __cplusplus
 }
 #endif

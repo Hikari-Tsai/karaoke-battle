@@ -166,6 +166,7 @@ struct ke_audio {
     // ---- callback bookkeeping ----------------------------------------------------
     std::atomic<uint64_t> cb_count{0};
     std::atomic<int64_t> cb_ns{0};               // steady_clock ns at the last callback
+    std::atomic<int64_t> started_ns{0};          // steady_clock ns when the device was started
     std::atomic<uint32_t> cb_frames{0};
 
     // ---- track -------------------------------------------------------------------
@@ -977,6 +978,8 @@ KE_API int ke_audio_create(const char* capture_device_id, const char* playback_d
 
     r = ma_device_start(&a->dev);
     if (r != MA_SUCCESS) return ke::fail(KE_ERR_AUDIO_DEVICE, "ma_device_start: %s", ma_err(r).c_str());
+    a->started_ns.store(std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now().time_since_epoch()).count(),
+                        std::memory_order_release);
     char pbname[256] = {0}, capname[256] = {0};
     ma_device_get_name(&a->dev, ma_device_type_playback, pbname, sizeof(pbname), nullptr);
     ma_device_get_name(&a->dev, ma_device_type_capture, capname, sizeof(capname), nullptr);
@@ -1476,6 +1479,15 @@ KE_API int ke_audio_calibrate_latency(ke_audio* a, double* roundtrip_seconds) {
     const double median = res.roundtrip;
     if (roundtrip_seconds) *roundtrip_seconds = median;
     return KE_OK;
+}
+
+KE_API double ke_audio_silent_seconds(ke_audio* a) {
+    if (!a) return 0.0;
+    const int64_t start = a->started_ns.load(std::memory_order_acquire);
+    if (start == 0) return 0.0;
+    const int64_t last = std::max(a->cb_ns.load(std::memory_order_relaxed), start);
+    const int64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now().time_since_epoch()).count();
+    return std::max(0.0, double(now - last) * 1e-9);
 }
 
 KE_API float ke_audio_input_level_db(ke_audio* a) {

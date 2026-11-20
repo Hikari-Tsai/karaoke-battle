@@ -673,6 +673,11 @@ class LiveAudio {
   set latencyCompensation(double seconds) => _b.audioSetLatencyCompensation(ptr, seconds);
   double get inputLevelDb => _b.audioInputLevelDb(ptr);
 
+  /// Seconds since the device last called back; a few ms while it runs.
+  /// Long means the microphone delivers nothing and the device has stopped
+  /// (see ke_audio_silent_seconds).
+  double get silentSeconds => _b.audioSilentSeconds(ptr);
+
   /// Drains new pitch frames (call every UI tick).
   List<PitchFrame> readFrames() {
     final n = _b.audioReadF0(ptr, _buf, _maxFrames);
