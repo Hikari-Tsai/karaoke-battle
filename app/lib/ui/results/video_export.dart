@@ -359,7 +359,7 @@ class _ExportStage extends StatelessWidget {
                           style: TextStyle(color: rankColor(score.rank), fontSize: 96, fontWeight: FontWeight.w900, shadows: shadow),
                         ),
                         const SizedBox(width: 20),
-                        RankChip(rank: score.rank, fontSize: 40),
+                        RankChip(rank: score.rank, fontSize: 40, animated: false),
                       ]),
                       const SizedBox(height: 10),
                       Text(tr('video.cardFooter'), style: const TextStyle(color: Colors.white54, fontSize: 14)),

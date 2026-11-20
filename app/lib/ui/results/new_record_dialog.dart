@@ -20,6 +20,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/scoring_bridge.dart';
 import '../widgets/rank.dart';
+import '../widgets/shine.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
 
@@ -69,6 +70,9 @@ class _NewRecordDialogState extends State<_NewRecordDialog> {
   String? _imagePath;
   bool _busy = false;
 
+  /// The card is being captured: its light effects are off for that frame.
+  bool _capturing = false;
+
   String get _text => shareText(widget.song, widget.score, newRecord: widget.celebrate);
 
   @override
@@ -82,7 +86,15 @@ class _NewRecordDialogState extends State<_NewRecordDialog> {
   /// Renders the card at 1080x1080 and saves it next to the take.
   Future<(String, Uint8List)> _render() async {
     final boundary = _cardKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-    final image = await boundary.toImage(pixelRatio: 1080 / ShareCard.size);
+    // Captured without the band of light that may be crossing the rank.
+    setState(() => _capturing = true);
+    await WidgetsBinding.instance.endOfFrame;
+    final ui.Image image;
+    try {
+      image = await boundary.toImage(pixelRatio: 1080 / ShareCard.size);
+    } finally {
+      if (mounted) setState(() => _capturing = false);
+    }
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     final bytes = data!.buffer.asUint8List();
@@ -167,12 +179,15 @@ class _NewRecordDialogState extends State<_NewRecordDialog> {
               child: FittedBox(
                 child: RepaintBoundary(
                   key: _cardKey,
-                  child: ShareCard(
+                  child: ShineScope(
+                    enabled: !_capturing,
+                    child: ShareCard(
                     song: widget.song,
                     score: widget.score,
                     thumbPath: widget.thumbPath,
                     date: widget.take.createdAt,
                     badge: widget.celebrate ? tr('share.newRecord') : (widget.isBest ? tr('share.personalBest') : null),
+                    ),
                   ),
                 ),
               ),

@@ -18,6 +18,8 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../replays/replays_screen.dart' show replayImportError;
 import '../shell.dart';
+import '../widgets/shine.dart';
+import 'demo_video_dialog.dart';
 
 /// Where the website keeps the replay files (GitHub Pages, site/assets).
 const demoReplayBase = 'https://hikari-tsai.github.io/karaoke-battle/assets';
@@ -26,6 +28,7 @@ class SssDemo {
   const SssDemo({
     required this.key,
     required this.file,
+    required this.video,
     required this.total,
     required this.singer,
     required this.voicebank,
@@ -36,6 +39,9 @@ class SssDemo {
   /// Also the suffix of its AI feedback text (`demo.c<key>`).
   final String key;
   final String file;
+
+  /// The take exported with the app's "Export video" (on the website).
+  final String video;
   final double total;
   final String singer;
   final bool voicebank;
@@ -50,8 +56,8 @@ class SssDemo {
 
 /// The numbers are the ones on the website.
 const sssDemos = [
-  SssDemo(key: '992', file: 'replay-992.zip', total: 99.2, singer: '夏語遙', voicebank: true, bars: [100, 95, 100, null, 100, 100], judges: [38, 10, 2, 0]),
-  SssDemo(key: '987', file: 'replay-987.zip', total: 98.7, singer: '家家', voicebank: false, bars: [100, 92, 100, null, 100, 100], judges: [42, 2, 4, 2]),
+  SssDemo(key: '992', file: 'replay-992.zip', video: 'demo-992.mp4', total: 99.2, singer: '夏語遙', voicebank: true, bars: [100, 95, 100, null, 100, 100], judges: [38, 10, 2, 0]),
+  SssDemo(key: '987', file: 'replay-987.zip', video: 'demo-987.mp4', total: 98.7, singer: '家家', voicebank: false, bars: [100, 92, 100, null, 100, 100], judges: [42, 2, 4, 2]),
 ];
 
 // The website's colours (site/styles.css).
@@ -206,8 +212,8 @@ class _SssDemosState extends State<SssDemos> with TickerProviderStateMixin {
           onDownload: () => _download(sssDemos[i]),
         );
     return LayoutBuilder(builder: (context, c) {
-      // About a third of the width left empty, half on each side.
-      final width = c.maxWidth >= 1000 ? c.maxWidth * 2 / 3 : c.maxWidth;
+      // Not too wide: the rules page is already centred at a reading width.
+      final width = c.maxWidth.clamp(0.0, 960.0);
       final Widget cards;
       if (width < 760) {
         cards = Column(children: [
@@ -289,7 +295,23 @@ class _DemoCardState extends State<_DemoCard> {
                   gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x26000000), Color(0x99000000)]),
                 ),
               ),
-              Center(child: _DownloadButton(busy: widget.busy, fraction: widget.fraction, inReplays: widget.inReplays, onDownload: widget.onDownload)),
+              // The website's play button: the video in a dialog.
+              Center(
+                child: _PlayButton(
+                  hover: _hover,
+                  onTap: () => showDemoVideo(
+                    context,
+                    url: '$demoReplayBase/${d.video}',
+                    title: '${tr('demo.song')}・${tr('demo.singer', {'name': d.singer})}',
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Center(child: _DownloadButton(busy: widget.busy, fraction: widget.fraction, inReplays: widget.inReplays, onDownload: widget.onDownload)),
+              ),
             ]),
           ),
           Padding(
@@ -358,7 +380,7 @@ class _DemoCardState extends State<_DemoCard> {
             Positioned(
               left: s.$1,
               top: s.$2,
-              child: _Sparkle(size: s.$3, value: _at(0.5, 0.7) * math.max(0, math.sin((loop + s.$4) * 2 * math.pi))),
+              child: Sparkle(size: s.$3, value: _at(0.5, 0.7) * math.max(0, math.sin((loop + s.$4) * 2 * math.pi))),
             ),
         ]),
       ]),
@@ -464,27 +486,47 @@ class _DemoCardState extends State<_DemoCard> {
   static const _sparkles = [(-14.0, -12.0, 14.0, 0.0), (150.0, -16.0, 12.0, 0.33), (176.0, 44.0, 10.0, 0.66)];
 }
 
-class _Sparkle extends StatelessWidget {
-  const _Sparkle({required this.size, required this.value});
-  final double size;
-  final double value;
+/// The website's round yellow play button, pulsing gently.
+class _PlayButton extends StatelessWidget {
+  const _PlayButton({required this.hover, required this.onTap});
+  final bool hover;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => IgnorePointer(
-        child: Opacity(
-          opacity: value.clamp(0.0, 1.0),
-          child: Transform.scale(
-            scale: 0.5 + 0.5 * value,
-            child: Transform.rotate(
-              angle: value * 0.8,
-              child: Icon(Icons.auto_awesome, size: size, color: const Color(0xFFFFF3A6), shadows: const [Shadow(color: _yellow, blurRadius: 8)]),
+  Widget build(BuildContext context) => Tooltip(
+        message: tr('demo.watch'),
+        child: ShineTicker(builder: (context, t) {
+          final pulse = t == null ? 0.0 : shinePulse(t, period: 2.0);
+          return AnimatedScale(
+            scale: hover ? 1.08 : 1,
+            duration: const Duration(milliseconds: 200),
+            child: Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _yellow,
+                boxShadow: [
+                  BoxShadow(color: _yellow.withValues(alpha: 0.12 + 0.12 * pulse), spreadRadius: 8 + 6 * pulse),
+                  const BoxShadow(color: Color(0x80000000), blurRadius: 34, offset: Offset(0, 12)),
+                ],
+              ),
+              child: Material(
+                type: MaterialType.transparency,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: onTap,
+                  child: const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.play_arrow_rounded, size: 40, color: Color(0xFF111111))),
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        }),
       );
 }
 
-/// The yellow button where the website has its play button.
+/// The download button, at the bottom of the cover.
 class _DownloadButton extends StatelessWidget {
   const _DownloadButton({required this.busy, required this.fraction, required this.inReplays, required this.onDownload});
   final bool busy;
@@ -558,12 +600,12 @@ class _Pill extends StatelessWidget {
           onTap: onTap,
           mouseCursor: onTap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 26, 12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 20, 8),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               leading,
               const SizedBox(width: 12),
               Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: foreground)),
+                Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: foreground)),
                 if (subtitle != null) Text(subtitle!, style: TextStyle(fontSize: 12, color: foreground.withValues(alpha: 0.75))),
               ]),
             ]),
@@ -596,33 +638,8 @@ class _SssBadge extends StatelessWidget {
               ),
               child: const Text('SSS', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, letterSpacing: 0.7, color: Color(0xFF111111))),
             ),
-            if (shine != null) Positioned.fill(child: _ShineBand(position: shine!)),
+            if (shine != null) Positioned.fill(child: ShineBand(position: shine!)),
           ]),
-        ),
-      );
-}
-
-/// A slanted band of white light at [position] (-1: just left of the box,
-/// 2: just right of it).
-class _ShineBand extends StatelessWidget {
-  const _ShineBand({required this.position, this.strength = 0.75});
-  final double position;
-  final double strength;
-
-  @override
-  Widget build(BuildContext context) => IgnorePointer(
-        child: FractionalTranslation(
-          translation: Offset(position - 0.5, 0),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white.withValues(alpha: 0), Colors.white.withValues(alpha: strength), Colors.white.withValues(alpha: 0)],
-                stops: const [0.3, 0.5, 0.7],
-              ),
-            ),
-          ),
         ),
       );
 }
@@ -662,7 +679,7 @@ class _Bar extends StatelessWidget {
                           DecoratedBox(
                             decoration: BoxDecoration(gradient: LinearGradient(colors: full ? const [_orange, _yellow] : const [_magenta, _lav])),
                           ),
-                          if (full && shine != null) _ShineBand(position: shine!, strength: 0.9),
+                          if (full && shine != null) ShineBand(position: shine!, strength: 0.9),
                         ]),
                       ),
                     ),

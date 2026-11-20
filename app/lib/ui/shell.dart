@@ -142,7 +142,14 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
+          // Fills the height; a short window scrolls it instead of pushing
+          // the links at the bottom out of reach.
+          LayoutBuilder(
+            builder: (context, c) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: c.maxHeight),
+                child: IntrinsicHeight(
+                  child: NavigationRail(
             selectedIndex: _index == _aboutIndex ? null : _index,
             onDestinationSelected: (i) => setState(() => _index = _lastIndex = i),
             labelType: NavigationRailLabelType.all,
@@ -189,6 +196,10 @@ class _AppShellState extends State<AppShell> {
                 label: Text(tr('nav.settings')),
               ),
             ],
+                  ),
+                ),
+              ),
+            ),
           ),
           const VerticalDivider(width: 1, thickness: 1),
           Expanded(

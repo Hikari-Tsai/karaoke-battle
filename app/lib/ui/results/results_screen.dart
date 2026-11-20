@@ -13,6 +13,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../rules/rules_screen.dart';
 import '../widgets/info_tip.dart';
+import '../widgets/shine.dart';
 import '../widgets/rank.dart';
 import 'new_record_dialog.dart';
 import 'score_reveal.dart';
@@ -296,13 +297,14 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                             const SizedBox(height: 16),
                                             for (final (i, k) in ScoreData.subScoreKeys.indexed) ...[
                                               _roll == null
-                                                  ? _SubScoreBar(label: tr('results.${_camel(k)}'), value: score.subScores[k], tipKey: _camel(k))
+                                                  ? _SubScoreBar(label: tr('results.${_camel(k)}'), value: score.subScores[k], tipKey: _camel(k), index: i)
                                                   : AnimatedBuilder(
                                                       animation: _roll!,
                                                       builder: (_, _) => _SubScoreBar(
                                                         label: tr('results.${_camel(k)}'),
                                                         value: score.subScores[k],
                                                         tipKey: _camel(k),
+                                                        index: i,
                                                         // Bars fill one after another while the total spins.
                                                         progress: Curves.easeOutCubic.transform(Interval(0.08 + 0.07 * i, 0.5 + 0.07 * i).transform(_roll!.value)),
                                                       ),
@@ -426,22 +428,30 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     );
   }
 
-  Widget _rankChip(ThemeData theme, ScoreData score) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(color: _rankColor(score.rank), borderRadius: BorderRadius.circular(8)),
-        child: Text(score.rank, style: theme.textTheme.headlineSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.w800)),
-      );
+  // S and above shine and sparkle (see RankChip).
+  Widget _rankChip(ThemeData theme, ScoreData score) => RankChip(rank: score.rank, fontSize: theme.textTheme.headlineSmall?.fontSize ?? 24);
+
+  /// The total's halo in the rank's colour, slowly brightening and dimming
+  /// ([t] on the shine clock; null: still).
+  TextStyle _glowing(TextStyle style, ScoreData score, double? t) {
+    if (t == null) return style;
+    final pulse = shinePulse(t, period: 2.8);
+    final c = rankTier(score.rank) > 0 ? _rankColor(score.rank) : (style.color ?? Colors.white);
+    return style.copyWith(shadows: [Shadow(color: c.withValues(alpha: 0.18 + 0.32 * pulse), blurRadius: 14 + 18 * pulse)]);
+  }
 
   /// The total and its rank; spinning reels and a stamped rank on reveal.
   Widget _totalRow(ThemeData theme, ScoreData score) {
     final style = theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.primary) ?? const TextStyle(fontSize: 57);
     final roll = _roll, stamp = _stamp;
     if (roll == null || stamp == null) {
-      return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Text(score.total.toStringAsFixed(1), style: style),
-        const SizedBox(width: 12),
-        Padding(padding: const EdgeInsets.only(bottom: 10), child: _rankChip(theme, score)),
-      ]);
+      return ShineTicker(
+        builder: (context, t) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text(score.total.toStringAsFixed(1), style: _glowing(style, score, t)),
+          const SizedBox(width: 12),
+          Padding(padding: const EdgeInsets.only(bottom: 10), child: _rankChip(theme, score)),
+        ]),
+      );
     }
     // Spin to the total as shown (one decimal), so the last reel lands square.
     final target = _shown(score);
@@ -452,9 +462,10 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         final u = roll.value;
         final perFrame = u >= 1 ? 0.0 : _slot.slope(u) * target * 10 / (kRevealRoll.inMilliseconds / 1000 * 60);
         final s = Curves.easeOutBack.transform(stamp.value);
-        return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        // Once landed, the total glows like the rank (ShineTicker below).
+        return ShineTicker(builder: (context, t) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           FittedBox(
-            child: RollingNumber(value: target * _slot.transform(u), intDigits: intDigits, style: style, tenthsPerFrame: perFrame),
+            child: RollingNumber(value: target * _slot.transform(u), intDigits: intDigits, style: u >= 1 ? _glowing(style, score, t) : style, tenthsPerFrame: perFrame),
           ),
           const SizedBox(width: 12),
           Padding(
@@ -464,7 +475,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
               child: Transform.scale(scale: 1 + 1.8 * (1 - s), child: _rankChip(theme, score)),
             ),
           ),
-        ]);
+        ]));
       },
     );
   }
@@ -688,9 +699,12 @@ class _AdviceCard extends StatelessWidget {
 }
 
 class _SubScoreBar extends StatelessWidget {
-  const _SubScoreBar({required this.label, required this.value, required this.tipKey, this.progress = 1});
+  const _SubScoreBar({required this.label, required this.value, required this.tipKey, this.progress = 1, this.index = 0});
   final String label;
   final double? value;
+
+  /// Its place in the list: the light sweeps the bars one after another.
+  final int index;
 
   /// How far the bar has filled in (the reveal), 0..1.
   final double progress;
@@ -729,12 +743,16 @@ class _SubScoreBar extends StatelessWidget {
           child: value == null
               // Not scored for this song: a striped, locked bar.
               ? SizedBox(height: 8, child: CustomPaint(painter: _StripesPainter(background: cs.surfaceContainerHighest, stripe: cs.onSurface.withValues(alpha: 0.12))))
-              : LinearProgressIndicator(
-                  value: value! * progress / 100,
-                  minHeight: 8,
-                  color: cs.primary,
-                  backgroundColor: cs.surfaceContainerHighest,
-                ),
+              : Stack(children: [
+                  LinearProgressIndicator(
+                    value: value! * progress / 100,
+                    minHeight: 8,
+                    color: cs.primary,
+                    backgroundColor: cs.surfaceContainerHighest,
+                  ),
+                  // Filled in: a band of light now and then, as on the demo cards.
+                  if (progress >= 1) Positioned.fill(child: BarShine(fraction: value! / 100, index: index)),
+                ]),
         ),
       ],
     );

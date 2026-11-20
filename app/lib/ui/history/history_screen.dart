@@ -14,6 +14,8 @@ import 'setlist_dialog.dart';
 import '../widgets/brand.dart';
 import '../widgets/rank.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/reveal.dart';
+import '../widgets/shine.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, this.active = true});
@@ -169,30 +171,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _list(BuildContext context, List<HistoryEntry> entries) {
-    final theme = Theme.of(context);
     final items = <Widget>[
       Padding(
-        padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+        padding: const EdgeInsets.only(bottom: 12),
         child: _StatsHeader(stats: summarizeHistory(entries), onOpenBest: _open),
       ),
     ];
     DateTime? day;
+    var shown = 0; // rows on the first screen come in one after another
     for (final e in entries) {
       final d = dayOf(e.startedAt);
       if (d != day) {
         day = d;
-        items.add(Padding(
-          padding: const EdgeInsets.fromLTRB(4, 8, 4, 2),
-          child: Row(children: [
-            Text(_dayLabel(d), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-            const Spacer(),
-            TextButton.icon(onPressed: () => _setlist(d), icon: const Icon(Icons.subject, size: 18), label: Text(tr('setlist.button'))),
-          ]),
-        ));
+        items.add(_DayHeader(label: _dayLabel(d), count: entries.where((x) => dayOf(x.startedAt) == d).length, onSetlist: () => _setlist(d)));
       }
-      items.add(_HistoryRow(entry: e, files: _library.files(e.song), onOpen: () => _open(e), onRemove: () => _remove(e)));
+      items.add(FadeSlideIn(
+        delay: Duration(milliseconds: 40 * (shown < 10 ? shown : 0)),
+        offset: 12,
+        duration: const Duration(milliseconds: 600),
+        child: _HistoryRow(entry: e, files: _library.files(e.song), onOpen: () => _open(e), onRemove: () => _remove(e)),
+      ));
+      shown++;
     }
-    return ListView(padding: const EdgeInsets.all(12), children: items);
+    // A reading width, centred, with room on both sides.
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      children: [
+        for (final w in items)
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1080),
+              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 28), child: w),
+            ),
+          ),
+      ],
+    );
   }
 
   static String _dayLabel(DateTime d) {
@@ -203,8 +216,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
+/// A day's heading: the date in a pill, how many takes, a rule, and the
+/// day's setlist.
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.label, required this.count, required this.onSetlist});
+  final String label;
+  final int count;
+  final VoidCallback onSetlist;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 16, 0, 6),
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(999), border: Border.all(color: cs.primary.withValues(alpha: 0.35))),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.calendar_today_outlined, size: 14, color: cs.primary),
+            const SizedBox(width: 6),
+            Text(label, style: theme.textTheme.labelLarge?.copyWith(color: cs.primary, fontWeight: FontWeight.w800)),
+          ]),
+        ),
+        const SizedBox(width: 10),
+        Text(tr('history.dayTakes', {'n': count}), style: theme.textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant)),
+        const SizedBox(width: 12),
+        Expanded(child: Divider(color: cs.outlineVariant.withValues(alpha: 0.5))),
+        const SizedBox(width: 8),
+        TextButton.icon(onPressed: onSetlist, icon: const Icon(Icons.subject, size: 18), label: Text(tr('setlist.button'))),
+      ]),
+    );
+  }
+}
+
 /// Totals at the top: takes, songs, time sung, days (with the date range),
-/// the average and the best take (tap it to open its result).
+/// the average and the best take (tap it to open its result). The numbers
+/// count up and the tiles come in one after another.
 class _StatsHeader extends StatelessWidget {
   const _StatsHeader({required this.stats, required this.onOpenBest});
   final HistoryStats stats;
@@ -213,150 +262,303 @@ class _StatsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final best = stats.best;
     final range = stats.first == null
         ? null
         : stats.first == stats.last
             ? formatDay(stats.first!)
             : tr('history.range', {'from': formatDay(stats.first!), 'to': formatDay(stats.last!)});
+    String whole(double v) => '${v.round()}';
+    String tenth(double v) => v.toStringAsFixed(1);
     final tiles = <Widget>[
-      _StatTile(icon: Icons.mic_none, label: tr('history.stat.takes'), value: '${stats.takes}'),
-      _StatTile(icon: Icons.library_music_outlined, label: tr('history.stat.songs'), value: '${stats.songs}'),
-      _StatTile(icon: Icons.timer_outlined, label: tr('history.stat.time'), value: formatSungTime(stats.sung)),
-      _StatTile(icon: Icons.calendar_today_outlined, label: tr('history.stat.days'), value: '${stats.days}', note: range),
-      if (stats.average != null) _StatTile(icon: Icons.equalizer, label: tr('history.stat.avg'), value: stats.average!.toStringAsFixed(1)),
+      _StatTile(icon: Icons.mic_none, color: const Color(0xFFFF4FA3), label: tr('history.stat.takes'), value: stats.takes.toDouble(), format: whole),
+      _StatTile(icon: Icons.library_music_outlined, color: const Color(0xFFBF5AF2), label: tr('history.stat.songs'), value: stats.songs.toDouble(), format: whole),
+      _StatTile(
+        icon: Icons.timer_outlined,
+        color: const Color(0xFF64D2FF),
+        label: tr('history.stat.time'),
+        value: stats.sung.inSeconds.toDouble(),
+        format: (v) => formatSungTime(Duration(seconds: v.round())),
+      ),
+      _StatTile(icon: Icons.calendar_today_outlined, color: const Color(0xFF30D158), label: tr('history.stat.days'), value: stats.days.toDouble(), format: whole),
+      if (stats.average != null)
+        _StatTile(icon: Icons.equalizer, color: const Color(0xFFFF9F0A), label: tr('history.stat.avg'), value: stats.average!, format: tenth),
       if (best != null)
         _StatTile(
           icon: Icons.emoji_events_outlined,
+          color: trophyColor,
           label: tr('history.stat.best'),
-          value: best.take.total!.toStringAsFixed(1),
+          value: best.take.total!,
+          format: tenth,
           valueColor: rankColor(best.take.rank),
-          trailing: RankChip(rank: best.take.rank, fontSize: 11),
+          trailing: RankChip(rank: best.take.rank, fontSize: 12),
           note: best.song.title,
+          highlight: true,
           onTap: () => onOpenBest(best),
         ),
     ];
-    return Card(
-      margin: EdgeInsets.zero,
-      color: cs.surfaceContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: LayoutBuilder(builder: (context, c) {
-          // Six across when there is room, else three per row.
-          final per = c.maxWidth >= 900 ? tiles.length : 3;
-          final w = c.maxWidth / per;
-          return Wrap(children: [for (final t in tiles) SizedBox(width: w, child: t)]);
-        }),
-      ),
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({required this.icon, required this.label, required this.value, this.note, this.valueColor, this.trailing, this.onTap});
-  final IconData icon;
-  final String label, value;
-  final String? note;
-  final Color? valueColor;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final muted = theme.textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(icon, size: 15, color: cs.onSurfaceVariant),
-            const SizedBox(width: 5),
-            Flexible(child: Text(label, style: muted, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          ]),
-          const SizedBox(height: 4),
-          Row(children: [
-            Flexible(
-              child: Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: valueColor, fontFeatures: const [FontFeature.tabularFigures()]),
+    return FadeSlideIn(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF3D1546), Color(0xFF241640), Color(0xFF16141F)]),
+          border: Border.all(color: const Color(0x33C8BEFA)),
+          boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 30, offset: Offset(0, 12))],
+        ),
+        child: Stack(children: [
+          // A soft glow drifting across.
+          Positioned.fill(
+            child: ShineTicker(
+              builder: (context, t) => DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(-0.8 + 1.6 * (t == null ? 0.5 : shinePulse(t, period: 12)), -0.6),
+                    radius: 1.2,
+                    colors: const [Color(0x33FF4FA3), Color(0x00FF4FA3)],
+                  ),
+                ),
               ),
             ),
-            if (trailing != null) ...[const SizedBox(width: 6), trailing!],
-          ]),
-          if (note != null) Text(note!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
+                const Icon(Icons.insights, size: 20, color: Color(0xFFC8BEFA)),
+                const SizedBox(width: 8),
+                Text(tr('history.statsTitle'), style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+                const Spacer(),
+                if (range != null) Text(range, style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFAAA6BA))),
+              ]),
+              const SizedBox(height: 14),
+              LayoutBuilder(builder: (context, c) {
+                // All across when there is room, else three per row.
+                final per = c.maxWidth >= 900 ? tiles.length : 3;
+                const gap = 10.0;
+                final w = (c.maxWidth - gap * (per - 1)) / per;
+                return Wrap(spacing: gap, runSpacing: gap, children: [
+                  for (final (i, t) in tiles.indexed)
+                    SizedBox(width: w, child: FadeSlideIn(delay: Duration(milliseconds: 80 + 70 * i), offset: 12, child: t)),
+                ]);
+              }),
+            ]),
+          ),
         ]),
       ),
     );
   }
 }
 
-class _HistoryRow extends StatelessWidget {
+class _StatTile extends StatefulWidget {
+  const _StatTile({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.format,
+    this.note,
+    this.valueColor,
+    this.trailing,
+    this.highlight = false,
+    this.onTap,
+  });
+  final IconData icon;
+  final Color color;
+  final String label;
+  final double value;
+  final String Function(double) format;
+  final String? note;
+  final Color? valueColor;
+  final Widget? trailing;
+  final bool highlight;
+  final VoidCallback? onTap;
+
+  @override
+  State<_StatTile> createState() => _StatTileState();
+}
+
+class _StatTileState extends State<_StatTile> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final w = widget;
+    final border = w.highlight ? w.color.withValues(alpha: _hover ? 0.9 : 0.55) : const Color(0x1FFFFFFF);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        transform: Matrix4.translationValues(0, _hover && w.onTap != null ? -2 : 0, 0),
+        decoration: BoxDecoration(
+          color: const Color(0x14FFFFFF),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: border),
+          boxShadow: [if (w.highlight) BoxShadow(color: w.color.withValues(alpha: _hover ? 0.3 : 0.15), blurRadius: 18)],
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: w.onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [w.color, w.color.withValues(alpha: 0.5)]),
+                      boxShadow: [BoxShadow(color: w.color.withValues(alpha: 0.35), blurRadius: 10)],
+                    ),
+                    child: Icon(w.icon, size: 15, color: const Color(0xFF111111)),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(w.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFC9C4D8))),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: CountUp(
+                        value: w.value,
+                        format: w.format,
+                        delay: const Duration(milliseconds: 150),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: w.valueColor ?? Colors.white,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (w.trailing != null) ...[const SizedBox(width: 6), w.trailing!],
+                ]),
+                if (w.note != null) ...[
+                  const SizedBox(height: 2),
+                  Text(w.note!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFFAAA6BA))),
+                ],
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryRow extends StatefulWidget {
   const _HistoryRow({required this.entry, required this.files, required this.onOpen, required this.onRemove});
   final HistoryEntry entry;
   final SongFiles files;
   final VoidCallback onOpen, onRemove;
 
+  @override
+  State<_HistoryRow> createState() => _HistoryRowState();
+}
+
+class _HistoryRowState extends State<_HistoryRow> {
   static const _order = ['pitch', 'rhythm', 'stability', 'vibrato', 'expression', 'long_tone'];
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
+  bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final entry = widget.entry;
     final t = entry.take;
+    final rc = rankColor(t.rank);
     final local = entry.startedAt.toLocal();
     final time = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-    final thumb = files.shownThumb;
+    final thumb = widget.files.shownThumb;
     final parts = [
       for (final k in _order)
         if (t.subScores.containsKey(k)) '${tr('results.${_camel(k)}')} ${t.subScores[k] == null ? '—' : t.subScores[k]!.round()}',
     ];
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 3),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(children: [
-            SizedBox(width: 48, child: Text(time, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, fontFeatures: const [FontFeature.tabularFigures()]))),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                width: 80,
-                height: 45,
-                child: File(thumb).existsSync()
-                    ? Image.file(File(thumb), fit: BoxFit.cover)
-                    : ColoredBox(color: cs.surfaceContainerHighest, child: Icon(Icons.music_note, color: cs.onSurfaceVariant)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(entry.song.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 2),
-                Text(parts.join(' · '), maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: _hover ? cs.surfaceContainerHigh : cs.surfaceContainer,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _hover ? rc.withValues(alpha: 0.45) : cs.outlineVariant.withValues(alpha: 0.25)),
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: widget.onOpen,
+            child: IntrinsicHeight(
+              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                // The rank's colour down the left edge.
+                Container(width: 4, decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [rc, rc.withValues(alpha: 0.4)]))),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+                    child: Row(children: [
+                      SizedBox(
+                        width: 50,
+                        child: Text(time, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, fontFeatures: const [FontFeature.tabularFigures()])),
+                      ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 96,
+                          height: 54,
+                          child: File(thumb).existsSync()
+                              ? AnimatedScale(
+                                  scale: _hover ? 1.06 : 1,
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Image.file(File(thumb), fit: BoxFit.cover),
+                                )
+                              : ColoredBox(color: cs.surfaceContainerHighest, child: Icon(Icons.music_note, color: cs.onSurfaceVariant)),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Text(entry.song.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 4),
+                          Text(parts.join(' · '), maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                        ]),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        t.total!.toStringAsFixed(1),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: rc,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          shadows: [if (rankTier(t.rank) > 0) Shadow(color: rc.withValues(alpha: 0.45), blurRadius: 14)],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      RankChip(rank: t.rank, fontSize: 12),
+                      const SizedBox(width: 10),
+                      TextButton(onPressed: widget.onOpen, child: Text(tr('library.viewResult'))),
+                      IconButton(
+                        onPressed: widget.onRemove,
+                        tooltip: tr('history.remove'),
+                        icon: Icon(Icons.delete_outline, size: 20, color: cs.onSurfaceVariant),
+                      ),
+                    ]),
+                  ),
+                ),
               ]),
             ),
-            const SizedBox(width: 12),
-            Text(t.total!.toStringAsFixed(1), style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: rankColor(t.rank))),
-            const SizedBox(width: 6),
-            RankChip(rank: t.rank, fontSize: 12),
-            const SizedBox(width: 8),
-            TextButton(onPressed: onOpen, child: Text(tr('library.viewResult'))),
-            IconButton(
-              onPressed: onRemove,
-              tooltip: tr('history.remove'),
-              icon: Icon(Icons.delete_outline, size: 20, color: cs.onSurfaceVariant),
-            ),
-          ]),
+          ),
         ),
       ),
     );
