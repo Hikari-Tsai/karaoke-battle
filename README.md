@@ -8,6 +8,7 @@
   <a href="#下載"><picture><source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/%E4%B8%8B%E8%BC%89-macOS%20%7C%20Windows-2EA44F?style=for-the-badge"><img src="https://img.shields.io/badge/%E4%B8%8B%E8%BC%89-macOS%20%7C%20Windows-2EA44F?style=for-the-badge" height="36" alt="下載"></picture></a>
   <br>
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest"><img src="https://img.shields.io/github/v/release/Hikari-Tsai/karaoke-battle?label=latest%20release" alt="最新版本"></a>
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases"><img src="https://img.shields.io/github/downloads/Hikari-Tsai/karaoke-battle/total?label=downloads" alt="總下載次數"></a>
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/actions/workflows/build.yml"><img src="https://github.com/Hikari-Tsai/karaoke-battle/actions/workflows/build.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
 </p>

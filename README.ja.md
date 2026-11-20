@@ -8,6 +8,7 @@
   <a href="#ダウンロード"><picture><source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89-macOS%20%7C%20Windows-2EA44F?style=for-the-badge"><img src="https://img.shields.io/badge/%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89-macOS%20%7C%20Windows-2EA44F?style=for-the-badge" height="36" alt="ダウンロード"></picture></a>
   <br>
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases/latest"><img src="https://img.shields.io/github/v/release/Hikari-Tsai/karaoke-battle?label=latest%20release" alt="最新リリース"></a>
+  <a href="https://github.com/Hikari-Tsai/karaoke-battle/releases"><img src="https://img.shields.io/github/downloads/Hikari-Tsai/karaoke-battle/total?label=downloads" alt="総ダウンロード数"></a>
   <a href="https://github.com/Hikari-Tsai/karaoke-battle/actions/workflows/build.yml"><img src="https://github.com/Hikari-Tsai/karaoke-battle/actions/workflows/build.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT ライセンス"></a>
 </p>
