@@ -140,6 +140,10 @@ class AppSettings extends ChangeNotifier {
   bool get rollKeyboard => _get('roll_keyboard', true);
   Future<void> setRollKeyboard(bool v) => _set('roll_keyboard', v);
 
+  /// Results: the rolling-score ticks and the new-record cheer.
+  bool get resultSounds => _get('result_sounds', true);
+  Future<void> setResultSounds(bool v) => _set('result_sounds', v);
+
   /// Sing screen: the meter panel is slid in.
   bool get hudVisible => _get('hud_visible', true);
   Future<void> setHudVisible(bool v) => _set('hud_visible', v);

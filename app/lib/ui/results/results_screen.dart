@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/song_library.dart';
@@ -13,6 +14,7 @@ import '../rules/rules_screen.dart';
 import '../widgets/info_tip.dart';
 import '../widgets/rank.dart';
 import 'new_record_dialog.dart';
+import 'score_reveal.dart';
 import 'replay_screen.dart';
 import '../replays/export_replay_dialog.dart';
 import 'export_video_dialog.dart';
@@ -41,7 +43,14 @@ class ResultsScreen extends StatefulWidget {
   State<ResultsScreen> createState() => _ResultsScreenState();
 }
 
-class _ResultsScreenState extends State<ResultsScreen> {
+class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateMixin {
+  // The reveal runs when the page opens straight after singing.
+  AnimationController? _roll;
+  AnimationController? _stamp;
+  ResultSfx? _sfx;
+  bool _rolled = false;
+  bool _celebrating = false;
+  static const _slot = SlotCurve();
   ScoreData? _score;
   NoteList? _notes;
   F0Curve? _refF0;
@@ -71,14 +80,68 @@ class _ResultsScreenState extends State<ResultsScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
-    if (widget.newRecord && widget.score != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final thumb = context.read<AppServices>().library.files(widget.song).shownThumb;
-        showNewRecordDialog(context, song: widget.song, take: widget.take, score: widget.score!, previousBest: widget.previousBest, thumbPath: thumb);
-      });
+    if (widget.score != null) {
+      _roll = AnimationController(vsync: this, duration: kRevealRoll)..addStatusListener((s) {
+          if (s == AnimationStatus.completed) _onRolled();
+        });
+      _stamp = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
+      _sfx = ResultSfx(enabled: context.read<AppSettings>().resultSounds)..preload();
     }
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _roll?.dispose();
+    _stamp?.dispose();
+    _sfx?.dispose();
+    super.dispose();
+  }
+
+  bool get _revealing => _roll != null && !_rolled;
+
+  Future<void> _startReveal() async {
+    await _sfx?.preload();
+    if (!mounted || _roll == null) return;
+    _roll!.forward();
+    _sfx?.play('roll');
+  }
+
+  /// Tap or key during the roll: jump to the final score.
+  void _skipReveal() {
+    final roll = _roll;
+    if (roll == null || _rolled || !roll.isAnimating) return;
+    roll.value = 1; // completes, which runs _onRolled
+  }
+
+  void _onRolled() {
+    if (_rolled || !mounted) return;
+    setState(() => _rolled = true);
+    _sfx?.stop('roll');
+    _sfx?.play('ding');
+    _stamp?.forward();
+    if (!widget.newRecord) return;
+    Future<void>.delayed(const Duration(milliseconds: 750), () {
+      if (!mounted) return;
+      if (widget.previousBest != null) {
+        setState(() => _celebrating = true);
+        _sfx?.play('celebrate');
+      } else {
+        _showRecordDialog();
+      }
+    });
+  }
+
+  void _endCelebration() {
+    if (!_celebrating) return;
+    setState(() => _celebrating = false);
+    _showRecordDialog();
+  }
+
+  void _showRecordDialog() {
+    if (!mounted || widget.score == null) return;
+    final thumb = context.read<AppServices>().library.files(widget.song).shownThumb;
+    showNewRecordDialog(context, song: widget.song, take: widget.take, score: widget.score!, previousBest: widget.previousBest, thumbPath: thumb);
   }
 
   Future<void> _load() async {
@@ -104,6 +167,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
         _refF0 = refF0;
         _trace = trace;
       });
+      if (_roll != null && score != null) _startReveal();
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     }
@@ -115,7 +179,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     final cs = theme.colorScheme;
     final score = _score;
     final notes = _notes;
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(
         title: Text('${tr('results.title')} — ${widget.song.title}'),
         actions: [
@@ -186,21 +250,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.stretch,
                                           children: [
                                             Text(tr('results.total'), style: theme.textTheme.labelLarge),
-                                            Row(
-                                              crossAxisAlignment: CrossAxisAlignment.end,
-                                              children: [
-                                                Text(score.total.toStringAsFixed(1), style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w700, color: cs.primary)),
-                                                const SizedBox(width: 12),
-                                                Padding(
-                                                  padding: const EdgeInsets.only(bottom: 10),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                                    decoration: BoxDecoration(color: _rankColor(score.rank), borderRadius: BorderRadius.circular(8)),
-                                                    child: Text(score.rank, style: theme.textTheme.headlineSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.w800)),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
+                                            _totalRow(theme, score),
+                                            if (_roll != null && widget.previousBest != null) _bestMarker(theme, score),
                                             if (score.placeholder) Text(tr('results.placeholder'), style: theme.textTheme.labelSmall),
                                             Text('${tr('results.shift')}: ${score.shift} (${score.octaveExactShift >= 0 ? '+' : ''}${score.octaveExactShift})', style: theme.textTheme.labelSmall),
                                             const SizedBox(height: 6),
@@ -223,8 +274,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                               ),
                                             ),
                                             const SizedBox(height: 16),
-                                            for (final k in ScoreData.subScoreKeys) ...[
-                                              _SubScoreBar(label: tr('results.${_camel(k)}'), value: score.subScores[k], tipKey: _camel(k)),
+                                            for (final (i, k) in ScoreData.subScoreKeys.indexed) ...[
+                                              _roll == null
+                                                  ? _SubScoreBar(label: tr('results.${_camel(k)}'), value: score.subScores[k], tipKey: _camel(k))
+                                                  : AnimatedBuilder(
+                                                      animation: _roll!,
+                                                      builder: (_, _) => _SubScoreBar(
+                                                        label: tr('results.${_camel(k)}'),
+                                                        value: score.subScores[k],
+                                                        tipKey: _camel(k),
+                                                        // Bars fill one after another while the total spins.
+                                                        progress: Curves.easeOutCubic.transform(Interval(0.08 + 0.07 * i, 0.5 + 0.07 * i).transform(_roll!.value)),
+                                                      ),
+                                                    ),
                                               const SizedBox(height: 8),
                                             ],
                                             if (score.raw['rhythm'] is Map) ...[
@@ -301,7 +363,109 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                 ),
     );
+    if (_roll == null) return page;
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (_, e) {
+        if (!_revealing || e is! KeyDownEvent) return KeyEventResult.ignored;
+        _skipReveal();
+        return KeyEventResult.handled;
+      },
+      child: Listener(
+        onPointerDown: (_) => _skipReveal(),
+        child: Stack(children: [
+          page,
+          if (_celebrating)
+            Positioned.fill(
+              child: CelebrationOverlay(score: widget.score!.total, previousBest: widget.previousBest!, onDone: _endCelebration),
+            ),
+        ]),
+      ),
+    );
   }
+
+  Widget _rankChip(ThemeData theme, ScoreData score) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(color: _rankColor(score.rank), borderRadius: BorderRadius.circular(8)),
+        child: Text(score.rank, style: theme.textTheme.headlineSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.w800)),
+      );
+
+  /// The total and its rank; spinning reels and a stamped rank on reveal.
+  Widget _totalRow(ThemeData theme, ScoreData score) {
+    final style = theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.primary) ?? const TextStyle(fontSize: 57);
+    final roll = _roll, stamp = _stamp;
+    if (roll == null || stamp == null) {
+      return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        Text(score.total.toStringAsFixed(1), style: style),
+        const SizedBox(width: 12),
+        Padding(padding: const EdgeInsets.only(bottom: 10), child: _rankChip(theme, score)),
+      ]);
+    }
+    // Spin to the total as shown (one decimal), so the last reel lands square.
+    final target = _shown(score);
+    final intDigits = target >= 100 ? 3 : (target >= 10 ? 2 : 1);
+    return AnimatedBuilder(
+      animation: Listenable.merge([roll, stamp]),
+      builder: (context, _) {
+        final u = roll.value;
+        final perFrame = u >= 1 ? 0.0 : _slot.slope(u) * target * 10 / (kRevealRoll.inMilliseconds / 1000 * 60);
+        final s = Curves.easeOutBack.transform(stamp.value);
+        return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          FittedBox(
+            child: RollingNumber(value: target * _slot.transform(u), intDigits: intDigits, style: style, tenthsPerFrame: perFrame),
+          ),
+          const SizedBox(width: 12),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Opacity(
+              opacity: (stamp.value * 3).clamp(0.0, 1.0),
+              child: Transform.scale(scale: 1 + 1.8 * (1 - s), child: _rankChip(theme, score)),
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+
+  /// "Best 85.2" under the spinning total, turning gold once it is passed.
+  Widget _bestMarker(ThemeData theme, ScoreData score) {
+    final best = widget.previousBest!;
+    return AnimatedBuilder(
+      animation: _roll!,
+      builder: (context, _) {
+        final shown = _shown(score) * _slot.transform(_roll!.value);
+        final broken = widget.newRecord && shown > best;
+        return Padding(
+          padding: const EdgeInsets.only(top: 2, bottom: 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              transitionBuilder: (child, a) => ScaleTransition(scale: Tween(begin: 1.6, end: 1.0).animate(CurvedAnimation(parent: a, curve: Curves.easeOutBack)), child: FadeTransition(opacity: a, child: child)),
+              child: broken
+                  ? Container(
+                      key: const ValueKey('broken'),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(color: trophyColor, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Color(0x88FFC400), blurRadius: 14)]),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.local_fire_department, size: 16, color: Colors.black),
+                        const SizedBox(width: 4),
+                        Text(tr('results.bestBroken'), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w800)),
+                      ]),
+                    )
+                  : Text(
+                      key: const ValueKey('best'),
+                      tr('results.best', {'best': best.toStringAsFixed(1)}),
+                      style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static double _shown(ScoreData score) => (score.total * 10).roundToDouble() / 10;
 
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
 
@@ -375,9 +539,12 @@ class _RhythmSummary extends StatelessWidget {
 }
 
 class _SubScoreBar extends StatelessWidget {
-  const _SubScoreBar({required this.label, required this.value, required this.tipKey});
+  const _SubScoreBar({required this.label, required this.value, required this.tipKey, this.progress = 1});
   final String label;
   final double? value;
+
+  /// How far the bar has filled in (the reveal), 0..1.
+  final double progress;
 
   /// Sub-score key in the rules ('pitch', 'longTone', ...): its rule and tips
   /// are shown behind the question mark.
@@ -402,14 +569,14 @@ class _SubScoreBar extends StatelessWidget {
                 footer: tr('results.tipMore'),
               ),
             ]),
-            Text(value == null ? tr('results.notAvailable') : value!.toStringAsFixed(0), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(value == null ? tr('results.notAvailable') : (value! * progress).toStringAsFixed(0), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
           ],
         ),
         const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
-            value: (value ?? 0) / 100,
+            value: (value ?? 0) * progress / 100,
             minHeight: 8,
             color: value == null ? cs.outlineVariant : cs.primary,
             backgroundColor: cs.surfaceContainerHighest,

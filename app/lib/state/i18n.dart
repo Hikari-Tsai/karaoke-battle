@@ -556,6 +556,11 @@ const Map<String, (String, String, String)> _table = {
   // results
   'results.title': ('演唱結果', 'Results', '採点結果'),
   'results.total': ('總分', 'Total', '総合得点'),
+  'results.best': ('最高紀錄 {best}', 'Best {best}', '最高記録 {best}'),
+  'results.bestBroken': ('突破最高分！', 'Record broken!', '最高点突破！'),
+  'celebrate.title': ('新紀錄！', 'NEW RECORD!', '新記録！'),
+  'celebrate.beat': ('{prev} → {score}', '{prev} → {score}', '{prev} → {score}'),
+  'celebrate.skip': ('點一下繼續', 'Click to continue', 'クリックで続ける'),
   'results.pitch': ('音準', 'Pitch', '音程'),
   'results.rhythm': ('節奏', 'Rhythm', 'リズム'),
   'results.stability': ('穩定度', 'Stability', '安定感'),
@@ -1096,6 +1101,12 @@ const Map<String, (String, String, String)> _table = {
     '關閉時升降 Key 的範圍是 ±6；打開後可以調到 ±12（整整一個八度），一鍵移調也會在這個範圍內找。移調越多音質越容易失真。',
     'Off, the key can move ±6 semitones; on, up to ±12 (a full octave), and the one-tap key change searches that far too. The further it moves, the more the sound degrades.',
     'オフのときキーは ±6 まで、オンにすると ±12（ちょうど 1 オクターブ）まで変更でき、ワンタッチ移調もその範囲で探します。大きく移調するほど音質が劣化しやすくなります。',
+  ),
+  'settings.resultSounds': ('結算音效', 'Results sound effects', '結果の効果音'),
+  'settings.resultSoundsHint': (
+    '唱完時分數滾動的聲音，以及突破最高分時的歡呼聲',
+    'The ticking while the score rolls up after a take, and the cheering when you beat your best',
+    '歌い終わったあとに得点が回る音と、最高点を更新したときの歓声',
   ),
   'settings.octaveInvariant': ('允許八度音演唱', 'Allow singing in another octave', 'オクターブ違いの歌唱を許可'),
   'settings.octaveInvariantHint': (

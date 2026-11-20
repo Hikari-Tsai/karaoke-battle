@@ -83,6 +83,7 @@ flutter:
     - assets/cuda_pack.json
     - assets/sidecars.json
     - assets/images/app_icon.png
+    - assets/sfx/
     - assets/fonts/jf-openhuninn-OFL.txt
 
   # Rounded font for the sung lyrics: jf open huninn 2.1 (jf open 粉圓,

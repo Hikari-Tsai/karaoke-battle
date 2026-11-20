@@ -661,6 +661,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: settings.wideKeyRange,
                 onChanged: settings.setWideKeyRange,
               ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(tr('settings.resultSounds')),
+                subtitle: Text(tr('settings.resultSoundsHint')),
+                value: settings.resultSounds,
+                onChanged: settings.setResultSounds,
+              ),
             ],
           ),
           // ---- AI singing tips: service and API key ----------------------------------------
