@@ -132,6 +132,8 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 .film { margin: 0; }
 .film video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); }
 .film figcaption { font-size: 14px; color: var(--muted); margin-top: 12px; text-align: center; }
+.demos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; margin-top: 36px; }
+.demos .film video { box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4); }
 
 /* 區塊 */
 .section { padding: 96px 0; }
@@ -245,7 +247,7 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
   .top .lang { margin-left: auto; }
   .hero { padding-top: 48px; background: linear-gradient(to bottom, var(--magenta) 0, var(--magenta) calc(100% - 110px), var(--bg) calc(100% - 110px)); }
   .section { padding: 64px 0; }
-  .steps, .points, .install, .scores, .tech, .legal-list, .thx-people { grid-template-columns: 1fr; }
+  .steps, .points, .install, .scores, .tech, .legal-list, .thx-people, .demos { grid-template-columns: 1fr; }
   .thx-libs { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .thx-libs a, .thx-libs div { padding: 10px 12px; }
   .feature, .feature.flip { grid-template-columns: 1fr; gap: 22px; margin-top: 56px; }
