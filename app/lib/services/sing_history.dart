@@ -16,12 +16,15 @@ import 'settings.dart';
 import 'song_library.dart';
 
 class HistoryEntry {
-  const HistoryEntry(this.song, this.take, {this.started});
+  const HistoryEntry(this.song, this.take, {this.started, this.seconds});
   final Song song;
   final TakeInfo take;
 
   /// From take.json; older takes may not say.
   final DateTime? started;
+
+  /// How long the recording is (take.json or take.wav.json), when known.
+  final double? seconds;
 
   /// When the singing started (the take folder is named when it stopped).
   DateTime get startedAt => started ?? take.createdAt;
@@ -43,22 +46,74 @@ Future<List<HistoryEntry>> loadSingHistory(SongLibrary library, {DateTime? clear
     for (final take in await library.takes(song)) {
       if (take.total == null) continue;
       if (clearedAt != null && !take.createdAt.isAfter(clearedAt)) continue;
-      out.add(HistoryEntry(song, take, started: await _startedAt(take)));
+      final (started, seconds) = await _takeMeta(take);
+      out.add(HistoryEntry(song, take, started: started, seconds: seconds));
     }
   }
   out.sort((a, b) => b.take.createdAt.compareTo(a.take.createdAt));
   return out;
 }
 
-Future<DateTime?> _startedAt(TakeInfo take) async {
-  try {
-    final f = File(take.infoJson);
-    if (!await f.exists()) return null;
-    final j = jsonDecode(await f.readAsString());
-    return j is Map ? DateTime.tryParse('${j['started_at']}') : null;
-  } catch (_) {
-    return null;
+/// When the take started and how long it is, from take.json (and the
+/// recording's take.wav.json for the length of older takes).
+Future<(DateTime?, double?)> _takeMeta(TakeInfo take) async {
+  DateTime? started;
+  double? seconds;
+  for (final path in [take.infoJson, '${take.wav}.json']) {
+    try {
+      final f = File(path);
+      if (!await f.exists()) continue;
+      final j = jsonDecode(await f.readAsString());
+      if (j is! Map) continue;
+      started ??= DateTime.tryParse('${j['started_at']}');
+      final d = j['duration'];
+      if (seconds == null && d is num && d > 0) seconds = d.toDouble();
+    } catch (_) {}
+    if (seconds != null) break;
   }
+  return (started, seconds);
+}
+
+/// Totals over a list of history entries, for the top of 演唱紀錄.
+class HistoryStats {
+  const HistoryStats({required this.takes, required this.songs, required this.days, required this.sung, this.first, this.last, this.average, this.best});
+  final int takes, songs, days;
+
+  /// Time spent singing (the recordings' lengths).
+  final Duration sung;
+
+  /// The first and last sing day.
+  final DateTime? first, last;
+  final double? average;
+  final HistoryEntry? best;
+}
+
+HistoryStats summarizeHistory(List<HistoryEntry> entries) {
+  final days = {for (final e in entries) dayOf(e.startedAt)}.toList()..sort();
+  var seconds = 0.0;
+  var sum = 0.0;
+  HistoryEntry? best;
+  for (final e in entries) {
+    seconds += e.seconds ?? 0;
+    sum += e.take.total!;
+    if (best == null || e.take.total! > best.take.total!) best = e;
+  }
+  return HistoryStats(
+    takes: entries.length,
+    songs: {for (final e in entries) e.song.id}.length,
+    days: days.length,
+    sung: Duration(milliseconds: (seconds * 1000).round()),
+    first: days.isEmpty ? null : days.first,
+    last: days.isEmpty ? null : days.last,
+    average: entries.isEmpty ? null : sum / entries.length,
+    best: best,
+  );
+}
+
+/// A length of singing: "1 小時 5 分" from an hour up, else "12 分 30 秒".
+String formatSungTime(Duration d) {
+  if (d.inHours > 0) return tr('history.hm', {'h': d.inHours, 'm': d.inMinutes % 60});
+  return tr('history.ms', {'m': d.inMinutes, 's': d.inSeconds % 60});
 }
 
 String _two(int n) => n.toString().padLeft(2, '0');

@@ -149,4 +149,28 @@ void main() {
     await log.write(now: now);
     expect(yesterday.readAsStringSync(), 'edited by hand', reason: 'and are not rewritten');
   });
+
+  test('the totals at the top: takes, songs, time sung, days, average and best', () async {
+    I18n.notifier.value = 'zh';
+    final a = await library.create(title: 'A', sourceType: SourceType.file);
+    final b = await library.create(title: 'B', sourceType: SourceType.file);
+    final t1 = take(a, '2026-11-19T21:05:00', 80, startedAt: '2026-11-19T21:01:00');
+    File(p.join(t1.path, 'take.json')).writeAsStringSync(jsonEncode({'started_at': '2026-11-19T21:01:00', 'duration': 200.5}));
+    final t2 = take(b, '2026-11-20T01:00:00', 95.5); // older take: the length is in take.wav.json
+    File(p.join(t2.path, 'take.wav.json')).writeAsStringSync(jsonEncode({'duration': 3500.0}));
+    take(a, '2026-11-21T20:00:00', 90); // no length known
+
+    final st = summarizeHistory(await loadSingHistory(library));
+    expect(st.takes, 3);
+    expect(st.songs, 2);
+    expect(st.days, 2, reason: '01:00 still counts as the 19th');
+    expect(st.first, DateTime(2026, 11, 19));
+    expect(st.last, DateTime(2026, 11, 21));
+    expect(st.sung, const Duration(seconds: 3700, milliseconds: 500));
+    expect(st.average, closeTo(88.5, 1e-9));
+    expect(st.best!.song.title, 'B');
+    expect(formatSungTime(st.sung), '1 小時 1 分');
+    expect(formatSungTime(const Duration(minutes: 12, seconds: 30)), '12 分 30 秒');
+    expect(summarizeHistory(const []).best, isNull);
+  });
 }

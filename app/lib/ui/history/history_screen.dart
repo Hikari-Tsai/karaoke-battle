@@ -135,11 +135,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _list(BuildContext context, List<HistoryEntry> entries) {
     final theme = Theme.of(context);
-    final songs = entries.map((e) => e.song.id).toSet().length;
     final items = <Widget>[
       Padding(
-        padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-        child: Text(tr('history.summary', {'n': entries.length, 'songs': songs}), style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+        child: _StatsHeader(stats: summarizeHistory(entries), onOpenBest: _open),
       ),
     ];
     DateTime? day;
@@ -166,6 +165,100 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (d == today) return tr('history.today');
     if (d == today.subtract(const Duration(days: 1))) return tr('history.yesterday');
     return formatDay(d);
+  }
+}
+
+/// Totals at the top: takes, songs, time sung, days (with the date range),
+/// the average and the best take (tap it to open its result).
+class _StatsHeader extends StatelessWidget {
+  const _StatsHeader({required this.stats, required this.onOpenBest});
+  final HistoryStats stats;
+  final void Function(HistoryEntry) onOpenBest;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final best = stats.best;
+    final range = stats.first == null
+        ? null
+        : stats.first == stats.last
+            ? formatDay(stats.first!)
+            : tr('history.range', {'from': formatDay(stats.first!), 'to': formatDay(stats.last!)});
+    final tiles = <Widget>[
+      _StatTile(icon: Icons.mic_none, label: tr('history.stat.takes'), value: '${stats.takes}'),
+      _StatTile(icon: Icons.library_music_outlined, label: tr('history.stat.songs'), value: '${stats.songs}'),
+      _StatTile(icon: Icons.timer_outlined, label: tr('history.stat.time'), value: formatSungTime(stats.sung)),
+      _StatTile(icon: Icons.calendar_today_outlined, label: tr('history.stat.days'), value: '${stats.days}', note: range),
+      if (stats.average != null) _StatTile(icon: Icons.equalizer, label: tr('history.stat.avg'), value: stats.average!.toStringAsFixed(1)),
+      if (best != null)
+        _StatTile(
+          icon: Icons.emoji_events_outlined,
+          label: tr('history.stat.best'),
+          value: best.take.total!.toStringAsFixed(1),
+          valueColor: rankColor(best.take.rank),
+          trailing: RankChip(rank: best.take.rank, fontSize: 11),
+          note: best.song.title,
+          onTap: () => onOpenBest(best),
+        ),
+    ];
+    return Card(
+      margin: EdgeInsets.zero,
+      color: cs.surfaceContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: LayoutBuilder(builder: (context, c) {
+          // Six across when there is room, else three per row.
+          final per = c.maxWidth >= 900 ? tiles.length : 3;
+          final w = c.maxWidth / per;
+          return Wrap(children: [for (final t in tiles) SizedBox(width: w, child: t)]);
+        }),
+      ),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.icon, required this.label, required this.value, this.note, this.valueColor, this.trailing, this.onTap});
+  final IconData icon;
+  final String label, value;
+  final String? note;
+  final Color? valueColor;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final muted = theme.textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(icon, size: 15, color: cs.onSurfaceVariant),
+            const SizedBox(width: 5),
+            Flexible(child: Text(label, style: muted, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ]),
+          const SizedBox(height: 4),
+          Row(children: [
+            Flexible(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: valueColor, fontFeatures: const [FontFeature.tabularFigures()]),
+              ),
+            ),
+            if (trailing != null) ...[const SizedBox(width: 6), trailing!],
+          ]),
+          if (note != null) Text(note!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+        ]),
+      ),
+    );
   }
 }
 

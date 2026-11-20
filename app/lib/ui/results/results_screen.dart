@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../advice/ai_advice.dart';
 import '../../services/song_library.dart';
 import '../../services/settings.dart';
 import '../../state/app_services.dart';
@@ -59,6 +60,21 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   double _pitchShift = 0;
   String? _error;
 
+  /// AI tips asked for this take earlier (in the app's language), shown
+  /// at the bottom of the score panel.
+  SavedAdvice? _advice;
+
+  Future<void> _loadAdvice() async {
+    final saved = await SavedAdvice.load(widget.take.adviceJson);
+    if (!mounted) return;
+    setState(() => _advice = saved != null && saved.lang == I18n.lang ? saved : null);
+  }
+
+  Future<void> _openAdvice() async {
+    await showAiAnalysisDialog(context, song: widget.song, take: widget.take);
+    await _loadAdvice();
+  }
+
   Future<void> _share() async {
     final score = _score;
     if (score == null) return;
@@ -88,6 +104,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       _sfx = ResultSfx(enabled: context.read<AppSettings>().resultSounds)..preload();
     }
     _load();
+    _loadAdvice();
   }
 
   @override
@@ -195,7 +212,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: OutlinedButton.icon(
-              onPressed: _score == null ? null : () => showAiAnalysisDialog(context, song: widget.song, take: widget.take),
+              onPressed: _score == null ? null : _openAdvice,
               icon: const Icon(Icons.auto_awesome),
               label: Text(tr('advice.button')),
             ),
@@ -246,7 +263,10 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                   padding: const EdgeInsets.all(20),
                                   child: score == null
                                       ? Center(child: Text(tr('results.notAvailable')))
-                                      : Column(
+                                      // Scrolls when the window is short; the AI tips sit at the bottom.
+                                      : CustomScrollView(slivers: [
+                                          SliverToBoxAdapter(
+                                            child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.stretch,
                                           children: [
                                             Text(tr('results.total'), style: theme.textTheme.labelLarge),
@@ -291,7 +311,16 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                             ],
                                             if (score.raw['rhythm'] is Map) ...[
                                               const SizedBox(height: 4),
-                                              _RhythmSummary(rhythm: (score.raw['rhythm'] as Map).cast<String, dynamic>()),
+                                              _roll == null
+                                                  ? _RhythmSummary(rhythm: (score.raw['rhythm'] as Map).cast<String, dynamic>())
+                                                  : AnimatedBuilder(
+                                                      animation: _roll!,
+                                                      builder: (_, _) => _RhythmSummary(
+                                                        rhythm: (score.raw['rhythm'] as Map).cast<String, dynamic>(),
+                                                        // Fills in after the sub-score bars.
+                                                        progress: Curves.easeOutCubic.transform(const Interval(0.5, 0.85).transform(_roll!.value)),
+                                                      ),
+                                                    ),
                                             ],
                                             const SizedBox(height: 8),
                                             Align(
@@ -305,6 +334,19 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                             ),
                                           ],
                                         ),
+                                          ),
+                                          if (_advice != null)
+                                            SliverFillRemaining(
+                                              hasScrollBody: false,
+                                              child: Align(
+                                                alignment: Alignment.bottomCenter,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.only(top: 12),
+                                                  child: _AdviceCard(advice: _advice!, onOpen: _openAdvice),
+                                                ),
+                                              ),
+                                            ),
+                                        ]),
                                 ),
                               ),
                             ),
@@ -472,11 +514,15 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   static Color _rankColor(String rank) => rankColor(rank);
 }
 
-/// PERFECT / GREAT / GOOD / MISS counts of the note onsets and, when the
-/// latency was calibrated, whether the singer tends to rush or drag.
+/// PERFECT / GREAT / GOOD / MISS of the note onsets as one bar split by
+/// count, with a legend and, when the latency was calibrated, whether the
+/// singer tends to rush or drag.
 class _RhythmSummary extends StatelessWidget {
-  const _RhythmSummary({required this.rhythm});
+  const _RhythmSummary({required this.rhythm, this.progress = 1});
   final Map<String, dynamic> rhythm;
+
+  /// How far the bar has filled in (the reveal), 0..1.
+  final double progress;
 
   static const _tiers = <(String, String, Color)>[
     ('perfect', 'PERFECT', Color(0xFFFFD60A)),
@@ -488,52 +534,155 @@ class _RhythmSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final counts = (rhythm['counts'] as Map? ?? const {}).cast<String, dynamic>();
+    int n(String k) => (counts[k] as num?)?.toInt() ?? 0;
+    final total = _tiers.fold<int>(0, (sum, t) => sum + n(t.$1));
     final tendency = rhythm['tendency'] as String? ?? 'none';
     final ms = (rhythm['tendency_ms'] as num?)?.toDouble();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(tr('results.timing'), style: theme.textTheme.labelLarge),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
+        Row(
           children: [
-            for (final (key, label, color) in _tiers)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  border: Border.all(color: color.withValues(alpha: 0.7)),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text('$label  ${counts[key] ?? 0}', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12)),
+            Expanded(child: Text(tr('results.timing'), style: theme.textTheme.labelLarge)),
+            if (total > 0)
+              Text(
+                '$total',
+                style: theme.textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant, fontFeatures: const [FontFeature.tabularFigures()]),
               ),
           ],
         ),
-        if (tendency != 'none') ...[
+        if (total > 0) ...[
           const SizedBox(height: 6),
-          Row(children: [
-            Icon(
-              switch (tendency) {
-                'rushing' => Icons.fast_forward,
-                'dragging' => Icons.slow_motion_video,
-                _ => Icons.check_circle_outline,
-              },
-              size: 16,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                tr('results.tendency.$tendency', {'ms': (ms ?? 0).abs().round()}),
-                style: theme.textTheme.bodySmall,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 12,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: progress.clamp(0.0, 1.0),
+                  child: Row(
+                    children: [
+                      for (final (i, (key, _, color)) in _tiers.where((t) => n(t.$1) > 0).indexed) ...[
+                        if (i > 0) const SizedBox(width: 2),
+                        Expanded(
+                          flex: n(key),
+                          child: ColoredBox(color: color, child: const SizedBox.expand()),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
-          ]),
+          ),
+        ],
+        const SizedBox(height: 8),
+        // One line; shrinks a little in a narrow panel rather than wrapping.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+          children: [
+            for (final (i, (key, label, color)) in _tiers.indexed)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (i > 0) const SizedBox(width: 12),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    label,
+                    style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11),
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    '${n(key)}',
+                    style: TextStyle(color: color, fontSize: 12, fontFeatures: const [FontFeature.tabularFigures()]),
+                  ),
+                ],
+              ),
+          ],
+          ),
+        ),
+        if (tendency != 'none') ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(
+                switch (tendency) {
+                  'rushing' => Icons.fast_forward,
+                  'dragging' => Icons.slow_motion_video,
+                  _ => Icons.check_circle_outline,
+                },
+                size: 16,
+                color: cs.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Expanded(child: Text(tr('results.tendency.$tendency', {'ms': (ms ?? 0).abs().round()}), style: theme.textTheme.bodySmall)),
+            ],
+          ),
         ],
       ],
+    );
+  }
+}
+
+/// The AI tips asked for earlier, at the bottom of the score panel: the
+/// overall feedback, and how many tips there are. Tap for the whole answer.
+class _AdviceCard extends StatelessWidget {
+  const _AdviceCard({required this.advice, required this.onOpen});
+  final SavedAdvice advice;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final a = advice.advice;
+    final body = theme.textTheme.bodySmall?.copyWith(height: 1.6, color: cs.onSurface);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0x3D9E266C), Color(0x8C24103E)]),
+            border: Border.all(color: const Color(0x33C8BEFA)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFF9D84A)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(tr('results.aiAdvice'), style: theme.textTheme.labelLarge?.copyWith(color: const Color(0xFFC8BEFA))),
+                  ),
+                  Text(tr('results.aiMore', {'n': a.tips.length}), style: theme.textTheme.labelSmall?.copyWith(color: cs.primary)),
+                  Icon(Icons.chevron_right, size: 16, color: cs.primary),
+                ],
+              ),
+              if (a.summary.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                // Finding ids like [F1] belong to the full answer; this is a preview.
+                Text(a.summary.replaceAll(RegExp(r'\s*\[F\d+(?:\s*,\s*F\d+)*\]'), ''), style: body, maxLines: 3, overflow: TextOverflow.ellipsis),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -569,22 +718,47 @@ class _SubScoreBar extends StatelessWidget {
                 footer: tr('results.tipMore'),
               ),
             ]),
-            Text(value == null ? tr('results.notAvailable') : (value! * progress).toStringAsFixed(0), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+            value == null
+                ? Tooltip(message: tr('results.locked'), child: Icon(Icons.lock_outline, size: 15, color: cs.onSurfaceVariant))
+                : Text((value! * progress).toStringAsFixed(0), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
           ],
         ),
         const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: (value ?? 0) * progress / 100,
-            minHeight: 8,
-            color: value == null ? cs.outlineVariant : cs.primary,
-            backgroundColor: cs.surfaceContainerHighest,
-          ),
+          child: value == null
+              // Not scored for this song: a striped, locked bar.
+              ? SizedBox(height: 8, child: CustomPaint(painter: _StripesPainter(background: cs.surfaceContainerHighest, stripe: cs.onSurface.withValues(alpha: 0.12))))
+              : LinearProgressIndicator(
+                  value: value! * progress / 100,
+                  minHeight: 8,
+                  color: cs.primary,
+                  backgroundColor: cs.surfaceContainerHighest,
+                ),
         ),
       ],
     );
   }
+}
+
+/// Diagonal stripes, for a sub-score that does not count for the song.
+class _StripesPainter extends CustomPainter {
+  const _StripesPainter({required this.background, required this.stripe});
+  final Color background, stripe;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(Offset.zero & size, Paint()..color = background);
+    final p = Paint()
+      ..color = stripe
+      ..strokeWidth = 3;
+    for (var x = -size.height; x < size.width + size.height; x += 7) {
+      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StripesPainter old) => old.background != background || old.stripe != stripe;
 }
 
 class _NoteTable extends StatelessWidget {
