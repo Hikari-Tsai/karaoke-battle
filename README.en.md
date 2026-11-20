@@ -206,6 +206,7 @@ Thanks to the friends who tested the app and reported problems before the offici
 * **皮卡**: backtesting with the original song, and feedback detection.
 * **羽之扉扉**: found that preview (practice) and scored recording were easy to mix up, which led to the new mode indicators.
 * **魷魷已損壞**: suggested importing your own backing track.
+* **莓子熊 (Mecokuma)** ([YouTube](https://www.youtube.com/@mecokuma) · [X](https://x.com/mecokuma)): suggested a daily setlist log to make streaming easier.
 
 ### Models and libraries
 

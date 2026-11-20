@@ -204,6 +204,7 @@ cd app && flutter pub get && flutter run -d macos
 * **皮卡**：原曲でのバックテスト、ハウリング検出。
 * **羽之扉扉**：プレビュー（練習）モードと採点モードが紛らわしい問題を発見し、モード表示 UI の追加につながりました。
 * **魷魷已損壞**：自分で用意した伴奏を読み込むアイデアを提供。
+* **莓子熊（Mecokuma）**（[YouTube](https://www.youtube.com/@mecokuma)・[X](https://x.com/mecokuma)）：配信で使いやすいよう、当日のセトリログ機能を提案。
 
 ### モデルとライブラリ
 

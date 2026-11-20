@@ -225,6 +225,7 @@ cd app && flutter pub get && flutter run -d macos
 * **皮卡**：原曲回測、回授反偵測。
 * **羽之扉扉**：發現預覽（練習）模式與評分模式容易混淆的問題，促成新增的模式標示 UI。
 * **魷魷已損壞**：提供自行匯入伴奏的想法。
+* **莓子熊**（[YouTube](https://www.youtube.com/@mecokuma)・[X](https://x.com/mecokuma)）：增加當日歌單 Log 功能以利直播使用。
 
 ### 模型與函式庫
 
