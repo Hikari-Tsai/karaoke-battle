@@ -6,6 +6,12 @@
 // Subtitles the player added themselves (imported, pasted, typed or
 // recognised; not the video's own) travel in the optional `lyrics` field,
 // so the receiver sees the same lyrics; older apps ignore it.
+// A song from a local file may bring the song itself, when the player chose
+// to include it: an MP3 of the song's audio named by the optional
+// `song_audio.file`, so the receiver can prepare the very same song (and the
+// take lines up with it), plus its cover image (JPEG, `song_cover.file`) when
+// the player set one and the backing track they imported for it (MP3,
+// `backing_audio.file`, already aligned to the song). Older apps ignore them.
 //
 // Imported files are untrusted: every field is type- and size-checked, no
 // path from the file is ever used, and only a YouTube video id is kept for
@@ -87,6 +93,9 @@ class ReplayFile {
     required this.takeF0,
     required this.score,
     this.voiceFile,
+    this.songAudioFile,
+    this.songCoverFile,
+    this.backingFile,
     this.trackTimeline = const [],
     this.lyrics,
   });
@@ -100,12 +109,20 @@ class ReplayFile {
   static const maxF0Frames = 400000; // ~107 min at 16 ms
   static const maxString = 300;
   static const maxVoiceBytes = 40 * 1024 * 1024;
+  static const maxSongAudioBytes = 40 * 1024 * 1024; // ~28 min at 192 kbps
+  static const maxCoverBytes = 4 * 1024 * 1024;
   static const maxLyricTracks = 8;
   static const maxLyricLines = 5000;
   static const maxLyricText = 500;
 
   /// Audio file types a replay's `voice.file` may name.
   static const voiceExtensions = ['mp3'];
+
+  /// A bare file name (no folders) ending in .jpg: the included song's cover.
+  static bool isCoverFileName(String name) => _bareName(name) && name.toLowerCase().endsWith('.jpg');
+
+  static bool _bareName(String name) =>
+      name.isNotEmpty && name.length <= 200 && !name.startsWith('.') && !RegExp(r'[/\\:\x00-\x1f]').hasMatch(name) && !name.contains('..');
 
   /// A bare file name (no folders) ending in .mp3.
   static bool isVoiceFileName(String name) {
@@ -131,11 +148,15 @@ class ReplayFile {
   final Map<String, dynamic> takeF0; // take_f0.json
   final Map<String, dynamic> score; // score.json
   final String? voiceFile; // the vocal MP3 next to the JSON (bare file name)
+  final String? songAudioFile; // the song's own audio MP3, when included (bare file name)
+  final String? songCoverFile; // its cover JPEG, when included with it (bare file name)
+  final String? backingFile; // the player's own backing track MP3 for it, aligned (bare file name)
 
   /// The player's own subtitle tracks (offsets applied, no romaji), or null.
   final Lyrics? lyrics;
 
   bool get hasVoice => voiceFile != null;
+  bool get hasSongAudio => songAudioFile != null;
   double get total => (score['total'] as num).toDouble();
   String get rank => score['rank'] as String;
 
@@ -157,6 +178,9 @@ class ReplayFile {
         'take_f0': takeF0,
         'score': score,
         'voice': voiceFile != null ? {'codec': 'mp3', 'file': voiceFile} : null,
+        if (songAudioFile != null) 'song_audio': {'codec': 'mp3', 'file': songAudioFile},
+        if (songAudioFile != null && songCoverFile != null) 'song_cover': {'type': 'jpeg', 'file': songCoverFile},
+        if (songAudioFile != null && backingFile != null) 'backing_audio': {'codec': 'mp3', 'file': backingFile},
         if (lyrics != null && !lyrics!.isEmpty)
           'lyrics': {
             'primary': lyrics!.primary,
@@ -203,6 +227,16 @@ class ReplayFile {
       if (f is! String || !isVoiceFileName(f)) throw ReplayFormatException('invalid', 'voice.file');
       voiceFile = f;
     }
+    // A bad song_audio only loses the included song, not the replay.
+    final songAudioRaw = root['song_audio'];
+    final sa = songAudioRaw is Map ? songAudioRaw['file'] : null;
+    final songAudioFile = sa is String && isVoiceFileName(sa) && sa != voiceFile ? sa : null;
+    final coverRaw = root['song_cover'];
+    final sc = coverRaw is Map ? coverRaw['file'] : null;
+    final songCoverFile = songAudioFile != null && sc is String && isCoverFileName(sc) ? sc : null;
+    final backingRaw = root['backing_audio'];
+    final bf = backingRaw is Map ? backingRaw['file'] : null;
+    final backingFile = songAudioFile != null && bf is String && isVoiceFileName(bf) && bf != voiceFile && bf != songAudioFile ? bf : null;
 
     return ReplayFile(
       player: _str(root['player'], 'player', fallback: ''),
@@ -225,6 +259,9 @@ class ReplayFile {
       takeF0: _validF0(_map(root['take_f0'], 'take_f0')),
       score: _validScore(_map(root['score'], 'score')),
       voiceFile: voiceFile,
+      songAudioFile: songAudioFile,
+      songCoverFile: songCoverFile,
+      backingFile: backingFile,
       lyrics: _validLyrics(root['lyrics']),
     );
   }

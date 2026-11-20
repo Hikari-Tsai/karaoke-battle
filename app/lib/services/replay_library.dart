@@ -6,6 +6,9 @@
 //                       take_f0.json  score.json  take.json  take.wav.json
 //                       vocal.mp3     the vocal as received (when included)
 //                       lyrics.json   the player's own subtitles (when shared)
+//                       song.mp3      the song itself (when the player included it)
+//                       cover.jpg     its cover image (when included with it)
+//                       backing.mp3   the player's own backing track for it (likewise)
 //                       take.wav      the vocal decoded for playback
 //
 // Exports are a .zip: "<title> <score>.json" plus "<title> <score> vocal.mp3"
@@ -13,7 +16,13 @@
 // the song's YouTube video id when it has one, so the importer can fetch it,
 // and the subtitles the player added themselves (imported, pasted, typed or
 // recognised), which are added to the song the first time the replay is
-// watched with it.
+// watched with it. A song from a local file may also bring the song itself
+// ("<title> <score> song.mp3", named by song_audio.file) when the player chose
+// to include it, with the cover image the player set for it ("... cover.jpg");
+// the receiver prepares it like an imported file, so the take lines up with
+// exactly the audio it was sung to, and the cover comes along. A backing
+// track the player imported for the song ("... backing.mp3", aligned to it)
+// travels too and is applied to that song once it is prepared.
 //
 // The take files use the same names as a song's takes/<id>/ folder, so the
 // replay screen plays an imported replay like one of the user's own takes.
@@ -32,9 +41,11 @@ import '../state/lyrics.dart';
 import '../state/replay_archive.dart';
 import '../state/replay_file.dart';
 import 'app_paths.dart';
+import 'backing_import.dart';
 import 'prep_pipeline.dart';
 import 'replay_mix.dart';
 import 'sidecars.dart';
+import 'song_cover.dart' show isJpeg;
 import 'song_library.dart';
 import '../state/track_timeline.dart';
 
@@ -49,6 +60,9 @@ class ImportedReplay {
     required this.importedAt,
     required this.createdAt,
     required this.hasVoice,
+    this.hasSongAudio = false,
+    this.hasCover = false,
+    this.hasBacking = false,
     this.youtubeId,
     this.durationSec,
     this.language = '',
@@ -66,6 +80,21 @@ class ImportedReplay {
   final DateTime importedAt;
   final DateTime createdAt;
   final bool hasVoice;
+
+  /// The song came with the replay (song.mp3), ready to be prepared.
+  final bool hasSongAudio;
+
+  /// The included song's cover came with it (cover.jpg).
+  final bool hasCover;
+
+  /// The player's own backing track came with the included song (backing.mp3).
+  final bool hasBacking;
+
+  /// The song prepared from the included copy (the backing fits only that one).
+  String? includedSongId;
+
+  /// The song the included backing track was applied to (once).
+  String? backingAddedTo;
   final String? youtubeId;
   final double? durationSec;
   final String language;
@@ -80,6 +109,9 @@ class ImportedReplay {
 
   String get notesJson => p.join(dir, 'notes.json');
   String get lyricsJson => p.join(dir, 'lyrics.json');
+  String get songAudio => p.join(dir, 'song.mp3');
+  String get cover => p.join(dir, 'cover.jpg');
+  String get backingAudio => p.join(dir, 'backing.mp3');
   TakeInfo get take => TakeInfo(id: id, dir: dir, createdAt: createdAt, total: total, rank: rank);
 
   Map<String, dynamic> toJson() => {
@@ -91,6 +123,11 @@ class ImportedReplay {
         'imported_at': importedAt.toIso8601String(),
         'created_at': createdAt.toIso8601String(),
         'has_voice': hasVoice,
+        if (hasSongAudio) 'has_song_audio': true,
+        if (hasCover) 'has_cover': true,
+        if (hasBacking) 'has_backing': true,
+        'included_song_id': ?includedSongId,
+        'backing_added_to': ?backingAddedTo,
         'youtube_id': youtubeId,
         'duration_sec': durationSec,
         'language': language,
@@ -109,13 +146,18 @@ class ImportedReplay {
         importedAt: DateTime.tryParse(j['imported_at'] as String? ?? '') ?? DateTime.now(),
         createdAt: DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
         hasVoice: j['has_voice'] == true,
+        hasSongAudio: j['has_song_audio'] == true,
+        hasCover: j['has_cover'] == true,
+        hasBacking: j['has_backing'] == true,
         youtubeId: j['youtube_id'] as String?,
         durationSec: (j['duration_sec'] as num?)?.toDouble(),
         language: j['language'] as String? ?? '',
         sourceType: j['source_type'] as String? ?? 'file',
         songId: j['song_id'] as String?,
         lyricsAddedTo: j['lyrics_added_to'] as String?,
-      );
+      )
+        ..includedSongId = j['included_song_id'] as String?
+        ..backingAddedTo = j['backing_added_to'] as String?;
 }
 
 class ReplayLibrary extends ChangeNotifier {
@@ -196,6 +238,45 @@ class ReplayLibrary extends ChangeNotifier {
     return changed;
   }
 
+  /// Adds the song that came with [r] to the library (like an imported
+  /// file), starts preparing it and links the replay to it.
+  Future<Song> prepareIncludedSong(ImportedReplay r, PrepPipeline pipeline, {required String language}) async {
+    if (!r.hasSongAudio || !await File(r.songAudio).exists()) throw StateError('this replay has no song included');
+    final song = await pipeline.importFile(r.songAudio, title: r.title, language: language);
+    await adoptCover(r, pipeline.library.files(song));
+    r.includedSongId = song.id;
+    await link(r, song.id);
+    return song;
+  }
+
+  final Set<String> _backingInFlight = {};
+
+  /// Applies the backing track that came with [r] to [song], once, when that
+  /// song was prepared from the included copy (the backing is aligned to
+  /// exactly that audio) and is ready. Returns whether it was applied.
+  Future<bool> addIncludedBacking(ImportedReplay r, Song song, BackingImport backing) async {
+    if (!r.hasBacking || r.includedSongId != song.id || r.backingAddedTo == song.id) return false;
+    if (song.stage != PrepStage.done || !await File(r.backingAudio).exists()) return false;
+    if (!_backingInFlight.add(r.id)) return false;
+    try {
+      // The user may have imported a backing of their own meanwhile: keep it.
+      final applied = !backing.library.files(song).hasUserInst;
+      if (applied) await backing.apply(song, r.backingAudio, 0, sourceName: r.player.isEmpty ? 'replay' : 'replay · ${r.player}');
+      r.backingAddedTo = song.id;
+      await File(p.join(r.dir, 'meta.json')).writeAsString(jsonEncode(r.toJson()));
+      return applied;
+    } finally {
+      _backingInFlight.remove(r.id);
+    }
+  }
+
+  /// Gives the song prepared from [r]'s included copy the cover that came with it.
+  static Future<void> adoptCover(ImportedReplay r, SongFiles files) async {
+    if (!r.hasCover || !await File(r.cover).exists()) return;
+    await Directory(files.dir).create(recursive: true);
+    await File(r.cover).copy(files.coverJpg);
+  }
+
   Future<void> delete(ImportedReplay r) async {
     final d = Directory(r.dir);
     if (await d.exists()) await d.delete(recursive: true);
@@ -203,13 +284,16 @@ class ReplayLibrary extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Imports a replay file: the app's .zip export (JSON + vocal MP3), any zip
-  /// holding replay .json files with their MP3s (all valid ones are
-  /// imported), or a plain JSON (its MP3 is looked up next to it). Throws
+  /// Imports a replay file: the app's .zip export (JSON + vocal MP3, and the
+  /// song's MP3 when included), any zip holding replay .json files with their
+  /// MP3s (all valid ones are imported), or a plain JSON (its MP3s are looked
+  /// up next to it). Throws
   /// [ReplayFormatException] when nothing in the file is a valid replay.
   Future<List<ImportedReplay>> import(String path) async {
     final f = File(path);
-    if (await f.length() > ReplayFile.maxTextBytes + ReplayFile.maxVoiceBytes) throw ReplayFormatException('tooLarge');
+    if (await f.length() > ReplayFile.maxTextBytes + ReplayFile.maxVoiceBytes + 2 * ReplayFile.maxSongAudioBytes + ReplayFile.maxCoverBytes) {
+      throw ReplayFormatException('tooLarge');
+    }
     final bytes = await f.readAsBytes();
     final bundle = await Isolate.run(() => unpackReplays(bytes));
     final imported = <ImportedReplay>[];
@@ -221,7 +305,7 @@ class ReplayLibrary extends ChangeNotifier {
           if (inArchive != null) return inArchive;
           // A JSON picked on its own (e.g. after unzipping): the vocal sits beside it.
           final sibling = File(p.join(p.dirname(path), name));
-          if (await sibling.exists() && await sibling.length() <= ReplayFile.maxVoiceBytes) return sibling.readAsBytes();
+          if (await sibling.exists() && await sibling.length() <= ReplayFile.maxSongAudioBytes) return sibling.readAsBytes();
           return null;
         }));
       } catch (e) {
@@ -232,7 +316,7 @@ class ReplayLibrary extends ChangeNotifier {
     return imported;
   }
 
-  Future<ImportedReplay> _store(String text, Future<Uint8List?> Function(String name) findVoice) async {
+  Future<ImportedReplay> _store(String text, Future<Uint8List?> Function(String name) findAudio) async {
     final r = ReplayFile.parse(text);
     final id = const Uuid().v4();
     final dir = p.join(root, id);
@@ -254,8 +338,32 @@ class ReplayLibrary extends ChangeNotifier {
       var hasVoice = false;
       if (r.voiceFile != null) {
         // voiceFile is a validated bare name, so it is only a lookup key here.
-        final data = await findVoice(r.voiceFile!);
+        final data = await findAudio(r.voiceFile!);
         if (data != null) hasVoice = await _decodeVoice(data, dir);
+      }
+      var hasSongAudio = false;
+      if (r.songAudioFile != null) {
+        final data = await findAudio(r.songAudioFile!);
+        if (data != null && data.length <= ReplayFile.maxSongAudioBytes) {
+          await File(p.join(dir, 'song.mp3')).writeAsBytes(data);
+          hasSongAudio = true;
+        }
+      }
+      var hasCover = false;
+      if (hasSongAudio && r.songCoverFile != null) {
+        final data = await findAudio(r.songCoverFile!);
+        if (data != null && data.length <= ReplayFile.maxCoverBytes && isJpeg(data)) {
+          await File(p.join(dir, 'cover.jpg')).writeAsBytes(data);
+          hasCover = true;
+        }
+      }
+      var hasBacking = false;
+      if (hasSongAudio && r.backingFile != null) {
+        final data = await findAudio(r.backingFile!);
+        if (data != null && data.length <= ReplayFile.maxSongAudioBytes) {
+          await File(p.join(dir, 'backing.mp3')).writeAsBytes(data);
+          hasBacking = true;
+        }
       }
       final item = ImportedReplay(
         id: id,
@@ -267,6 +375,9 @@ class ReplayLibrary extends ChangeNotifier {
         importedAt: DateTime.now(),
         createdAt: r.createdAt,
         hasVoice: hasVoice,
+        hasSongAudio: hasSongAudio,
+        hasCover: hasCover,
+        hasBacking: hasBacking,
         youtubeId: r.song.youtubeId,
         durationSec: r.song.durationSec,
         language: r.song.language,
@@ -301,6 +412,10 @@ class ReplayLibrary extends ChangeNotifier {
   /// Builds the export .zip for one of the user's takes:
   /// `<baseName>.json` and, when the take has a recording,
   /// `<baseName> vocal.mp3` (the dry a cappella voice, MP3 128 kbps mono).
+  /// With [includeSong] (songs from a local file), also `<baseName> song.mp3`:
+  /// the song's audio (MP3 192 kbps), on the timeline the take was sung to,
+  /// with its cover (`<baseName> cover.jpg`) and the backing track the player
+  /// imported for it (`<baseName> backing.mp3`, already aligned) when present.
   /// [baseName] must already be a safe file name (see replayBaseName).
   Future<Uint8List> export({
     required Song song,
@@ -308,6 +423,7 @@ class ReplayLibrary extends ChangeNotifier {
     required TakeInfo take,
     required String player,
     required String baseName,
+    bool includeSong = false,
   }) async {
     Map<String, dynamic> readJson(String path) => jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
     var pitchShift = 0.0, track = 'inst', start = 0.0, latency = 0.0;
@@ -337,6 +453,39 @@ class ReplayLibrary extends ChangeNotifier {
       vocalName = '$baseName vocal.mp3';
       if (!ReplayFile.isVoiceFileName(vocalName)) vocalName = 'vocal.mp3';
     }
+    String? songName, coverName, backingName;
+    Uint8List? songAudio, coverBytes, backingAudio;
+    if (includeSong && song.sourceType == SourceType.file) {
+      if (!await File(files.mixWav).exists()) throw StateError('the song audio (mix.wav) is missing');
+      final ff = await sidecars.resolve(SidecarKind.ffmpeg);
+      if (ff == null) throw StateError('ffmpeg not available');
+      final tmp = p.join(paths.cache, 'export_${take.id}_song.mp3');
+      await Directory(paths.cache).create(recursive: true);
+      Future<Uint8List> mp3(String wav) async {
+        final code = await sidecars.run(ff, ['-y', '-hide_banner', '-nostdin', '-i', wav, '-c:a', 'libmp3lame', '-b:a', '192k', tmp]);
+        if (code != 0) throw StateError('ffmpeg song export exited with $code');
+        final bytes = await File(tmp).readAsBytes();
+        await File(tmp).delete();
+        if (bytes.length > ReplayFile.maxSongAudioBytes) throw StateError('the song is too long to include');
+        return bytes;
+      }
+
+      songAudio = await mp3(files.mixWav);
+      if (files.hasUserInst) {
+        backingAudio = await mp3(files.userInstWav);
+        backingName = '$baseName backing.mp3';
+        if (!ReplayFile.isVoiceFileName(backingName)) backingName = 'backing.mp3';
+      }
+      songName = '$baseName song.mp3';
+      if (!ReplayFile.isVoiceFileName(songName) || songName == vocalName) songName = 'song.mp3';
+      if (backingName != null && (backingName == vocalName || backingName == songName)) backingName = 'backing.mp3';
+      final cover = File(files.coverJpg);
+      if (await cover.exists() && await cover.length() <= ReplayFile.maxCoverBytes) {
+        coverBytes = await cover.readAsBytes();
+        coverName = '$baseName cover.jpg';
+        if (!ReplayFile.isCoverFileName(coverName)) coverName = 'cover.jpg';
+      }
+    }
     final file = ReplayFile(
       player: player,
       exportedAt: DateTime.now(),
@@ -359,11 +508,17 @@ class ReplayLibrary extends ChangeNotifier {
       takeF0: readJson(take.f0Json),
       score: upgradeScoreJson(readJson(take.scoreJson)),
       voiceFile: vocalName,
+      songAudioFile: songName,
+      songCoverFile: coverName,
+      backingFile: backingName,
       lyrics: await _sharedLyrics(files.lyricsJson),
     );
     final zip = Archive()..addFile(ArchiveFile.string('$baseName.json', file.encode()));
     // MP3 is already compressed: store it as is.
     if (vocal != null) zip.addFile(ArchiveFile.noCompress(vocalName!, vocal.length, vocal));
+    if (songAudio != null) zip.addFile(ArchiveFile.noCompress(songName!, songAudio.length, songAudio));
+    if (coverBytes != null) zip.addFile(ArchiveFile.noCompress(coverName!, coverBytes.length, coverBytes));
+    if (backingAudio != null) zip.addFile(ArchiveFile.noCompress(backingName!, backingAudio.length, backingAudio));
     return ZipEncoder().encodeBytes(zip);
   }
 

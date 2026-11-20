@@ -1,5 +1,6 @@
 // Unpacks replay files: a .zip (the app's export, or several replays zipped
-// together) holding replay .json files and their vocal .mp3 files, or a
+// together) holding replay .json files and their .mp3 files (the vocal, and
+// the song itself when the player included it, with its .jpg cover), or a
 // plain .json. Everything is decoded in memory with size caps (the input is
 // untrusted); no entry is written to disk, so paths inside an archive are
 // only used as lookup keys.
@@ -12,6 +13,7 @@ import 'replay_file.dart';
 
 const maxArchiveEntries = 100;
 const maxArchiveTotalBytes = 4 * ReplayFile.maxTextBytes;
+const _maxAudioBytes = ReplayFile.maxVoiceBytes > ReplayFile.maxSongAudioBytes ? ReplayFile.maxVoiceBytes : ReplayFile.maxSongAudioBytes;
 
 /// One replay JSON found in a file, with the folder it sat in inside the
 /// archive ('' at the top level or for a plain file).
@@ -21,7 +23,8 @@ class ReplayEntry {
   final String folder;
 }
 
-/// Replays plus the audio files that came with them (zip path -> bytes).
+/// Replays plus the audio (and cover image) files that came with them
+/// (zip path -> bytes).
 class ReplayBundle {
   const ReplayBundle(this.replays, [this.audio = const {}]);
   final List<ReplayEntry> replays;
@@ -73,9 +76,10 @@ ReplayBundle _fromZip(Uint8List bytes) {
     if (name.startsWith('__MACOSX/') || base.startsWith('.')) continue;
     final isJson = base.toLowerCase().endsWith('.json');
     final isAudio = !isJson && ReplayFile.isVoiceFileName(base);
-    if (!isJson && !isAudio) continue;
+    final isCover = !isJson && !isAudio && ReplayFile.isCoverFileName(base);
+    if (!isJson && !isAudio && !isCover) continue;
     if (++seen > maxArchiveEntries) throw ReplayFormatException('tooLarge', 'entries');
-    final cap = isJson ? ReplayFile.maxTextBytes : ReplayFile.maxVoiceBytes;
+    final cap = isJson ? ReplayFile.maxTextBytes : (isCover ? ReplayFile.maxCoverBytes : _maxAudioBytes);
     if (f.size > cap) throw ReplayFormatException('tooLarge', base);
     // The declared size can lie. archive stops inflating at the declared
     // size, and the capped output guards against anything it lets through.

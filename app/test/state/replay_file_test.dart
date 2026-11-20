@@ -130,6 +130,55 @@ void main() {
     }
   });
 
+  test('included song: round trip; a bad name drops only the song; older files have none', () {
+    expect(sample().hasSongAudio, isFalse);
+    expect(sample().toJson().containsKey('song_audio'), isFalse);
+    final j = sample(voice: 'x vocal.mp3').toJson()..['song_audio'] = {'codec': 'mp3', 'file': 'x song.mp3'};
+    final r = ReplayFile.parse(jsonEncode(j));
+    expect(r.songAudioFile, 'x song.mp3');
+    expect(r.hasSongAudio, isTrue);
+    expect(ReplayFile.parse(r.encode()).songAudioFile, 'x song.mp3');
+    for (final bad in <Object?>['../x.mp3', 'a/b.mp3', '.h.mp3', 'x.wav', '', 'x vocal.mp3', 42, null]) {
+      final b = sample(voice: 'x vocal.mp3').toJson()..['song_audio'] = {'file': bad};
+      final parsed = ReplayFile.parse(jsonEncode(b));
+      expect(parsed.songAudioFile, isNull, reason: '$bad');
+      expect(parsed.voiceFile, 'x vocal.mp3');
+    }
+    final notMap = sample().toJson()..['song_audio'] = 'x song.mp3';
+    expect(ReplayFile.parse(jsonEncode(notMap)).songAudioFile, isNull);
+  });
+
+  test('cover: only with the included song, only bare .jpg names', () {
+    final j = sample().toJson()
+      ..['song_audio'] = {'file': 's.mp3'}
+      ..['song_cover'] = {'type': 'jpeg', 'file': 's cover.jpg'};
+    final r = ReplayFile.parse(jsonEncode(j));
+    expect(r.songCoverFile, 's cover.jpg');
+    expect(ReplayFile.parse(r.encode()).songCoverFile, 's cover.jpg');
+    final alone = sample().toJson()..['song_cover'] = {'file': 's cover.jpg'};
+    expect(ReplayFile.parse(jsonEncode(alone)).songCoverFile, isNull, reason: 'no song, no cover');
+    for (final bad in ['../c.jpg', 'a/c.jpg', '.c.jpg', 'c.png', 'c.jpeg.exe', '']) {
+      final b = sample().toJson()
+        ..['song_audio'] = {'file': 's.mp3'}
+        ..['song_cover'] = {'file': bad};
+      expect(ReplayFile.parse(jsonEncode(b)).songCoverFile, isNull, reason: bad);
+    }
+  });
+
+  test('backing track: only with the included song, a distinct bare .mp3 name', () {
+    Map<String, dynamic> withSong(Object? backing) => sample(voice: 'v.mp3').toJson()
+      ..['song_audio'] = {'file': 's.mp3'}
+      ..['backing_audio'] = {'codec': 'mp3', 'file': backing};
+    final r = ReplayFile.parse(jsonEncode(withSong('b.mp3')));
+    expect(r.backingFile, 'b.mp3');
+    expect(ReplayFile.parse(r.encode()).backingFile, 'b.mp3');
+    final alone = sample().toJson()..['backing_audio'] = {'file': 'b.mp3'};
+    expect(ReplayFile.parse(jsonEncode(alone)).backingFile, isNull, reason: 'no song, no backing');
+    for (final bad in ['../b.mp3', 'a/b.mp3', 'b.wav', 'v.mp3', 's.mp3', '', 3]) {
+      expect(ReplayFile.parse(jsonEncode(withSong(bad))).backingFile, isNull, reason: '$bad');
+    }
+  });
+
   test('a score without the scale field is converted to the DAM-like scale', () {
     final j = sample().toJson()..['score'] = {'total': 85.0, 'rank': 'S'};
     final r = ReplayFile.parse(jsonEncode(j));

@@ -65,7 +65,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       } catch (_) {}
     }
     if (!mounted) return;
-    await showShareDialog(context, song: widget.song, take: widget.take, score: score, isBest: isBest, thumbPath: services.library.files(widget.song).thumbJpg);
+    await showShareDialog(context, song: widget.song, take: widget.take, score: score, isBest: isBest, thumbPath: services.library.files(widget.song).shownThumb);
   }
 
   @override
@@ -75,7 +75,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     if (widget.newRecord && widget.score != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        final thumb = context.read<AppServices>().library.files(widget.song).thumbJpg;
+        final thumb = context.read<AppServices>().library.files(widget.song).shownThumb;
         showNewRecordDialog(context, song: widget.song, take: widget.take, score: widget.score!, previousBest: widget.previousBest, thumbPath: thumb);
       });
     }

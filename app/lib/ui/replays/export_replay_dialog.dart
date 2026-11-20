@@ -1,5 +1,8 @@
 // "Export replay": asks for the player name, then saves a .zip holding the
 // replay JSON and the dry a cappella vocal, which someone else can import.
+// For a song from a local file (which the receiver does not have) it also
+// asks whether to pack the song in: including it carries a copyright
+// reminder, leaving it out explains what the receiver will need.
 import 'dart:convert';
 import 'dart:io';
 
@@ -44,6 +47,19 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
   /// Names of the user's own subtitle tracks that go into the replay.
   List<String> _lyrics = const [];
 
+  /// Songs from a local file: whether to pack the song in (null: not chosen yet).
+  bool? _includeSong;
+  bool get _localSong => widget.song.sourceType == SourceType.file;
+
+  /// Rough size of the included song (MP3 192 kbps), in MB, when known.
+  String? _songMb;
+
+  /// The song has a cover image, which goes with the included song.
+  bool _hasCover = false;
+
+  /// The user imported a backing track for the song: it goes with it too.
+  bool _hasBacking = false;
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +70,18 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
       final shared = f.existsSync() ? sharedLyrics(Lyrics.fromJson(jsonDecode(f.readAsStringSync()) as Map<String, dynamic>)) : null;
       _lyrics = [for (final t in shared?.tracks ?? const <LyricTrack>[]) lyricTrackLabel(t)];
     } catch (_) {}
+    if (_localSong) {
+      _hasCover = File(services.library.files(widget.song).coverJpg).existsSync();
+      _hasBacking = services.library.files(widget.song).hasUserInst;
+      var seconds = widget.song.durationSec;
+      if (seconds == null) {
+        // mix.wav: 44.1 kHz 16-bit stereo, near enough for an estimate.
+        final mix = File(services.library.files(widget.song).mixWav);
+        if (mix.existsSync()) seconds = mix.lengthSync() / (44100 * 4);
+      }
+      // The song, and the backing track at the same rate.
+      if (seconds != null && seconds > 0) _songMb = (seconds * 192000 / 8 / 1e6 * (_hasBacking ? 2 : 1)).toStringAsFixed(1);
+    }
   }
 
   @override
@@ -78,6 +106,7 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
         take: widget.take,
         player: player,
         baseName: base,
+        includeSong: _includeSong == true,
       );
       final uri = await FilePicker.saveFile(
         dialogTitle: tr('export.saveTitle'),
@@ -108,6 +137,7 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
     final theme = Theme.of(context);
     final hasVoice = File(widget.take.wav).existsSync();
     return AlertDialog(
+      scrollable: true,
       title: Text(tr('export.title')),
       content: SizedBox(
         width: 440,
@@ -136,6 +166,10 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
                 Expanded(child: Text(tr('export.lyrics', {'names': _lyrics.join('、')}), style: theme.textTheme.bodySmall)),
               ]),
             ],
+            if (_localSong) ...[
+              const SizedBox(height: 12),
+              _songChoice(theme),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
@@ -147,11 +181,75 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
         if (_error != null && !_busy) ReportBugButton(error: _error!, where: 'export replay'),
         TextButton(onPressed: _busy ? null : () => Navigator.of(context).pop(), child: Text(tr('cancel'))),
         FilledButton.icon(
-          onPressed: _busy ? null : _export,
+          onPressed: _busy || (_localSong && _includeSong == null) ? null : _export,
           icon: _busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_alt),
           label: Text(tr('export.save')),
         ),
       ],
+    );
+  }
+
+  /// Include the song or not, each with what it means.
+  Widget _songChoice(ThemeData theme) {
+    final cs = theme.colorScheme;
+    final include = _includeSong;
+    final note = include == null ? null : tr(include ? 'export.includeSongNote' : 'export.excludeSongNote');
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: cs.tertiaryContainer.withValues(alpha: 0.35),
+        border: Border.all(color: cs.tertiary.withValues(alpha: 0.6)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.warning_amber_rounded, size: 20, color: cs.tertiary),
+            const SizedBox(width: 8),
+            Expanded(child: Text(tr('export.localSong'), style: theme.textTheme.bodyMedium)),
+          ]),
+          const SizedBox(height: 4),
+          RadioGroup<bool>(
+            groupValue: include,
+            onChanged: (v) {
+              if (!_busy) setState(() => _includeSong = v);
+            },
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              RadioListTile<bool>(
+                value: true,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(tr('export.includeSong')),
+                subtitle: _songMb == null && !_hasCover && !_hasBacking
+                    ? null
+                    : Text([
+                        if (_hasBacking || _hasCover)
+                          tr('export.extras', {
+                            'items': [if (_hasBacking) tr('export.withBacking'), if (_hasCover) tr('export.withCover')].join(tr('export.and')),
+                          }),
+                        if (_songMb != null) tr('export.songSize', {'mb': _songMb!}),
+                      ].join(' · ')),
+              ),
+              RadioListTile<bool>(
+                value: false,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(tr('export.excludeSong')),
+              ),
+            ]),
+          ),
+          if (note != null)
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(include! ? Icons.copyright : Icons.info_outline, size: 18, color: include ? cs.error : cs.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(child: Text(note, style: theme.textTheme.bodySmall?.copyWith(color: include ? cs.error : null))),
+            ])
+          else
+            Text(tr('export.chooseSong'), style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+        ],
+      ),
     );
   }
 }

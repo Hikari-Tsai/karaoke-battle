@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/midi_export.dart';
 import '../../services/prep_pipeline.dart';
+import '../../services/song_cover.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
@@ -201,7 +202,7 @@ class _SongCardState extends State<_SongCard> {
     final services = context.read<AppServices>();
     final score = await ScoringBridge.load(t.scoreJson);
     if (score == null || !mounted) return;
-    await showShareDialog(context, song: widget.song, take: t, score: score, isBest: identical(t, _best), thumbPath: services.library.files(widget.song).thumbJpg);
+    await showShareDialog(context, song: widget.song, take: t, score: score, isBest: identical(t, _best), thumbPath: services.library.files(widget.song).shownThumb);
   }
 
   /// Scores a take whose scoring did not finish (e.g. a model was missing).
@@ -281,6 +282,28 @@ class _SongCardState extends State<_SongCard> {
     messenger.showSnackBar(SnackBar(content: Text(tr('library.midiSaved', {'path': uri.toFilePath()}))));
   }
 
+  /// Songs from local files: pick a picture to show (and to send along with
+  /// the song when a replay includes it).
+  Future<void> _pickCover() async {
+    final services = context.read<AppServices>();
+    final messenger = ScaffoldMessenger.of(context);
+    final picked = await FilePicker.pickFiles(dialogTitle: tr('library.coverPick'), type: FileType.custom, allowedExtensions: kCoverExtensions);
+    final path = picked.isEmpty ? null : picked.first.path;
+    if (path == null) return;
+    try {
+      await setSongCover(services.sidecars, services.library.files(widget.song), path);
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(tr('library.coverFailed'))));
+      return;
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _removeCover() async {
+    await removeSongCover(context.read<AppServices>().library.files(widget.song));
+    if (mounted) setState(() {});
+  }
+
   Future<void> _delete() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -320,6 +343,7 @@ class _SongCardState extends State<_SongCard> {
     final needsDownload = stage == PrepStage.failed && !inProgress && song.sourceUrl != null && (song.sourceFile == null || !File(song.sourceFile!).existsSync());
     final services = context.read<AppServices>();
     final dir = services.library.files(song).dir;
+    final hasCover = song.sourceType == SourceType.file && File(services.library.files(song).coverJpg).existsSync();
     final best = _best;
 
     return Card(
@@ -342,7 +366,7 @@ class _SongCardState extends State<_SongCard> {
                           width: 128,
                           height: 72,
                           child: Stack(fit: StackFit.expand, children: [
-                            _thumb(song, services.library.files(song).thumbJpg, cs),
+                            _thumb(song, services.library.files(song).shownThumb, cs),
                             if (ready)
                               Center(
                                 child: Container(
@@ -430,11 +454,20 @@ class _SongCardState extends State<_SongCard> {
                       'backingImport' => importBackingTrack(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       'backingRevert' => revertBackingTrack(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       'midiExport' => _exportMidi(),
+                      'coverSet' => _pickCover(),
+                      'coverRemove' => _removeCover(),
                       _ => null,
                     },
                     itemBuilder: (_) => [
                       PopupMenuItem(value: 'reprocess', child: ListTile(leading: const Icon(Icons.refresh), title: Text(tr('library.reprocess')))),
                       PopupMenuItem(value: 'folder', child: ListTile(leading: const Icon(Icons.folder_open), title: Text(tr('library.showFolder')))),
+                      if (song.sourceType == SourceType.file) ...[
+                        PopupMenuItem(
+                          value: 'coverSet',
+                          child: ListTile(leading: const Icon(Icons.image_outlined), title: Text(tr(hasCover ? 'library.coverChange' : 'library.coverSet'))),
+                        ),
+                        if (hasCover) PopupMenuItem(value: 'coverRemove', child: ListTile(leading: const Icon(Icons.hide_image_outlined), title: Text(tr('library.coverRemove')))),
+                      ],
                       const PopupMenuDivider(),
                       PopupMenuItem(value: 'lyricsImport', child: ListTile(leading: const Icon(Icons.file_open_outlined), title: Text(tr('lyrics.import')))),
                       PopupMenuItem(value: 'lyricsPaste', child: ListTile(leading: const Icon(Icons.content_paste), title: Text(tr('lyrics.paste')))),

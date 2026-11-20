@@ -110,6 +110,12 @@ class SongFiles {
   String get backingWav => hasUserInst ? userInstWav : instWav;
   String get videoMp4 => p.join(dir, 'video.mp4');
   String get thumbJpg => p.join(dir, 'thumb.jpg');
+
+  /// A cover the user picked (songs from local files), see song_cover.dart.
+  String get coverJpg => p.join(dir, 'cover.jpg');
+
+  /// The picture to show for the song: the user's cover, else the thumbnail.
+  String get shownThumb => File(coverJpg).existsSync() ? coverJpg : thumbJpg;
   String get lyricsJson => p.join(dir, 'lyrics.json');
   String get beatsJson => p.join(dir, 'beats.json');
   String get tempoJson => p.join(dir, 'tempo.json');

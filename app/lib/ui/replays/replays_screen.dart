@@ -56,12 +56,41 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
           final list = await replays.import(path);
           _snack(list.length == 1 ? tr('replays.imported', {'title': list.first.title}) : tr('replays.importedMany', {'n': list.length}));
           await _offerYoutube(list);
+          await _offerIncluded(list);
         } catch (e) {
           _snack('${tr('replays.importFailed')}: ${replayImportError(e)}');
         }
       }
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// For imported replays that came with the song itself and whose song is not
+  /// in the library: asks whether to prepare the included song.
+  Future<void> _offerIncluded(List<ImportedReplay> imported) async {
+    final services = context.read<AppServices>();
+    for (final r in imported) {
+      if (!r.hasSongAudio || r.youtubeId != null || !mounted) continue;
+      if (ReplayLibrary.findSong(services.library, r) != null) continue;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(tr('replays.includedAskTitle')),
+          content: Text(tr('replays.includedAskBody', {'title': r.title})),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('later'))),
+            FilledButton.icon(onPressed: () => Navigator.of(ctx).pop(true), icon: const Icon(Icons.library_music_outlined), label: Text(tr('replays.useIncluded'))),
+          ],
+        ),
+      );
+      if (ok != true) continue;
+      try {
+        final language = kLanguages.contains(r.language) ? r.language : services.settings.defaultLanguage;
+        await services.replays.prepareIncludedSong(r, services.pipeline, language: language);
+      } catch (e, st) {
+        if (mounted) showErrorSnack(context, e, stack: st, where: 'add included song');
+      }
     }
   }
 
@@ -229,6 +258,11 @@ class _ReplayCardState extends State<_ReplayCard> {
         await services.replays.link(r, song.id);
       });
 
+  Future<void> _useIncluded() => _guard(() async {
+        final services = context.read<AppServices>();
+        await services.replays.prepareIncludedSong(r, services.pipeline, language: _language);
+      });
+
   Future<void> _pickSource() => _guard(() async {
         final services = context.read<AppServices>();
         final files = await FilePicker.pickFiles(dialogTitle: tr('replays.pickSource'), type: FileType.custom, allowedExtensions: kMediaExtensions);
@@ -283,8 +317,20 @@ class _ReplayCardState extends State<_ReplayCard> {
     // The player's own subtitles came with the replay: add them to the song.
     final services = context.read<AppServices>();
     if (await services.replays.addSharedLyrics(r, song, services.pipeline)) _snack(tr('replays.lyricsAdded'));
+    await _addBacking(song);
     if (!mounted) return;
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: song, take: r.take, notesJsonPath: r.notesJson, player: _player)));
+  }
+
+  /// The backing track that came with the included song: applied once the
+  /// song prepared from it is ready (here, or when watching).
+  Future<void> _addBacking(Song song) async {
+    final services = context.read<AppServices>();
+    try {
+      if (await services.replays.addIncludedBacking(r, song, services.backingImport)) _snack(tr('replays.backingAdded'));
+    } catch (e, st) {
+      if (mounted) showErrorSnack(context, e, stack: st, where: 'add replay backing');
+    }
   }
 
   Future<void> _showCard(Song? song, bool ready) async {
@@ -296,7 +342,7 @@ class _ReplayCardState extends State<_ReplayCard> {
     }
     final services = context.read<AppServices>();
     final cardSong = song ?? Song(id: r.id, title: r.title, sourceType: SourceType.file, createdAt: r.createdAt);
-    final thumb = song == null ? null : services.library.files(song).thumbJpg;
+    final thumb = song != null ? services.library.files(song).shownThumb : (r.hasCover ? r.cover : null);
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -335,9 +381,16 @@ class _ReplayCardState extends State<_ReplayCard> {
     final inProgress = song != null && stage != PrepStage.done && stage != PrepStage.failed;
     final ready = song != null && song.stage == PrepStage.done && !(status != null && status.stage != PrepStage.done && status.stage != PrepStage.failed);
     final failed = song != null && song.stage == PrepStage.failed && status == null;
-    final thumbPath = song == null ? null : services.library.files(song).thumbJpg;
+    // Before the song is prepared, the cover that came with it.
+    final thumbPath = song != null ? services.library.files(song).shownThumb : (r.hasCover ? r.cover : null);
     final thumb = thumbPath != null && File(thumbPath).existsSync() ? File(thumbPath) : null;
     final date = MaterialLocalizations.of(context).formatShortDate(r.createdAt);
+
+    if (ready && r.hasBacking && r.includedSongId == song.id && r.backingAddedTo != song.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addBacking(song);
+      });
+    }
 
     final String statusText;
     if (ready) {
@@ -348,6 +401,8 @@ class _ReplayCardState extends State<_ReplayCard> {
       statusText = tr('replays.failed');
     } else if (r.youtubeId != null) {
       statusText = tr('replays.missingYoutube');
+    } else if (r.hasSongAudio) {
+      statusText = tr('replays.includedSong');
     } else {
       statusText = tr('replays.missingFile');
     }
@@ -435,6 +490,12 @@ class _ReplayCardState extends State<_ReplayCard> {
                     onPressed: _busy ? null : _download,
                     icon: _busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.download),
                     label: Text(tr('replays.download')),
+                  )
+                else if (song == null && r.hasSongAudio)
+                  FilledButton.tonalIcon(
+                    onPressed: _busy ? null : _useIncluded,
+                    icon: _busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.library_music_outlined),
+                    label: Text(tr('replays.useIncluded')),
                   )
                 else if (song == null || failed)
                   FilledButton.tonalIcon(
