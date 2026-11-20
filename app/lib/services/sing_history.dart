@@ -1,4 +1,4 @@
-// The sing history ("歌單"): every scored take of every song, newest first.
+// The sing history ("演唱紀錄"): every scored take of every song, newest first.
 // Clearing it only hides what came before a moment (the recordings and the
 // library's best scores stay) unless the user also asks to delete them.
 //

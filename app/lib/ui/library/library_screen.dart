@@ -15,6 +15,7 @@ import '../../state/i18n.dart';
 import '../../state/note_edits.dart';
 import '../../state/scoring_bridge.dart';
 import '../../state/sing_session.dart';
+import '../lyrics/export_lyrics_dialog.dart';
 import '../lyrics/lyrics_actions.dart';
 import '../results/new_record_dialog.dart';
 import '../results/replay_screen.dart';
@@ -453,6 +454,7 @@ class _SongCardState extends State<_SongCard> {
                       'lyricsWhisper' => recognizeLyrics(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       'backingImport' => importBackingTrack(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
                       'backingRevert' => revertBackingTrack(context, song).then((ok) => ok && mounted ? setState(() {}) : null),
+                      'lyricsExport' => exportLyrics(context, song),
                       'midiExport' => _exportMidi(),
                       'coverSet' => _pickCover(),
                       'coverRemove' => _removeCover(),
@@ -473,6 +475,7 @@ class _SongCardState extends State<_SongCard> {
                       PopupMenuItem(value: 'lyricsPaste', child: ListTile(leading: const Icon(Icons.content_paste), title: Text(tr('lyrics.paste')))),
                       PopupMenuItem(value: 'lyricsEdit', child: ListTile(leading: const Icon(Icons.edit_note), title: Text(tr('lyrics.edit')))),
                       PopupMenuItem(value: 'lyricsWhisper', child: ListTile(leading: const Icon(Icons.graphic_eq), title: Text(tr('lyrics.whisper')))),
+                      PopupMenuItem(value: 'lyricsExport', child: ListTile(leading: const Icon(Icons.subtitles_outlined), title: Text(tr('lyrics.export')))),
                       // Needs the prepared song (its separated tracks to align with).
                       if (song.stage == PrepStage.done) ...[
                         const PopupMenuDivider(),

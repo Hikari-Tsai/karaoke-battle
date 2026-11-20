@@ -158,6 +158,18 @@ how are you
       expect([for (final x in parseLrc(toLrc(lines))) (x.start, x.end, x.text)], [(1.25, 3.5, 'a'), (3.5, 5.0, 'b'), (8.0, 9.75, 'c')]);
     });
 
+    test('exporting a track uses its shown timing and skips empty lines', () {
+      final t = LyricTrack(
+        lang: 'zh-x-import',
+        auto: false,
+        source: LyricSource.imported,
+        offset: 0.5,
+        lines: const [LyricLine(1, 2, '晴天'), LyricLine(2, 3, '  '), LyricLine(4, 5, '夜曲')],
+      );
+      expect(exportSubtitles(t, 'srt'), '1\n00:00:01,500 --> 00:00:02,500\n晴天\n\n2\n00:00:04,500 --> 00:00:05,500\n夜曲\n\n');
+      expect(exportSubtitles(t, 'lrc'), '[00:01.50]晴天\n[00:02.50]\n[00:04.50]夜曲\n[00:05.50]\n');
+    });
+
     test('editor times', () {
       expect(formatLyricTime(75.256), '1:15.26');
       expect(formatLyricTime(3725), '1:02:05.00');

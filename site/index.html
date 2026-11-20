@@ -36,8 +36,8 @@
         <span class="wordmark"><span class="k">KARAOKE</span> BATTLE</span>
       </a>
       <nav class="nav" aria-label="主選單" data-i18n-aria="a.nav">
-        <a href="#demo" data-i18n="nav.demo">示範</a>
         <a href="#how" data-i18n="nav.how">怎麼用</a>
+        <a href="#demo" data-i18n="nav.demo">示範</a>
         <a href="#features" data-i18n="nav.features">功能特色</a>
         <a href="#scoring" data-i18n="nav.scoring">評分</a>
         <a href="#tech" data-i18n="nav.tech">技術</a>
@@ -87,23 +87,6 @@
         </div>
       </section>
 
-      <section id="demo" class="section alt">
-        <div class="wrap">
-          <h2 data-i18n="demo.h2">SSS 示範</h2>
-          <p class="section-lead" data-i18n="demo.lead">兩段實際演唱，用 App 的「匯出影片」直接輸出（有聲音）。</p>
-          <div class="demos">
-            <figure class="film">
-              <video controls playsinline preload="none" poster="assets/demo-992.jpg"><source src="assets/demo-992.mp4" type="video/mp4" /></video>
-              <figcaption>家家・〈[Fantasy Island]MMM〉・99.2 SSS</figcaption>
-            </figure>
-            <figure class="film">
-              <video controls playsinline preload="none" poster="assets/demo-987.jpg"><source src="assets/demo-987.mp4" type="video/mp4" /></video>
-              <figcaption>家家・〈[Fantasy Island]MMM〉・98.7 SSS</figcaption>
-            </figure>
-          </div>
-        </div>
-      </section>
-
       <section id="how" class="section">
         <div class="wrap">
           <h2 data-i18n="how.h2">三個步驟就能評分</h2>
@@ -130,7 +113,60 @@
         </div>
       </section>
 
-      <section id="features" class="section alt">
+      <section id="demo" class="section alt">
+        <div class="wrap">
+          <h2 data-i18n="demo.h2">SSS 示範</h2>
+          <p class="section-lead" data-i18n="demo.lead">兩段實際演唱，用 App 的「匯出影片」直接輸出（有聲音）。</p>
+          <div class="demos">
+            <article class="demo">
+              <figure class="film">
+                <video controls playsinline preload="none" poster="assets/demo-992.jpg"><source src="assets/demo-992.mp4" type="video/mp4" /></video>
+                <figcaption>家家・〈[Fantasy Island]MMM〉・99.2 SSS</figcaption>
+              </figure>
+              <div class="demo-score">
+                <p class="demo-total"><b data-to="99.2">99.2</b><span class="rank-sss">SSS</span></p>
+                <ul class="demo-bars">
+                  <li><span data-i18n="sc.pitch">音準</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li><span data-i18n="sc.rhythm">節奏</span><i style="--w: 95%"></i><em data-to="95">95</em></li>
+                  <li><span data-i18n="sc.stab">穩定度</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="na"><span data-i18n="sc.vib">顫音</span><i style="--w: 0%"></i><em>—</em></li>
+                  <li><span data-i18n="sc.expr">表現力</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li><span data-i18n="sc.long">長音</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                </ul>
+                <p class="demo-judge"><span class="j-perfect">PERFECT 38</span><span class="j-great">GREAT 10</span><span class="j-good">GOOD 2</span><span class="j-miss">MISS 0</span></p>
+                <div class="demo-ai">
+                  <b><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2l1.9 5.6L19.5 9l-5.6 1.9L12 16.5l-1.9-5.6L4.5 9l5.6-1.4zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9zM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg><span data-i18n="demo.ai">AI 評語</span></b>
+                  <p data-i18n="demo.c992">音準、穩定度、表現力和長音全部滿分，50 個起音沒有任何 MISS。唯一扣分的是節奏：有 10 個 GREAT 只差一點點，把每句開頭咬得再準一點，就有機會挑戰滿分。</p>
+                </div>
+              </div>
+            </article>
+            <article class="demo">
+              <figure class="film">
+                <video controls playsinline preload="none" poster="assets/demo-987.jpg"><source src="assets/demo-987.mp4" type="video/mp4" /></video>
+                <figcaption>家家・〈[Fantasy Island]MMM〉・98.7 SSS</figcaption>
+              </figure>
+              <div class="demo-score">
+                <p class="demo-total"><b data-to="98.7">98.7</b><span class="rank-sss">SSS</span></p>
+                <ul class="demo-bars">
+                  <li><span data-i18n="sc.pitch">音準</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li><span data-i18n="sc.rhythm">節奏</span><i style="--w: 92%"></i><em data-to="92">92</em></li>
+                  <li><span data-i18n="sc.stab">穩定度</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="na"><span data-i18n="sc.vib">顫音</span><i style="--w: 0%"></i><em>—</em></li>
+                  <li><span data-i18n="sc.expr">表現力</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li><span data-i18n="sc.long">長音</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                </ul>
+                <p class="demo-judge"><span class="j-perfect">PERFECT 42</span><span class="j-great">GREAT 2</span><span class="j-good">GOOD 4</span><span class="j-miss">MISS 2</span></p>
+                <div class="demo-ai">
+                  <b><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2l1.9 5.6L19.5 9l-5.6 1.9L12 16.5l-1.9-5.6L4.5 9l5.6-1.4zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9zM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg><span data-i18n="demo.ai">AI 評語</span></b>
+                  <p data-i18n="demo.c987">音準與長音同樣滿分，PERFECT 42 個是兩段裡最多的。扣分主要來自 2 個 MISS 和 4 個 GOOD，整體時間點平均只晚約 16 ms，拍感很穩；把漏掉的起音補上，就能追上 99 分。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section">
         <div class="wrap">
           <h2 data-i18n="feat.h2">功能特色</h2>
           <p class="section-lead" data-i18n="feat.lead">導入多種AI輔助，大幅降低錯誤率，提供多種方便好用的功能。</p>
@@ -217,7 +253,7 @@
         </div>
       </section>
 
-      <section id="scoring" class="section">
+      <section id="scoring" class="section alt">
         <div class="wrap">
           <h2 data-i18n="sc.h2">分數怎麼算</h2>
           <p class="section-lead" data-i18n="sc.lead">唱完後，App 把你錄下的音高曲線和原唱對齊比較，給出六項子分數，加權後換算成 0 到 100 分。</p>
@@ -238,7 +274,7 @@
         </div>
       </section>
 
-      <section id="tech" class="section alt">
+      <section id="tech" class="section">
         <div class="wrap">
           <h2 data-i18n="te.h2">技術特點</h2>
           <ul class="tech">

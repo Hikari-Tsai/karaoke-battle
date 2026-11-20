@@ -39,6 +39,46 @@
   io.observe(list);
 })();
 
+// The demo score cards: the bars grow and the numbers count up from 0 the
+// first time each card scrolls into view. Without JavaScript, or with
+// reduced motion, they show the final values.
+(function () {
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".demo-score"));
+  if (!cards.length || !("IntersectionObserver" in window)) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  function count(el, delay) {
+    var to = parseFloat(el.getAttribute("data-to"));
+    var dp = (el.getAttribute("data-to").split(".")[1] || "").length;
+    var t0 = null, dur = 1400;
+    el.textContent = (0).toFixed(dp);
+    function step(now) {
+      if (t0 === null) t0 = now + delay;
+      var u = Math.min(Math.max((now - t0) / dur, 0), 1);
+      el.textContent = (to * (1 - Math.pow(1 - u, 3))).toFixed(dp);
+      if (u < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  cards.forEach(function (c) {
+    c.classList.add("anim");
+    c.querySelectorAll("[data-to]").forEach(function (el) { el.textContent = (0).toFixed((el.getAttribute("data-to").split(".")[1] || "").length); });
+  });
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      var c = e.target;
+      io.unobserve(c);
+      c.classList.add("in");
+      count(c.querySelector(".demo-total b"), 0);
+      c.querySelectorAll(".demo-bars li").forEach(function (li, i) {
+        var em = li.querySelector("em[data-to]");
+        if (em) count(em, i * 100);
+      });
+    });
+  }, { threshold: 0.35 });
+  cards.forEach(function (c) { io.observe(c); });
+})();
+
 // The star buttons show the repository's current star count, read from the
 // GitHub API (no sign-in; 60 requests an hour per visitor, so the number is
 // kept for ten minutes). If the request fails the buttons just have no number.

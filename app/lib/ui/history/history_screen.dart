@@ -1,4 +1,4 @@
-// 歌單: what you sang and how it scored, newest first, grouped by day.
+// 演唱紀錄: what you sang and how it scored, newest first, grouped by day.
 import 'dart:io';
 
 import 'package:flutter/material.dart';

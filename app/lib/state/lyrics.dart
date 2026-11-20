@@ -573,6 +573,13 @@ String toLrc(List<LyricLine> lines) {
   return b.toString();
 }
 
+/// [t] as a subtitle file ('srt' or 'lrc'), timed as it is shown (with its
+/// offset); empty lines are left out.
+String exportSubtitles(LyricTrack t, String format) {
+  final lines = [for (final l in t.shownLines) if (l.text.trim().isNotEmpty) l];
+  return format == 'lrc' ? toLrc(lines) : toSrt(lines);
+}
+
 /// `m:ss.cc` (or `h:mm:ss.cc`) for the editor.
 String formatLyricTime(double t) {
   final cs = (t * 100).round();
