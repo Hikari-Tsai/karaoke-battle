@@ -150,9 +150,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
           lastDate: today,
           helpText: tr('history.startTitle'),
         );
-        // From the start of that sing day (days begin at kDayStartHour).
-        if (picked != null && mounted) await _setStart(DateTime(picked.year, picked.month, picked.day, kDayStartHour));
+        if (picked == null || !mounted) return;
+        // Then the time: the start of the sing day (kDayStartHour) unless
+        // changed, or the current start's time when it was on that date.
+        final keep = current != null && dayOf(current) == picked;
+        final time = await showTimePicker(
+          context: context,
+          initialTime: keep ? TimeOfDay.fromDateTime(current.toLocal()) : const TimeOfDay(hour: kDayStartHour, minute: 0),
+          helpText: tr('history.startTime'),
+        );
+        if (time != null && mounted) await _setStart(DateTime(picked.year, picked.month, picked.day, time.hour, time.minute));
     }
+  }
+
+  /// The OBS setlist: the same takes as the list (from the start point on),
+  /// which is also what the OBS text file shows.
+  void _obsSetlist() {
+    final settings = context.read<AppSettings>();
+    context.read<AppServices>().setlistLog.update();
+    showSetlistDialog(context, day: dayOf(DateTime.now()), entries: _entries ?? const [], range: true, since: settings.historyClearedAt);
   }
 
   void _setlist(DateTime day) {
@@ -172,7 +188,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilledButton.tonalIcon(
-              onPressed: entries == null ? null : () => _setlist(dayOf(DateTime.now())),
+              onPressed: entries == null ? null : _obsSetlist,
               icon: const Icon(Icons.queue_music),
               label: Text(tr('setlist.today')),
             ),
@@ -200,7 +216,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     // Counting from a start point: the earlier takes are still there.
                     if (context.watch<AppSettings>().historyClearedAt case final start?) ...[
                       const SizedBox(height: 16),
-                      Text(tr('history.emptySince', {'date': formatDay(dayOf(start))}), style: theme.textTheme.bodyMedium),
+                      Text(tr('history.emptySince', {'date': formatStart(start)}), style: theme.textTheme.bodyMedium),
                       const SizedBox(height: 10),
                       Row(mainAxisSize: MainAxisSize.min, children: [
                         FilledButton.tonalIcon(onPressed: () => _setStart(null), icon: const Icon(Icons.history), label: Text(tr('history.startAll'))),
@@ -311,7 +327,7 @@ class _StatsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final best = stats.best;
     final range = start != null
-        ? tr('history.since', {'date': formatDay(dayOf(start!))})
+        ? tr('history.since', {'date': formatStart(start!)})
         : stats.first == null
             ? tr('history.startAll')
             : stats.first == stats.last
@@ -546,7 +562,7 @@ class _StartDialog extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(tr('history.startBody'), style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
           const SizedBox(height: 12),
-          option('date', Icons.event_outlined, start == null ? tr('history.startPick') : '${tr('history.startPick')}（${tr('history.since', {'date': formatDay(dayOf(start!))})}）', selected: start != null),
+          option('date', Icons.event_outlined, start == null ? tr('history.startPick') : '${tr('history.startPick')}（${tr('history.since', {'date': formatStart(start!)})}）', selected: start != null),
           option('now', Icons.restart_alt, tr('history.startNow')),
           option('all', Icons.history, tr('history.startAll'), selected: start == null),
         ]),

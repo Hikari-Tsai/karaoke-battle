@@ -22,6 +22,7 @@ import '../widgets/brand.dart';
 import '../widgets/rank.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/reveal.dart';
 
 /// File types the import accepts: the exported .zip, or an unzipped .json
 /// (its vocal .mp3 is read from beside it).
@@ -182,13 +183,29 @@ class _ReplaysScreenState extends State<ReplaysScreen> {
                     ),
                   );
                 }
+                // As the Library: a reading width, centred, cards coming in
+                // one after another.
                 return ListView.builder(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   itemCount: items.length,
                   itemBuilder: (context, i) {
                     final r = items[i];
                     final song = ReplayLibrary.findSong(library, r);
-                    return _ReplayCard(key: ValueKey(r.id), replay: r, song: song, status: song == null ? null : pipeline.statusOf(song.id));
+                    return Center(
+                      key: ValueKey(r.id),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1080),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                          child: FadeSlideIn(
+                            delay: Duration(milliseconds: i < 10 ? 40 * i : 0),
+                            offset: 12,
+                            duration: const Duration(milliseconds: 600),
+                            child: _ReplayCard(key: ValueKey('card-${r.id}'), replay: r, song: song, status: song == null ? null : pipeline.statusOf(song.id)),
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 );
               },
@@ -221,6 +238,7 @@ class _ReplayCard extends StatefulWidget {
 }
 
 class _ReplayCardState extends State<_ReplayCard> {
+  bool _hover = false;
   bool _busy = false;
 
   ImportedReplay get r => widget.replay;
@@ -414,10 +432,35 @@ class _ReplayCardState extends State<_ReplayCard> {
       statusText = tr('replays.missingFile');
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    // The replay's rank colour down the left edge.
+    final accent = rankColor(r.rank);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: _hover ? cs.surfaceContainerHigh : cs.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _hover ? accent.withValues(alpha: 0.5) : cs.outlineVariant.withValues(alpha: 0.25)),
+          boxShadow: [if (_hover) BoxShadow(color: accent.withValues(alpha: 0.12), blurRadius: 20)],
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Stack(children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 4,
+              child: DecoratedBox(
+                decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [accent, accent.withValues(alpha: 0.4)])),
+              ),
+            ),
+            Padding(
+        padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -425,12 +468,12 @@ class _ReplayCardState extends State<_ReplayCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                   child: SizedBox(
                     width: 128,
                     height: 72,
                     child: thumb != null
-                        ? Image.file(thumb, fit: BoxFit.cover)
+                        ? AnimatedScale(scale: _hover ? 1.06 : 1, duration: const Duration(milliseconds: 300), child: Image.file(thumb, fit: BoxFit.cover))
                         : ColoredBox(color: cs.surfaceContainerHighest, child: Icon(Icons.ondemand_video, color: cs.onSurfaceVariant)),
                   ),
                 ),
@@ -439,7 +482,7 @@ class _ReplayCardState extends State<_ReplayCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 4),
                       Row(children: [
                         Icon(Icons.person, size: 16, color: cs.onSurfaceVariant),
@@ -462,7 +505,15 @@ class _ReplayCardState extends State<_ReplayCard> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(r.total.toStringAsFixed(1), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: rankColor(r.rank))),
+                    Text(
+                      r.total.toStringAsFixed(1),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: accent,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        shadows: [if (rankTier(r.rank) > 0) Shadow(color: accent.withValues(alpha: 0.45), blurRadius: 14)],
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     RankChip(rank: r.rank),
                   ],
@@ -513,6 +564,9 @@ class _ReplayCardState extends State<_ReplayCard> {
               ],
             ),
           ],
+        ),
+            ),
+          ]),
         ),
       ),
     );

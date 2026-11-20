@@ -129,6 +129,14 @@ String _two(int n) => n.toString().padLeft(2, '0');
 
 String formatDay(DateTime day) => '${day.year}-${_two(day.month)}-${_two(day.day)}';
 
+/// The History's start point: the sing day when it is the start of one
+/// (kDayStartHour), else the date and time it was set to.
+String formatStart(DateTime start) {
+  final t = start.toLocal();
+  if (t.hour == kDayStartHour && t.minute == 0) return formatDay(dayOf(t));
+  return '${formatDay(DateTime(t.year, t.month, t.day))} ${_two(t.hour)}:${_two(t.minute)}';
+}
+
 /// A video timestamp, H:MM:SS (YouTube links these in comments).
 String formatTimestamp(Duration d) {
   if (d.isNegative) d = Duration.zero;
@@ -138,23 +146,34 @@ String formatTimestamp(Duration d) {
 /// [entries] as a setlist in singing order: numbered with clock times, or,
 /// given [timelineStart] (when the stream started), one "H:MM:SS title" line
 /// per song for video timestamps.
-String formatSetlist(List<HistoryEntry> entries, {required DateTime day, bool scores = true, DateTime? timelineStart}) {
+String formatSetlist(List<HistoryEntry> entries, {required DateTime day, DateTime? since, bool range = false, bool scores = true, DateTime? timelineStart}) {
   final sorted = [...entries]..sort((a, b) => a.startedAt.compareTo(b.startedAt));
-  final lines = <String>[tr('setlist.header', {'date': formatDay(day), 'n': sorted.length})];
+  final n = sorted.length;
+  // A day's setlist, or the History's range (from [since], or all takes).
+  final header = !range
+      ? tr('setlist.header', {'date': formatDay(day), 'n': n})
+      : since != null
+          ? tr('setlist.headerSince', {'date': formatStart(since), 'n': n})
+          : tr('setlist.headerAll', {'n': n});
+  final lines = <String>[header];
+  // Over several days the clock times get their date.
+  final multiDay = {for (final e in sorted) dayOf(e.startedAt)}.length > 1;
   for (final (i, e) in sorted.indexed) {
     final score = scores ? '  ${e.take.total!.toStringAsFixed(1)} ${e.take.rank ?? ''}'.trimRight() : '';
     if (timelineStart != null) {
       lines.add('${formatTimestamp(e.startedAt.difference(timelineStart))} ${e.song.title}$score');
     } else {
       final t = e.startedAt.toLocal();
-      lines.add('${i + 1}. ${_two(t.hour)}:${_two(t.minute)}  ${e.song.title}$score');
+      final date = multiDay ? '${_two(dayOf(e.startedAt).month)}/${_two(dayOf(e.startedAt).day)} ' : '';
+      lines.add('${i + 1}. $date${_two(t.hour)}:${_two(t.minute)}  ${e.song.title}$score');
     }
   }
   return '${lines.join('\n')}\n';
 }
 
-/// Keeps `setlist/<day>.txt` and `setlist/today.txt` up to date as takes are
-/// scored, for OBS text sources and as a record of each day's singing.
+/// Keeps `setlist/today.txt` (the OBS setlist: the History's range, from its
+/// start point on) and `setlist/<day>.txt` (a record of each day's singing)
+/// up to date as takes are scored and the start point moves.
 class SetlistLog {
   SetlistLog(this.library, this.settings, this.dir);
   final SongLibrary library;
@@ -167,13 +186,26 @@ class SetlistLog {
   Future<void>? _writing;
   bool _again = false;
 
+  DateTime? _since;
+
   void start() {
     library.takesChanged.addListener(update);
+    settings.addListener(_onSettings);
+    _since = settings.historyClearedAt;
     update();
   }
 
   void stop() {
     library.takesChanged.removeListener(update);
+    settings.removeListener(_onSettings);
+  }
+
+  /// The History's start point moved: the OBS setlist follows it.
+  void _onSettings() {
+    final since = settings.historyClearedAt;
+    if (since == _since) return;
+    _since = since;
+    update();
   }
 
   /// Rewrites today's files (coalesced while a write is running).
@@ -191,23 +223,25 @@ class SetlistLog {
     });
   }
 
-  /// Writes today's setlist (every scored take today, cleared or not, but
-  /// not takes removed one by one), and the files of earlier days that do
-  /// not have one yet.
+  /// Writes the OBS setlist (the History's range: every scored take from
+  /// its start point on, not takes removed one by one), today's file and
+  /// the files of earlier days that do not have one yet.
   Future<void> write({DateTime? now}) async {
     final today = dayOf(now ?? DateTime.now());
+    final since = settings.historyClearedAt;
+    final all = await loadSingHistory(library, hidden: settings.historyHidden);
     final byDay = <DateTime, List<HistoryEntry>>{};
-    for (final e in await loadSingHistory(library, hidden: settings.historyHidden)) {
+    for (final e in all) {
       (byDay[dayOf(e.startedAt)] ??= []).add(e);
     }
     await Directory(dir).create(recursive: true);
     final scores = settings.setlistScores;
-    final text = formatSetlist(byDay[today] ?? const [], day: today, scores: scores);
-    await File(todayFile).writeAsString(text, flush: true);
+    final inRange = [for (final e in all) if (since == null || !e.take.createdAt.isBefore(since)) e];
+    await File(todayFile).writeAsString(formatSetlist(inRange, day: today, since: since, range: true, scores: scores), flush: true);
     for (final MapEntry(key: day, value: entries) in byDay.entries) {
       final f = File(dayFile(day));
       if (day == today) {
-        await f.writeAsString(text, flush: true);
+        await f.writeAsString(formatSetlist(entries, day: day, scores: scores), flush: true);
       } else if (!await f.exists()) {
         await f.writeAsString(formatSetlist(entries, day: day, scores: scores), flush: true);
       }

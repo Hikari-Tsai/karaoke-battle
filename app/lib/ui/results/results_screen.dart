@@ -13,6 +13,8 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../rules/rules_screen.dart';
 import '../widgets/info_tip.dart';
+import '../../state/lyrics.dart';
+import '../../state/note_lyrics.dart';
 import '../widgets/shine.dart';
 import '../widgets/score_colors.dart';
 import '../widgets/rank.dart';
@@ -56,6 +58,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   static const _slot = SlotCurve();
   ScoreData? _score;
   NoteList? _notes;
+
+  /// The lyric under each note (see note_lyrics.dart); null without lyrics.
+  List<String?>? _noteLyrics;
   F0Curve? _refF0;
   LiveTrace? _trace;
   double _duration = 0;
@@ -177,12 +182,18 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       final offset = await SingSession.takeTimeOffset(widget.take);
       final takeF0 = await F0Curve.load(widget.take.f0Json, confidenceThreshold: 0.4, timeOffset: offset);
       final shift = (score?.shift ?? 0).toDouble();
+      List<String?>? noteLyrics;
+      try {
+        final lines = (await services.pipeline.loadLyrics(widget.song)).primaryTrack?.shownLines ?? const <LyricLine>[];
+        if (lines.isNotEmpty) noteLyrics = lyricsForNotes([for (var i = 0; i < notes.length; i++) notes.onset[i]], lines);
+      } catch (_) {}
       final trace = buildTakeTrace(notes, takeF0, shift: shift, pitchShift: _pitchShift);
       _duration = <double>[widget.song.durationSec ?? 0, notes.endTime + 1, takeF0.isEmpty ? 0.0 : takeF0.times.last].reduce((a, b) => a > b ? a : b);
       if (!mounted) return;
       setState(() {
         _score = score;
         _notes = notes;
+        _noteLyrics = noteLyrics;
         _refF0 = refF0;
         _trace = trace;
       });
@@ -378,7 +389,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                     flex: 6,
                                     child: Card(
                                       margin: EdgeInsets.zero,
-                                      child: _NoteTable(notes: notes, score: score, pitchShift: _pitchShift),
+                                      child: _NoteTable(notes: notes, score: score, pitchShift: _pitchShift, lyrics: _noteLyrics),
                                     ),
                                   ),
                                 ],
@@ -782,10 +793,13 @@ class _StripesPainter extends CustomPainter {
 }
 
 class _NoteTable extends StatelessWidget {
-  const _NoteTable({required this.notes, required this.score, required this.pitchShift});
+  const _NoteTable({required this.notes, required this.score, required this.pitchShift, this.lyrics});
   final NoteList notes;
   final ScoreData? score;
   final double pitchShift;
+
+  /// The lyric under each note, matched by time (rough); null: no lyrics.
+  final List<String?>? lyrics;
 
   @override
   Widget build(BuildContext context) {
@@ -801,6 +815,17 @@ class _NoteTable extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Text(tr('results.notes'), style: Theme.of(context).textTheme.titleMedium),
         ),
+        if (lyrics != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(padding: const EdgeInsets.only(top: 1), child: Icon(Icons.info_outline, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(tr('results.lyricHint'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ),
+            ]),
+          ),
         Expanded(
           child: SingleChildScrollView(
             child: SizedBox(
@@ -811,6 +836,7 @@ class _NoteTable extends StatelessWidget {
                 dataRowMaxHeight: 32,
                 columns: [
                   const DataColumn(label: Text('#')),
+                  if (lyrics != null) DataColumn(label: Text(tr('results.lyric'))),
                   DataColumn(label: Text(tr('results.onset'))),
                   DataColumn(label: Text(tr('results.refPitch'))),
                   DataColumn(label: Text(tr('results.sungDev'))),
@@ -820,6 +846,7 @@ class _NoteTable extends StatelessWidget {
                   for (var i = 0; i < notes.length; i++)
                     DataRow(cells: [
                       DataCell(Text('${i + 1}')),
+                      if (lyrics != null) DataCell(_lyricCell(context, i < lyrics!.length ? lyrics![i] : null)),
                       DataCell(Text(notes.onset[i].toStringAsFixed(2))),
                       DataCell(Text(noteName(notes.pitch[i] + pitchShift))),
                       DataCell(_centsCell(context, byIndex[i]?.cents)),
@@ -832,6 +859,20 @@ class _NoteTable extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _lyricCell(BuildContext context, String? text) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    if (text == null) return Text('—', style: TextStyle(color: muted.withValues(alpha: 0.5)));
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 140),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: text == lyricHold ? TextStyle(color: muted) : const TextStyle(fontWeight: FontWeight.w600),
+      ),
     );
   }
 

@@ -14,14 +14,18 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/app_dialog.dart';
 
-Future<void> showSetlistDialog(BuildContext context, {required DateTime day, required List<HistoryEntry> entries}) {
-  return showDialog<void>(context: context, builder: (_) => _SetlistDialog(day: day, entries: entries));
+/// A day's setlist, or with [range] the OBS setlist: the History's range
+/// (from [since], or all takes), the same as the OBS text file.
+Future<void> showSetlistDialog(BuildContext context, {required DateTime day, required List<HistoryEntry> entries, bool range = false, DateTime? since}) {
+  return showDialog<void>(context: context, builder: (_) => _SetlistDialog(day: day, entries: entries, range: range, since: since));
 }
 
 class _SetlistDialog extends StatefulWidget {
-  const _SetlistDialog({required this.day, required this.entries});
+  const _SetlistDialog({required this.day, required this.entries, this.range = false, this.since});
   final DateTime day;
   final List<HistoryEntry> entries;
+  final bool range;
+  final DateTime? since;
 
   @override
   State<_SetlistDialog> createState() => _SetlistDialogState();
@@ -38,7 +42,11 @@ class _SetlistDialogState extends State<_SetlistDialog> {
     return DateTime(first.year, first.month, first.day, first.hour, first.minute);
   }
 
-  String _text(AppSettings s) => formatSetlist(widget.entries, day: widget.day, scores: s.setlistScores, timelineStart: _timeline ? _start : null);
+  String _text(AppSettings s) =>
+      formatSetlist(widget.entries, day: widget.day, since: widget.since, range: widget.range, scores: s.setlistScores, timelineStart: _timeline ? _start : null);
+
+  /// The OBS setlist's range, as on the History's stats card.
+  String get _rangeLabel => widget.since != null ? tr('history.since', {'date': formatStart(widget.since!)}) : tr('history.startAll');
 
   void _snack(String msg) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(msg)));
 
@@ -46,13 +54,16 @@ class _SetlistDialogState extends State<_SetlistDialog> {
     final picked = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_start));
     if (picked == null) return;
     // On the sing day: hours before the day starts belong to the next date.
-    var d = DateTime(widget.day.year, widget.day.month, widget.day.day, picked.hour, picked.minute);
+    final base = widget.range ? dayOf(_defaultStart()) : widget.day;
+    var d = DateTime(base.year, base.month, base.day, picked.hour, picked.minute);
     if (picked.hour < kDayStartHour) d = d.add(const Duration(days: 1));
     setState(() => _start = d);
   }
 
   Future<void> _save(String text) async {
-    final uri = await FilePicker.saveFile(fileName: '${tr('setlist.fileName')} ${formatDay(widget.day)}.txt', bytes: utf8.encode(text));
+    // No colons in file names (the start's time).
+    final name = widget.range ? '${tr('setlist.fileName')} ${_rangeLabel.replaceAll(':', '.')}' : '${tr('setlist.fileName')} ${formatDay(widget.day)}';
+    final uri = await FilePicker.saveFile(fileName: '$name.txt', bytes: utf8.encode(text));
     if (uri == null || !mounted) return;
     _snack(tr('setlist.saved', {'path': uri.toFilePath()}));
   }
@@ -64,10 +75,11 @@ class _SetlistDialogState extends State<_SetlistDialog> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final text = _text(settings);
-    final today = dayOf(DateTime.now()) == widget.day;
+    // The OBS file holds the History's range, so it is offered with it.
+    final obs = widget.range;
     final t = _start;
     return AppDialog(
-      title: Text(tr('setlist.title', {'date': formatDay(widget.day)})),
+      title: Text(widget.range ? '${tr('setlist.today')}・$_rangeLabel' : tr('setlist.title', {'date': formatDay(widget.day)})),
       scrollable: true,
       content: SizedBox(
         width: 560,
@@ -122,7 +134,7 @@ class _SetlistDialogState extends State<_SetlistDialog> {
             ),
             OutlinedButton.icon(onPressed: () => _save(text), icon: const Icon(Icons.save_alt, size: 18), label: Text(tr('setlist.save'))),
           ]),
-          if (today) ...[
+          if (obs) ...[
             const Divider(height: 28),
             Row(children: [
               Icon(Icons.cast, size: 18, color: cs.primary),

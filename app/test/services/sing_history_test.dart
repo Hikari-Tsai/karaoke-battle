@@ -140,7 +140,7 @@ void main() {
 ''');
   });
 
-  test('the setlist log keeps today.txt and the day\'s file up to date', () async {
+  test('the setlist log: today.txt follows the History\'s range, each day keeps its file', () async {
     SharedPreferences.setMockInitialValues({'setlist_scores': false});
     I18n.notifier.value = 'zh';
     final settings = await AppSettings.load();
@@ -150,20 +150,52 @@ void main() {
     final now = DateTime(2026, 11, 20, 22);
 
     await log.write(now: now);
-    expect(File(log.todayFile).readAsStringSync(), '🎤 2026-11-20 歌單（0 首）\n');
+    expect(File(log.todayFile).readAsStringSync(), '🎤 歌單（0 首）\n');
     expect(File(log.dayFile(DateTime(2026, 11, 20))).existsSync(), isFalse, reason: 'no file for a day without songs');
 
     take(a, '2026-11-19T21:00:00', 70, startedAt: '2026-11-19T20:56:00'); // yesterday
     take(a, '2026-11-20T21:05:00', 88, startedAt: '2026-11-20T21:01:00');
-    await settings.setHistoryClearedAt(DateTime(2026, 11, 20, 23)); // the log ignores clearing
+    // All takes (no start point): over two days, so with dates.
     await log.write(now: now);
-    expect(File(log.todayFile).readAsStringSync(), '🎤 2026-11-20 歌單（1 首）\n1. 21:01  晴天\n');
-    expect(File(log.dayFile(DateTime(2026, 11, 20))).readAsStringSync(), File(log.todayFile).readAsStringSync());
+    expect(File(log.todayFile).readAsStringSync(), '🎤 歌單（2 首）\n1. 11/19 20:56  晴天\n2. 11/20 21:01  晴天\n');
+
+    // From a start point, as the History's list.
+    await settings.setHistoryClearedAt(DateTime(2026, 11, 20, kDayStartHour));
+    await log.write(now: now);
+    expect(File(log.todayFile).readAsStringSync(), '🎤 2026-11-20 起的歌單（1 首）\n1. 21:01  晴天\n');
+
+    // Each day's file is that day's setlist, whatever the range.
+    expect(File(log.dayFile(DateTime(2026, 11, 20))).readAsStringSync(), '🎤 2026-11-20 歌單（1 首）\n1. 21:01  晴天\n');
     final yesterday = File(log.dayFile(DateTime(2026, 11, 19)));
     expect(yesterday.readAsStringSync(), '🎤 2026-11-19 歌單（1 首）\n1. 20:56  晴天\n', reason: 'earlier days get their file once');
     yesterday.writeAsStringSync('edited by hand');
     await log.write(now: now);
     expect(yesterday.readAsStringSync(), 'edited by hand', reason: 'and are not rewritten');
+  });
+
+  test('the start point shows its time unless it is the start of a sing day', () {
+    expect(formatStart(DateTime(2026, 11, 19, kDayStartHour)), '2026-11-19');
+    expect(formatStart(DateTime(2026, 11, 19, 21, 30)), '2026-11-19 21:30');
+    // After midnight: the calendar date it was set to, not the sing day.
+    expect(formatStart(DateTime(2026, 11, 20, 1, 5)), '2026-11-20 01:05');
+  });
+
+  test('the setlist log rewrites the OBS file when the start point moves', () async {
+    SharedPreferences.setMockInitialValues({'setlist_scores': false});
+    I18n.notifier.value = 'zh';
+    final settings = await AppSettings.load();
+    final log = SetlistLog(library, settings, p.join(tmp.path, 'setlist'));
+    final a = await library.create(title: '晴天', sourceType: SourceType.file);
+    take(a, '2026-11-19T21:00:00', 70, startedAt: '2026-11-19T20:56:00');
+    take(a, '2026-11-20T21:05:00', 88, startedAt: '2026-11-20T21:01:00');
+    log.start();
+    addTearDown(log.stop);
+    await settings.setHistoryClearedAt(DateTime(2026, 11, 20, kDayStartHour));
+    bool moved() => File(log.todayFile).existsSync() && File(log.todayFile).readAsStringSync().contains('起的歌單');
+    for (var i = 0; i < 50 && !moved(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    expect(File(log.todayFile).readAsStringSync(), startsWith('🎤 2026-11-20 起的歌單（1 首）'));
   });
 
   test('the totals at the top: takes, songs, time sung, days, average and best', () async {
@@ -210,7 +242,7 @@ void main() {
 
     final log = SetlistLog(library, settings, p.join(tmp.path, 'setlist'));
     await log.write(now: DateTime(2026, 11, 20, 22));
-    expect(File(log.todayFile).readAsStringSync(), '🎤 2026-11-20 歌單（1 首）\n1. 21:01  晴天\n');
+    expect(File(log.todayFile).readAsStringSync(), '🎤 歌單（1 首）\n1. 21:01  晴天\n');
 
     await settings.setHistoryHidden({});
     expect((await loadSingHistory(library, hidden: settings.historyHidden)).length, 2, reason: 'undo');
