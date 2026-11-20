@@ -212,6 +212,31 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
 .replay-meta span { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .replay-dl-icon { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--yellow); color: var(--ink); }
 
+/* "Your turn": the sample song, under the demos */
+.challenge { margin-top: 32px; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: center; border-radius: var(--radius); overflow: hidden; background: var(--bg); border: 1px solid rgba(249, 216, 74, 0.28); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); }
+.challenge { align-items: stretch !important; }
+/* The cover, whole, over a blurred copy of itself that fills the column. */
+.challenge-art { position: relative; display: flex; align-items: center; overflow: hidden; background: #1d1838; }
+.challenge-art::before { content: ""; position: absolute; inset: -40px; background: url("assets/fantasy-island.jpg") center / cover; filter: blur(28px) brightness(0.7) saturate(1.2); }
+.challenge-cover { position: relative; display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.challenge-body { padding: 24px 28px; display: flex; flex-direction: column; justify-content: center; }
+.challenge-eyebrow { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; color: var(--yellow); }
+.challenge h3 { font-size: clamp(24px, 2.6vw, 32px); margin-top: 6px; }
+.challenge-body > p:not([class]) { color: #d6d2e3; margin: 10px 0 0; font-size: 15.5px; }
+.challenge-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 20px; margin: 14px 0 0; }
+.challenge-meta div { min-width: 0; }
+.challenge-meta dt { font-size: 12.5px; color: var(--muted); }
+.challenge-meta dd { margin: 0; font-weight: 700; font-size: 15px; }
+.challenge-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.challenge-actions .btn { gap: 8px; flex: 1 1 100%; }
+.challenge-actions .btn small { font-size: 12.5px; }
+.ch-file { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.18); color: var(--text); font-size: 14.5px; font-weight: 700; text-decoration: none; }
+.ch-file small { color: var(--muted); font-weight: 600; }
+.ch-file:hover { border-color: var(--yellow); color: #fff; background: rgba(249, 216, 74, 0.08); }
+.challenge-how { margin: 14px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+.challenge-link { margin-top: 8px; font-size: 14px; font-weight: 700; width: fit-content; }
+.challenge-link::after { content: " →"; }
+
 /* 區塊 */
 .section { padding: 96px 0; }
 .section.alt { background: var(--surface); }
@@ -324,7 +349,7 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
   .top .lang { margin-left: auto; }
   .hero { padding-top: 48px; background: linear-gradient(to bottom, var(--magenta) 0, var(--magenta) calc(100% - 110px), var(--bg) calc(100% - 110px)); }
   .section { padding: 64px 0; }
-  .steps, .points, .install, .scores, .tech, .legal-list, .thx-people, .demos, .replay-dl { grid-template-columns: 1fr; }
+  .steps, .points, .install, .scores, .tech, .legal-list, .thx-people, .demos, .replay-dl, .challenge { grid-template-columns: 1fr; }
   .thx-libs { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .thx-libs a, .thx-libs div { padding: 10px 12px; }
   .feature, .feature.flip { grid-template-columns: 1fr; gap: 22px; margin-top: 56px; }
@@ -342,6 +367,7 @@ h1 { font-size: clamp(24px, 7.8vw, 104px); font-weight: 900; letter-spacing: 0.0
   .demo-total b { font-size: 42px; }
   .demo-play { width: 64px; height: 64px; }
   .replay-dl { padding: 22px 18px; }
+  .challenge-body { padding: 22px 18px 24px; }
   .wordmark { display: none; }
   .lang button { padding: 7px 9px; }
 }
