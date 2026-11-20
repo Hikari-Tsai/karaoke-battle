@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'sss_demos.dart';
+
 import '../../services/update_checker.dart';
 import '../../state/i18n.dart';
 import '../widgets/rank.dart';
@@ -122,6 +124,14 @@ class RulesScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
+
+          // --- SSS demo songs (as on the website), downloadable as replays --------------
+          Text(tr('demo.title'), style: theme.textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Text(tr('demo.lead'), style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+          const SizedBox(height: 16),
+          const SssDemos(),
+          const SizedBox(height: 28),
 
           // --- practical tips -------------------------------------------------------
           Text(tr('rules.tips'), style: theme.textTheme.titleLarge),

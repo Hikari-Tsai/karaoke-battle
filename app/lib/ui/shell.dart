@@ -31,6 +31,11 @@ import 'widgets/speech_bubble.dart';
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
+  /// Lets a page switch tabs, e.g. the rules page to the replays after
+  /// saving a demo replay.
+  static final tabRequest = ValueNotifier<int?>(null);
+  static const replaysIndex = 2;
+
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -60,15 +65,24 @@ class _AppShellState extends State<AppShell> {
       _noLyricsQueue.add(song);
       _askNoLyrics();
     });
+    AppShell.tabRequest.addListener(_onTabRequest);
     WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
     if (_noLyricsQueue.isNotEmpty) _askNoLyrics();
   }
 
   @override
   void dispose() {
+    AppShell.tabRequest.removeListener(_onTabRequest);
     _noLyricsSub?.cancel();
     _noLyricsRetry?.cancel();
     super.dispose();
+  }
+
+  void _onTabRequest() {
+    final i = AppShell.tabRequest.value;
+    if (i == null) return;
+    AppShell.tabRequest.value = null;
+    if (mounted) setState(() => _index = _lastIndex = i);
   }
 
   /// Shows the queued no-lyrics questions, but only while the shell itself

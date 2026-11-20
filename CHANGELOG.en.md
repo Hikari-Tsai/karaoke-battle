@@ -9,6 +9,7 @@ Each version lists what was added, improved and fixed. The app's new-version not
 ## Unreleased
 
 ### Added
+- The Scoring rules page has "SSS demo songs": the result cards of the two SSS takes of 奇幻島 (Fantasy Island) on the website (夏語遙 99.2, 家家 98.7), laid out as there (total, the six sub-score bars, the onset judgements, AI feedback), with a count-up, bars filling in turn and a shining SSS badge when scrolled into view. "Download replay" downloads it and saves it to Import replays, with no file to find and import.
 - Exported replays now carry the subtitles you added yourself (an imported subtitle file, pasted or typed lyrics, AI-generated subtitles; not the video's own YouTube subtitles). The first time the other person watches the replay they are added to their copy of the song, and become its main lyrics unless they have their own.
 - In the lyrics editor, the line Enter stamps now follows the text caret: click into a line and Enter stamps that line; after stamping, the caret moves on to the next line, so you can type and stamp as you listen.
 - Exporting a replay of a song imported from a local file now asks whether to pack the song in. "Include the song" comes with a copyright reminder, and the receiver can prepare the song straight from the included copy, perfectly in time; "Don't include the song" explains that they will need the same file themselves, or the voice will not line up if their version or its start differs.
@@ -25,6 +26,9 @@ Each version lists what was added, improved and fixed. The app's new-version not
 - When a song's takes are expanded in the library, each one has a trash button that deletes that take's recording, pitch and score for good; deleting the best take warns first, and the next best counts instead.
 - Each take in the sing history has a remove button, so one take can go without clearing everything. By default it only leaves the history and the setlists (including today.txt for streams), keeping the recording and its score, and the message offers Undo; tick "Also delete this recording" to delete its recording, pitch and score from the library for good.
 - "Hide this song" in a song's ⋯ menu takes it off the library list. "Hidden (N)" appears at the top right, where songs can be shown again one by one or all at once. Hiding deletes nothing; the song's takes and best score stay.
+
+### Improved
+- Every dialog has an X in its top-left corner to close it; a click anywhere outside it or Esc closes it too, the same as Cancel (lyrics recognition or a video export in progress is stopped first). Only while Cancel itself is unavailable (scoring, moving the data folder) is the X greyed out and a click outside ignored.
 
 ### Fixed
 - In the lyrics editor, typing with a Chinese (Zhuyin, Pinyin) or Japanese input method, Enter to pick a candidate or Space to convert triggered the "stamp" or "play / pause" shortcuts. The editor now checks whether the input method is composing: while it is, Enter, Space and Esc go to the input method (pick, convert, cancel); once the text is committed the shortcuts work as usual, without leaving the field. Ctrl / Cmd / Alt with Space or Enter no longer trigger shortcuts either (such as Ctrl+Space to switch input methods); Shift+Space types a space. In a text field the left / right arrows now move the caret; they skip back / forward only outside the fields.

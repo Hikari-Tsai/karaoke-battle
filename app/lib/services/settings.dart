@@ -174,6 +174,18 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Scoring rules page: the SSS demo replays already downloaded, demo key ->
+  /// id of the imported replay (deleting that replay offers the download again).
+  Map<String, String> get demoReplays => {
+        for (final e in _prefs.getStringList('demo_replays') ?? const <String>[])
+          if (e.contains('=')) e.substring(0, e.indexOf('=')): e.substring(e.indexOf('=') + 1),
+      };
+  Future<void> setDemoReplay(String key, String replayId) async {
+    final m = demoReplays..[key] = replayId;
+    await _prefs.setStringList('demo_replays', [for (final e in m.entries) '${e.key}=${e.value}']..sort());
+    notifyListeners();
+  }
+
   /// Setlists (copied text and the setlist log) show each song's score.
   bool get setlistScores => _get('setlist_scores', true);
   Future<void> setSetlistScores(bool v) => _set('setlist_scores', v);

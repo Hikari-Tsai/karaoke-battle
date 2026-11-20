@@ -83,6 +83,7 @@ flutter:
     - assets/cuda_pack.json
     - assets/sidecars.json
     - assets/images/app_icon.png
+    - assets/images/fantasy_island.jpg
     - assets/sfx/
     - assets/fonts/jf-openhuninn-OFL.txt
 
