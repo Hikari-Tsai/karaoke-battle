@@ -119,49 +119,86 @@
           <p class="section-lead" data-i18n="demo.lead">兩段實際演唱，用 App 的「匯出影片」直接輸出（有聲音）。</p>
           <div class="demos">
             <article class="demo">
-              <figure class="film">
-                <video controls playsinline preload="none" poster="assets/demo-992.jpg"><source src="assets/demo-992.mp4" type="video/mp4" /></video>
-                <figcaption>家家・〈[Fantasy Island]MMM〉・99.2 SSS</figcaption>
-              </figure>
+              <div class="demo-video">
+                <video controls playsinline preload="none" poster="assets/demo-992.jpg?v=2"><source src="assets/demo-992.mp4" type="video/mp4" /></video>
+                <button class="demo-play" type="button" hidden aria-label="播放示範影片" data-i18n-aria="a.play"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></button>
+              </div>
               <div class="demo-score">
-                <p class="demo-total"><b data-to="99.2">99.2</b><span class="rank-sss">SSS</span></p>
+                <header class="demo-head">
+                  <div class="demo-song"><b data-i18n="demo.song">奇幻島</b><span data-i18n="demo.s992">演唱：夏語遙 <em class="tag-vb">聲庫</em></span></div>
+                  <p class="demo-total"><b data-to="99.2">99.2</b><span class="rank-sss">SSS</span></p>
+                </header>
                 <ul class="demo-bars">
-                  <li><span data-i18n="sc.pitch">音準</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="full"><span data-i18n="sc.pitch">音準</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
                   <li><span data-i18n="sc.rhythm">節奏</span><i style="--w: 95%"></i><em data-to="95">95</em></li>
-                  <li><span data-i18n="sc.stab">穩定度</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
-                  <li class="na"><span data-i18n="sc.vib">顫音</span><i style="--w: 0%"></i><em>—</em></li>
-                  <li><span data-i18n="sc.expr">表現力</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
-                  <li><span data-i18n="sc.long">長音</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="full"><span data-i18n="sc.stab">穩定度</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="na"><span data-i18n="sc.vib">顫音</span><i></i><em>—</em></li>
+                  <li class="full"><span data-i18n="sc.expr">表現力</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="full"><span data-i18n="sc.long">長音</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
                 </ul>
-                <p class="demo-judge"><span class="j-perfect">PERFECT 38</span><span class="j-great">GREAT 10</span><span class="j-good">GOOD 2</span><span class="j-miss">MISS 0</span></p>
+                <div class="demo-judge">
+                  <p class="demo-judge-title"><span data-i18n="demo.judge">起音判定</span><span>50</span></p>
+                  <div class="judge-bar" aria-hidden="true"><i class="j-perfect" style="flex: 38"></i><i class="j-great" style="flex: 10"></i><i class="j-good" style="flex: 2"></i></div>
+                  <ul class="judge-legend"><li class="j-perfect"><b>PERFECT</b> 38</li><li class="j-great"><b>GREAT</b> 10</li><li class="j-good"><b>GOOD</b> 2</li><li class="j-miss"><b>MISS</b> 0</li></ul>
+                </div>
                 <div class="demo-ai">
                   <b><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2l1.9 5.6L19.5 9l-5.6 1.9L12 16.5l-1.9-5.6L4.5 9l5.6-1.4zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9zM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg><span data-i18n="demo.ai">AI 評語</span></b>
-                  <p data-i18n="demo.c992">音準、穩定度、表現力和長音全部滿分，50 個起音沒有任何 MISS。唯一扣分的是節奏：有 10 個 GREAT 只差一點點，把每句開頭咬得再準一點，就有機會挑戰滿分。</p>
+                  <p data-i18n="demo.c992">音準、穩定度、表現力和長音全部滿分，50 個起音沒有任何 MISS，聲庫的音高控制相當精準。唯一扣分的是節奏：有 10 個 GREAT 只差一點點，把每句開頭的時間點再對齊一點，就有機會挑戰滿分。</p>
                 </div>
               </div>
             </article>
             <article class="demo">
-              <figure class="film">
-                <video controls playsinline preload="none" poster="assets/demo-987.jpg"><source src="assets/demo-987.mp4" type="video/mp4" /></video>
-                <figcaption>家家・〈[Fantasy Island]MMM〉・98.7 SSS</figcaption>
-              </figure>
+              <div class="demo-video">
+                <video controls playsinline preload="none" poster="assets/demo-987.jpg?v=2"><source src="assets/demo-987.mp4" type="video/mp4" /></video>
+                <button class="demo-play" type="button" hidden aria-label="播放示範影片" data-i18n-aria="a.play"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></button>
+              </div>
               <div class="demo-score">
-                <p class="demo-total"><b data-to="98.7">98.7</b><span class="rank-sss">SSS</span></p>
+                <header class="demo-head">
+                  <div class="demo-song"><b data-i18n="demo.song">奇幻島</b><span data-i18n="demo.s987">演唱：家家 <em class="tag-live">真人</em></span></div>
+                  <p class="demo-total"><b data-to="98.7">98.7</b><span class="rank-sss">SSS</span></p>
+                </header>
                 <ul class="demo-bars">
-                  <li><span data-i18n="sc.pitch">音準</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="full"><span data-i18n="sc.pitch">音準</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
                   <li><span data-i18n="sc.rhythm">節奏</span><i style="--w: 92%"></i><em data-to="92">92</em></li>
-                  <li><span data-i18n="sc.stab">穩定度</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
-                  <li class="na"><span data-i18n="sc.vib">顫音</span><i style="--w: 0%"></i><em>—</em></li>
-                  <li><span data-i18n="sc.expr">表現力</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
-                  <li><span data-i18n="sc.long">長音</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="full"><span data-i18n="sc.stab">穩定度</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="na"><span data-i18n="sc.vib">顫音</span><i></i><em>—</em></li>
+                  <li class="full"><span data-i18n="sc.expr">表現力</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
+                  <li class="full"><span data-i18n="sc.long">長音</span><i style="--w: 100%"></i><em data-to="100">100</em></li>
                 </ul>
-                <p class="demo-judge"><span class="j-perfect">PERFECT 42</span><span class="j-great">GREAT 2</span><span class="j-good">GOOD 4</span><span class="j-miss">MISS 2</span></p>
+                <div class="demo-judge">
+                  <p class="demo-judge-title"><span data-i18n="demo.judge">起音判定</span><span>50</span></p>
+                  <div class="judge-bar" aria-hidden="true"><i class="j-perfect" style="flex: 42"></i><i class="j-great" style="flex: 2"></i><i class="j-good" style="flex: 4"></i><i class="j-miss" style="flex: 2"></i></div>
+                  <ul class="judge-legend"><li class="j-perfect"><b>PERFECT</b> 42</li><li class="j-great"><b>GREAT</b> 2</li><li class="j-good"><b>GOOD</b> 4</li><li class="j-miss"><b>MISS</b> 2</li></ul>
+                </div>
                 <div class="demo-ai">
                   <b><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2l1.9 5.6L19.5 9l-5.6 1.9L12 16.5l-1.9-5.6L4.5 9l5.6-1.4zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9zM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg><span data-i18n="demo.ai">AI 評語</span></b>
-                  <p data-i18n="demo.c987">音準與長音同樣滿分，PERFECT 42 個是兩段裡最多的。扣分主要來自 2 個 MISS 和 4 個 GOOD，整體時間點平均只晚約 16 ms，拍感很穩；把漏掉的起音補上，就能追上 99 分。</p>
+                  <p data-i18n="demo.c987">真人演唱也拿到 SSS：音準與長音同樣滿分，PERFECT 42 個是兩段裡最多的。扣分主要來自 2 個 MISS 和 4 個 GOOD，整體時間點平均只晚約 16 ms，拍感很穩；把漏掉的起音補上，就能追上 99 分。</p>
                 </div>
               </div>
             </article>
+          </div>
+          <div class="replay-dl">
+            <div class="replay-dl-text">
+              <h3 data-i18n="rdl.h3">下載重播檔，在 App 裡重看</h3>
+              <p data-i18n="rdl.p">這兩段示範的重播檔，內含演唱人聲、原曲、伴奏和封面圖片。匯入 Karaoke Battle 後，可以看結果卡，也能回放整段演唱和鋼琴卷軸。</p>
+              <ol class="replay-steps">
+                <li data-i18n="rdl.s1">下載 .zip，不用解壓縮</li>
+                <li data-i18n="rdl.s2">打開 App 左邊的「重播」</li>
+                <li data-i18n="rdl.s3">按「匯入重播」，或直接把 .zip 拖進去</li>
+              </ol>
+            </div>
+            <div class="replay-files">
+              <a class="replay-file" href="assets/replay-992.zip" download="奇幻島 99.2 夏語遙.zip">
+                <span class="replay-icon"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5L13 3.5zM9 4v2h2V4H9zm0 2v2h2V6H9zm0 2v2h2V8H9zm0 2v2h2v-2H9zm-1 4v4a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4H8zm1.5 2h1v1.5h-1V16z"/></svg></span>
+                <span class="replay-meta"><b data-i18n="rdl.f992">99.2 SSS・夏語遙（聲庫）</b><span data-i18n="rdl.size">重播檔 .zip・1.9 MB</span></span>
+                <span class="replay-dl-icon"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M11 4h2v8.6l3.3-3.3 1.4 1.4L12 16.4l-5.7-5.7 1.4-1.4 3.3 3.3V4zM5 18h14v2H5z"/></svg></span>
+              </a>
+              <a class="replay-file" href="assets/replay-987.zip" download="奇幻島 98.7 家家.zip">
+                <span class="replay-icon"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5L13 3.5zM9 4v2h2V4H9zm0 2v2h2V6H9zm0 2v2h2V8H9zm0 2v2h2v-2H9zm-1 4v4a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4H8zm1.5 2h1v1.5h-1V16z"/></svg></span>
+                <span class="replay-meta"><b data-i18n="rdl.f987">98.7 SSS・家家（真人）</b><span data-i18n="rdl.size">重播檔 .zip・1.9 MB</span></span>
+                <span class="replay-dl-icon"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M11 4h2v8.6l3.3-3.3 1.4 1.4L12 16.4l-5.7-5.7 1.4-1.4 3.3 3.3V4zM5 18h14v2H5z"/></svg></span>
+              </a>
+            </div>
           </div>
         </div>
       </section>

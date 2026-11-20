@@ -43,6 +43,22 @@
 // first time each card scrolls into view. Without JavaScript, or with
 // reduced motion, they show the final values.
 (function () {
+  // A big play button over each demo poster; the native controls come back once it plays.
+  document.querySelectorAll(".demo-video").forEach(function (box) {
+    var v = box.querySelector("video"), b = box.querySelector(".demo-play");
+    if (!v || !b) return;
+    v.controls = false;
+    b.hidden = false;
+    b.addEventListener("click", function () {
+      v.controls = true;
+      b.hidden = true;
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {});
+    });
+    v.addEventListener("play", function () {
+      document.querySelectorAll(".demo-video video").forEach(function (o) { if (o !== v) o.pause(); });
+    });
+  });
   var cards = Array.prototype.slice.call(document.querySelectorAll(".demo-score"));
   if (!cards.length || !("IntersectionObserver" in window)) return;
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
