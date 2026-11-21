@@ -20,6 +20,9 @@ import 'charts/charts_screen.dart';
 import 'history/history_screen.dart';
 import 'rules/rules_screen.dart';
 import 'library/library_screen.dart';
+import 'profile/profile_screen.dart';
+import 'profile/achievements_view.dart';
+import 'profile/singing_avatar.dart';
 import 'lyrics/no_lyrics_dialog.dart';
 import 'replays/replays_screen.dart';
 import 'settings/settings_screen.dart';
@@ -49,6 +52,7 @@ class _AppShellState extends State<AppShell> {
   static const _historyIndex = 1;
   static const _chartsIndex = 3;
   static const _aboutIndex = 7; // at the bottom of the rail, with the links
+  static const _profileIndex = 8; // the avatar at the top of the rail
   int _index = _lastIndex;
   bool _checking = !_readyGlobal;
 
@@ -139,7 +143,9 @@ class _AppShellState extends State<AppShell> {
     if (!_readyGlobal) {
       return SetupGate(checking: _checking, onContinue: () => setState(() => _readyGlobal = true));
     }
-    return Scaffold(
+    // Achievement unlocks pop up over every page.
+    return AchievementPopups(
+      child: Scaffold(
       body: Row(
         children: [
           // Fills the height; a short window scrolls it instead of pushing
@@ -150,10 +156,17 @@ class _AppShellState extends State<AppShell> {
                 constraints: BoxConstraints(minHeight: c.maxHeight),
                 child: IntrinsicHeight(
                   child: NavigationRail(
-            selectedIndex: _index == _aboutIndex ? null : _index,
+            selectedIndex: _index == _aboutIndex || _index == _profileIndex ? null : _index,
             onDestinationSelected: (i) => setState(() => _index = _lastIndex = i),
             labelType: NavigationRailLabelType.all,
-            leading: const SizedBox(height: 8),
+            // The profile: the player's cartoon singer, above the Library.
+            leading: Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 2),
+              child: _ProfileButton(
+                selected: _index == _profileIndex,
+                onTap: () => setState(() => _index = _lastIndex = _profileIndex),
+              ),
+            ),
             // Always in reach, so a streamer can report a problem mid-stream.
             trailing: Expanded(
               child: Align(
@@ -214,11 +227,13 @@ class _AppShellState extends State<AppShell> {
                 const RulesScreen(),
                 const SettingsScreen(),
                 const AboutScreen(),
+                const ProfileScreen(),
               ],
             ),
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -250,6 +265,42 @@ class _DevModeSwitch extends StatelessWidget {
             Text(tr('dev.mode'), style: theme.textTheme.labelSmall?.copyWith(color: on ? cs.tertiary : cs.onSurfaceVariant, fontWeight: on ? FontWeight.w700 : null)),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+/// The avatar at the top of the rail: the profile's cartoon singer, still,
+/// ringed while the profile is shown.
+class _ProfileButton extends StatelessWidget {
+  const _ProfileButton({required this.selected, required this.onTap});
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final settings = context.watch<AppSettings>();
+    final name = settings.playerName;
+    return Tooltip(
+      message: name.isEmpty ? tr('nav.profile') : '${tr('nav.profile')}：$name',
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: selected ? cs.primary : Colors.transparent, width: 2),
+            ),
+            child: SingingAvatar(kind: avatarKindOf(settings.avatarKind), size: 44, headOnly: true, animated: false),
+          ),
+          const SizedBox(height: 2),
+          Text(tr('nav.profile'), style: theme.textTheme.labelMedium?.copyWith(color: selected ? cs.onSurface : cs.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : null)),
+        ]),
       ),
     );
   }

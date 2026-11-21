@@ -222,7 +222,7 @@ cd app && flutter pub get && flutter run -d macos
 * **皮卡**：原曲回測、回授反偵測、回放延遲問題。
 * **羽之扉扉**：發現練習模式與比賽模式易混淆的問題。
 * **魷魷已損壞**：提供自行匯入伴奏的想法。
-* **莓子熊**（[YouTube](https://www.youtube.com/@mecokuma)・[X](https://x.com/mecokuma)）：建議增加歌單、OBS 整合、隱藏歌單等功能。
+* **莓子熊**（[YouTube](https://www.youtube.com/@mecokuma)・[X](https://x.com/mecokuma)）：建議增加歌單、OBS 整合、隱藏歌單、關閉 MV 等功能。
 
 ### 模型與函式庫
 

@@ -14,9 +14,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/ktv_charts.dart';
 import '../../services/settings.dart';
 import '../../state/app_services.dart';
+import '../../state/genre_names.dart';
 import '../../state/i18n.dart';
 import '../../state/song_data.dart';
+import '../settings/range_detect_dialog.dart';
 import '../widgets/brand.dart';
+import '../widgets/achievement_events.dart';
 
 /// Localized reason for a failed chart load.
 String chartErrorText(Object e) {
@@ -74,6 +77,15 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
     if (widget.active && !old.active) _start();
   }
 
+  bool _browsed = false;
+
+  /// The tab was opened (for the beginner task).
+  void _noteBrowsed() {
+    if (_browsed) return;
+    _browsed = true;
+    recordAchievementEvent(context, 'basics.charts');
+  }
+
   @override
   void dispose() {
     _tabs.dispose();
@@ -82,6 +94,7 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
   }
 
   void _start() {
+    _noteBrowsed();
     if (_service != null || !mounted) return;
     _service = widget.service;
     if (_service == null) {
@@ -144,6 +157,18 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
       appBar: AppBar(
         title: BrandedTitle(tr('charts.title')),
         actions: [
+          // The same flow as in Settings; the chorus ranges recolour once saved.
+          Builder(builder: (context) {
+            final measured = _ownRange(context) != null;
+            return Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: OutlinedButton.icon(
+                onPressed: () => showRangeDetectDialog(context),
+                icon: const Icon(Icons.piano_outlined, size: 18),
+                label: Text(tr(measured ? 'charts.remeasureRange' : 'charts.measureRange')),
+              ),
+            );
+          }),
           TextButton.icon(
             onPressed: () => launchUrl(Uri.parse(KtvCharts.base)),
             icon: const Icon(Icons.open_in_new, size: 16),
@@ -431,7 +456,8 @@ class _HeaderRow extends StatelessWidget {
 
 /// A model tag in the UI language (genre names stay as they are).
 String _tagText(String group, String tag) {
-  if (group == 'genre') return tag;
+  // Genres in the UI language where they have a name in it (genre_names.dart).
+  if (group == 'genre' || group == 'itunes') return genreName(tag, I18n.lang);
   final k = 'charts.t.$tag';
   final t = tr(k);
   return t == k ? tag : t;
@@ -553,6 +579,14 @@ class _ArtistLine extends StatelessWidget {
   }
 }
 
+/// A tag's tooltip: what kind of tag it is, and its original (English) name
+/// when it is shown translated.
+String _tagTip(String group, String tag) {
+  final label = tr('charts.tag.$group');
+  final shown = _tagText(group, tag);
+  return shown == tag ? label : '$label：$tag';
+}
+
 /// Coloured tags: the genre (iTunes), then the model tags by group
 /// (genre, mood, instruments, vocals), each group in its own colour. Up to
 /// [_max] are shown; the rest are in the tooltip of a "+N" chip.
@@ -573,9 +607,9 @@ class _TagChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tags = <(String group, String text, String tip)>[
-      if (entry.genre != null) ('itunes', entry.genre!, tr('charts.tag.itunes')),
+      if (entry.genre != null) ('itunes', _tagText('itunes', entry.genre!), _tagTip('itunes', entry.genre!)),
       for (final g in const ['genre', 'mood', 'instrument', 'vocal'])
-        for (final t in entry.tags[g] ?? const <String>[]) (g, _tagText(g, t), tr('charts.tag.$g')),
+        for (final t in entry.tags[g] ?? const <String>[]) (g, _tagText(g, t), _tagTip(g, t)),
     ];
     // The same genre named by both sources is shown once.
     final seen = <String>{};

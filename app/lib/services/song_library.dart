@@ -31,6 +31,8 @@ class Song {
     this.thumbnailUrl,
     this.gameModelId,
     this.separationQuality,
+    this.ytLanguage,
+    this.releaseYear,
   });
 
   final String id;
@@ -49,6 +51,11 @@ class Song {
   String? thumbnailUrl;
   String? gameModelId;
   String? separationQuality;
+
+  /// From YouTube's metadata, for the achievements: the video's language
+  /// and the year the song came out.
+  String? ytLanguage;
+  int? releaseYear;
 
   bool get isReady => stage == PrepStage.done;
 
@@ -69,6 +76,8 @@ class Song {
         'thumbnail_url': thumbnailUrl,
         'game_model_id': gameModelId,
         'separation_quality': separationQuality,
+        if (ytLanguage != null) 'yt_language': ytLanguage,
+        if (releaseYear != null) 'release_year': releaseYear,
       };
 
   static Song fromJson(Map<String, dynamic> j) => Song(
@@ -88,6 +97,8 @@ class Song {
         thumbnailUrl: j['thumbnail_url'] as String?,
         gameModelId: j['game_model_id'] as String?,
         separationQuality: j['separation_quality'] as String?,
+        ytLanguage: j['yt_language'] as String?,
+        releaseYear: (j['release_year'] as num?)?.toInt(),
       );
 }
 
@@ -176,12 +187,31 @@ class SongLibrary extends ChangeNotifier {
         final meta = File(p.join(e.path, 'meta.json'));
         if (!await meta.exists()) continue;
         try {
-          _songs.add(Song.fromJson(jsonDecode(await meta.readAsString()) as Map<String, dynamic>));
+          final song = Song.fromJson(jsonDecode(await meta.readAsString()) as Map<String, dynamic>);
+          if (await _relocateSource(song, e.path)) {
+            await meta.writeAsString(const JsonEncoder.withIndent('  ').convert(song.toJson()));
+          }
+          _songs.add(song);
         } catch (_) {}
       }
     }
     _songs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
+  }
+
+  /// The original file is kept in the song's folder, but its path is stored
+  /// in full: after the data folder moved (to another place or computer, even
+  /// between macOS and Windows) the old path is gone. Points it at the same
+  /// file in the song's folder; true when it changed.
+  static Future<bool> _relocateSource(Song song, String songDir) async {
+    final src = song.sourceFile;
+    if (src == null || await File(src).exists()) return false;
+    final name = src.split(RegExp(r'[\\/]')).last;
+    if (name.isEmpty) return false;
+    final here = p.join(songDir, name);
+    if (!await File(here).exists()) return false;
+    song.sourceFile = here;
+    return true;
   }
 
   Song? byId(String id) => _songs.where((s) => s.id == id).firstOrNull;

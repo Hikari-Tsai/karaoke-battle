@@ -12,6 +12,7 @@ import '../../services/replay_mix.dart';
 import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
+import '../widgets/achievement_events.dart';
 import '../../state/i18n.dart';
 import '../../state/live_trace.dart';
 import '../../state/loudness.dart';
@@ -29,7 +30,7 @@ import '../widgets/error_report.dart';
 import 'replay_data.dart';
 
 class ReplayScreen extends StatefulWidget {
-  const ReplayScreen({super.key, required this.song, required this.take, this.notesJsonPath, this.player});
+  const ReplayScreen({super.key, required this.song, required this.take, this.notesJsonPath, this.player, this.imported = false});
   final Song song;
   final TakeInfo take;
 
@@ -39,6 +40,9 @@ class ReplayScreen extends StatefulWidget {
 
   /// Name of whoever sang an imported replay.
   final String? player;
+
+  /// Someone else's take, imported (not the player's own).
+  final bool imported;
 
   @override
   State<ReplayScreen> createState() => _ReplayScreenState();
@@ -61,6 +65,8 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
+    // The beginner task is watching one's own take.
+    if (!widget.imported) recordAchievementEvent(context, 'basics.replay');
     _load();
   }
 

@@ -26,6 +26,7 @@ import 'model_registry.dart';
 import 'settings.dart';
 import 'sidecars.dart';
 import 'song_library.dart';
+import 'youtube_meta.dart';
 
 class PrepStatus {
   PrepStatus({required this.songId, required this.stage, this.fraction = 0, this.message = ''});
@@ -583,9 +584,14 @@ class PrepPipeline extends ChangeNotifier {
     String? ytId;
     String? thumb;
     double? duration;
+    String? artist, lang;
+    int? year;
     try {
       final info = await sidecars.probeUrl(url);
       title = info['title'] as String? ?? url;
+      artist = youtubeArtist(info);
+      year = youtubeYear(info);
+      lang = youtubeLanguage(info);
       ytId = info['id'] as String?;
       thumb = info['thumbnail'] as String?;
       duration = (info['duration'] as num?)?.toDouble();
@@ -594,8 +600,55 @@ class PrepPipeline extends ChangeNotifier {
     song.youtubeId = ytId;
     song.thumbnailUrl = thumb;
     song.durationSec = duration;
+    song.artist = artist ?? '';
+    song.releaseYear = year;
+    song.ytLanguage = lang;
     await library.save(song);
     enqueue(song);
     return song;
+  }
+
+  bool _backfilling = false;
+
+  /// YouTube songs added before the artist, year and language were read:
+  /// asks yt-dlp once per song, one at a time, in the background, filling
+  /// only what is missing. A song is not asked again once yt-dlp answered;
+  /// a failure (offline) is tried again on a later start.
+  Future<void> backfillYoutubeMeta() async {
+    if (_backfilling) return;
+    _backfilling = true;
+    try {
+      final checked = settings.ytMetaChecked;
+      for (final song in List.of(library.songs)) {
+        if (song.sourceType != SourceType.youtube || checked.contains(song.id)) continue;
+        final url = song.sourceUrl ?? (song.youtubeId != null ? 'https://www.youtube.com/watch?v=${song.youtubeId}' : null);
+        if (url == null) continue;
+        try {
+          final info = await sidecars.probeUrl(url);
+          var changed = false;
+          final artist = youtubeArtist(info);
+          if (artist != null && song.artist.trim().isEmpty) {
+            song.artist = artist;
+            changed = true;
+          }
+          // Only ever from YouTube: read again (a first version took a
+          // premiere date for the song's year).
+          final year = youtubeYear(info), lang = youtubeLanguage(info);
+          if (year != song.releaseYear || lang != song.ytLanguage) {
+            song
+              ..releaseYear = year
+              ..ytLanguage = lang;
+            changed = true;
+          }
+          if (changed) await library.save(song);
+          await settings.addYtMetaChecked(song.id);
+        } catch (_) {
+          // Offline or yt-dlp missing: try again another time.
+          return;
+        }
+      }
+    } finally {
+      _backfilling = false;
+    }
   }
 }

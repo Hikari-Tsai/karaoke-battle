@@ -14,6 +14,8 @@ import 'package:provider/provider.dart';
 import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
+import '../../services/streaming_apps.dart';
+import '../widgets/achievement_events.dart';
 import '../../state/i18n.dart';
 import '../../state/beat_grid.dart';
 import '../../state/loudness.dart';
@@ -55,6 +57,10 @@ class _SingScreenState extends State<SingScreen>
 
   /// Width / height of the song's video (16:9 until the player reports it).
   double _videoAspect = 16 / 9;
+
+  /// The song's video is behind the roll: it has one and it is not hidden
+  /// (the MV button at the top right).
+  bool _videoShown(BuildContext context) => widget.song.hasVideo && context.watch<AppSettings>().showVideo;
 
   // ---- tempo ----
   DetectedBeats? _detected;
@@ -364,6 +370,8 @@ class _SingScreenState extends State<SingScreen>
   @override
   void initState() {
     super.initState();
+    // No unlock celebration over the song: it waits until this screen closes.
+    AchievementHold.add(this);
     _load();
   }
 
@@ -417,6 +425,7 @@ class _SingScreenState extends State<SingScreen>
         return;
       }
       _session = s;
+      s.addListener(_onSessionChanged);
       s.onTrackEnded = _onTrackEnded;
       _ticker = createTicker((_) => s.tick())..start();
       _loadBeats(s);
@@ -426,8 +435,28 @@ class _SingScreenState extends State<SingScreen>
     }
   }
 
+  /// A scored take with a streaming app open counts as sung live (checked
+  /// in the background).
+  void _noteLive(String takeId) {
+    final ach = context.read<AppServices>().achievements;
+    unawaited(streamingAppRunning().then((live) {
+      if (live) return ach.recordLive(takeId);
+    }));
+  }
+
+  bool _previewNoted = false;
+
+  /// Playing without recording is a preview (the beginner task).
+  void _onSessionChanged() {
+    final s = _session;
+    if (_previewNoted || s == null || !s.playing || s.recording) return;
+    _previewNoted = true;
+    recordAchievementEvent(context, 'basics.preview');
+  }
+
   @override
   void dispose() {
+    AchievementHold.remove(this);
     _countdownTimer?.cancel();
     _keys.dispose();
     _ticker?.dispose();
@@ -462,6 +491,7 @@ class _SingScreenState extends State<SingScreen>
       }
       final score = await s.processTake(take);
       if (!mounted) return;
+      _noteLive('${widget.song.id}/${take.id}');
       // New personal best for this song? (compare with the other scored takes)
       double? previousBest;
       try {
@@ -653,11 +683,11 @@ class _SingScreenState extends State<SingScreen>
                             onDragNote: _onDragNote,
                             onNotePress: _onNotePress,
                             onNoteRelease: _onNoteRelease,
-                            aspectRatio: widget.song.hasVideo
+                            aspectRatio: _videoShown(context)
                                 ? _videoAspect
                                 : null,
                             below: [
-                              if (widget.song.hasVideo)
+                              if (_videoShown(context))
                                 Positioned.fill(
                                   child: VideoPane(
                                     session: s,
@@ -734,6 +764,11 @@ class _SingScreenState extends State<SingScreen>
                                     const _StageButton(
                                       child: _LiveJudgementsButton(),
                                     ),
+                                    // Only for a song with a video to hide.
+                                    if (widget.song.hasVideo) ...[
+                                      const SizedBox(width: 6),
+                                      const _StageButton(child: _VideoButton()),
+                                    ],
                                     const SizedBox(width: 6),
                                     _StageButton(
                                       child: LyricsMenu(
@@ -1394,6 +1429,26 @@ class _TempoChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Shows or hides the song's video (MV) behind the roll, while previewing
+/// or recording alike.
+class _VideoButton extends StatelessWidget {
+  const _VideoButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<AppSettings>();
+    final on = st.showVideo;
+    return IconButton(
+      tooltip: tr(on ? 'sing.videoOn' : 'sing.videoOff'),
+      onPressed: () => st.setShowVideo(!on),
+      icon: Icon(
+        on ? Icons.videocam : Icons.videocam_off_outlined,
+        color: on ? const Color(0xFFFFD60A) : Colors.white70,
       ),
     );
   }

@@ -206,7 +206,7 @@ Thanks to the friends who tested the app and reported problems before the offici
 * **皮卡**: backtesting with the original song, feedback detection, and the replay delay problem.
 * **羽之扉扉**: found that practice mode and contest mode were easy to mix up.
 * **魷魷已損壞**: suggested importing your own backing track.
-* **莓子熊 (Mecokuma)** ([YouTube](https://www.youtube.com/@mecokuma) · [X](https://x.com/mecokuma)): suggested the setlist, OBS integration and hiding songs from the library, among other features.
+* **莓子熊 (Mecokuma)** ([YouTube](https://www.youtube.com/@mecokuma) · [X](https://x.com/mecokuma)): suggested the setlist, OBS integration, hiding songs from the library and turning off the music video, among other features.
 
 ### Models and libraries
 

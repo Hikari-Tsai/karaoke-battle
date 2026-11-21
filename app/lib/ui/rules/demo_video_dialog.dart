@@ -6,6 +6,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../state/i18n.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/achievement_events.dart';
 
 Future<void> showDemoVideo(BuildContext context, {required String url, required String title}) =>
     showDialog<void>(context: context, builder: (_) => _DemoVideoDialog(url: url, title: title));
@@ -28,6 +29,7 @@ class _DemoVideoDialogState extends State<_DemoVideoDialog> {
   @override
   void initState() {
     super.initState();
+    recordAchievementEvent(context, 'basics.demo');
     _player.stream.width.listen((w) {
       if (w != null && w > 0 && mounted && !_ready) setState(() => _ready = true);
     });

@@ -94,6 +94,9 @@ void main() {
     expect(find.text('BPM'), findsOneWidget, reason: 'the tempo has its own column');
     expect(find.text('130'), findsWidgets);
     expect(find.text('130 BPM'), findsNothing, reason: 'no longer one of the tags');
+    expect(find.text('華語流行'), findsWidgets, reason: 'genres in the UI language');
+    expect(find.byTooltip('曲風（iTunes）：Mandopop'), findsWidgets, reason: 'the original name in the tooltip');
+    expect(find.text('量測音域'), findsOneWidget, reason: 'measure the range from here, as in Settings');
     expect(find.text('C4–D5'), findsWidgets, reason: 'the chorus range beside its bar');
     expect(find.text('02657'), findsNothing, reason: 'no song numbers any more');
     expect(find.textContaining('2026 · Columbia Records China'), findsOneWidget, reason: 'release year and label under the artist');

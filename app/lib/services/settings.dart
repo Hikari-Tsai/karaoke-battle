@@ -165,6 +165,16 @@ class AppSettings extends ChangeNotifier {
   bool get devMode => _get('dev_mode', true);
   Future<void> setDevMode(bool v) => _set('dev_mode', v);
 
+  /// YouTube songs whose artist, year and language were already asked for
+  /// (ids).
+  /// (`yt_meta_checked2`: asked again once, when the year became music
+  /// tracks only.)
+  Set<String> get ytMetaChecked => {...?_prefs.getStringList('yt_meta_checked2')};
+  Future<void> addYtMetaChecked(String id) async {
+    final ids = ytMetaChecked..add(id);
+    await _prefs.setStringList('yt_meta_checked2', ids.toList()..sort());
+  }
+
   /// Library: songs hidden from the list (ids), until restored from the
   /// hidden songs. Their files, takes and history stay as they are.
   Set<String> get hiddenSongs => {...?_prefs.getStringList('hidden_songs')};
@@ -231,6 +241,11 @@ class AppSettings extends ChangeNotifier {
   int get keyRange => wideKeyRange ? 12 : 6;
 
   /// Rhythm-game judgement pop-ups while recording.
+  /// Sing screen: the song's video (MV) behind the piano roll. Off, the roll
+  /// has the whole stage, as for a song without video.
+  bool get showVideo => _get('show_video', true);
+  Future<void> setShowVideo(bool v) => _set('show_video', v);
+
   bool get liveJudgements => _get('live_judgements', true);
   Future<void> setLiveJudgements(bool v) => _set('live_judgements', v);
 
@@ -277,6 +292,11 @@ class AppSettings extends ChangeNotifier {
   /// before the list is fetched again.
   String aiModelListJson(String provider) => _prefs.getString('ai_models_$provider') ?? '';
   Future<void> setAiModelListJson(String provider, String json) => _set('ai_models_$provider', json);
+
+  /// Profile: the cartoon singer's look (an AvatarKind name: female, male,
+  /// neutral, cat, dog, rabbit, bear).
+  String get avatarKind => _get('avatar_gender', 'female');
+  Future<void> setAvatarKind(String v) => _set('avatar_gender', v);
 
   String get playerName => _prefs.getString('player_name') ?? '';
   Future<void> setPlayerName(String v) => _set('player_name', v.trim());

@@ -13,6 +13,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../rules/rules_screen.dart';
 import '../widgets/info_tip.dart';
+import '../widgets/achievement_events.dart';
 import '../../state/lyrics.dart';
 import '../../state/note_lyrics.dart';
 import '../widgets/shine.dart';
@@ -103,7 +104,10 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
+    recordAchievementEvent(context, 'basics.results');
     if (widget.score != null) {
+      // Unlocks wait until the score (and any new record) has been shown.
+      AchievementHold.add(this);
       _roll = AnimationController(vsync: this, duration: kRevealRoll)..addStatusListener((s) {
           if (s == AnimationStatus.completed) _onRolled();
         });
@@ -116,6 +120,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
 
   @override
   void dispose() {
+    AchievementHold.remove(this);
     _roll?.dispose();
     _stamp?.dispose();
     _sfx?.dispose();
@@ -144,7 +149,10 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     _sfx?.stop('roll');
     _sfx?.play('ding');
     _stamp?.forward();
-    if (!widget.newRecord) return;
+    if (!widget.newRecord) {
+      Future<void>.delayed(const Duration(milliseconds: 900), () => AchievementHold.remove(this));
+      return;
+    }
     Future<void>.delayed(const Duration(milliseconds: 750), () {
       if (!mounted) return;
       if (widget.previousBest != null) {
@@ -162,10 +170,11 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     _showRecordDialog();
   }
 
-  void _showRecordDialog() {
+  Future<void> _showRecordDialog() async {
     if (!mounted || widget.score == null) return;
     final thumb = context.read<AppServices>().library.files(widget.song).shownThumb;
-    showNewRecordDialog(context, song: widget.song, take: widget.take, score: widget.score!, previousBest: widget.previousBest, thumbPath: thumb);
+    await showNewRecordDialog(context, song: widget.song, take: widget.take, score: widget.score!, previousBest: widget.previousBest, thumbPath: thumb);
+    AchievementHold.remove(this);
   }
 
   Future<void> _load() async {

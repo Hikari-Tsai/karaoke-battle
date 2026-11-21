@@ -3,13 +3,16 @@
 import 'package:flutter/material.dart';
 
 class InfoTip extends StatelessWidget {
-  const InfoTip({super.key, required this.sections, this.footer, this.icon = Icons.info_outline, this.size = 18});
+  const InfoTip({super.key, required this.sections, this.footer, this.icon = Icons.info_outline, this.size = 18, this.maxWidth = 400});
 
   /// (heading, body) pairs.
   final List<(String, String)> sections;
   final String? footer;
   final IconData icon;
   final double size;
+
+  /// The bubble's width at most.
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +29,7 @@ class InfoTip extends StatelessWidget {
     return Tooltip(
       richMessage: TextSpan(children: spans),
       padding: const EdgeInsets.all(12),
-      constraints: const BoxConstraints(maxWidth: 400),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       waitDuration: const Duration(milliseconds: 200),
       showDuration: const Duration(seconds: 25),
       child: MouseRegion(

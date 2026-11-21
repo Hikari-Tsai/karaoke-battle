@@ -11,7 +11,6 @@ import '../../services/midi_export.dart';
 import '../../services/dev_mode.dart';
 import '../../services/prep_pipeline.dart';
 import '../../services/settings.dart';
-import '../../services/sing_history.dart';
 import '../../services/song_cover.dart';
 import '../../services/song_library.dart';
 import '../../services/take_import.dart';
@@ -33,9 +32,9 @@ import '../widgets/brand.dart';
 import '../widgets/error_report.dart';
 import 'add_song_dialog.dart';
 import 'backing_import_dialog.dart';
+import 'library_stats.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/reveal.dart';
-import '../widgets/stats_card.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -46,67 +45,6 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   bool _dragging = false;
-  late final SongLibrary _library = context.read<SongLibrary>();
-
-  /// Every scored take (history clearing does not apply here), for the
-  /// stats card at the top.
-  HistoryStats? _stats;
-  int _statsSeq = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _library.addListener(_loadStats);
-    _library.takesChanged.addListener(_loadStats);
-    _loadStats();
-  }
-
-  @override
-  void dispose() {
-    _library.removeListener(_loadStats);
-    _library.takesChanged.removeListener(_loadStats);
-    super.dispose();
-  }
-
-  Future<void> _loadStats() async {
-    final seq = ++_statsSeq;
-    final entries = await loadSingHistory(_library);
-    if (mounted && seq == _statsSeq) setState(() => _stats = summarizeHistory(entries));
-  }
-
-  Widget _statsCard(List<Song> songs) {
-    final stats = _stats;
-    String whole(double v) => '${v.round()}';
-    final best = stats?.best;
-    final ready = songs.where((s) => s.stage == PrepStage.done).length;
-    return StatsCard(icon: Icons.library_music_outlined, title: tr('library.statsTitle'), tiles: [
-      StatTile(icon: Icons.library_music_outlined, color: const Color(0xFFBF5AF2), label: tr('library.stat.songs'), value: songs.length.toDouble(), format: whole),
-      StatTile(icon: Icons.check_circle_outline, color: const Color(0xFF30D158), label: tr('library.stat.ready'), value: ready.toDouble(), format: whole),
-      StatTile(icon: Icons.mic_none, color: const Color(0xFFFF4FA3), label: tr('library.stat.sung'), value: (stats?.songs ?? 0).toDouble(), format: whole),
-      StatTile(icon: Icons.equalizer, color: const Color(0xFFFF9F0A), label: tr('history.stat.takes'), value: (stats?.takes ?? 0).toDouble(), format: whole),
-      StatTile(
-        icon: Icons.timer_outlined,
-        color: const Color(0xFF64D2FF),
-        label: tr('history.stat.time'),
-        value: (stats?.sung.inSeconds ?? 0).toDouble(),
-        format: (v) => formatSungTime(Duration(seconds: v.round())),
-      ),
-      if (best != null)
-        StatTile(
-          icon: Icons.emoji_events_outlined,
-          color: trophyColor,
-          label: tr('history.stat.best'),
-          value: best.take.total!,
-          format: (v) => v.toStringAsFixed(1),
-          valueColor: rankColor(best.take.rank),
-          trailing: RankChip(rank: best.take.rank, fontSize: 12),
-          note: best.song.title,
-          highlight: true,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ResultsScreen(song: best.song, take: best.take))),
-        ),
-    ]);
-  }
-
   /// A reading width, centred, with room on both sides (as the History).
   static Widget _centred(Widget child, {Key? key}) => Center(
         key: key,
@@ -189,7 +127,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   itemCount: songs.length + 1,
                   itemBuilder: (context, i) {
-                    if (i == 0) return _centred(Padding(padding: const EdgeInsets.only(bottom: 12), child: _statsCard(songs)));
+                    if (i == 0) return _centred(const Padding(padding: EdgeInsets.only(bottom: 12), child: LibraryStats()));
                     final song = songs[i - 1];
                     // The first screenful comes in one after another.
                     return _centred(

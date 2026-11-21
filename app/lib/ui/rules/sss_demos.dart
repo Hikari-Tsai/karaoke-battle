@@ -20,6 +20,7 @@ import '../replays/replays_screen.dart' show replayImportError;
 import '../shell.dart';
 import '../widgets/score_colors.dart';
 import '../widgets/shine.dart';
+import '../widgets/achievement_events.dart';
 import 'demo_video_dialog.dart';
 
 /// Where the website keeps the replay files (GitHub Pages, site/assets).
@@ -181,6 +182,7 @@ class _SssDemosState extends State<SssDemos> with TickerProviderStateMixin {
       if (mounted) setState(() => _busy[d.key] = null);
       final list = await services.replays.import(tmp);
       await services.settings.setDemoReplay(d.key, list.first.id);
+      if (mounted) recordAchievementEvent(context, 'basics.demo');
       messenger?.showSnackBar(SnackBar(
         content: Text(tr('demo.saved', {'title': list.first.title})),
         persist: false, // an action makes it stay by default

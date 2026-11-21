@@ -1,4 +1,5 @@
 // Bootstrap of every long-lived service and a holder passed down via provider.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,7 +9,9 @@ import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../engine/engine.dart';
+import '../services/achievements.dart';
 import '../services/backing_import.dart';
+import '../services/identity.dart';
 import '../services/ai_keys.dart';
 import '../services/app_log.dart';
 import '../services/app_paths.dart';
@@ -55,11 +58,27 @@ class AppServices {
   /// Importing and aligning the user's own backing tracks.
   late final BackingImport backingImport = BackingImport(library: library, sidecars: sidecars, engine: engine, paths: paths, pipeline: pipeline);
 
+  /// What the player has achieved (kept in the data folder).
+  late final AchievementService achievements = AchievementService(library: library, replays: replays, settings: settings, dataRoot: paths.root, cacheDir: paths.cache);
+
+  /// The player's UUID and the devices it has been used on (identity.json).
+  late final IdentityService identity = IdentityService(dataRoot: paths.root);
+
   /// Path of the SwiftF0 model file (may not exist yet).
   String get swiftF0ModelPath => models.pathOf(ModelRegistry.swiftF0, 'model.onnx');
 
+  Timer? _artistTimer;
+
+  /// Fills in the artist, year and language of older YouTube songs a little
+  /// after start, so it does not compete with opening the app.
+  void backfillArtistsLater() {
+    _artistTimer = Timer(const Duration(seconds: 20), () => unawaited(pipeline.backfillYoutubeMeta()));
+  }
+
   void dispose() {
+    _artistTimer?.cancel();
     setlistLog.stop();
+    achievements.dispose();
     pipeline.dispose();
     library.dispose();
     backend.dispose();
@@ -125,7 +144,12 @@ Future<AppServices> bootstrapServices() async {
     library: library,
     pipeline: pipeline,
     replays: replays,
-  )..setlistLog.start();
+  )
+    ..setlistLog.start()
+    // In the background: it reads every take once.
+    ..achievements.start()
+    ..identity.start()
+    ..backfillArtistsLater();
 }
 
 /// First line of a run in the log: app version and OS.

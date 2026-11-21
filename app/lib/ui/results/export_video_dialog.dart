@@ -17,10 +17,7 @@ import 'video_export.dart';
 import '../widgets/app_dialog.dart';
 
 Future<void> showExportVideoDialog(BuildContext context, {required Song song, required TakeInfo take}) async {
-  final settings = context.read<AppServices>().settings;
-  // The player name shown next to the song title in the video; the same
-  // setting as the name in exported replays.
-  final name = TextEditingController(text: settings.playerName);
+  // The player name shown in the video is the profile's.
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AppDialog(
@@ -28,15 +25,7 @@ Future<void> showExportVideoDialog(BuildContext context, {required Song song, re
       title: Text(tr('video.copyrightTitle')),
       content: SizedBox(
         width: 460,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(tr('video.copyrightBody')),
-          const SizedBox(height: 20),
-          TextField(
-            controller: name,
-            maxLength: 40,
-            decoration: InputDecoration(labelText: tr('export.player'), helperText: tr('video.playerHint'), border: const OutlineInputBorder()),
-          ),
-        ]),
+        child: Text(tr('video.copyrightBody')),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
@@ -44,11 +33,7 @@ Future<void> showExportVideoDialog(BuildContext context, {required Song song, re
       ],
     ),
   );
-  final player = name.text.trim();
-  name.dispose();
   if (ok != true || !context.mounted) return;
-  await settings.setPlayerName(player);
-  if (!context.mounted) return;
   // Picks the file (an empty placeholder until the video is written).
   final uri = await FilePicker.saveFile(
     dialogTitle: tr('video.saveTitle'),
@@ -114,7 +99,10 @@ class _ExportVideoDialogState extends State<_ExportVideoDialog> {
           });
         },
       );
-      if (mounted) setState(() => _done = true);
+      if (mounted) {
+        setState(() => _done = true);
+        unawaited(context.read<AppServices>().achievements.recordEvent('share.video'));
+      }
     } on VideoExportCancelled {
       await _removePlaceholder();
       if (mounted) Navigator.of(context).pop();

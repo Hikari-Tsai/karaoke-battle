@@ -15,6 +15,7 @@ import '../../services/model_registry.dart';
 import '../../services/settings.dart';
 import '../../services/sidecars.dart';
 import '../../state/song_data.dart' show noteName;
+import 'move_guide_dialog.dart';
 import 'range_detect_dialog.dart';
 import '../../services/update_checker.dart';
 import '../widgets/release_notes.dart';
@@ -673,6 +674,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: settings.resultSounds,
                 onChanged: settings.setResultSounds,
               ),
+              // The same setting as the camera button on the sing screen.
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(tr('settings.showVideo')),
+                subtitle: Text(tr('settings.showVideoHint')),
+                value: settings.showVideo,
+                onChanged: settings.setShowVideo,
+              ),
             ],
           ),
           // ---- AI singing tips: service and API key ----------------------------------------
@@ -704,6 +713,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 6),
               Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
                 OutlinedButton.icon(onPressed: () => _changeDataFolder(null), icon: const Icon(Icons.drive_file_move_outline), label: Text(tr('folder.change'))),
+                // How to take everything to a new computer.
+                OutlinedButton.icon(onPressed: () => showMoveGuide(context), icon: const Icon(Icons.devices_other), label: Text(tr('move.button'))),
                 if (services.paths.source == DataRootSource.setting)
                   TextButton(
                     onPressed: () => _changeDataFolder(services.paths.fallbackRoot, reset: true),

@@ -344,7 +344,7 @@ class _ReplayCardState extends State<_ReplayCard> {
     if (await services.replays.addSharedLyrics(r, song, services.pipeline)) _snack(tr('replays.lyricsAdded'));
     await _addBacking(song);
     if (!mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: song, take: r.take, notesJsonPath: r.notesJson, player: _player)));
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReplayScreen(song: song, take: r.take, notesJsonPath: r.notesJson, player: _player, imported: true)));
   }
 
   /// The backing track that came with the included song: applied once the

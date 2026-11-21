@@ -204,7 +204,7 @@ cd app && flutter pub get && flutter run -d macos
 * **皮卡**：原曲でのバックテスト、ハウリング検出、リプレイの遅延問題。
 * **羽之扉扉**：練習モードと本番モードが紛らわしい問題を発見。
 * **魷魷已損壞**：自分で用意した伴奏を読み込むアイデアを提供。
-* **莓子熊（Mecokuma）**（[YouTube](https://www.youtube.com/@mecokuma)・[X](https://x.com/mecokuma)）：セトリ、OBS 連携、曲の非表示などの機能を提案。
+* **莓子熊（Mecokuma）**（[YouTube](https://www.youtube.com/@mecokuma)・[X](https://x.com/mecokuma)）：セトリ、OBS 連携、曲の非表示、MV のオフなどの機能を提案。
 
 ### モデルとライブラリ
 

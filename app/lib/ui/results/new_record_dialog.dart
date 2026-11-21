@@ -2,6 +2,7 @@
 // prefilled post (text + download link) and the card on the clipboard to
 // paste; Instagram has no desktop post intent, so the caption is copied and
 // the card saved for upload.
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -12,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:path/path.dart' as p;
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/song_library.dart';
@@ -102,6 +104,8 @@ class _NewRecordDialogState extends State<_NewRecordDialog> {
     final path = p.join(widget.take.dir, 'share.png');
     await File(path).writeAsBytes(bytes, flush: true);
     _imagePath = path;
+    // Every way of sharing the card renders it first.
+    if (mounted) unawaited(context.read<AppServices>().achievements.recordEvent('share.card'));
     return (path, bytes);
   }
 

@@ -1,8 +1,9 @@
-// "Export replay": asks for the player name, then saves a .zip holding the
+// "Export replay": saves a .zip (with the profile's name as the player) holding the
 // replay JSON and the dry a cappella vocal, which someone else can import.
 // For a song from a local file (which the receiver does not have) it also
 // asks whether to pack the song in: including it carries a copyright
 // reminder, leaving it out explains what the receiver will need.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -41,7 +42,6 @@ class _ExportReplayDialog extends StatefulWidget {
 }
 
 class _ExportReplayDialogState extends State<_ExportReplayDialog> {
-  late final TextEditingController _name;
   bool _busy = false;
   String? _error;
 
@@ -65,7 +65,6 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
   void initState() {
     super.initState();
     final services = context.read<AppServices>();
-    _name = TextEditingController(text: services.settings.playerName);
     try {
       final f = File(services.library.files(widget.song).lyricsJson);
       final shared = f.existsSync() ? sharedLyrics(Lyrics.fromJson(jsonDecode(f.readAsStringSync()) as Map<String, dynamic>)) : null;
@@ -85,21 +84,14 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
     }
   }
 
-  @override
-  void dispose() {
-    _name.dispose();
-    super.dispose();
-  }
-
   Future<void> _export() async {
     final services = context.read<AppServices>();
-    final player = _name.text.trim();
+    final player = services.settings.playerName.trim();
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await services.settings.setPlayerName(player);
       final base = replayBaseName(widget.song.title, widget.take.total);
       final zip = await services.replays.export(
         song: widget.song,
@@ -120,6 +112,7 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
         setState(() => _busy = false);
         return;
       }
+      unawaited(services.achievements.recordEvent('share.replay'));
       final messenger = ScaffoldMessenger.maybeOf(context);
       Navigator.of(context).pop();
       messenger?.showSnackBar(SnackBar(content: Text(tr('export.done', {'path': uri.toFilePath()}))));
@@ -149,12 +142,6 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
           children: [
             Text(tr('export.body'), style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
-            TextField(
-              controller: _name,
-              enabled: !_busy,
-              maxLength: 40,
-              decoration: InputDecoration(labelText: tr('export.player'), hintText: tr('export.playerHint'), border: const OutlineInputBorder()),
-            ),
             Row(children: [
               Icon(hasVoice ? Icons.folder_zip_outlined : Icons.mic_off, size: 20, color: theme.colorScheme.onSurfaceVariant),
               const SizedBox(width: 8),
