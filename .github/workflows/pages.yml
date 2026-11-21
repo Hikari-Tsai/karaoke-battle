@@ -25,12 +25,12 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# Upload and deploy in separate jobs: deploying in the same job right after
+# the upload can find no artifact (actions/deploy-pages#451), and a re-run
+# then fails on two artifacts of the same name.
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Issue reporters
@@ -41,5 +41,13 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
