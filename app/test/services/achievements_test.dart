@@ -124,6 +124,19 @@ void main() {
     expect(level('practice', f), 1, reason: '10 takes of one song');
   });
 
+  test('beginner: custom lyrics, own backing, deleting a note', () {
+    expect(level('customLyrics', const AchievementFacts()), 0);
+    expect(level('customLyrics', const AchievementFacts(customLyricsSongs: 1)), 1);
+    expect(level('ownBacking', const AchievementFacts(ownBackingSongs: 1)), 1);
+    expect(level('deleteNote', const AchievementFacts(events: {'basics.deleteNote'})), 1);
+    expect(hasCustomLyrics({'tracks': [{'lang': 'ja', 'lines': []}]}), isFalse, reason: 'YouTube subtitles');
+    expect(hasCustomLyrics({'tracks': [{'lang': 'ja', 'source': 'whisper'}]}), isFalse);
+    for (final s in ['imported', 'edited', 'manual', 'aligned']) {
+      expect(hasCustomLyrics({'tracks': [{'lang': 'ja'}, {'lang': 'ja-x-$s', 'source': s}]}), isTrue, reason: s);
+    }
+    expect(hasCustomLyrics(null), isFalse);
+  });
+
   test('explore: languages, chart genres, shares and beating a replay', () {
     final f = AchievementFacts(
       takes: [take('a', '2026-11-10T20:00:00', 90, lang: 'zh'), take('b', '2026-11-12T20:00:00', 88, lang: 'ja')],
@@ -178,22 +191,21 @@ void main() {
 
   test('beginner tasks: library, settings, takes and actions, then graduate', () {
     final none = AchievementFacts(takes: const []);
-    for (final id in ['firstSong', 'firstTake', 'calibrated', 'keyChange', 'wholeSong', 'rankB', 'browseCharts', 'graduate']) {
+    for (final id in ['firstSong', 'firstTake', 'calibrated', 'keyChange', 'wholeSong', 'browseCharts', 'graduate']) {
       expect(level(id, none), 0, reason: id);
     }
     final t = TakeFact(songId: 'a', language: 'zh', startedAt: DateTime(2026, 11, 10, 20), createdAt: DateTime(2026, 11, 10, 20), seconds: 190, total: 75, rank: 'B', perfect: 0, judged: 0, misses: 0, highPitch: null, subScores: const {}, pitchShift: -2, songSeconds: 200);
-    final f = AchievementFacts(takes: [t], songs: 1, readySongs: 1, lyricsSongs: 1, latencySet: true, named: true, ownHigh: 72, events: {'basics.preview', 'basics.results', 'basics.replay', 'basics.charts', 'basics.demo'});
+    final f = AchievementFacts(takes: [t], songs: 1, readySongs: 1, lyricsSongs: 1, customLyricsSongs: 1, ownBackingSongs: 1, latencySet: true, named: true, ownHigh: 72, events: {'basics.preview', 'basics.results', 'basics.replay', 'basics.charts', 'basics.demo', 'basics.deleteNote'});
     for (final a in achievements.where((a) => a.category == AchievementCategory.basics)) {
       expect(achievementLevels(f)[a.id], 1, reason: a.id);
     }
     expect(achievements.firstWhere((a) => a.id == 'graduate').pointsOf(1), 25);
     expect(achievements.firstWhere((a) => a.id == 'firstSong').pointsOf(1), 5);
     // A task done before still counts towards graduating.
-    final later = AchievementFacts(takes: [t], songs: 1, readySongs: 1, lyricsSongs: 1, latencySet: true, named: true, ownHigh: 72, events: {'basics.preview', 'basics.results', 'basics.replay', 'basics.charts'}, unlocked: {'watchDemo'});
+    final later = AchievementFacts(takes: [t], songs: 1, readySongs: 1, lyricsSongs: 1, customLyricsSongs: 1, ownBackingSongs: 1, latencySet: true, named: true, ownHigh: 72, events: {'basics.preview', 'basics.results', 'basics.replay', 'basics.charts', 'basics.deleteNote'}, unlocked: {'watchDemo'});
     expect(level('graduate', later), 1);
     final short = TakeFact(songId: 'a', language: 'zh', startedAt: t.startedAt, createdAt: t.createdAt, seconds: 120, total: 60, rank: 'C', perfect: 0, judged: 0, misses: 0, highPitch: null, subScores: const {}, songSeconds: 200);
     expect(level('wholeSong', AchievementFacts(takes: [short])), 0, reason: '60% of the song');
-    expect(level('rankB', AchievementFacts(takes: [short])), 0);
     expect(level('keyChange', AchievementFacts(takes: [short])), 0);
   });
 
@@ -240,7 +252,7 @@ void main() {
     expect(pts('nightOwl'), lessThan(pts('rankSSS')), reason: 'a time of day is not an SSS');
     expect(pts('graduate'), lessThan(pts('takes', 3)));
     final basics = achievements.where((a) => a.category == AchievementCategory.basics).fold<int>(0, (s, a) => s + a.pointsOf(1));
-    expect(basics, 100);
+    expect(basics, 110, reason: '17 tasks of 5 and graduating');
   });
 
   group('service', () {

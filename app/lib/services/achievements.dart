@@ -102,6 +102,8 @@ class AchievementFacts {
     this.songs = 0,
     this.readySongs = 0,
     this.lyricsSongs = 0,
+    this.customLyricsSongs = 0,
+    this.ownBackingSongs = 0,
     this.latencySet = false,
     this.named = false,
     this.unlocked = const {},
@@ -134,6 +136,10 @@ class AchievementFacts {
 
   /// Songs in the library, those prepared, those with lyrics.
   final int songs, readySongs, lyricsSongs;
+
+  /// Songs with lyrics the player made (a subtitle file, pasted text, an
+  /// edit or typed in), and with a backing track the player imported.
+  final int customLyricsSongs, ownBackingSongs;
 
   /// The latency has been measured; the player has a name.
   final bool latencySet, named;
@@ -225,23 +231,26 @@ final _basics = <AchievementDef>[
   AchievementDef('rangeMeasured', AchievementCategory.basics, Icons.piano, [1], (f) => f.ownHigh != null ? 1 : 0),
   AchievementDef('named', AchievementCategory.basics, Icons.badge_outlined, [1], (f) => f.named ? 1 : 0),
   AchievementDef('lyrics', AchievementCategory.basics, Icons.subtitles_outlined, [1], (f) => f.lyricsSongs > 0 ? 1 : 0),
+  AchievementDef('customLyrics', AchievementCategory.basics, Icons.edit_note, [1], (f) => f.customLyricsSongs > 0 ? 1 : 0),
+  AchievementDef('ownBacking', AchievementCategory.basics, Icons.queue_music, [1], (f) => f.ownBackingSongs > 0 ? 1 : 0),
   // Basic skills
   AchievementDef('keyChange', AchievementCategory.basics, Icons.swap_vert, [1], (f) => f.takes.any((t) => t.pitchShift != 0) ? 1 : 0),
   AchievementDef('wholeSong', AchievementCategory.basics, Icons.done_all, [1], (f) => f.takes.any((t) => t.songSeconds != null && t.songSeconds! > 0 && t.seconds >= 0.9 * t.songSeconds!) ? 1 : 0),
-  AchievementDef('rankB', AchievementCategory.basics, Icons.thumb_up_outlined, [1], (f) => f.takes.any((t) => _rankValue(t.rank) >= 3) ? 1 : 0),
+  AchievementDef('deleteNote', AchievementCategory.basics, Icons.auto_fix_normal, [1], (f) => _event(f, 'basics.deleteNote')),
   // Exploring
   AchievementDef('browseCharts', AchievementCategory.basics, Icons.leaderboard_outlined, [1], (f) => _event(f, 'basics.charts')),
   AchievementDef('watchDemo', AchievementCategory.basics, Icons.ondemand_video, [1], (f) => _event(f, 'basics.demo')),
 ];
 
 /// Points per tier, by how hard it is, on five steps: 5, 10, 25, 50, 100.
-/// The beginner tasks are 5 (100 for all of them with graduating), a click
+/// The beginner tasks are 5 (110 for all of them with graduating), a click
 /// is 10, real skill 25 and up, and the long haul (gold tiers) 100.
 const achievementPoints = <String, List<int>>{
   // Beginner tasks
   'firstSong': [5], 'firstReady': [5], 'firstPreview': [5], 'firstTake': [5], 'firstResults': [5],
   'firstReplay': [5], 'calibrated': [5], 'rangeMeasured': [5], 'named': [5], 'lyrics': [5],
-  'keyChange': [5], 'wholeSong': [5], 'rankB': [5], 'browseCharts': [5], 'watchDemo': [5],
+  'keyChange': [5], 'wholeSong': [5], 'browseCharts': [5], 'watchDemo': [5],
+  'customLyrics': [5], 'ownBacking': [5], 'deleteNote': [5],
   'graduate': [25],
   // Totals: the gold tiers take months
   'takes': [10, 25, 100], 'songs': [10, 25, 100], 'hours': [10, 25, 100], 'streak': [10, 25, 100],
@@ -647,11 +656,16 @@ class AchievementService extends ChangeNotifier {
         songSeconds: e.song.durationSec,
       ));
     }
-    var lyricsSongs = 0;
+    var lyricsSongs = 0, customLyricsSongs = 0, ownBackingSongs = 0;
     for (final song in library.songs) {
-      final f = File(library.files(song).lyricsJson);
+      final files = library.files(song);
+      final f = File(files.lyricsJson);
       // An empty lyrics.json ("no subtitles") is ~60 bytes.
-      if (await f.exists() && await f.length() > 120) lyricsSongs++;
+      if (await f.exists() && await f.length() > 120) {
+        lyricsSongs++;
+        if (await _hasCustomLyrics(f)) customLyricsSongs++;
+      }
+      if (await File(files.userInstWav).exists()) ownBackingSongs++;
     }
     final replayFacts = <({String songId, double total, DateTime importedAt})>[];
     for (final r in replays.items) {
@@ -667,6 +681,8 @@ class AchievementService extends ChangeNotifier {
       songs: library.songs.length,
       readySongs: library.songs.where((s) => s.stage == PrepStage.done).length,
       lyricsSongs: lyricsSongs,
+      customLyricsSongs: customLyricsSongs,
+      ownBackingSongs: ownBackingSongs,
       latencySet: settings.latencySeconds != null,
       named: settings.playerName.isNotEmpty,
       unlocked: unlocked.keys.toSet(),
@@ -777,3 +793,20 @@ Set<String> titleParts(String title) => {
 
 /// Lower case, without spaces and punctuation, to match titles loosely.
 String normaliseTitle(String s) => s.toLowerCase().replaceAll(RegExp(r"[\s\p{P}\p{S}]", unicode: true), '');
+
+/// Lyrics the player made, not YouTube's or Whisper's: a track imported from
+/// a subtitle file, edited, typed in or pasted (see LyricSource).
+const customLyricSources = {'imported', 'edited', 'manual', 'aligned'};
+
+Future<bool> _hasCustomLyrics(File lyricsJson) async {
+  try {
+    final j = jsonDecode(await lyricsJson.readAsString());
+    return hasCustomLyrics(j);
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Whether a decoded lyrics.json has a track from [customLyricSources].
+bool hasCustomLyrics(Object? lyricsJson) =>
+    lyricsJson is Map && (lyricsJson['tracks'] as List? ?? const []).any((t) => t is Map && customLyricSources.contains(t['source']));

@@ -31,7 +31,7 @@ void main() {
   });
 
   testWidgets('several unlocks share one screen, the rest counted; Esc closes it', (tester) async {
-    final list = [for (final id in ['firstSong', 'firstTake', 'rankB', 'wholeSong', 'keyChange', 'named', 'lyrics']) AchievementUnlock(d(id), 1)];
+    final list = [for (final id in ['firstSong', 'firstTake', 'calibrated', 'wholeSong', 'keyChange', 'named', 'lyrics']) AchievementUnlock(d(id), 1)];
     final done = await show(tester, list);
     expect(find.text('解鎖 7 個成就！'), findsOneWidget);
     expect(find.text('第一首歌'), findsOneWidget);

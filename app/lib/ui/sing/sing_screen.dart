@@ -193,6 +193,7 @@ class _SingScreenState extends State<SingScreen>
     _ensureEditor().delete(i);
     _selected = null;
     _commit();
+    recordAchievementEvent(context, 'basics.deleteNote');
   }
 
   void _undo() {
