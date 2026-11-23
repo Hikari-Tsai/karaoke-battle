@@ -29,6 +29,7 @@ import 'settings/settings_screen.dart';
 import 'startup/backend_dialog.dart';
 import 'startup/setup_gate.dart';
 import 'startup/ytdlp_dialog.dart';
+import 'widgets/achievement_events.dart';
 import 'widgets/speech_bubble.dart';
 
 class AppShell extends StatefulWidget {
@@ -184,7 +185,14 @@ class _AppShellState extends State<AppShell> {
                       onTap: () => setState(() => _index = _lastIndex = _aboutIndex),
                     ),
                     const SizedBox(height: 4),
-                    _RailLink(icon: Icons.star_outline, label: tr('nav.star'), onTap: () => launchUrl(Uri.parse(UpdateChecker.repoUrl))),
+                    _RailLink(
+                      icon: Icons.star_outline,
+                      label: tr('nav.star'),
+                      onTap: () {
+                        recordAchievementEvent(context, 'support.star');
+                        launchUrl(Uri.parse(UpdateChecker.repoUrl));
+                      },
+                    ),
                     const SizedBox(height: 4),
                     _RailLink(icon: Icons.bug_report_outlined, label: tr('nav.report'), onTap: () => openProblemReport(context)),
                   ]),

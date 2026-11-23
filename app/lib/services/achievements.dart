@@ -152,7 +152,8 @@ class AchievementFacts {
   /// Songs found on the hot songs charts, with their genres (English names).
   final Map<String, Set<String>> chartGenres;
 
-  /// Actions done at least once: 'share.video', 'share.replay', 'share.card'.
+  /// Actions done at least once: 'share.video', 'share.replay', 'share.card',
+  /// 'support.star' (the GitHub page opened from 「賞我星星」).
   final Set<String> events;
 
   /// The top of the player's range (MIDI), when measured.
@@ -255,7 +256,7 @@ const achievementPoints = <String, List<int>>{
   'newBest': [10, 25, 100], 'bigLeap': [25], 'practice': [10, 25, 50],
   // Explore
   'languages': [10, 25, 50], 'genres': [10, 25, 50], 'chartSong': [10, 25, 50], 'decades': [10, 25, 50], 'artists': [10, 25, 50],
-  'shareVideo': [10], 'shareReplay': [10], 'shareCard': [10], 'shares': [10, 25, 50], 'replaysIn': [10, 25, 50], 'challenger': [10, 25, 50],
+  'shareVideo': [10], 'shareReplay': [10], 'shareCard': [10], 'githubStar': [50], 'shares': [10, 25, 50], 'replaysIn': [10, 25, 50], 'challenger': [10, 25, 50],
   // Live: songs sung on stream and days streamed
   'firstLive': [25], 'liveSongs': [10, 25, 100], 'liveDays': [10, 25, 100],
   // Secrets: a time of day is easy, twenty songs in a day is not
@@ -313,6 +314,8 @@ final achievements = <AchievementDef>[
   AchievementDef('shareVideo', AchievementCategory.explore, Icons.movie, [1], (f) => f.events.contains('share.video') ? 1 : 0),
   AchievementDef('shareReplay', AchievementCategory.explore, Icons.ios_share, [1], (f) => f.events.contains('share.replay') ? 1 : 0),
   AchievementDef('shareCard', AchievementCategory.explore, Icons.share, [1], (f) => f.events.contains('share.card') ? 1 : 0),
+  // The app cannot see a star: opening the repo from 「賞我星星」 counts.
+  AchievementDef('githubStar', AchievementCategory.explore, Icons.star, [1], (f) => _event(f, 'support.star')),
   AchievementDef('shares', AchievementCategory.explore, Icons.campaign, [5, 20, 50], (f) => f.shares.toDouble()),
   AchievementDef('replaysIn', AchievementCategory.explore, Icons.move_to_inbox, [1, 10, 30], (f) => f.importedReplays.toDouble()),
   // Imported replays beaten: a take of their song after the import, above it.

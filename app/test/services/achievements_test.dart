@@ -140,6 +140,8 @@ void main() {
     expect(level('chartSong', f), 1);
     expect(level('shareCard', f), 1);
     expect(level('shareVideo', f), 0);
+    expect(level('githubStar', f), 0);
+    expect(level('githubStar', AchievementFacts(events: {'support.star'})), 1, reason: 'the GitHub page opened from 「賞我星星」');
     expect(level('challenger', f), 1, reason: '88 after importing an 85');
     final explore = AchievementFacts(
       takes: [for (final (i, s) in ['a', 'b', 'c', 'd', 'e', 'f'].indexed) take(s, '2026-11-1${i}T20:00:00', 80)],
