@@ -34,6 +34,12 @@ body:
       label: 顯示卡 / Graphics card / グラフィックカード
       description: 從 App 回報時會自動填入 / Filled in when reporting from the app / アプリから報告すると自動で入ります
       placeholder: "NVIDIA GeForce RTX 3060 (12 GB) / Apple M1 Pro"
+  - type: input
+    id: audio
+    attributes:
+      label: 錄音介面 / Audio devices / オーディオデバイス
+      description: 輸入（麥克風）和輸出裝置，從 App 回報時會自動填入；裝置名稱若含不想公開的字可以改掉 / Input (microphone) and output, filled in when reporting from the app; edit a device name you would rather not show / 入力（マイク）と出力。アプリから報告すると自動で入ります。公開したくない名前は書き換えてください
+      placeholder: "In: MacBook Pro Microphone / Out: AirPods / 48000 Hz / latency 120 ms"
   - type: textarea
     id: what
     attributes:

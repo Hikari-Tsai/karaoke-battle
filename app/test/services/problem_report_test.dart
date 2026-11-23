@@ -28,6 +28,26 @@ void main() {
     expect(gpuSummary([]), isNull);
   });
 
+  test('fills in the audio devices', () {
+    final devices = {
+      'capture': [
+        {'id': 'mic-1', 'name': 'MacBook Pro Microphone', 'default': true},
+        {'id': 'usb-2', 'name': 'Scarlett 2i2 USB'},
+      ],
+      'playback': [
+        {'id': 'spk-1', 'name': 'MacBook Pro Speakers'},
+        {'id': 'air-2', 'name': 'AirPods', 'default': true},
+      ],
+    };
+    expect(audioDeviceSummary(devices, sampleRate: 48000, latencySeconds: 0.12),
+        'In: MacBook Pro Microphone (system default) / Out: AirPods (system default) / 48000 Hz / latency 120 ms');
+    expect(audioDeviceSummary(devices, captureId: 'usb-2', playbackId: 'spk-1'), 'In: Scarlett 2i2 USB / Out: MacBook Pro Speakers');
+    expect(audioDeviceSummary(devices, captureId: 'gone'), 'In: chosen device not connected / Out: AirPods (system default)', reason: 'an unplugged choice');
+    expect(audioDeviceSummary({'capture': [], 'playback': []}), 'In: system default / Out: system default');
+    expect(audioDeviceSummary(null), isNull);
+    expect(problemReportUri(version: '1.2.0', audio: 'In: A / Out: B').queryParameters['audio'], 'In: A / Out: B');
+  });
+
   test('carries the error and the log', () {
     final u = problemReportUri(version: '1.1.2', error: 'boom', logs: 'a\nb');
     expect(u.queryParameters['error'], 'boom');

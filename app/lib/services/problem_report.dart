@@ -1,5 +1,5 @@
 // "Report a problem": opens the GitHub issue form with the app version, OS,
-// compute backend and graphics card filled in, and from an error message also
+// compute backend, graphics card and audio devices filled in, and from an error message also
 // the error and the recent log lines (home folders written as "~"; the rest is
 // up to the reporter, see CONTRIBUTING.md). A form URL can carry only so much,
 // so when the log does not fit, the full log is saved next to app.log and
@@ -19,13 +19,14 @@ import 'update_checker.dart';
 
 /// The bug-report form (`.github/ISSUE_TEMPLATE/bug_report.yml`); query
 /// parameters named after the form's field ids pre-fill those fields.
-Uri problemReportUri({String? version, String? os, String? backend, String? gpu, String? error, String? logs}) =>
+Uri problemReportUri({String? version, String? os, String? backend, String? gpu, String? audio, String? error, String? logs}) =>
     Uri.parse('${UpdateChecker.repoUrl}/issues/new').replace(queryParameters: {
       'template': 'bug_report.yml',
       if (version != null && version.isNotEmpty) 'version': version,
       if (os != null && os.isNotEmpty) 'os': os,
       if (backend != null && backend.isNotEmpty) 'backend': backend,
       if (gpu != null && gpu.isNotEmpty) 'gpu': gpu,
+      if (audio != null && audio.isNotEmpty) 'audio': audio,
       if (error != null && error.isNotEmpty) 'error': error,
       if (logs != null && logs.isNotEmpty) 'logs': logs,
     });
@@ -106,15 +107,48 @@ String? gpuSummary(List<GpuInfo> gpus) {
   return parts.isEmpty ? null : parts.join(' / ');
 }
 
+/// The recording (input) and playback (output) devices for the report, from
+/// the engine's device list ({'capture': [...], 'playback': [...]}, each
+/// {id, name, default}) and the ids chosen in Settings (null: the system
+/// default), with the sample rate and latency, e.g.
+/// "In: MacBook Pro Microphone (system default) / Out: AirPods (system
+/// default) / 48000 Hz / latency 120 ms". Null without a device list.
+String? audioDeviceSummary(Map<String, dynamic>? devices, {String? captureId, String? playbackId, int? sampleRate, double? latencySeconds}) {
+  if (devices == null) return null;
+  String side(String key, String? id) {
+    final list = [for (final d in (devices[key] as List?) ?? const []) if (d is Map) d];
+    String nameOf(Map d) => '${d['name'] ?? d['id']}';
+    if (id == null || id.isEmpty) {
+      final def = list.where((d) => d['default'] == true).firstOrNull;
+      return def == null ? 'system default' : '${nameOf(def)} (system default)';
+    }
+    final chosen = list.where((d) => d['id'] == id).firstOrNull;
+    return chosen == null ? 'chosen device not connected' : nameOf(chosen);
+  }
+
+  return [
+    'In: ${side('capture', captureId)}',
+    'Out: ${side('playback', playbackId)}',
+    if (sampleRate != null) '$sampleRate Hz',
+    if (latencySeconds != null) 'latency ${(latencySeconds * 1000).round()} ms',
+  ].join(' / ');
+}
+
 /// Opens the form. From an error message pass [error]: the form then also
 /// gets the error and the recent log.
 Future<void> openProblemReport(BuildContext context, {Object? error}) async {
   String? backend;
   String? gpu;
+  String? audio;
   try {
     final b = context.read<AppServices>().backend;
     backend = b.active?.name.toUpperCase();
     gpu = gpuSummary(b.decision?.gpus ?? b.engine.gpuInfo().map(GpuInfo.new).toList());
+  } catch (_) {}
+  try {
+    final services = context.read<AppServices>();
+    final s = services.settings;
+    audio = audioDeviceSummary(services.engine.audioDevices(), captureId: s.captureDeviceId, playbackId: s.playbackDeviceId, sampleRate: s.sampleRate, latencySeconds: s.latencySeconds);
   } catch (_) {}
   String? version;
   try {
@@ -122,10 +156,10 @@ Future<void> openProblemReport(BuildContext context, {Object? error}) async {
   } catch (_) {}
   final os = '${Platform.isMacOS ? 'macOS' : Platform.isWindows ? 'Windows' : Platform.operatingSystem} ${Platform.operatingSystemVersion}';
   if (error == null) {
-    await launchUrl(problemReportUri(version: version, os: os, backend: backend, gpu: gpu));
+    await launchUrl(problemReportUri(version: version, os: os, backend: backend, gpu: gpu, audio: audio));
     return;
   }
-  Uri withError(String e) => problemReportUri(version: version, os: os, backend: backend, gpu: gpu, error: e);
+  Uri withError(String e) => problemReportUri(version: version, os: os, backend: backend, gpu: gpu, audio: audio, error: e);
   final base = withError(shortenToFit(reportErrorText(error), withError));
   final snapshot = await AppLog.writeSnapshot();
   final lines = AppLog.recent;
