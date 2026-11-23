@@ -112,6 +112,8 @@ class StatTile extends StatefulWidget {
     this.trailing,
     this.highlight = false,
     this.onTap,
+    this.progress,
+    this.noteLines = 1,
   });
   final IconData icon;
   final Color color;
@@ -123,6 +125,12 @@ class StatTile extends StatefulWidget {
   final Widget? trailing;
   final bool highlight;
   final VoidCallback? onTap;
+
+  /// 0..1: a bar under the number, filling as it counts up.
+  final double? progress;
+
+  /// Lines the note may take (2 keeps a tile without a bar as tall).
+  final int noteLines;
 
   @override
   State<StatTile> createState() => StatTileState();
@@ -192,9 +200,13 @@ class StatTileState extends State<StatTile> {
                   ),
                   if (w.trailing != null) ...[const SizedBox(width: 6), w.trailing!],
                 ]),
+                if (w.progress case final progress?) ...[
+                  const SizedBox(height: 8),
+                  ProgressStrip(value: progress, color: w.color),
+                ],
                 if (w.note != null) ...[
                   const SizedBox(height: 2),
-                  Text(w.note!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFFAAA6BA))),
+                  Text(w.note!, maxLines: w.noteLines, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFFAAA6BA))),
                 ],
               ]),
             ),
@@ -205,3 +217,41 @@ class StatTileState extends State<StatTile> {
   }
 }
 
+
+/// A thin rounded bar filling to [value] (0..1) with the count-up, its
+/// leading edge glowing.
+class ProgressStrip extends StatelessWidget {
+  const ProgressStrip({super.key, required this.value, required this.color, this.height = 6});
+  final double value;
+  final Color color;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Entrance(
+        delay: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 1400),
+        curve: Curves.easeOutCubic,
+        builder: (context, t, _) => ClipRRect(
+          borderRadius: BorderRadius.circular(height),
+          child: SizedBox(
+            height: height,
+            width: double.infinity,
+            child: Stack(children: [
+              const Positioned.fill(child: ColoredBox(color: Color(0x1FFFFFFF))),
+              FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: (value.clamp(0.0, 1.0) * t).toDouble(),
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(height),
+                    gradient: LinearGradient(colors: [color.withValues(alpha: 0.55), color]),
+                    boxShadow: [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 8)],
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      );
+}

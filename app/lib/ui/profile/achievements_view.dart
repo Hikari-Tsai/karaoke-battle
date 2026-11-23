@@ -16,6 +16,7 @@ import '../widgets/achievement_events.dart';
 import '../widgets/info_tip.dart';
 import '../widgets/rank.dart' show rankColor;
 import '../widgets/shine.dart';
+import '../widgets/stats_card.dart';
 import 'achievement_celebration.dart';
 
 // A flat palette: solid colours, white icons, no gradients or glows.
@@ -76,8 +77,6 @@ class AchievementsSection extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final svc = context.watch<AchievementService>();
-    final total = achievements.fold<int>(0, (a, d) => a + d.thresholds.length);
-    final done = svc.unlocked.length;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       FadeSlideIn(
         child: Row(children: [
@@ -89,12 +88,10 @@ class AchievementsSection extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(tr('ach.title'), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-          const Spacer(),
-          _Pill(icon: Icons.military_tech, text: tr('ach.count', {'n': done, 'total': total})),
-          const SizedBox(width: 8),
-          _Pill(icon: Icons.stars, text: tr('ach.points', {'n': svc.points}), color: _gold),
         ]),
       ),
+      const SizedBox(height: 16),
+      const AchievementStats(),
       for (final cat in AchievementCategory.values) ...[
         const SizedBox(height: 22),
         FadeSlideIn(
@@ -119,24 +116,79 @@ class AchievementsSection extends StatelessWidget {
   }
 }
 
-class _Pill extends StatelessWidget {
-  const _Pill({required this.icon, required this.text, this.color});
-  final IconData icon;
-  final String text;
-  final Color? color;
+/// The achievements in figures, as a stats card like the library's: goals
+/// unlocked, points, the gold, silver and bronze medals of the tiered goals
+/// and the latest unlock; the numbers count up and the bars fill.
+class AchievementStats extends StatelessWidget {
+  const AchievementStats({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(color: c.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(999), border: Border.all(color: c.withValues(alpha: 0.4))),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 16, color: c),
-        const SizedBox(width: 6),
-        Text(text, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: c, fontWeight: FontWeight.w800)),
-      ]),
-    );
+    final svc = context.watch<AchievementService>();
+    final total = achievements.fold<int>(0, (a, d) => a + d.thresholds.length);
+    final done = svc.unlocked.length;
+    final maxPoints = achievements.fold<int>(0, (a, d) => a + [for (var t = 1; t <= d.thresholds.length; t++) d.pointsOf(t)].fold(0, (x, y) => x + y));
+    final tiered = [for (final a in achievements) if (a.tiered) a];
+    int medals(int tier) => tiered.where((a) => svc.tierOf(a) >= tier).length;
+    // The latest unlock (a tier counts on its own).
+    (AchievementDef, int, DateTime)? latest;
+    for (final a in achievements) {
+      for (var t = 1; t <= a.thresholds.length; t++) {
+        final at = svc.unlocked[a.key(t)];
+        if (at != null && (latest == null || at.isAfter(latest.$3))) latest = (a, t, at);
+      }
+    }
+    String whole(double v) => '${v.round()}';
+    String percent(int n, int of) => of == 0 ? '0' : '${(100 * n / of).floor()}';
+    StatTile medal(int tier) {
+      final n = medals(tier);
+      return StatTile(
+        icon: Icons.workspace_premium,
+        color: const [_bronze, _silver, _gold][tier - 1],
+        label: tr('ach.stat.medal$tier'),
+        value: n.toDouble(),
+        format: (v) => '${v.round()} / ${tiered.length}',
+        progress: tiered.isEmpty ? 0 : n / tiered.length,
+        note: tr('ach.stat.medalNote', {'p': percent(n, tiered.length)}),
+      );
+    }
+
+    return StatsCard(icon: Icons.emoji_events_outlined, title: tr('ach.statsTitle'), tiles: [
+      StatTile(
+        icon: Icons.military_tech,
+        color: const Color(0xFFBF5AF2),
+        label: tr('ach.stat.unlocked'),
+        value: done.toDouble(),
+        format: (v) => '${v.round()} / $total',
+        progress: total == 0 ? 0 : done / total,
+        note: tr('ach.stat.done', {'p': percent(done, total)}),
+      ),
+      StatTile(
+        icon: Icons.stars,
+        color: _gold,
+        label: tr('ach.stat.points'),
+        value: svc.points.toDouble(),
+        format: whole,
+        valueColor: const Color(0xFFFFD66B),
+        progress: maxPoints == 0 ? 0 : svc.points / maxPoints,
+        note: tr('ach.stat.maxPoints', {'n': maxPoints}),
+      ),
+      medal(3),
+      medal(2),
+      medal(1),
+      if (latest case (final def, final tier, final at))
+        StatTile(
+          icon: def.icon,
+          color: medalColor(def, tier),
+          label: tr('ach.stat.latest'),
+          value: def.pointsOf(tier).toDouble(),
+          format: (v) => '+${v.round()}',
+          trailing: AchievementMedal(def: def, tier: tier, size: 26),
+          note: '${tr('ach.${def.id}.name')}${def.tiered ? ' · ${tr('ach.tier$tier')}' : ''}\n${formatDay(at.toLocal())}',
+          noteLines: 2,
+          highlight: true,
+        ),
+    ]);
   }
 }
 

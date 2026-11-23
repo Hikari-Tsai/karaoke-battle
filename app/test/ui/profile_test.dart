@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:karaoke_battle/services/achievements.dart';
+import 'package:karaoke_battle/services/achievements.dart' as defs show achievements;
 import 'package:karaoke_battle/services/app_paths.dart';
 import 'package:karaoke_battle/services/identity.dart';
 import 'package:karaoke_battle/services/replay_library.dart';
@@ -59,6 +60,14 @@ void main() {
     expect(find.byType(RankSticker), findsOneWidget);
     expect(tester.widget<RankSticker>(find.byType(RankSticker)).rank, 'SS', reason: 'the best rank reached');
     expect(find.text('成就'), findsOneWidget, reason: 'the achievements below');
+    // The achievements in figures: unlocked of all, the medals, the latest.
+    expect(find.text('成就統計'), findsOneWidget);
+    final goals = defs.achievements.fold<int>(0, (a, d) => a + d.thresholds.length);
+    expect(find.text('${achievements.unlocked.length} / $goals'), findsOneWidget, reason: 'counted up to the unlocked of all');
+    expect(find.text('金牌'), findsOneWidget);
+    expect(find.text('銀牌'), findsOneWidget);
+    expect(find.text('銅牌'), findsOneWidget);
+    expect(find.text('最新解鎖'), findsOneWidget);
     expect(find.text(identity.identity!.userId), findsOneWidget, reason: 'the user ID');
     expect(find.textContaining('(macOS 27.2.1)'), findsOneWidget, reason: 'the device with its OS version');
     expect(find.text('這台'), findsOneWidget);
