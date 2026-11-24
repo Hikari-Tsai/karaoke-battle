@@ -58,6 +58,42 @@ void main() {
     expect((await TakeWand.load(dir.path)).hasNote(2.5), isTrue);
   });
 
+  test('the Resonance Field judges the whole take twice as leniently', () async {
+    final dir = Directory.systemTemp.createTempSync('field');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    String path(String n) => p.join(dir.path, n);
+    // Six notes, sung 0.8 semitones sharp and flat in turn (no key change
+    // fits them all) and 90 ms late.
+    final notes = [for (var i = 0; i < 6; i++) {'onset': i * 1.0 + 0.5, 'offset': i * 1.0 + 1.3, 'pitch': 60.0 + i}];
+    File(path('notes.json')).writeAsStringSync(jsonEncode({'notes': notes}));
+    const hop = 0.016;
+    final times = <double>[], f0 = <double>[], conf = <double>[];
+    for (var t = 0.0; t < 7; t += hop) {
+      times.add(t);
+      double? m;
+      for (final (i, n) in notes.indexed) {
+        if (t >= (n['onset'] as double) + 0.09 && t < (n['offset'] as double)) m = (n['pitch'] as double) + (i.isEven ? 0.8 : -0.8);
+      }
+      f0.add(m == null ? 0 : 440 * math.pow(2, (m - 69) / 12).toDouble());
+      conf.add(m == null ? 0 : 0.9);
+    }
+    File(path('take_f0.json')).writeAsStringSync(jsonEncode({'hop': hop, 'times': times, 'f0': f0, 'confidence': conf}));
+    Future<ScoreData> score() => ScoringBridge.scoreAndSave(
+        notesJsonPath: path('notes.json'), refF0JsonPath: path('none.json'), takeF0JsonPath: path('take_f0.json'), scoreJsonPath: path('score.json'), octaveInvariant: true, calibratedTiming: true);
+    Map counts(ScoreData s) => (s.raw['rhythm'] as Map)['counts'] as Map;
+    final plain = await score();
+    expect(plain.subScores['pitch'], lessThan(70), reason: '0.8 semitones off is out of tune');
+    expect(counts(plain)['perfect'], 0, reason: '90 ms late is a GREAT');
+    expect(fieldOfScore(plain.raw), isFalse);
+    await TakeField.mark(dir.path, DateTime(2026, 11, 24));
+    final field = await score();
+    expect(field.subScores['pitch'], greaterThan(90), reason: 'within a semitone now');
+    expect(counts(field)['perfect'], 6, reason: '90 ms is within the doubled PERFECT window');
+    expect(field.total, greaterThan(plain.total + 10));
+    expect(fieldOfScore(field.raw), isTrue, reason: 'the score says it was sung in the field');
+    expect(RhythmWindows.forTempo(120).widened(2).perfect, closeTo(0.1, 1e-9));
+  });
+
   test('items: redeemed with the points earned, used up one at a time, saved', () async {
     final dir = Directory.systemTemp.createTempSync('items');
     addTearDown(() => dir.deleteSync(recursive: true));
@@ -78,5 +114,9 @@ void main() {
     final again = ItemService(dataRoot: dir.path, earnedPoints: () => earned.value, points: earned);
     await again.start();
     expect((again.spent, again.ownedOf(ItemKind.tuningWand), again.usedOf(ItemKind.tuningWand)), (25, 0, 1));
+    // 開發模式 sets them directly.
+    await again.setBalance(500);
+    await again.setOwned(ItemKind.tuningWand, 3);
+    expect((again.balance, again.earned, again.ownedOf(ItemKind.tuningWand)), (500, 55, 3));
   });
 }

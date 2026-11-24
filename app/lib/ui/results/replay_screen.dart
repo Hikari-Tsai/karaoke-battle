@@ -155,6 +155,11 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
                 Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (fieldOfScore(score.raw))
+                      Tooltip(
+                        message: tr('field.badgeTip'),
+                        child: const Padding(padding: EdgeInsets.only(right: 10), child: Icon(Icons.wifi_tethering, color: Color(0xFF3FC8DE))),
+                      ),
                     Text(score.total.toStringAsFixed(1), style: theme.textTheme.titleLarge?.copyWith(color: rankColor(score.rank), fontWeight: FontWeight.w800)),
                     const SizedBox(width: 8),
                     RankChip(rank: score.rank),
@@ -229,6 +234,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           traceUntilPlayhead: true,
           keyboard: context.watch<AppSettings>().rollKeyboard,
           wandNotes: _wand,
+          fieldAura: fieldOfScore(_score?.raw),
         ),
         if (_lyrics != null)
           Positioned(

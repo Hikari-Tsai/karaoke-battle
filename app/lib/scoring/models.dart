@@ -241,6 +241,7 @@ class ScoringOptions {
     this.tempoBpm,
     this.calibratedTiming = false,
     this.perfectSpans = const [],
+    this.lenience = 1,
   });
 
   /// DTW (default) or a single global offset from voicing cross-correlation.
@@ -286,6 +287,10 @@ class ScoringOptions {
   /// track seconds: the take is taken to sing them exactly as the reference
   /// (its pitch, in the singer's octave, and its timing) before scoring.
   final List<(double, double)> perfectSpans;
+
+  /// How many times as wide the pitch tolerance and the rhythm windows are
+  /// (2 under the Resonance Field; 1 = the normal rules).
+  final double lenience;
 
   factory ScoringOptions.fromJson(Map<String, dynamic> json) => ScoringOptions(
     alignmentMode: AlignmentMode.values.firstWhere(

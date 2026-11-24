@@ -38,8 +38,29 @@ double localCost(double take, double ref, int shift) {
 /// Raw Chroma Accuracy (50-cent tolerance) between two *aligned* semitone
 /// tracks ([take] and [ref] must have the same length; only frames voiced in
 /// both are used). Ties resolve to the smallest `k`.
-int estimateChromaShift(List<double> take, List<double> ref) {
+int estimateChromaShift(List<double> take, List<double> ref, {double tolerance = 0.5}) {
   final n = math.min(take.length, ref.length);
+  if (tolerance > 0.5) {
+    // Wider tolerance (the Resonance Field): the shift with the most frames
+    // within it; ties go to the smallest shift either way.
+    final within = List<int>.filled(12, 0);
+    for (var i = 0; i < n; i++) {
+      final t = take[i];
+      final r = ref[i];
+      if (t.isNaN || r.isNaN) continue;
+      for (var k = 0; k < 12; k++) {
+        var d = (t + k - r) % 12;
+        if (d > 6) d -= 12;
+        if (d < -6) d += 12;
+        if (d.abs() <= tolerance) within[k]++;
+      }
+    }
+    var best = 0;
+    for (final k in [0, 1, 11, 2, 10, 3, 9, 4, 8, 5, 7, 6]) {
+      if (within[k] > within[best]) best = k;
+    }
+    return best;
+  }
   final hist = List<int>.filled(12, 0);
   for (var i = 0; i < n; i++) {
     final t = take[i];

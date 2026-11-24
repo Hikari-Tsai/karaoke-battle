@@ -46,7 +46,12 @@ class LiveJudge {
     this.levelFloorDb = -50,
     this.judgePitch = false,
     this.foldOctave = true,
+    this.lenience = 1,
   });
+
+  /// How many times as wide the pitch tiers are (2 under the Resonance
+  /// Field; the timing windows come widened in [windows]).
+  final double lenience;
 
   /// Also judge the pitch (a setting): after the onset, the median of the
   /// live pitch over [pitchWindowSeconds] against the note, with the replay's
@@ -278,7 +283,7 @@ class LiveJudge {
       midi: midi,
       timing: windows.classify(err.abs()).name,
       onsetErrorMs: err * 1000,
-      cents: cents,
+      cents: cents == null ? null : cents / lenience,
       anchor: notes.onset[i],
     );
   }

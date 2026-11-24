@@ -107,7 +107,12 @@ class PianoRollPainter extends CustomPainter {
     this.keyboard = false,
     this.sungMidi,
     this.wandNotes = const {},
+    this.fieldAura = false,
   }) : super(repaint: Listenable.merge([position, sungMidi]));
+
+  /// The Resonance Field is on: each note has a wide soft halo, the room the
+  /// lenient judging gives.
+  final bool fieldAura;
 
   /// Notes fixed with the Tuning Wand: they glow, and in a replay a burst of
   /// sparkles marks the moment the playhead reaches one, the tuned pitch
@@ -277,6 +282,27 @@ class PianoRollPainter extends CustomPainter {
             ..color = colors.noteOutline!
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1);
+    if (fieldAura) {
+      // Twice the room: a semitone each way and the widened timing.
+      final halo = Paint()
+        ..color = _fieldCyan.withValues(alpha: 0.16)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+      final edge = Paint()
+        ..color = _fieldCyan.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1;
+      final padX = plotW / span * 0.1;
+      for (var i = notes.firstVisible(t0); i < notes.length; i++) {
+        final on = notes.onset[i];
+        if (on > t1) break;
+        final off = notes.offset[i];
+        if (off < t0) continue;
+        final yy = y(notes.pitch[i] + pitchShift);
+        final r = RRect.fromRectAndRadius(Rect.fromLTRB(x(on) - padX, yy - rowH, math.max(x(off), x(on) + 2) + padX, yy + rowH), Radius.circular(rowH));
+        canvas.drawRRect(r, halo);
+        canvas.drawRRect(r, edge);
+      }
+    }
     for (var i = notes.firstVisible(t0); i < notes.length; i++) {
       final on = notes.onset[i];
       if (on > t1) break;
@@ -556,6 +582,7 @@ class PianoRollPainter extends CustomPainter {
   }
 
   static const _wandPurple = Color(0xFFB57CFF), _wandGold = Color(0xFFFFD66B);
+  static const _fieldCyan = Color(0xFF3FC8DE);
 
   void _paintWand(Canvas canvas, double t0, double t1, double pos, bool isStatic, double Function(double) x, double Function(double) y, double noteH) {
     for (final i in wandNotes) {
@@ -659,6 +686,7 @@ class PianoRollPainter extends CustomPainter {
   bool shouldRepaint(PianoRollPainter old) =>
       old.notes != notes ||
       !setEquals(old.wandNotes, wandNotes) ||
+      old.fieldAura != fieldAura ||
       old.refF0 != refF0 ||
       old.trace != trace ||
       old.minMidi != minMidi ||
@@ -816,10 +844,12 @@ class PianoRollView extends StatelessWidget {
     this.keyboard = false,
     this.sungMidi,
     this.wandNotes = const {},
+    this.fieldAura = false,
   });
 
-  /// See [PianoRollPainter.wandNotes].
+  /// See [PianoRollPainter.wandNotes] and [PianoRollPainter.fieldAura].
   final Set<int> wandNotes;
+  final bool fieldAura;
 
   /// See [PianoRollPainter.keyboard].
   final bool keyboard;
@@ -874,6 +904,7 @@ class PianoRollView extends StatelessWidget {
             keyboard: keyboard,
             sungMidi: sungMidi,
             wandNotes: wandNotes,
+            fieldAura: fieldAura,
           ),
           child: const SizedBox.expand(),
         ),

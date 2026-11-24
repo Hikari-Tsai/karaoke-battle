@@ -126,6 +126,8 @@ class ScoringBridge {
     // Notes fixed with the Tuning Wand, kept next to the score.
     final wand = await TakeWand.load(p.dirname(scoreJsonPath));
     final perfectSpans = wand.spans;
+    // A take sung under the Resonance Field is judged more leniently.
+    final field = await TakeField.isOn(p.dirname(scoreJsonPath));
     final takeEnergy = takeWavPath == null ? null : await wavEnergyCurve(takeWavPath, timeOffset: takeTimeOffset);
     final refEnergy = referenceWavPath == null ? null : await wavEnergyCurve(referenceWavPath);
     final takeEnergyJson = takeEnergy?.toJson();
@@ -167,7 +169,7 @@ class ScoringBridge {
         takeF0: takeF0,
         takeEnergy: takeEnergyJson == null ? null : EnergyCurve.fromJson(takeEnergyJson),
         referenceEnergy: refEnergyJson == null ? null : EnergyCurve.fromJson(refEnergyJson),
-        options: ScoringOptions(tempoBpm: tempoBpm, calibratedTiming: calibratedTiming, perfectSpans: perfectSpans),
+        options: ScoringOptions(tempoBpm: tempoBpm, calibratedTiming: calibratedTiming, perfectSpans: perfectSpans, lenience: field ? TakeField.lenience : 1),
       );
       final r = Scorer.score(input);
       final j = r.toJson();
@@ -176,6 +178,7 @@ class ScoringBridge {
       return j;
     });
     if (wand.uses.isNotEmpty) result['wand'] = [for (final u in wand.uses) u.toJson()];
+    if (field) result['field'] = {'lenience': TakeField.lenience};
     await File(scoreJsonPath).writeAsString(jsonEncode(result));
     return ScoreData.fromJson(result);
   }

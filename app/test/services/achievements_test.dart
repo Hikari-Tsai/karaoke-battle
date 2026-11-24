@@ -390,5 +390,27 @@ void main() {
       expect((saved['events'] as Map).containsKey('share.video'), isTrue);
       await sub.cancel();
     });
+
+    test('開發模式 takes one back; it is celebrated again at the next check', () async {
+      await svc.start();
+      final batches = <List<AchievementUnlock>>[];
+      final sub = svc.unlocks.listen(batches.add);
+      await svc.recordEvent('share.card');
+      await Future<void>.delayed(Duration.zero);
+      final def = achievements.firstWhere((a) => a.id == 'shareCard');
+      final points = svc.points;
+      await svc.revoke(def);
+      expect(svc.tierOf(def), 0, reason: 'taken back');
+      expect(svc.points, points - def.pointsOf(1));
+      final saved = jsonDecode(File(p.join(tmp.path, 'achievements.json')).readAsStringSync()) as Map;
+      expect((saved['unlocked'] as Map).containsKey('shareCard'), isFalse, reason: 'saved');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(batches, hasLength(1), reason: 'not unlocked again by itself');
+      await svc.evaluate();
+      await Future<void>.delayed(Duration.zero);
+      expect(batches.last.single.def.id, 'shareCard', reason: 'the next check unlocks it again, with its celebration');
+      expect(svc.tierOf(def), 1);
+      await sub.cancel();
+    });
   });
 }

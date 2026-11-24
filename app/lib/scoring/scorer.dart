@@ -116,9 +116,11 @@ class Scorer {
       hop: hop,
       offsetFrames: offset,
     );
+    final pitchTol = 0.5 * opt.lenience;
     final k0 = estimateChromaShift(
       fixed.alignTakeToRefGrid(takeSemis),
       refSemis,
+      tolerance: pitchTol,
     );
 
     // --- 4. Alignment and final shifts ------------------------------------
@@ -137,7 +139,7 @@ class Scorer {
       alignment = fixed;
     }
     final alignedTake = alignment.alignTakeToRefGrid(takeSemis);
-    final k = estimateChromaShift(alignedTake, refSemis);
+    final k = estimateChromaShift(alignedTake, refSemis, tolerance: pitchTol);
     final octaveExact = estimateOctaveExactShift(alignedTake, refSemis);
 
     // --- 5a. Frame metrics -----------------------------------------------
@@ -148,6 +150,7 @@ class Scorer {
       refSemis,
       shift: k,
       octaveExactShift: octaveExact,
+      tolerance: pitchTol,
       alt: identical(refSemis, noteSemis) ? null : noteSemis,
     );
 
@@ -165,6 +168,7 @@ class Scorer {
         hop: hop,
         shift: k,
         takeNotes: takeNotes,
+        pitchTolerance: pitchTol,
       );
     } else {
       notes = computeNoteMetrics(
@@ -173,6 +177,7 @@ class Scorer {
         alignedTake,
         hop: hop,
         shift: k,
+        pitchTolerance: pitchTol,
       );
     }
 
@@ -181,7 +186,7 @@ class Scorer {
     // latency / late start of the whole take), not on the DTW path, which
     // would absorb per-note timing errors. The search window covers the
     // GOOD window.
-    final windows = RhythmWindows.forTempo(opt.tempoBpm);
+    final windows = RhythmWindows.forTempo(opt.tempoBpm).widened(opt.lenience);
     // With a measured latency the recorded timing is trusted (offset 0) so
     // whole-take rushing / dragging counts; a large estimated offset means
     // the calibration does not fit (e.g. another device) -> use the estimate.
@@ -195,6 +200,7 @@ class Scorer {
       hop: hop,
       shift: k,
       extensionSeconds: windows.good + 0.02,
+      pitchTolerance: pitchTol,
     );
     final rhythm = judgeRhythm(refNotes, timingNotes, windows, clockTrusted: trustClock);
 
@@ -227,6 +233,7 @@ class Scorer {
       shift: k,
       refCurve: curve,
       longNoteSeconds: opt.longNoteSeconds,
+      toleranceSemitones: pitchTol,
     );
     double? expression;
     if (input.takeEnergy != null && input.referenceEnergy != null) {

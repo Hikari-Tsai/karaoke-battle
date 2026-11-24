@@ -370,6 +370,15 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                             _totalRow(theme, score),
                                             if (_roll != null && widget.previousBest != null) _bestMarker(theme, score),
                                             if (score.placeholder) Text(tr('results.placeholder'), style: theme.textTheme.labelSmall),
+                                            if (fieldOfScore(score.raw))
+                                              Tooltip(
+                                                message: tr('field.badgeTip'),
+                                                child: Row(children: [
+                                                  const Icon(Icons.wifi_tethering, size: 14, color: Color(0xFF3FC8DE)),
+                                                  const SizedBox(width: 4),
+                                                  Text(tr('field.badge'), style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFF8FE6F2))),
+                                                ]),
+                                              ),
                                             if (_original != null)
                                               Tooltip(
                                                 message: tr('wand.originalTip'),
@@ -478,6 +487,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                         totalDuration: _duration > 0 ? _duration : 1,
                                         keyboard: context.watch<AppSettings>().rollKeyboard,
                                         wandNotes: _wanded,
+                                        fieldAura: fieldOfScore(score?.raw),
                                       );
                                     }),
                                   ),

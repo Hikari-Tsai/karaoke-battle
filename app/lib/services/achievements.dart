@@ -657,6 +657,20 @@ class AchievementService extends ChangeNotifier {
     }
   }
 
+  /// 開發模式: takes back every tier of [a]. Nothing is evaluated now, so it
+  /// is unlocked (and celebrated) again the next time something is
+  /// evaluated and still reaches it — after the next take, song, setting
+  /// or action.
+  Future<void> revoke(AchievementDef a) async {
+    var changed = false;
+    for (var t = 1; t <= a.thresholds.length; t++) {
+      changed = unlocked.remove(a.key(t)) != null || changed;
+    }
+    if (!changed) return;
+    await _save();
+    notifyListeners();
+  }
+
   Future<void> _save() async {
     try {
       await _file.parent.create(recursive: true);

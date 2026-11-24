@@ -11,6 +11,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../services/items.dart';
 import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
@@ -1191,6 +1192,7 @@ class _RollAreaState extends State<_RollArea> {
                                         liveHoldSeconds: (s.latencyCompensation + 0.35).clamp(0.35, 1.2),
                                         keyboard: settings.rollKeyboard,
                                         sungMidi: s.sungMidi,
+                                        fieldAura: s.fieldArmed,
                                       );
                                       final judge = s.judge;
                                       if (judge == null ||
@@ -2191,6 +2193,8 @@ class _Controls extends StatelessWidget {
                       ],
                     ),
                   ),
+                // The Resonance Field, cast before recording.
+                if (countdown == null) Padding(padding: const EdgeInsets.only(right: 8), child: _FieldButton(session: s)),
                 if (countdown != null)
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
@@ -2222,6 +2226,77 @@ class _Controls extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Casts or lifts the Resonance Field before recording; lit while it is on.
+class _FieldButton extends StatelessWidget {
+  const _FieldButton({required this.session});
+  final SingSession session;
+
+  static const _cyan = Color(0xFF3FC8DE);
+
+  Future<void> _toggle(BuildContext context) async {
+    final s = session;
+    if (s.fieldArmed) {
+      await s.setFieldArmed(false);
+      return;
+    }
+    final items = context.read<ItemService>();
+    const kind = ItemKind.resonanceField;
+    if (items.ownedOf(kind) > 0) {
+      await s.setFieldArmed(true);
+      return;
+    }
+    final canBuy = items.canRedeem(kind);
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.wifi_tethering, color: _cyan, size: 36),
+        title: Text(tr('items.resonanceField.name')),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Text(canBuy
+              ? tr('field.askRedeem', {'cost': kind.cost, 'balance': items.balance})
+              : tr('field.none', {'cost': kind.cost, 'balance': items.balance})),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('cancel'))),
+          if (canBuy)
+            FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: _cyan, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.wifi_tethering, size: 18),
+              label: Text(tr('field.redeemCast', {'cost': kind.cost})),
+            ),
+        ],
+      ),
+    );
+    if (go == true) await s.setFieldArmed(true, redeem: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session;
+    final held = context.watch<ItemService>().ownedOf(ItemKind.resonanceField);
+    final on = s.fieldArmed;
+    final label = on ? tr('field.on') : '${tr('items.resonanceField.name')} × $held';
+    return Tooltip(
+      message: on ? tr('field.onTip') : tr('field.tip'),
+      child: on
+          ? FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: _cyan, foregroundColor: Colors.white),
+              onPressed: s.recording ? null : () => _toggle(context),
+              icon: const Icon(Icons.wifi_tethering, size: 18),
+              label: Text(label),
+            )
+          : OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: _cyan, side: BorderSide(color: _cyan.withValues(alpha: 0.6))),
+              onPressed: s.recording ? null : () => _toggle(context),
+              icon: const Icon(Icons.wifi_tethering, size: 18),
+              label: Text(label),
+            ),
     );
   }
 }

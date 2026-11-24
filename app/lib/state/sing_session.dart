@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart';
 import '../engine/engine.dart';
 import '../scoring/rhythm.dart';
 import '../services/app_log.dart';
+import '../services/items.dart';
 import '../services/model_registry.dart';
 import '../services/song_library.dart';
 import '../services/settings.dart';
@@ -25,6 +26,7 @@ import 'range_finder.dart';
 import 'live_trace.dart';
 import 'loudness.dart';
 import 'sing_settings.dart';
+import 'tuning_wand.dart';
 import 'scoring_bridge.dart';
 import 'song_data.dart';
 import 'track_timeline.dart';
@@ -745,6 +747,26 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     await services.settings.setLatencySeconds(sec);
   }
 
+  // ---- the Resonance Field ---------------------------------------------------------
+
+  /// Cast before recording: the next saved take is judged twice as
+  /// leniently, and one Resonance Field is used up when it is saved.
+  bool fieldArmed = false;
+
+  /// Casts or lifts the field before recording ([redeem]: buy one first when
+  /// none is held). False when there is none to cast.
+  Future<bool> setFieldArmed(bool on, {bool redeem = false}) async {
+    if (recording || on == fieldArmed) return on == fieldArmed;
+    if (on && services.items.ownedOf(ItemKind.resonanceField) <= 0) {
+      if (!redeem || !await services.items.redeem(ItemKind.resonanceField)) return false;
+    }
+    fieldArmed = on;
+    notifyListeners();
+    return true;
+  }
+
+  double get _lenience => fieldArmed ? TakeField.lenience : 1;
+
   // ---- recording -----------------------------------------------------------------
 
   Future<void> startRecording() async {
@@ -761,7 +783,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       trace.clear();
       judge = LiveJudge(
         notes: notes,
-        windows: RhythmWindows.forTempo(beatGrid.bpm),
+        windows: RhythmWindows.forTempo(beatGrid.bpm).widened(_lenience),
+        lenience: _lenience,
         pitchShift: pitchShift,
         levelFloorDb: settings.noiseGateEnabled ? settings.noiseGateDb : -50,
         judgePitch: settings.liveJudgePitch,
@@ -810,6 +833,13 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       'track_timeline': [for (final e in _trackLog) e.toJson()],
       'duration': elapsed,
     }));
+    if (fieldArmed) {
+      // The take keeps the field (its scoring reads it); one is used up.
+      await TakeField.mark(take.dir, DateTime.now());
+      await services.items.consume(ItemKind.resonanceField);
+      fieldArmed = false;
+      notifyListeners();
+    }
     return take;
   }
 

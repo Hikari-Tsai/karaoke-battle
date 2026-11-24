@@ -65,3 +65,23 @@ class TakeWand {
 
 /// The wand uses a score carries (its 'wand' list), for replays.
 List<WandUse> wandUsesOfScore(Map<String, dynamic>? raw) => TakeWand.listFromJson(raw?['wand']);
+
+/// The Resonance Field on a take (field.json in the take folder): cast
+/// before it was sung, the whole take is judged [lenience] times as
+/// leniently. The score keeps it ('field') for the results and replays.
+class TakeField {
+  const TakeField._();
+
+  static const fileName = 'field.json';
+  static const lenience = 2.0;
+
+  static String pathIn(String takeDir) => p.join(takeDir, fileName);
+
+  static Future<bool> isOn(String takeDir) => File(pathIn(takeDir)).exists();
+
+  static Future<void> mark(String takeDir, DateTime at) =>
+      File(pathIn(takeDir)).writeAsString(jsonEncode({'lenience': lenience, 'at': at.toIso8601String()}));
+}
+
+/// Whether a score was judged under the Resonance Field.
+bool fieldOfScore(Map<String, dynamic>? raw) => raw?['field'] is Map;

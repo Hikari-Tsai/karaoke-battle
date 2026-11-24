@@ -15,6 +15,7 @@ import 'package:karaoke_battle/services/settings.dart';
 import 'package:karaoke_battle/services/sidecars.dart';
 import 'package:karaoke_battle/services/song_library.dart';
 import 'package:karaoke_battle/ui/profile/achievements_view.dart' show TierBadge;
+import 'package:karaoke_battle/ui/profile/items_view.dart' show ItemsSection;
 import 'package:karaoke_battle/ui/profile/profile_screen.dart';
 import 'package:karaoke_battle/ui/widgets/info_tip.dart';
 import 'package:karaoke_battle/ui/profile/singing_avatar.dart';
@@ -46,7 +47,7 @@ void main() {
     // An A and an SS so far: the sticker shows the SS.
     File(p.join(tmp.path, 'achievements.json')).writeAsStringSync('{"version": 3, "unlocked": {"firstA": "2026-11-01T00:00:00.000", "rankSS": "2026-11-02T00:00:00.000"}}');
     await tester.runAsync(achievements.start);
-    tester.view.physicalSize = const Size(1220, 2600);
+    tester.view.physicalSize = const Size(1220, 3400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MultiProvider(
@@ -82,7 +83,8 @@ void main() {
     await tester.runAsync(() => items.redeem(ItemKind.tuningWand));
     await tester.pump(const Duration(seconds: 2));
     expect(items.balance, earned - 25);
-    expect(find.text('持有 1'), findsOneWidget);
+    expect(find.text('× 1'), findsOneWidget);
+    expect(find.text('即將推出'), findsNWidgets(ItemsSection.slots - ItemKind.values.length), reason: 'room kept for the items to come');
     expect(find.text(identity.identity!.userId), findsOneWidget, reason: 'the user ID');
     expect(find.textContaining('(macOS 27.2.1)'), findsOneWidget, reason: 'the device with its OS version');
     expect(find.text('這台'), findsOneWidget);
@@ -108,6 +110,28 @@ void main() {
     expect(find.text('???'), findsNothing);
     expect(find.text('夜貓子'), findsOneWidget);
     expect(find.text('開發模式'), findsNWidgets(6), reason: 'marked as seen only in 開發模式');
+    // 開發模式 sets the points and items: from the button, or a double click.
+    expect(find.text('設定點數和道具'), findsOneWidget);
+    await tester.tap(find.text('設定點數和道具'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.enterText(find.widgetWithText(TextField, '可用點數'), '999');
+    await tester.enterText(find.widgetWithText(TextField, '修音魔杖 持有數量'), '7');
+    await tester.tap(find.text('套用'));
+    // Each change is saved to the data folder (real file IO), one after another.
+    for (var i = 0; i < 12 && items.ownedOf(ItemKind.tuningWand) != 7; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    await tester.pump(const Duration(seconds: 2));
+    expect((items.balance, items.ownedOf(ItemKind.tuningWand)), (999, 7));
+    expect(items.earned, achievements.points, reason: 'what achievements earned stays');
+    await tester.tap(find.text('× 7'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('× 7'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.widgetWithText(TextField, '修音魔杖 持有數量'), findsOneWidget, reason: 'a double click opens it too');
+    await tester.tap(find.text('取消'));
+    await tester.pump(const Duration(milliseconds: 500));
     await settings.setDevMode(false);
     await tester.pump();
     expect(find.byType(SingingAvatar), findsNWidgets(1 + AvatarKind.values.length), reason: 'the singer and the look picker');

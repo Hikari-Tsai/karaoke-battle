@@ -267,7 +267,7 @@ class _AchievementTileState extends State<_AchievementTile> {
     final shownDate = shown - 1 < widget.dates.length ? widget.dates[shown - 1] : null;
     final delay = Duration(milliseconds: 120 + 50 * widget.index);
     final border = tier > 0 ? medalColor(def, tier) : cs.outlineVariant;
-    return MouseRegion(
+    final tile = MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       // Lifts a little under the pointer, its border brighter.
@@ -392,6 +392,31 @@ class _AchievementTileState extends State<_AchievementTile> {
         ]),
       ),
     );
+    // 開發模式: a double click takes it back, to see it unlocked again.
+    if (tier == 0 || !devFeatures(context.watch<AppSettings>())) return tile;
+    return Tooltip(
+      message: tr('ach.devRevokeTip'),
+      waitDuration: const Duration(milliseconds: 600),
+      child: GestureDetector(onDoubleTap: () => _revoke(context), child: tile),
+    );
+  }
+
+  Future<void> _revoke(BuildContext context) async {
+    final svc = context.read<AchievementService>();
+    final name = tr('ach.${widget.def.id}.name');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.undo, size: 32),
+        title: Text(tr('ach.devRevokeTitle', {'name': name})),
+        content: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: Text(tr('ach.devRevokeBody'))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('ach.devRevoke'))),
+        ],
+      ),
+    );
+    if (ok == true) await svc.revoke(widget.def);
   }
 }
 

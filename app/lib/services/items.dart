@@ -13,7 +13,11 @@ import 'achievements.dart';
 /// An item that can be redeemed for points.
 enum ItemKind {
   /// Makes one note's pitch and timing perfect, then scores the take again.
-  tuningWand(25);
+  tuningWand(25),
+
+  /// Cast before singing: the whole take is judged with pitch and timing
+  /// twice as lenient.
+  resonanceField(100);
 
   const ItemKind(this.cost);
 
@@ -93,6 +97,21 @@ class ItemService extends ChangeNotifier {
     await _save();
     notifyListeners();
     return true;
+  }
+
+  /// Dev mode: the points to spend, set by what counts as spent (earned
+  /// points stay as achievements give them).
+  Future<void> setBalance(int points) async {
+    spent = earned - points;
+    await _save();
+    notifyListeners();
+  }
+
+  /// Dev mode: how many [k] are held.
+  Future<void> setOwned(ItemKind k, int n) async {
+    owned[k] = n < 0 ? 0 : n;
+    await _save();
+    notifyListeners();
   }
 
   Future<void> _save() async {

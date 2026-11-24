@@ -37,6 +37,10 @@ class RhythmWindows {
     return RhythmWindows(perfect: basePerfect * s, great: baseGreat * s, good: baseGood * s, scale: s, bpm: bpm);
   }
 
+  /// The same windows [factor] times as wide (the Resonance Field).
+  RhythmWindows widened(double factor) =>
+      factor == 1 ? this : RhythmWindows(perfect: perfect * factor, great: great * factor, good: good * factor, scale: scale * factor, bpm: bpm);
+
   RhythmJudgement classify(double absErrorSeconds, {double minPerfect = 0, double minGreat = 0, double minGood = 0}) {
     if (absErrorSeconds <= math.max(perfect, minPerfect) + 1e-9) return RhythmJudgement.perfect;
     if (absErrorSeconds <= math.max(great, minGreat) + 1e-9) return RhythmJudgement.great;
