@@ -9,6 +9,7 @@ import 'package:karaoke_battle/services/achievements.dart';
 import 'package:karaoke_battle/services/achievements.dart' as defs show achievements;
 import 'package:karaoke_battle/services/app_paths.dart';
 import 'package:karaoke_battle/services/identity.dart';
+import 'package:karaoke_battle/services/items.dart';
 import 'package:karaoke_battle/services/replay_library.dart';
 import 'package:karaoke_battle/services/settings.dart';
 import 'package:karaoke_battle/services/sidecars.dart';
@@ -38,6 +39,8 @@ void main() {
     );
     addTearDown(achievements.dispose);
     final identity = IdentityService(dataRoot: tmp.path);
+    final items = ItemService.of(tmp.path, achievements);
+    await tester.runAsync(items.start);
     // Real file IO: outside the test's fake clock.
     await tester.runAsync(() => identity.start(machineId: () async => 'MACHINE-1', os: 'macOS 27.2.1'));
     // An A and an SS so far: the sticker shows the SS.
@@ -52,6 +55,7 @@ void main() {
         ChangeNotifierProvider<SongLibrary>.value(value: library),
         ChangeNotifierProvider<AchievementService>.value(value: achievements),
         ChangeNotifierProvider<IdentityService>.value(value: identity),
+        ChangeNotifierProvider<ItemService>.value(value: items),
       ],
       child: const MaterialApp(home: ProfileScreen()),
     ));
@@ -68,6 +72,17 @@ void main() {
     expect(find.text('銀牌'), findsOneWidget);
     expect(find.text('銅牌'), findsOneWidget);
     expect(find.text('最新解鎖'), findsOneWidget);
+    // Items: the points to spend (all earned so far) and the Tuning Wand.
+    expect(find.text('道具'), findsOneWidget);
+    expect(find.text('可用點數'), findsOneWidget);
+    final earned = achievements.points;
+    expect(items.balance, earned);
+    expect(find.text('$earned'), findsWidgets, reason: 'the points to spend, counted up');
+    expect(find.text('修音魔杖'), findsWidgets);
+    await tester.runAsync(() => items.redeem(ItemKind.tuningWand));
+    await tester.pump(const Duration(seconds: 2));
+    expect(items.balance, earned - 25);
+    expect(find.text('持有 1'), findsOneWidget);
     expect(find.text(identity.identity!.userId), findsOneWidget, reason: 'the user ID');
     expect(find.textContaining('(macOS 27.2.1)'), findsOneWidget, reason: 'the device with its OS version');
     expect(find.text('這台'), findsOneWidget);

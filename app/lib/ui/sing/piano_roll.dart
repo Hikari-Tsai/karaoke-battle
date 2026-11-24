@@ -106,7 +106,13 @@ class PianoRollPainter extends CustomPainter {
     this.liveHoldSeconds = 0.45,
     this.keyboard = false,
     this.sungMidi,
+    this.wandNotes = const {},
   }) : super(repaint: Listenable.merge([position, sungMidi]));
+
+  /// Notes fixed with the Tuning Wand: they glow, and in a replay a burst of
+  /// sparkles marks the moment the playhead reaches one, the tuned pitch
+  /// drawn along it as it plays.
+  final Set<int> wandNotes;
 
   final NoteList notes;
   final F0Curve refF0;
@@ -383,6 +389,8 @@ class PianoRollPainter extends CustomPainter {
       }
     }
 
+    if (wandNotes.isNotEmpty) _paintWand(canvas, t0, t1, pos, isStatic, x, y, noteH);
+
     // Playhead.
     if (!isStatic) {
       final px = x(pos);
@@ -547,6 +555,94 @@ class PianoRollPainter extends CustomPainter {
           ..strokeWidth = 2);
   }
 
+  static const _wandPurple = Color(0xFFB57CFF), _wandGold = Color(0xFFFFD66B);
+
+  void _paintWand(Canvas canvas, double t0, double t1, double pos, bool isStatic, double Function(double) x, double Function(double) y, double noteH) {
+    for (final i in wandNotes) {
+      if (i < 0 || i >= notes.length) continue;
+      final on = notes.onset[i], off = notes.offset[i];
+      if (off < t0 - 1 || on > t1) continue;
+      final yy = y(notes.pitch[i] + pitchShift);
+      final rect = RRect.fromRectAndRadius(Rect.fromLTRB(x(on), yy - noteH / 2, math.max(x(off), x(on) + 2), yy + noteH / 2), Radius.circular(math.min(4, noteH / 2)));
+      final played = isStatic || pos >= on;
+      // The glow: soft before the note plays, bright once it has.
+      canvas.drawRRect(
+        rect.inflate(4),
+        Paint()
+          ..color = _wandPurple.withValues(alpha: played ? 0.55 : 0.25)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+      );
+      canvas.drawRRect(
+        rect.inflate(1.5),
+        Paint()
+          ..shader = LinearGradient(colors: [_wandGold, _wandPurple, _wandGold]).createShader(rect.outerRect)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+      // The tuned pitch, drawn as the note plays.
+      if (played) {
+        final end = isStatic ? off : math.min(pos, off);
+        if (end > on) {
+          canvas.drawLine(
+            Offset(x(on), yy),
+            Offset(x(end), yy),
+            Paint()
+              ..color = Colors.white.withValues(alpha: 0.95)
+              ..strokeWidth = isStatic ? 2 : 3
+              ..strokeCap = StrokeCap.round,
+          );
+        }
+      }
+      if (isStatic) {
+        _star(canvas, Offset(x(on), yy - noteH / 2 - 5), 4.5, _wandGold);
+        continue;
+      }
+      // Sparkles riding the playhead through the note.
+      if (pos >= on && pos < off) {
+        final px = x(pos);
+        for (var k = 0; k < 3; k++) {
+          final ph = (pos * 3 + k / 3) % 1.0;
+          _star(canvas, Offset(px - 6 - 14 * ph, yy + (k - 1) * noteH * 0.9 * (1 - ph)), 3.5 * (1 - ph) + 1, Color.lerp(_wandGold, Colors.white, ph)!.withValues(alpha: 1 - ph));
+        }
+      }
+      // The burst when the playhead reaches the note.
+      final age = pos - on;
+      const burst = 0.9;
+      if (age >= 0 && age < burst) {
+        final u = age / burst;
+        final e = Curves.easeOutCubic.transform(u);
+        final c = Offset(x(on), yy);
+        canvas.drawCircle(
+          c,
+          6 + 46 * e,
+          Paint()
+            ..color = _wandPurple.withValues(alpha: 0.8 * (1 - u))
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3 * (1 - u) + 0.5,
+        );
+        canvas.drawCircle(c, 10 * (1 - u) + 2, Paint()..color = Colors.white.withValues(alpha: 0.9 * (1 - u)));
+        for (var k = 0; k < 8; k++) {
+          final a = k * math.pi / 4 + 0.3;
+          final d = 8 + 38 * e;
+          _star(canvas, c + Offset(math.cos(a), math.sin(a)) * d, 5 * (1 - u) + 1.5, (k.isEven ? _wandGold : Colors.white).withValues(alpha: 1 - u));
+        }
+      }
+    }
+  }
+
+  /// A four-pointed sparkle.
+  static void _star(Canvas canvas, Offset p, double s, Color color) {
+    canvas.drawPath(
+      Path()
+        ..moveTo(p.dx, p.dy - s)
+        ..quadraticBezierTo(p.dx, p.dy, p.dx + s, p.dy)
+        ..quadraticBezierTo(p.dx, p.dy, p.dx, p.dy + s)
+        ..quadraticBezierTo(p.dx, p.dy, p.dx - s, p.dy)
+        ..quadraticBezierTo(p.dx, p.dy, p.dx, p.dy - s),
+      Paint()..color = color,
+    );
+  }
+
   static double _niceStep(double span, double width) {
     for (final s in [1.0, 2.0, 5.0, 10.0, 15.0, 30.0, 60.0]) {
       if (width / (span / s) >= 40) return s;
@@ -562,6 +658,7 @@ class PianoRollPainter extends CustomPainter {
   @override
   bool shouldRepaint(PianoRollPainter old) =>
       old.notes != notes ||
+      !setEquals(old.wandNotes, wandNotes) ||
       old.refF0 != refF0 ||
       old.trace != trace ||
       old.minMidi != minMidi ||
@@ -718,7 +815,11 @@ class PianoRollView extends StatelessWidget {
     this.liveHoldSeconds = 0.45,
     this.keyboard = false,
     this.sungMidi,
+    this.wandNotes = const {},
   });
+
+  /// See [PianoRollPainter.wandNotes].
+  final Set<int> wandNotes;
 
   /// See [PianoRollPainter.keyboard].
   final bool keyboard;
@@ -772,6 +873,7 @@ class PianoRollView extends StatelessWidget {
             liveHoldSeconds: liveHoldSeconds,
             keyboard: keyboard,
             sungMidi: sungMidi,
+            wandNotes: wandNotes,
           ),
           child: const SizedBox.expand(),
         ),

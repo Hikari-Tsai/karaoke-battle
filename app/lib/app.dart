@@ -13,6 +13,7 @@ import 'state/i18n.dart';
 import 'state/setup_controller.dart';
 import 'services/downloader.dart';
 import 'services/achievements.dart';
+import 'services/items.dart';
 import 'services/identity.dart';
 import 'ui/shell.dart';
 import 'ui/widgets/certificate_prompt.dart';
@@ -80,6 +81,7 @@ class _KaraokeAppState extends State<KaraokeApp> {
                       ChangeNotifierProvider<PrepPipeline>.value(value: s.pipeline),
                       ChangeNotifierProvider<ReplayLibrary>.value(value: s.replays),
                       ChangeNotifierProvider<AchievementService>.value(value: s.achievements),
+                      ChangeNotifierProvider<ItemService>.value(value: s.items),
                       ChangeNotifierProvider<IdentityService>.value(value: s.identity),
                       ChangeNotifierProvider<SetupController>(create: (_) => SetupController(s.models, s.sidecars)),
                     ],

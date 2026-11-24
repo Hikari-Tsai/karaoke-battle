@@ -30,6 +30,9 @@ import '../../state/live_trace.dart';
 import '../../state/scoring_bridge.dart';
 import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
+import '../../state/tuning_wand.dart';
+import '../../state/wand_action.dart';
+import '../../services/items.dart';
 import '../sing/piano_roll.dart';
 import '../sing/sing_screen.dart';
 
@@ -67,6 +70,75 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   double _duration = 0;
   double _pitchShift = 0;
   String? _error;
+
+  /// The score before the Tuning Wand was first used (only shown here).
+  ScoreData? _original;
+
+  /// Notes fixed with the Tuning Wand (indices into [_notes]).
+  Set<int> _wanded = const {};
+  bool _wanding = false;
+
+  Set<int> _wandedOf(ScoreData? score, NoteList notes) {
+    final uses = wandUsesOfScore(score?.raw);
+    return {for (var i = 0; i < notes.length; i++) if (uses.any((u) => u.isNote(notes.onset[i]))) i};
+  }
+
+  /// Asks, then uses a Tuning Wand on note [i] (redeeming one when none is
+  /// held and the points allow) and shows the new score.
+  Future<void> _useWand(int i) async {
+    final notes = _notes, score = _score;
+    if (notes == null || score == null || _wanding) return;
+    final services = context.read<AppServices>();
+    final items = services.items;
+    final held = items.ownedOf(ItemKind.tuningWand);
+    final canBuy = items.canRedeem(ItemKind.tuningWand);
+    final lyric = _noteLyrics != null && i < _noteLyrics!.length ? _noteLyrics![i] : null;
+    final what = tr('wand.note', {'n': i + 1, 'note': noteName(notes.pitch[i] + _pitchShift)}) + (lyric != null && lyric != lyricHold ? '「$lyric」' : '');
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.auto_fix_high, color: Color(0xFFB57CFF), size: 36),
+        title: Text(tr('items.tuningWand.name')),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Text(held > 0
+              ? tr('wand.ask', {'what': what, 'n': held})
+              : canBuy
+                  ? tr('wand.askRedeem', {'what': what, 'cost': ItemKind.tuningWand.cost, 'balance': items.balance})
+                  : tr('wand.none', {'cost': ItemKind.tuningWand.cost, 'balance': items.balance})),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('cancel'))),
+          if (held > 0 || canBuy)
+            FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB57CFF), foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.auto_fix_high, size: 18),
+              label: Text(held > 0 ? tr('wand.use') : tr('wand.redeemUse', {'cost': ItemKind.tuningWand.cost})),
+            ),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    setState(() => _wanding = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final before = score.total;
+      final next = await useTuningWand(services: services, song: widget.song, take: widget.take, notes: notes, index: i, redeem: held == 0);
+      final original = await originalScoreOf(widget.take);
+      if (!mounted) return;
+      setState(() {
+        _score = next;
+        _original = original;
+        _wanded = _wandedOf(next, notes);
+      });
+      messenger.showSnackBar(SnackBar(content: Text(tr('wand.done', {'from': before.toStringAsFixed(1), 'to': next.total.toStringAsFixed(1)}))));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(tr('wand.failed', {'e': '$e'}))));
+    } finally {
+      if (mounted) setState(() => _wanding = false);
+    }
+  }
 
   /// AI tips asked for this take earlier (in the app's language), shown
   /// at the bottom of the score panel.
@@ -197,6 +269,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         if (lines.isNotEmpty) noteLyrics = lyricsForNotes([for (var i = 0; i < notes.length; i++) notes.onset[i]], lines);
       } catch (_) {}
       final trace = buildTakeTrace(notes, takeF0, shift: shift, pitchShift: _pitchShift);
+      final original = await originalScoreOf(widget.take);
       _duration = <double>[widget.song.durationSec ?? 0, notes.endTime + 1, takeF0.isEmpty ? 0.0 : takeF0.times.last].reduce((a, b) => a > b ? a : b);
       if (!mounted) return;
       setState(() {
@@ -205,6 +278,8 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         _noteLyrics = noteLyrics;
         _refF0 = refF0;
         _trace = trace;
+        _original = original;
+        _wanded = _wandedOf(score, notes);
       });
       if (_roll != null && score != null) _startReveal();
     } catch (e) {
@@ -295,6 +370,18 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                             _totalRow(theme, score),
                                             if (_roll != null && widget.previousBest != null) _bestMarker(theme, score),
                                             if (score.placeholder) Text(tr('results.placeholder'), style: theme.textTheme.labelSmall),
+                                            if (_original != null)
+                                              Tooltip(
+                                                message: tr('wand.originalTip'),
+                                                child: Row(children: [
+                                                  const Icon(Icons.auto_fix_high, size: 14, color: Color(0xFFB57CFF)),
+                                                  const SizedBox(width: 4),
+                                                  Flexible(
+                                                    child: Text(tr('wand.original', {'total': _original!.total.toStringAsFixed(1), 'n': _wanded.length}),
+                                                        style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFD9BDFF))),
+                                                  ),
+                                                ]),
+                                              ),
                                             Text('${tr('results.shift')}: ${score.shift} (${score.octaveExactShift >= 0 ? '+' : ''}${score.octaveExactShift})', style: theme.textTheme.labelSmall),
                                             const SizedBox(height: 6),
                                             // Where the score comes from (not the live pop-ups); tap for the guide.
@@ -390,6 +477,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                         pitchShift: _pitchShift,
                                         totalDuration: _duration > 0 ? _duration : 1,
                                         keyboard: context.watch<AppSettings>().rollKeyboard,
+                                        wandNotes: _wanded,
                                       );
                                     }),
                                   ),
@@ -398,7 +486,10 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                     flex: 6,
                                     child: Card(
                                       margin: EdgeInsets.zero,
-                                      child: _NoteTable(notes: notes, score: score, pitchShift: _pitchShift, lyrics: _noteLyrics),
+                                      child: Stack(children: [
+                                        _NoteTable(notes: notes, score: score, pitchShift: _pitchShift, lyrics: _noteLyrics, wanded: _wanded, onWand: score == null || _wanding || _revealing ? null : _useWand),
+                                        if (_wanding) const Positioned(left: 0, right: 0, top: 0, child: LinearProgressIndicator()),
+                                      ]),
                                     ),
                                   ),
                                 ],
@@ -802,8 +893,12 @@ class _StripesPainter extends CustomPainter {
 }
 
 class _NoteTable extends StatelessWidget {
-  const _NoteTable({required this.notes, required this.score, required this.pitchShift, this.lyrics});
+  const _NoteTable({required this.notes, required this.score, required this.pitchShift, this.lyrics, this.wanded = const {}, this.onWand});
   final NoteList notes;
+
+  /// Notes fixed with the Tuning Wand, and using one on a note.
+  final Set<int> wanded;
+  final void Function(int index)? onWand;
   final ScoreData? score;
   final double pitchShift;
 
@@ -850,6 +945,7 @@ class _NoteTable extends StatelessWidget {
                   DataColumn(label: Text(tr('results.refPitch'))),
                   DataColumn(label: Text(tr('results.sungDev'))),
                   DataColumn(label: Text(tr('results.matched'))),
+                  DataColumn(label: Tooltip(message: tr('items.tuningWand.name'), child: const Icon(Icons.auto_fix_high, size: 16))),
                 ],
                 rows: [
                   for (var i = 0; i < notes.length; i++)
@@ -861,6 +957,15 @@ class _NoteTable extends StatelessWidget {
                       DataCell(_centsCell(context, byIndex[i]?.cents)),
                       DataCell(Icon(byIndex[i]?.matched == true ? Icons.check_circle : Icons.remove_circle_outline,
                           size: 16, color: byIndex[i]?.matched == true ? const Color(0xFF4CD964) : Theme.of(context).colorScheme.outline)),
+                      DataCell(wanded.contains(i)
+                          ? Tooltip(message: tr('wand.applied'), child: const Icon(Icons.auto_fix_high, size: 18, color: Color(0xFFB57CFF)))
+                          : IconButton(
+                              tooltip: tr('wand.useTip'),
+                              visualDensity: VisualDensity.compact,
+                              iconSize: 18,
+                              onPressed: onWand == null ? null : () => onWand!(i),
+                              icon: const Icon(Icons.auto_fix_normal),
+                            )),
                     ]),
                 ],
               ),

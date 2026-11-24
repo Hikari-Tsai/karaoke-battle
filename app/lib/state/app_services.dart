@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../engine/engine.dart';
 import '../services/achievements.dart';
+import '../services/items.dart';
 import '../services/backing_import.dart';
 import '../services/identity.dart';
 import '../services/ai_keys.dart';
@@ -61,6 +62,9 @@ class AppServices {
   /// What the player has achieved (kept in the data folder).
   late final AchievementService achievements = AchievementService(library: library, replays: replays, settings: settings, dataRoot: paths.root, cacheDir: paths.cache);
 
+  /// Items redeemed with achievement points (items.json).
+  late final ItemService items = ItemService.of(paths.root, achievements);
+
   /// The player's UUID and the devices it has been used on (identity.json).
   late final IdentityService identity = IdentityService(dataRoot: paths.root);
 
@@ -78,6 +82,7 @@ class AppServices {
   void dispose() {
     _artistTimer?.cancel();
     setlistLog.stop();
+    items.dispose();
     achievements.dispose();
     pipeline.dispose();
     library.dispose();
@@ -148,6 +153,7 @@ Future<AppServices> bootstrapServices() async {
     ..setlistLog.start()
     // In the background: it reads every take once.
     ..achievements.start()
+    ..items.start()
     ..identity.start()
     ..backfillArtistsLater();
 }

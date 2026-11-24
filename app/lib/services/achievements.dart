@@ -3,7 +3,7 @@
 // hot-songs genres and a few actions (exports). An achievement, or a tier of
 // one, once reached is kept for good in achievements.json in the data folder
 // (it moves with the data), even if the takes behind it are deleted later.
-// Points add up from what is unlocked; they are kept for later uses.
+// Points add up from what is unlocked; they buy items (see items.dart).
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';

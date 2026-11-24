@@ -26,6 +26,7 @@ import '../library/add_song_dialog.dart';
 import '../widgets/calibration.dart';
 import '../../state/loudness.dart';
 import '../widgets/info_tip.dart';
+import 'setting_row.dart';
 import '../startup/setup_rows.dart';
 import '../startup/ytdlp_dialog.dart';
 import '../widgets/brand.dart';
@@ -459,133 +460,124 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               if (_deviceError != null) Text(_deviceError!, style: TextStyle(color: theme.colorScheme.error)),
               _DeviceDropdown(label: tr('settings.captureDevice'), devices: _captureDevices, value: settings.captureDeviceId, onChanged: settings.setCaptureDeviceId),
-              const SizedBox(height: 8),
               _DeviceDropdown(label: tr('settings.playbackDevice'), devices: _playbackDevices, value: settings.playbackDeviceId, onChanged: settings.setPlaybackDeviceId),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(tr('settings.sampleRate')),
-                  const SizedBox(width: 12),
-                  DropdownButton<int>(
+              SettingRow(
+                title: tr('settings.sampleRate'),
+                trailing: SizedBox(
+                  width: SettingRow.controlWidth,
+                  child: DropdownButton<int>(
+                    isExpanded: true,
                     value: settings.sampleRate,
                     items: const [DropdownMenuItem(value: 44100, child: Text('44100 Hz')), DropdownMenuItem(value: 48000, child: Text('48000 Hz'))],
                     onChanged: (v) => v == null ? null : settings.setSampleRate(v),
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 8),
               // What the automatic volume on the sing screen aims for.
-              Row(
-                children: [
-                  Text(tr('settings.targetLufs')),
-                  InfoTip(sections: [(tr('settings.targetLufs'), tr('settings.targetLufsInfo'))]),
-                  Expanded(
-                    child: Slider(
-                      min: AppSettings.targetLufsMin,
-                      max: AppSettings.targetLufsMax,
-                      divisions: ((AppSettings.targetLufsMax - AppSettings.targetLufsMin) * 2).round(),
-                      value: settings.targetLufs,
-                      label: '${lufsLabel(settings.targetLufs)} LUFS',
-                      onChanged: settings.setTargetLufs,
-                    ),
+              SettingRow(
+                title: tr('settings.targetLufs'),
+                info: InfoTip(sections: [(tr('settings.targetLufs'), tr('settings.targetLufsInfo'))]),
+                subtitle: tr('settings.targetLufsHint'),
+                trailing: SliderControl(
+                  slider: Slider(
+                    min: AppSettings.targetLufsMin,
+                    max: AppSettings.targetLufsMax,
+                    divisions: ((AppSettings.targetLufsMax - AppSettings.targetLufsMin) * 2).round(),
+                    value: settings.targetLufs,
+                    label: '${lufsLabel(settings.targetLufs)} LUFS',
+                    onChanged: settings.setTargetLufs,
                   ),
-                  SizedBox(width: 80, child: Text('${lufsLabel(settings.targetLufs)} LUFS', textAlign: TextAlign.end)),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
+                  value: '${lufsLabel(settings.targetLufs)} LUFS',
+                  trailing: IconButton(
+                    tooltip: tr('settings.targetLufsReset'),
+                    visualDensity: VisualDensity.compact,
                     onPressed: settings.targetLufs == AppSettings.targetLufsDefault ? null : () => settings.setTargetLufs(AppSettings.targetLufsDefault),
                     icon: const Icon(Icons.restart_alt, size: 18),
-                    label: Text(tr('settings.targetLufsReset')),
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _calibrating ? null : _calibrate,
-                    icon: const Icon(Icons.timer_outlined),
-                    label: Text(_calibrating ? tr('settings.calibrating') : tr('settings.calibrate')),
+              SettingRow(
+                title: tr('settings.latency'),
+                subtitle: tr('settings.calibrateHint'),
+                trailing: SizedBox(
+                  width: SettingRow.controlWidth,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (_calibrating) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      if (!_calibrating)
+                        Text(settings.latencySeconds == null ? tr('settings.notCalibrated') : '${(settings.latencySeconds! * 1000).toStringAsFixed(0)} ms',
+                            style: theme.textTheme.titleSmall),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _calibrating ? null : _calibrate,
+                        icon: const Icon(Icons.timer_outlined, size: 18),
+                        label: Text(_calibrating ? tr('settings.calibrating') : tr('settings.calibrate')),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  if (_calibrating) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-                  if (!_calibrating)
-                    Text(settings.latencySeconds == null ? tr('settings.notCalibrated') : '${(settings.latencySeconds! * 1000).toStringAsFixed(0)} ms'),
-                ],
+                ),
               ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(tr('settings.latencyManual')),
-                  IconButton(
+              SettingRow(
+                title: tr('settings.latencyManual'),
+                subtitle: tr('settings.latencyManualHint'),
+                trailing: SliderControl(
+                  leading: IconButton(
                     tooltip: '-1 ms',
                     visualDensity: VisualDensity.compact,
                     onPressed: _calibrating ? null : () => _setLatency((_latencyDraft ?? settings.latencySeconds ?? 0) - 0.001),
                     icon: const Icon(Icons.remove, size: 18),
                   ),
-                  Expanded(
-                    child: Slider(
-                      value: ((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).clamp(0, AppSettings.maxLatencySeconds * 1000).toDouble(),
-                      max: AppSettings.maxLatencySeconds * 1000,
-                      divisions: (AppSettings.maxLatencySeconds * 1000).round(),
-                      label: '${((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).round()} ms',
-                      onChanged: _calibrating ? null : (v) => setState(() => _latencyDraft = v / 1000),
-                      onChangeEnd: (v) => _setLatency(v / 1000),
-                    ),
+                  slider: Slider(
+                    value: ((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).clamp(0, AppSettings.maxLatencySeconds * 1000).toDouble(),
+                    max: AppSettings.maxLatencySeconds * 1000,
+                    divisions: (AppSettings.maxLatencySeconds * 1000).round(),
+                    label: '${((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).round()} ms',
+                    onChanged: _calibrating ? null : (v) => setState(() => _latencyDraft = v / 1000),
+                    onChangeEnd: (v) => _setLatency(v / 1000),
                   ),
-                  IconButton(
+                  value: '${((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).round()} ms',
+                  trailing: IconButton(
                     tooltip: '+1 ms',
                     visualDensity: VisualDensity.compact,
                     onPressed: _calibrating ? null : () => _setLatency((_latencyDraft ?? settings.latencySeconds ?? 0) + 0.001),
                     icon: const Icon(Icons.add, size: 18),
                   ),
-                  SizedBox(width: 64, child: Text('${((_latencyDraft ?? settings.latencySeconds ?? 0) * 1000).round()} ms', textAlign: TextAlign.end)),
-                ],
+                ),
               ),
-              Text(tr('settings.latencyManualHint'), style: theme.textTheme.bodySmall),
-              const SizedBox(height: 6),
-              Text(tr('settings.calibrateHint'), style: theme.textTheme.bodySmall),
               if (_calibError != null) ...[
                 const SizedBox(height: 8),
                 CalibrationErrorPanel(advice: _calibError!, details: _calibDetails),
               ],
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(tr('settings.livePitch')),
-                  InfoTip(
-                    sections: [
-                      (tr('settings.livePitch.dsp'), tr('info.livePitch.dsp')),
-                      (tr('settings.livePitch.swiftf0'), tr('info.livePitch.swiftf0')),
-                    ],
-                    footer: tr('info.livePitch.footer'),
-                  ),
-                  const SizedBox(width: 8),
-                  SegmentedButton<int>(
-                    segments: [
-                      ButtonSegment(value: 0, label: Text(tr('settings.livePitch.dsp'))),
-                      ButtonSegment(value: 1, label: Text(tr('settings.livePitch.swiftf0'))),
-                    ],
-                    selected: {settings.livePitchMode},
-                    onSelectionChanged: (v) => settings.setLivePitchMode(v.first),
-                  ),
-                ],
+              SettingRow(
+                title: tr('settings.livePitch'),
+                info: InfoTip(
+                  sections: [
+                    (tr('settings.livePitch.dsp'), tr('info.livePitch.dsp')),
+                    (tr('settings.livePitch.swiftf0'), tr('info.livePitch.swiftf0')),
+                  ],
+                  footer: tr('info.livePitch.footer'),
+                ),
+                trailing: SegmentedButton<int>(
+                  segments: [
+                    ButtonSegment(value: 0, label: Text(tr('settings.livePitch.dsp'))),
+                    ButtonSegment(value: 1, label: Text(tr('settings.livePitch.swiftf0'))),
+                  ],
+                  selected: {settings.livePitchMode},
+                  onSelectionChanged: (v) => settings.setLivePitchMode(v.first),
+                ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(tr('settings.liveJudgePitch')),
-                  InfoTip(
-                    sections: [
-                      (tr('settings.liveJudgePitch.off'), tr('info.liveJudgePitch.off')),
-                      (tr('settings.liveJudgePitch.on'), tr('info.liveJudgePitch.on')),
-                    ],
-                    footer: tr('info.liveJudgePitch.footer'),
-                  ),
-                  const SizedBox(width: 8),
-                  Switch(value: settings.liveJudgePitch, onChanged: settings.setLiveJudgePitch),
-                ],
+              SettingRow(
+                title: tr('settings.liveJudgePitch'),
+                info: InfoTip(
+                  sections: [
+                    (tr('settings.liveJudgePitch.off'), tr('info.liveJudgePitch.off')),
+                    (tr('settings.liveJudgePitch.on'), tr('info.liveJudgePitch.on')),
+                  ],
+                  footer: tr('info.liveJudgePitch.footer'),
+                ),
+                trailing: Switch(value: settings.liveJudgePitch, onChanged: settings.setLiveJudgePitch),
               ),
-              const SizedBox(height: 8),
               // The singer's range, shared by every song: reset, or detect it
               // again here (the sing screen also adds to it before a take).
               Builder(builder: (context) {
@@ -593,25 +585,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 final text = keys.isEmpty
                     ? tr('ownRange.none')
                     : '${noteName(keys.reduce((a, b) => a < b ? a : b).toDouble())}–${noteName(keys.reduce((a, b) => a > b ? a : b).toDouble())}';
-                return Row(
-                  children: [
-                    Text(tr('ownRange.title')),
-                    InfoTip(sections: [(tr('ownRange.title'), tr('ownRange.info'))]),
-                    const SizedBox(width: 8),
-                    Text(text, style: theme.textTheme.titleSmall),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => showRangeDetectDialog(context),
-                      icon: const Icon(Icons.mic, size: 18),
-                      label: Text(tr('ownRange.detect')),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      onPressed: keys.isEmpty ? null : () => settings.setOwnRangeKeys(const {}),
-                      icon: const Icon(Icons.restart_alt, size: 18),
-                      label: Text(tr('ownRange.reset')),
-                    ),
-                  ],
+                return SettingRow(
+                  title: tr('ownRange.title'),
+                  info: InfoTip(sections: [(tr('ownRange.title'), tr('ownRange.info'))]),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(text, style: theme.textTheme.titleSmall),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => showRangeDetectDialog(context),
+                        icon: const Icon(Icons.mic, size: 18),
+                        label: Text(tr('ownRange.detect')),
+                      ),
+                      const SizedBox(width: 4),
+                      TextButton.icon(
+                        onPressed: keys.isEmpty ? null : () => settings.setOwnRangeKeys(const {}),
+                        icon: const Icon(Icons.restart_alt, size: 18),
+                        label: Text(tr('ownRange.reset')),
+                      ),
+                    ],
+                  ),
                 );
               }),
             ],
@@ -653,30 +647,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   LanguageDropdown(value: settings.defaultLanguage, onChanged: settings.setDefaultLanguage),
                 ],
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(tr('settings.noiseGate')),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(tr('sing.gateHint')),
-                ),
-                trailing: SizedBox(
-                  width: 300,
-                  child: Row(children: [
-                    Expanded(
-                      child: Slider(
-                        min: AppSettings.noiseGateOff,
-                        max: AppSettings.noiseGateMax,
-                        divisions: 40,
-                        value: settings.noiseGateDb,
-                        onChanged: settings.setNoiseGateDb,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 64,
-                      child: Text(settings.noiseGateEnabled ? '${settings.noiseGateDb.round()} dB' : tr('sing.gateOff'), textAlign: TextAlign.end),
-                    ),
-                  ]),
+              SettingRow(
+                title: tr('settings.noiseGate'),
+                subtitle: tr('sing.gateHint'),
+                trailing: SliderControl(
+                  slider: Slider(
+                    min: AppSettings.noiseGateOff,
+                    max: AppSettings.noiseGateMax,
+                    divisions: 40,
+                    value: settings.noiseGateDb,
+                    onChanged: settings.setNoiseGateDb,
+                  ),
+                  value: settings.noiseGateEnabled ? '${settings.noiseGateDb.round()} dB' : tr('sing.gateOff'),
                 ),
               ),
               SwitchListTile(
@@ -795,23 +777,22 @@ class _DeviceDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ids = devices.map((d) => d['id'] as String?).whereType<String>().toSet();
-    return Row(
-      children: [
-        SizedBox(width: 90, child: Text(label)),
-        Expanded(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            value: value != null && ids.contains(value) ? value : '',
-            items: [
-              DropdownMenuItem(value: '', child: Text(tr('settings.systemDefault'))),
-              for (final d in devices)
-                if (d['id'] is String)
-                  DropdownMenuItem(value: d['id'] as String, child: Text('${d['name'] ?? d['id']}${d['default'] == true ? ' ★' : ''}', overflow: TextOverflow.ellipsis)),
-            ],
-            onChanged: (v) => onChanged(v == null || v.isEmpty ? null : v),
-          ),
+    return SettingRow(
+      title: label,
+      trailing: SizedBox(
+        width: SettingRow.controlWidth,
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: value != null && ids.contains(value) ? value : '',
+          items: [
+            DropdownMenuItem(value: '', child: Text(tr('settings.systemDefault'))),
+            for (final d in devices)
+              if (d['id'] is String)
+                DropdownMenuItem(value: d['id'] as String, child: Text('${d['name'] ?? d['id']}${d['default'] == true ? ' ★' : ''}', overflow: TextOverflow.ellipsis)),
+          ],
+          onChanged: (v) => onChanged(v == null || v.isEmpty ? null : v),
         ),
-      ],
+      ),
     );
   }
 }

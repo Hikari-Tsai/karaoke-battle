@@ -77,7 +77,7 @@ class Scorer {
     final refNotes = input.referenceNotes.notes;
 
     // --- 1. Semitone tracks on the uniform grid ---------------------------
-    final takeSemis = f0TrackToGrid(
+    var takeSemis = f0TrackToGrid(
       input.takeF0,
       hop: hop,
       confidenceThreshold: opt.confidenceThreshold,
@@ -100,11 +100,16 @@ class Scorer {
 
     // --- 2. Global offset, 3. initial chroma shift ------------------------
     final maxOff = (opt.maxOffsetSeconds / hop).round();
-    final offset = estimateVoicingOffsetFrames(
+    var offset = estimateVoicingOffsetFrames(
       takeSemis,
       refSemis,
       maxOffsetFrames: maxOff,
     );
+    // Notes fixed by the Tuning Wand: sung exactly as the reference.
+    if (opt.perfectSpans.isNotEmpty) {
+      takeSemis = applyPerfectSpans(takeSemis, refSemis, opt.perfectSpans, hop: hop, offsetFrames: offset, calibratedTiming: opt.calibratedTiming);
+      offset = estimateVoicingOffsetFrames(takeSemis, refSemis, maxOffsetFrames: maxOff);
+    }
     final fixed = alignFixedOffset(
       takeSemis,
       refSemis,
@@ -309,6 +314,39 @@ class Scorer {
       hop: hop,
       rhythm: rhythm,
     );
+  }
+
+  /// The take grid with the frames of each [spans] note replaced by the
+  /// reference (unvoiced where it is), in the singer's octave, at the time
+  /// the rhythm judgement expects it: the track clock when the latency is
+  /// calibrated and the take sits within the tolerance, else shifted by the
+  /// take's global offset [offsetFrames].
+  static List<double> applyPerfectSpans(
+    List<double> take,
+    List<double> ref,
+    List<(double, double)> spans, {
+    required double hop,
+    required int offsetFrames,
+    required bool calibratedTiming,
+  }) {
+    final fixed = alignFixedOffset(take, ref, hop: hop, offsetFrames: offsetFrames);
+    // take ~ ref - octave (see estimateOctaveExactShift)
+    final octave = estimateOctaveExactShift(fixed.alignTakeToRefGrid(take), ref);
+    final trust = calibratedTiming && (offsetFrames * hop).abs() <= rhythmClockToleranceSeconds;
+    final shift = trust ? 0 : offsetFrames;
+    final out = List<double>.of(take, growable: true);
+    for (final (on, off) in spans) {
+      final j0 = math.max(0, (on / hop).round()), j1 = math.min(ref.length, (off / hop).round());
+      for (var j = j0; j < j1; j++) {
+        final t = j + shift;
+        if (t < 0) continue;
+        while (out.length <= t) {
+          out.add(double.nan);
+        }
+        out[t] = ref[j].isNaN ? double.nan : ref[j] - octave;
+      }
+    }
+    return out;
   }
 
   /// Largest estimated global offset still blamed on the singer when the

@@ -16,6 +16,7 @@ import '../widgets/info_tip.dart';
 import '../widgets/rank.dart';
 import '../widgets/reveal.dart';
 import 'achievements_view.dart';
+import 'items_view.dart';
 import 'singing_avatar.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -49,6 +50,13 @@ class ProfileScreen extends StatelessWidget {
                   ]);
                 }),
               ),
+            ),
+          ),
+          // --- items ---
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1080),
+              child: const Padding(padding: EdgeInsets.fromLTRB(28, 36, 28, 0), child: ItemsSection()),
             ),
           ),
           // --- achievements ---

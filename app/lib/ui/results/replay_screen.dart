@@ -28,6 +28,7 @@ import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
 import '../widgets/error_report.dart';
 import 'replay_data.dart';
+import '../../state/tuning_wand.dart';
 
 class ReplayScreen extends StatefulWidget {
   const ReplayScreen({super.key, required this.song, required this.take, this.notesJsonPath, this.player, this.imported = false});
@@ -60,6 +61,9 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
   double _pitchShift = 0;
   double _videoAspect = 16 / 9;
   List<JudgementMark> _judgements = const [];
+
+  /// Notes fixed with the Tuning Wand (shown with sparkles as they play).
+  Set<int> _wand = const {};
   final _keys = FocusNode(debugLabel: 'replay-keys');
 
   @override
@@ -89,6 +93,8 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
         _lyrics = d.lyrics;
         _score = d.score;
         _judgements = d.judgements;
+        final uses = wandUsesOfScore(d.score?.raw);
+        _wand = {for (var i = 0; i < d.notes.length; i++) if (uses.any((u) => u.isNote(d.notes.onset[i]))) i};
       });
       _ticker = createTicker((_) => s.tick())..start();
       s.togglePlay(); // start right away
@@ -222,6 +228,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
           overlay: hasVideo,
           traceUntilPlayhead: true,
           keyboard: context.watch<AppSettings>().rollKeyboard,
+          wandNotes: _wand,
         ),
         if (_lyrics != null)
           Positioned(

@@ -838,9 +838,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     required bool octaveInvariant,
     void Function(TakeProcessing)? onProgress,
     bool reuseF0 = false,
+    bool keepGate = false,
   }) async {
     // Re-scoring with newer rules: the take's pitch file is already there.
-    if (reuseF0 && await File(take.f0Json).exists()) return _scoreSaved(services, files, take, octaveInvariant);
+    if (reuseF0 && await File(take.f0Json).exists()) return _scoreSaved(services, files, take, octaveInvariant, keepGate: keepGate);
     final model = ModelRegistry.swiftF0;
     if (!await services.models.isInstalled(model)) {
       onProgress?.call(const TakeProcessing('sing.downloadingModel', 0));
@@ -862,8 +863,12 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     return _scoreSaved(services, files, take, octaveInvariant);
   }
 
-  static Future<ScoreData> _scoreSaved(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant) async {
+  /// [keepGate]: the noise gate the take was scored with, not the current
+  /// one (so only what changed on purpose moves the score).
+  static Future<ScoreData> _scoreSaved(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant, {bool keepGate = false}) async {
     final settings = services.settings;
+    double? gate = settings.noiseGateEnabled ? settings.noiseGateDb : null;
+    if (keepGate) gate = ((await ScoringBridge.load(take.scoreJson))?.raw['noise_gate_db'] as num?)?.toDouble();
     // The take keeps the notes it is scored against, so later edits or
     // cleaning of the song's notes do not shift its results and replay.
     await snapshotTakeNotes(files.notesJson, [take.dir]);
@@ -876,7 +881,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       takeTimeOffset: await takeTimeOffset(take),
       takeWavPath: take.wav,
       referenceWavPath: files.vocalsWav,
-      noiseGateDb: settings.noiseGateEnabled ? settings.noiseGateDb : null,
+      noiseGateDb: gate,
       // Rhythm windows follow the song tempo (manual BPM first, else detected).
       tempoBpm: (await TempoOverride.load(files.tempoJson)).bpm ?? (await DetectedBeats.load(files.beatsJson))?.bpm,
       calibratedTiming: settings.latencySeconds != null,

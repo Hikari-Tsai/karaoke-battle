@@ -240,6 +240,7 @@ class ScoringOptions {
     this.vibratoTarget = 0.4,
     this.tempoBpm,
     this.calibratedTiming = false,
+    this.perfectSpans = const [],
   });
 
   /// DTW (default) or a single global offset from voicing cross-correlation.
@@ -280,6 +281,11 @@ class ScoringOptions {
   /// take that is early or late as a whole shows up as rushing / dragging)
   /// unless the estimated global offset is implausibly large.
   final bool calibratedTiming;
+
+  /// Reference notes made perfect by the Tuning Wand, as (onset, offset) in
+  /// track seconds: the take is taken to sing them exactly as the reference
+  /// (its pitch, in the singer's octave, and its timing) before scoring.
+  final List<(double, double)> perfectSpans;
 
   factory ScoringOptions.fromJson(Map<String, dynamic> json) => ScoringOptions(
     alignmentMode: AlignmentMode.values.firstWhere(

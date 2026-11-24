@@ -11,9 +11,11 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:karaoke_battle/scoring/scoring.dart';
+import 'package:path/path.dart' as p;
 
 import 'energy_curve.dart';
 import 'note_edits.dart';
+import 'tuning_wand.dart';
 
 class ScoreNoteRow {
   ScoreNoteRow({required this.index, required this.cents, required this.matched, this.onsetErrorMs});
@@ -121,6 +123,9 @@ class ScoringBridge {
     final notesText = await File(notesJsonPath).readAsString();
     final refText = await File(refF0JsonPath).exists() ? await File(refF0JsonPath).readAsString() : null;
     final takeText = await File(takeF0JsonPath).readAsString();
+    // Notes fixed with the Tuning Wand, kept next to the score.
+    final wand = await TakeWand.load(p.dirname(scoreJsonPath));
+    final perfectSpans = wand.spans;
     final takeEnergy = takeWavPath == null ? null : await wavEnergyCurve(takeWavPath, timeOffset: takeTimeOffset);
     final refEnergy = referenceWavPath == null ? null : await wavEnergyCurve(referenceWavPath);
     final takeEnergyJson = takeEnergy?.toJson();
@@ -162,7 +167,7 @@ class ScoringBridge {
         takeF0: takeF0,
         takeEnergy: takeEnergyJson == null ? null : EnergyCurve.fromJson(takeEnergyJson),
         referenceEnergy: refEnergyJson == null ? null : EnergyCurve.fromJson(refEnergyJson),
-        options: ScoringOptions(tempoBpm: tempoBpm, calibratedTiming: calibratedTiming),
+        options: ScoringOptions(tempoBpm: tempoBpm, calibratedTiming: calibratedTiming, perfectSpans: perfectSpans),
       );
       final r = Scorer.score(input);
       final j = r.toJson();
@@ -170,6 +175,7 @@ class ScoringBridge {
       if (noiseGateDb != null) j['noise_gate_db'] = noiseGateDb;
       return j;
     });
+    if (wand.uses.isNotEmpty) result['wand'] = [for (final u in wand.uses) u.toJson()];
     await File(scoreJsonPath).writeAsString(jsonEncode(result));
     return ScoreData.fromJson(result);
   }
