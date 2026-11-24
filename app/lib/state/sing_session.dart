@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 // Controller of one sing session: owns the engine's LiveAudio (the master
 // clock), the live pitch trace, recording and take post-processing.
 //
@@ -7,6 +6,7 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
@@ -900,6 +900,58 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   static Future<ScoreData> previewWand(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant, List<(double, double)> spans) =>
       _scoreSaved(services, files, take, octaveInvariant, keepGate: true, previewSpans: spans);
 
+  /// What the Tuning Wand is worth on each note of [take] (see
+  /// [WandWeights]): read from the take folder, else worked out a batch of
+  /// notes at a time ([onProgress] 0..1) and kept there.
+  static Future<WandWeights> wandWeights(AppServices services, SongFiles files, TakeInfo take, {void Function(double done)? onProgress}) async {
+    final notesPath = await take.notesFor(files.notesJson);
+    final gate = ((await ScoringBridge.load(take.scoreJson))?.raw['noise_gate_db'] as num?)?.toDouble();
+    final tempo = (await TempoOverride.load(files.tempoJson)).bpm ?? (await DetectedBeats.load(files.beatsJson))?.bpm;
+    final calibrated = services.settings.latencySeconds != null;
+    final field = await TakeField.isOn(take.dir);
+    Future<String> stamp(String path) async {
+      final f = File(path);
+      if (!await f.exists()) return '-';
+      final st = await f.stat();
+      return '${st.size}@${st.modified.millisecondsSinceEpoch}';
+    }
+
+    final key = 'v${WandWeights.version}|${await stamp(take.f0Json)}|${await stamp(notesPath)}|${await stamp(files.refF0Json)}|$gate|$tempo|$calibrated|$field';
+    final cached = await WandWeights.load(take.dir, key);
+    if (cached != null) return cached;
+    final notes = await NoteList.load(notesPath);
+    final offset = await takeTimeOffset(take);
+    var base = 0.0;
+    final raw = <int, double>{};
+    const batch = 20;
+    for (var k = 0; k < notes.length; k += batch) {
+      final idx = [for (var i = k; i < math.min(k + batch, notes.length); i++) i];
+      final (b, gains) = await ScoringBridge.wandGains(
+        notesJsonPath: notesPath,
+        refF0JsonPath: files.refF0Json,
+        takeF0JsonPath: take.f0Json,
+        scoreJsonPath: take.scoreJson,
+        candidates: [for (final i in idx) (notes.onset[i], notes.offset[i])],
+        takeTimeOffset: offset,
+        takeWavPath: take.wav,
+        referenceWavPath: files.vocalsWav,
+        noiseGateDb: gate,
+        tempoBpm: tempo,
+        calibratedTiming: calibrated,
+      );
+      base = b;
+      for (var j = 0; j < idx.length; j++) {
+        raw[WandWeights.onsetKey(notes.onset[idx[j]])] = gains[j];
+      }
+      onProgress?.call(math.min(1, (k + batch) / notes.length));
+    }
+    final w = WandWeights(key: key, base: base, raw: raw);
+    try {
+      await w.save(take.dir);
+    } catch (_) {}
+    return w;
+  }
+
   static Future<ScoreData> _scoreSaved(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant, {bool keepGate = false, List<(double, double)> previewSpans = const []}) async {
     final settings = services.settings;
     final preview = previewSpans.isNotEmpty;
@@ -908,6 +960,8 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     // The take keeps the notes it is scored against, so later edits or
     // cleaning of the song's notes do not shift its results and replay.
     if (!preview) await snapshotTakeNotes(files.notesJson, [take.dir]);
+    // With wands, the total comes from what each tuned note is worth.
+    final weights = preview || (await TakeWand.load(take.dir)).uses.isNotEmpty ? await wandWeights(services, files, take) : null;
     final score = await ScoringBridge.scoreAndSave(
       notesJsonPath: await take.notesFor(files.notesJson),
       refF0JsonPath: files.refF0Json,
@@ -922,6 +976,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       tempoBpm: (await TempoOverride.load(files.tempoJson)).bpm ?? (await DetectedBeats.load(files.beatsJson))?.bpm,
       calibratedTiming: settings.latencySeconds != null,
       previewSpans: previewSpans,
+      weights: weights,
     );
     if (!preview) services.library.markTakesChanged(files);
     return score;

@@ -65,3 +65,23 @@ Future<ScoreData> useTuningWand({
     rethrow;
   }
 }
+
+/// Takes the Tuning Wand off every note of [take] and scores it again as
+/// sung (its field kept). The wands used are not given back.
+Future<ScoreData> resetTuningWand({required AppServices services, required Song song, required TakeInfo take}) async {
+  final before = await TakeWand.load(take.dir);
+  await const TakeWand([]).save(take.dir);
+  try {
+    final octaveInvariant = (await ScoringBridge.load(take.scoreJson))?.raw['octave_invariant'] as bool? ?? services.settings.octaveInvariant;
+    final score = await SingSession.scoreTake(services: services, files: services.library.files(song), take: take, octaveInvariant: octaveInvariant, reuseF0: true, keepGate: true);
+    // No wand left: no score from before it to keep.
+    final original = File(p.join(take.dir, TakeWand.originalScoreName));
+    if (await original.exists()) await original.delete();
+    final wand = File(TakeWand.pathIn(take.dir));
+    if (await wand.exists()) await wand.delete();
+    return score;
+  } catch (_) {
+    await before.save(take.dir);
+    rethrow;
+  }
+}

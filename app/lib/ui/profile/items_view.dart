@@ -40,7 +40,7 @@ class ItemMedal extends StatelessWidget {
                 gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [itemShades(kind).$1, itemShades(kind).$2, itemShades(kind).$3]),
                 boxShadow: [BoxShadow(color: itemColor(kind).withValues(alpha: 0.25 + 0.25 * shinePulse(t ?? 0, period: 3)), blurRadius: 18)],
               ),
-              child: Icon(itemIcon(kind), color: Colors.white, size: size * 0.42),
+              child: ItemGlyph(kind: kind, size: size * 0.42),
             ),
           ),
         ),
@@ -53,7 +53,68 @@ IconData itemIcon(ItemKind k) => switch (k) {
       ItemKind.tuningWand => Icons.auto_fix_high,
       ItemKind.resonanceField => Icons.wifi_tethering,
       ItemKind.mentorTicket => Icons.school,
+      ItemKind.weaknessGlasses => Icons.visibility, // drawn as glasses by ItemGlyph
     };
+
+/// An item's symbol in white: an icon, or a drawn one where no icon fits
+/// (the Weakness Glasses are a pair of glasses).
+class ItemGlyph extends StatelessWidget {
+  const ItemGlyph({super.key, required this.kind, required this.size, this.color = Colors.white});
+  final ItemKind kind;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kind == ItemKind.weaknessGlasses) {
+      return SizedBox(width: size * 1.25, height: size, child: CustomPaint(painter: GlassesPainter(color: color)));
+    }
+    return Icon(itemIcon(kind), color: color, size: size);
+  }
+}
+
+/// A pair of round glasses: two rims joined by a bridge, short arms, and a
+/// glint on each lens.
+class GlassesPainter extends CustomPainter {
+  GlassesPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final r = w * 0.2;
+    final cy = h * 0.55;
+    final left = Offset(w * 0.28, cy), right = Offset(w * 0.72, cy);
+    final rim = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.075
+      ..strokeCap = StrokeCap.round;
+    // Lenses, a faint tint behind the rims.
+    final lens = Paint()..color = color.withValues(alpha: 0.22);
+    canvas.drawCircle(left, r, lens);
+    canvas.drawCircle(right, r, lens);
+    canvas.drawCircle(left, r, rim);
+    canvas.drawCircle(right, r, rim);
+    // The bridge over the nose.
+    canvas.drawArc(Rect.fromCenter(center: Offset(w / 2, cy - r * 0.15), width: w * 0.16, height: h * 0.22), math.pi * 1.1, math.pi * 0.8, false, rim);
+    // The arms, going back from the outer edges.
+    canvas.drawLine(left - Offset(r, r * 0.25), Offset(w * 0.02, cy - r * 0.75), rim);
+    canvas.drawLine(right + Offset(r, -r * 0.25), Offset(w * 0.98, cy - r * 0.75), rim);
+    // A glint on each lens.
+    final glint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.045
+      ..strokeCap = StrokeCap.round;
+    for (final c in [left, right]) {
+      canvas.drawArc(Rect.fromCircle(center: c, radius: r * 0.55), math.pi * 1.1, math.pi * 0.35, false, glint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(GlassesPainter old) => old.color != color;
+}
 
 /// An item's colour, with the lighter and darker ends of its medal.
 Color itemColor(ItemKind k) => itemShades(k).$2;
@@ -61,6 +122,7 @@ Color itemColor(ItemKind k) => itemShades(k).$2;
       ItemKind.tuningWand => (const Color(0xFFD9A8FF), _wandColor, const Color(0xFF6B3FD6)),
       ItemKind.resonanceField => (const Color(0xFFA8F4FF), const Color(0xFF3FC8DE), const Color(0xFF1F7FA8)),
       ItemKind.mentorTicket => (const Color(0xFFFFE3A3), const Color(0xFFE9A93A), const Color(0xFFA86E12)),
+      ItemKind.weaknessGlasses => (const Color(0xFFFFB3B8), const Color(0xFFFF5A6A), const Color(0xFFB8283A)),
     };
 
 class _SparklePainter extends CustomPainter {
@@ -97,7 +159,7 @@ class ItemsSection extends StatelessWidget {
   const ItemsSection({super.key});
 
   /// Places in the shop: the items and room for one more to come.
-  static const slots = 4;
+  static int get slots => ItemKind.values.length + 1;
 
   @override
   Widget build(BuildContext context) {
@@ -262,11 +324,11 @@ class _ItemSlot extends StatelessWidget {
           Flexible(child: Text(tr('items.${kind.name}.name'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
           const SizedBox(width: 8),
           Tooltip(
-            message: tr('items.dailyTip', {'n': kind.daily}),
+            message: kind.kept ? tr('items.keptTip') : tr('items.dailyTip', {'n': kind.daily}),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
               decoration: BoxDecoration(border: Border.all(color: itemColor(kind).withValues(alpha: 0.5)), borderRadius: BorderRadius.circular(8)),
-              child: Text(tr('items.dailyChip', {'n': kind.daily}), style: theme.textTheme.labelSmall?.copyWith(color: itemColor(kind), fontWeight: FontWeight.w700)),
+              child: Text(kind.kept ? tr('items.keptChip') : tr('items.dailyChip', {'n': kind.daily}), style: theme.textTheme.labelSmall?.copyWith(color: itemColor(kind), fontWeight: FontWeight.w700)),
             ),
           ),
         ]),
@@ -276,8 +338,17 @@ class _ItemSlot extends StatelessWidget {
         Expanded(
           child: Text(tr('items.${kind.name}.how'), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant), overflow: TextOverflow.fade),
         ),
-        Text(tr('items.usedNote', {'n': items.usedOf(kind)}), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        if (!kind.kept) Text(tr('items.usedNote', {'n': items.usedOf(kind)}), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         const SizedBox(height: 8),
+        // A kept item, once had, needs no second one.
+        if (kind.kept && held > 0)
+          FilledButton.icon(
+            style: FilledButton.styleFrom(disabledBackgroundColor: itemColor(kind).withValues(alpha: 0.25), disabledForegroundColor: Colors.white),
+            onPressed: null,
+            icon: const Icon(Icons.check_circle, size: 18),
+            label: Text(tr('items.ownedKept')),
+          )
+        else
         Tooltip(
           message: locked ? tr('items.lockedTip') : (short > 0 ? tr('items.short', {'n': short}) : ''),
           child: FilledButton.icon(

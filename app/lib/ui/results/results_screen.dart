@@ -35,6 +35,7 @@ import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
 import '../../state/tuning_wand.dart';
 import '../../state/wand_action.dart';
+import '../../services/dev_mode.dart';
 import '../../services/items.dart';
 import '../sing/piano_roll.dart';
 import '../sing/sing_screen.dart';
@@ -81,6 +82,56 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   Set<int> _wanded = const {};
   bool _wanding = false;
 
+  /// With the Weakness Glasses (or in 開發模式): how much the total would
+  /// rise with a wand on each note alone (worked out a batch at a time
+  /// after the page opens).
+  Map<int, double> _gains = {};
+  bool _gainsRunning = false;
+  int _gainsRun = 0;
+
+  /// How far the shares are worked out (0..1), while [_gainsRunning].
+  double _gainsProgress = 0;
+
+  /// Each untuned note's share of the way to 100 (see WandWeights): worked
+  /// out once per take (kept in its folder), then at once.
+  Future<void> _computeGains() async {
+    final notes = _notes;
+    if (notes == null || _score == null || _gainsRunning) return;
+    final services = context.read<AppServices>();
+    if (!_seesGains(services)) return;
+    final run = ++_gainsRun;
+    // The figures shown stay until they are worked out again (a note that
+    // gained nothing stays locked meanwhile, instead of a box popping up).
+    setState(() {
+      _gainsRunning = true;
+      _gainsProgress = 0;
+      _gains = {for (final e in _gains.entries) if (!_wanded.contains(e.key)) e.key: e.value};
+    });
+    try {
+      final weights = await SingSession.wandWeights(
+        services,
+        services.library.files(widget.song),
+        widget.take,
+        onProgress: (d) {
+          if (mounted && run == _gainsRun) setState(() => _gainsProgress = d);
+        },
+      );
+      if (!mounted || run != _gainsRun) return;
+      final shares = weights.shares;
+      setState(() {
+        _gains = {for (var i = 0; i < notes.length; i++) if (!_wanded.contains(i)) i: shares[WandWeights.onsetKey(notes.onset[i])] ?? 0};
+        // A note a wand would add nothing to cannot be picked.
+        _picked = {for (final i in _picked) if (!_noGain(i)) i};
+      });
+    } catch (_) {
+      // Only a guide; the wand works without it.
+    } finally {
+      if (mounted && run == _gainsRun) setState(() => _gainsRunning = false);
+    }
+  }
+
+  static bool _seesGains(AppServices services) => devFeatures(services.settings) || services.items.has(ItemKind.weaknessGlasses);
+
   /// The notes picked on the score above or in the list: the wand button
   /// above applies to all of them at once.
   Set<int> _picked = {};
@@ -91,8 +142,11 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   }
 
   /// Picks or drops note [i] (a note already tuned cannot be picked).
+  /// With the gains shown: a note a wand would add nothing to (+0.00).
+  bool _noGain(int i) => _seesGains(context.read<AppServices>()) && (_gains[i] ?? 1) < 0.005;
+
   void _togglePick(int? i) {
-    if (i == null || _wanding) return;
+    if (i == null || _wanding || _noGain(i)) return;
     if (_wanded.contains(i)) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('wand.applied')), duration: const Duration(seconds: 2)));
       return;
@@ -146,6 +200,50 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         ),
       ),
     ]);
+  }
+
+  /// Asks, then takes the wand off every note: the score goes back to how
+  /// it was sung; the wands used are not given back.
+  Future<void> _resetWand() async {
+    final notes = _notes, score = _score;
+    if (notes == null || score == null || _wanding || _wanded.isEmpty) return;
+    final services = context.read<AppServices>();
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.restart_alt, size: 36),
+        title: Text(tr('wand.resetTitle')),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Text(tr('wand.resetBody', {'n': _wanded.length, 'total': _original?.total.toStringAsFixed(1) ?? '—'})),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('cancel'))),
+          FilledButton.icon(onPressed: () => Navigator.pop(context, true), icon: const Icon(Icons.restart_alt, size: 18), label: Text(tr('wand.resetGo'))),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    setState(() => _wanding = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final before = score.total;
+      final next = await resetTuningWand(services: services, song: widget.song, take: widget.take);
+      if (!mounted) return;
+      setState(() {
+        _score = next;
+        _original = null;
+        _wanded = {};
+        _picked = {};
+      });
+      messenger.showSnackBar(SnackBar(content: Text(tr('wand.resetDone', {'from': before.toStringAsFixed(1), 'to': next.total.toStringAsFixed(1)}))));
+      _gainsRunning = false;
+      unawaited(_computeGains());
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(tr('wand.failed', {'e': '$e'}))));
+    } finally {
+      if (mounted) setState(() => _wanding = false);
+    }
   }
 
   /// Asks (with the estimate), then uses a Tuning Wand on each picked note
@@ -212,6 +310,8 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         _wanded = _wandedOf(next, notes);
         _picked = {};
       });
+      _gainsRunning = false;
+      unawaited(_computeGains());
       unawaited(ResultSfx.once(services.settings, 'wand'));
       messenger.showSnackBar(SnackBar(content: Text(tr('wand.done', {'from': before.toStringAsFixed(1), 'to': next.total.toStringAsFixed(1)}))));
     } catch (e) {
@@ -363,6 +463,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         _original = original;
         _wanded = _wandedOf(score, notes);
       });
+      unawaited(_computeGains());
       if (_roll != null && score != null) _startReveal();
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
@@ -471,6 +572,14 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                                     child: Text(tr('wand.original', {'total': _original!.total.toStringAsFixed(1), 'n': _wanded.length}),
                                                         style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFD9BDFF))),
                                                   ),
+                                                  // Back to the score as sung (the wands stay used).
+                                                  if (_wanded.isNotEmpty)
+                                                    TextButton.icon(
+                                                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 6)),
+                                                      onPressed: _wanding || _revealing ? null : _resetWand,
+                                                      icon: const Icon(Icons.restart_alt, size: 16),
+                                                      label: Text(tr('wand.reset')),
+                                                    ),
                                                 ]),
                                               ),
                                             Text('${tr('results.shift')}: ${score.shift} (${score.octaveExactShift >= 0 ? '+' : ''}${score.octaveExactShift})', style: theme.textTheme.labelSmall),
@@ -599,6 +708,10 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                           wanded: _wanded,
                                           picked: _picked,
                                           onPick: score == null || _wanding || _revealing ? null : _togglePick,
+                                          gains: (context.watch<AppSettings>().devMode || context.watch<ItemService>().has(ItemKind.weaknessGlasses)) && _seesGains(context.read<AppServices>()) ? _gains : null,
+                                          noGain: {for (var i = 0; i < notes.length; i++) if (_noGain(i)) i},
+                                          gainsRunning: _gainsRunning,
+                                          gainsProgress: _gainsProgress,
                                         ),
                                         if (_wanding) const Positioned(left: 0, right: 0, top: 0, child: LinearProgressIndicator()),
                                       ]),
@@ -1187,7 +1300,14 @@ class _WandEstimate extends StatelessWidget {
 }
 
 class _NoteTable extends StatelessWidget {
-  const _NoteTable({required this.notes, required this.score, required this.pitchShift, this.lyrics, this.wanded = const {}, this.picked = const {}, this.onPick});
+  const _NoteTable({required this.notes, required this.score, required this.pitchShift, this.lyrics, this.wanded = const {}, this.picked = const {}, this.onPick, this.gains, this.gainsRunning = false, this.gainsProgress = 0, this.noGain = const {}});
+  final double gainsProgress;
+
+  /// Each note's gain from a wand on it alone (null: not shown), and the
+  /// notes it would add nothing to (no box, not pickable).
+  final Map<int, double>? gains;
+  final Set<int> noGain;
+  final bool gainsRunning;
   final NoteList notes;
 
   /// Notes fixed with the Tuning Wand, and the ones picked for it (also on
@@ -1268,13 +1388,20 @@ class _NoteTable extends StatelessWidget {
                   col('sung'),
                   col('steady'),
                   DataColumn(label: Tooltip(message: tr('results.col.matched.tip'), child: Text(tr('results.matched')))),
+                  if (gains != null)
+                    DataColumn(
+                      label: Tooltip(
+                        message: tr('results.col.gain.tip'),
+                        child: Text(gainsRunning ? '${tr('results.col.gain')} ${(gainsProgress * 100).round()}%' : tr('results.col.gain'), style: const TextStyle(color: Color(0xFFB57CFF))),
+                      ),
+                    ),
                   DataColumn(label: Tooltip(message: tr('items.tuningWand.name'), child: const Icon(Icons.auto_fix_high, size: 16))),
                 ],
                 rows: [
                   for (var i = 0; i < notes.length; i++)
                     DataRow(
                       selected: picked.contains(i),
-                      onSelectChanged: onPick == null || wanded.contains(i) ? null : (_) => onPick!(i),
+                      onSelectChanged: onPick == null || wanded.contains(i) || noGain.contains(i) ? null : (_) => onPick!(i),
                       cells: [
                       DataCell(Text('${i + 1}')),
                       if (lyrics != null) DataCell(_lyricCell(context, i < lyrics!.length ? lyrics![i] : null)),
@@ -1288,8 +1415,11 @@ class _NoteTable extends StatelessWidget {
                       DataCell(_steadyCell(context, longs[i])),
                       DataCell(Icon(byIndex[i]?.matched == true ? Icons.check_circle : Icons.remove_circle_outline,
                           size: 16, color: byIndex[i]?.matched == true ? const Color(0xFF4CD964) : Theme.of(context).colorScheme.outline)),
+                      if (gains != null) DataCell(_gainCell(context, wanded.contains(i) ? null : gains![i], pending: gainsRunning && !wanded.contains(i) && !gains!.containsKey(i))),
                       DataCell(wanded.contains(i)
                           ? Tooltip(message: tr('wand.applied'), child: const Icon(Icons.auto_fix_high, size: 18, color: Color(0xFFB57CFF)))
+                          : noGain.contains(i)
+                          ? const SizedBox.shrink()
                           : Tooltip(
                               message: tr('wand.pickTip'),
                               child: Checkbox(
@@ -1311,6 +1441,17 @@ class _NoteTable extends StatelessWidget {
   }
 
   static const _good = Color(0xFF4CD964), _near = Color(0xFFFFCC00), _bad = Color(0xFFFF3B30);
+
+  /// 開發模式: the gain from a wand on this note ("…" while worked out).
+  Widget _gainCell(BuildContext context, double? gain, {bool pending = false}) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    if (pending) return Text('…', style: TextStyle(color: muted));
+    if (gain == null) return Text('—', style: TextStyle(color: muted));
+    if (gain < 0.005) return Text('—', style: TextStyle(color: muted));
+    final color = gain >= 0.5 ? const Color(0xFFB57CFF) : (gain >= 0.1 ? const Color(0xFFD9BDFF) : muted);
+    // A note can even cost a little (the whole take aligns a bit differently).
+    return Text('${gain >= 0 ? '+' : '−'}${gain.abs().toStringAsFixed(2)}', style: TextStyle(color: color, fontWeight: gain >= 0.5 ? FontWeight.w800 : null, fontFeatures: const [FontFeature.tabularFigures()]));
+  }
 
   /// A share (0..1) as a percentage: green from 90 %, yellow from 60 %.
   Widget _percentCell(BuildContext context, double? v) {

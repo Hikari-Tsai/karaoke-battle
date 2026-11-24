@@ -105,7 +105,12 @@ class Scorer {
       refSemis,
       maxOffsetFrames: maxOff,
     );
-    // Notes fixed by the Tuning Wand: sung exactly as the reference.
+    // Notes fixed by the Tuning Wand: sung exactly as the reference. The
+    // take as sung is kept, so what the wand does not touch (the loudness,
+    // the other long notes) is judged on it as before.
+    final sungSemis = takeSemis;
+    final sungOffset = offset;
+    final perfect = perfectNoteIndices(refNotes, opt.perfectSpans);
     if (opt.perfectSpans.isNotEmpty) {
       takeSemis = applyPerfectSpans(takeSemis, refSemis, opt.perfectSpans, hop: hop, offsetFrames: offset, calibratedTiming: opt.calibratedTiming, alt: noteSemis);
       offset = estimateVoicingOffsetFrames(takeSemis, refSemis, maxOffsetFrames: maxOff);
@@ -202,17 +207,47 @@ class Scorer {
       extensionSeconds: windows.good + 0.02,
       pitchTolerance: pitchTol,
     );
-    final rhythm = judgeRhythm(refNotes, timingNotes, windows, clockTrusted: trustClock, perfect: perfectNoteIndices(refNotes, opt.perfectSpans));
+    final rhythm = judgeRhythm(refNotes, timingNotes, windows, clockTrusted: trustClock, perfect: perfect);
+
+    // With the wand: the alignment of the take as sung, for what the wand
+    // leaves as it was.
+    AlignmentResult? sungAlignment;
+    if (perfect.isNotEmpty) {
+      final f = alignFixedOffset(sungSemis, refSemis, hop: hop, offsetFrames: sungOffset);
+      sungAlignment = opt.alignmentMode == AlignmentMode.dtw
+          ? alignDtw(
+              sungSemis,
+              refSemis,
+              hop: hop,
+              bandFrames: (opt.bandSeconds / hop).round(),
+              offsetFrames: sungOffset,
+              shift: estimateChromaShift(f.alignTakeToRefGrid(sungSemis), refSemis, tolerance: pitchTol),
+              stepPenalty: opt.stepPenalty,
+            )
+          : f;
+    }
 
     // --- 5c. Technique ----------------------------------------------------
     final maxGap = (0.08 / hop).floor();
-    final takeLong = analyzeLongNotes(
+    var takeLong = analyzeLongNotes(
       refNotes,
       bridgeGaps(takeSemis, maxGap),
       hop: hop,
       longNoteSeconds: opt.longNoteSeconds,
       timeMap: alignment.refTimeToTakeTime,
     );
+    if (sungAlignment != null) {
+      // The long notes as sung; a tuned one keeps the steadier (and the
+      // more vibrato) of how it was sung and of the original.
+      final sung = analyzeLongNotes(
+        refNotes,
+        bridgeGaps(sungSemis, maxGap),
+        hop: hop,
+        longNoteSeconds: opt.longNoteSeconds,
+        timeMap: sungAlignment.refTimeToTakeTime,
+      );
+      takeLong = bestOfLongNotes(sung, takeLong, perfect, refNotes, opt.longNoteSeconds);
+    }
     final refLong = hasRefCurve
         ? analyzeLongNotes(
             refNotes,
@@ -237,10 +272,11 @@ class Scorer {
     );
     double? expression;
     if (input.takeEnergy != null && input.referenceEnergy != null) {
+      // The wand does not change the loudness: judged as sung.
       expression = expressionCorrelation(
         input.takeEnergy!,
         input.referenceEnergy!,
-        alignment,
+        sungAlignment ?? alignment,
         refSemis,
       );
     }
@@ -273,7 +309,7 @@ class Scorer {
 
     // --- 5d. Sub-scores and total ----------------------------------------
     final w = input.weights;
-    final subScores = SubScores(
+    var subScores = SubScores(
       pitch: SubScore(
         value: pitchScore(frame.rawChromaAccuracy),
         weight: w.pitch,
@@ -304,8 +340,22 @@ class Scorer {
       ),
       longTone: SubScore(value: longTone == null ? null : longToneSubScore(longTone), weight: w.longTone),
     );
+    // Every note tuned with the wand: full marks, also for what is judged on
+    // the song as a whole (the loudness contour, the overall steadiness).
+    final allTuned = refNotes.isNotEmpty && perfect.length >= refNotes.length;
+    if (allTuned) {
+      SubScore full(SubScore x) => SubScore(value: x.value == null ? null : 1.0, weight: x.weight);
+      subScores = SubScores(
+        pitch: full(subScores.pitch),
+        rhythm: full(subScores.rhythm),
+        stability: full(subScores.stability),
+        vibrato: full(subScores.vibrato),
+        expression: full(subScores.expression),
+        longTone: full(subScores.longTone),
+      );
+    }
     final raw = subScores.total;
-    final total = scaledTotal(raw);
+    final total = allTuned ? 100.0 : scaledTotal(raw);
     return ScoreResult(
       total: total,
       rank: rankForTotal(total),
@@ -360,6 +410,41 @@ class Scorer {
       }
     }
     return out;
+  }
+
+  /// Long notes with the wand: [sung] (the take as sung) for every long note,
+  /// except that a tuned one ([perfect]) keeps the steadier stability and the
+  /// larger vibrato amount of [sung] and [tuned] (so a wand never costs).
+  static LongNoteAnalysis bestOfLongNotes(LongNoteAnalysis sung, LongNoteAnalysis tuned, Set<int> perfect, List<ReferenceNote> refNotes, double longNoteSeconds) {
+    final longIdx = [for (var i = 0; i < refNotes.length; i++) if (refNotes[i].duration >= longNoteSeconds) i];
+    final amounts = [
+      for (var k = 0; k < sung.amounts.length; k++)
+        k < longIdx.length && perfect.contains(longIdx[k]) && k < tuned.amounts.length ? math.max(sung.amounts[k], tuned.amounts[k]) : sung.amounts[k],
+    ];
+    final sungBy = {for (final d in sung.details) d.index: d};
+    final tunedBy = {for (final d in tuned.details) d.index: d};
+    final details = <LongNoteDetail>[];
+    for (final i in longIdx) {
+      final a = sungBy[i], b = tunedBy[i];
+      if (!perfect.contains(i)) {
+        if (a != null) details.add(a);
+        continue;
+      }
+      final sa = a?.stabilityCents, sb = b?.stabilityCents;
+      final best = sa == null ? b : (sb == null ? a : (sa <= sb ? a : b));
+      if (best != null) details.add(LongNoteDetail(index: i, stabilityCents: best.stabilityCents, vibrato: (a?.vibrato ?? false) || (b?.vibrato ?? false)));
+    }
+    final stabilities = [for (final d in details) ?d.stabilityCents];
+    return LongNoteAnalysis(
+      longNotes: sung.longNotes,
+      analysed: details.length,
+      withVibrato: details.where((d) => d.vibrato).length,
+      rates: sung.rates,
+      extents: sung.extents,
+      stabilities: stabilities,
+      amounts: amounts,
+      details: details,
+    );
   }
 
   /// The indices of [notes] made perfect: those starting where one of

@@ -7,6 +7,7 @@
 //    cents_deviation, onset_error_ms, ...}]}, ...}
 // Scoring itself runs in an isolate (pure Dart, JSON in / JSON out).
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:io';
 import 'dart:isolate';
 
@@ -111,6 +112,46 @@ class ScoringBridge {
   /// Scores a take with [Scorer] and writes score.json. [takeTimeOffset] maps
   /// take-file time to track time (added to every take frame time) so the
   /// take lines up with the reference before alignment.
+  /// The take scored without any wand (its field kept), and for each of
+  /// [candidates] (a note's onset and offset) how much a wand on that note
+  /// alone adds to it. Scored like [scoreAndSave], nothing written; the
+  /// makings of [WandWeights].
+  static Future<(double, List<double>)> wandGains({
+    required String notesJsonPath,
+    required String refF0JsonPath,
+    required String takeF0JsonPath,
+    required String scoreJsonPath,
+    required List<(double, double)> candidates,
+    double takeTimeOffset = 0,
+    String? takeWavPath,
+    String? referenceWavPath,
+    double? noiseGateDb,
+    double? tempoBpm,
+    bool calibratedTiming = false,
+  }) async {
+    final notesText = await File(notesJsonPath).readAsString();
+    final refText = await File(refF0JsonPath).exists() ? await File(refF0JsonPath).readAsString() : null;
+    final takeText = await File(takeF0JsonPath).readAsString();
+    final field = await TakeField.isOn(p.dirname(scoreJsonPath));
+    final takeEnergyJson = takeWavPath == null ? null : (await wavEnergyCurve(takeWavPath, timeOffset: takeTimeOffset))?.toJson();
+    final refEnergyJson = referenceWavPath == null ? null : (await wavEnergyCurve(referenceWavPath))?.toJson();
+    return Isolate.run(() {
+      final (:notes, :refF0, :takeF0) = _parseInputs(notesText, refText, takeText, takeTimeOffset, noiseGateDb, takeEnergyJson);
+      final takeEnergy = takeEnergyJson == null ? null : EnergyCurve.fromJson(takeEnergyJson);
+      final refEnergy = refEnergyJson == null ? null : EnergyCurve.fromJson(refEnergyJson);
+      double total(List<(double, double)> perfect) => Scorer.score(ScoringInput(
+            referenceNotes: notes,
+            referenceF0: refF0,
+            takeF0: takeF0,
+            takeEnergy: takeEnergy,
+            referenceEnergy: refEnergy,
+            options: ScoringOptions(tempoBpm: tempoBpm, calibratedTiming: calibratedTiming, perfectSpans: perfect, lenience: field ? TakeField.lenience : 1),
+          )).total;
+      final base = total(const []);
+      return (base, [for (final c in candidates) math.max(0.0, total([c]) - base)]);
+    });
+  }
+
   static Future<ScoreData> scoreAndSave({
     required String notesJsonPath,
     required String refF0JsonPath,
@@ -124,9 +165,11 @@ class ScoringBridge {
     double? tempoBpm,
     bool calibratedTiming = false,
     List<(double, double)> previewSpans = const [],
+    WandWeights? weights,
   }) async {
     // [previewSpans]: a dry run, as if the Tuning Wand were also used on
-    // these notes; nothing is written.
+    // these notes; nothing is written. [weights]: with wands, the total is
+    // the take without them plus the tuned notes' shares (see WandWeights).
     final preview = previewSpans.isNotEmpty;
     final notesText = await File(notesJsonPath).readAsString();
     final refText = await File(refF0JsonPath).exists() ? await File(refF0JsonPath).readAsString() : null;
@@ -141,36 +184,7 @@ class ScoringBridge {
     final takeEnergyJson = takeEnergy?.toJson();
     final refEnergyJson = refEnergy?.toJson();
     final scored = await Isolate.run(() {
-      final notesMap = jsonDecode(notesText) as Map<String, dynamic>;
-      final notes = ReferenceNotes.fromJson(notesMap);
-      // Spans of notes the user deleted (ghosts) are excluded from the
-      // reference curve too, so they cannot count against the singer.
-      final spans = excludedSpansFromJson(notesMap);
-      final refRaw = refText == null ? null : F0Track.fromJson(jsonDecode(refText) as Map<String, dynamic>);
-      final refF0 = refRaw == null || spans.isEmpty
-          ? refRaw
-          : F0Track(
-              times: refRaw.times,
-              f0: [for (var i = 0; i < refRaw.f0.length; i++) i < refRaw.times.length && inSpans(spans, refRaw.times[i]) ? 0.0 : refRaw.f0[i]],
-              confidence: refRaw.confidence,
-              hop: refRaw.hop,
-              sampleRate: refRaw.sampleRate,
-            );
-      final takeRaw = F0Track.fromJson(jsonDecode(takeText) as Map<String, dynamic>);
-      final shifted = takeTimeOffset == 0
-          ? takeRaw
-          : F0Track(
-              times: takeRaw.times.map((t) => t + takeTimeOffset).toList(growable: false),
-              f0: takeRaw.f0,
-              confidence: takeRaw.confidence,
-              hop: takeRaw.hop,
-              sampleRate: takeRaw.sampleRate,
-            );
-      // The energy curve is already in track time (same offset), so the gate
-      // compares each take frame with the loudness recorded at that moment.
-      final takeF0 = (noiseGateDb != null && takeEnergyJson != null)
-          ? applyNoiseGate(shifted, EnergyCurve.fromJson(takeEnergyJson), noiseGateDb)
-          : shifted;
+      final (:notes, :refF0, :takeF0) = _parseInputs(notesText, refText, takeText, takeTimeOffset, noiseGateDb, takeEnergyJson);
       Map<String, dynamic> run({required bool items}) {
         final input = ScoringInput(
           referenceNotes: notes,
@@ -212,6 +226,13 @@ class ScoringBridge {
       return (run(items: true), withItems ? run(items: false) : null);
     });
     final (result, raw) = scored;
+    if (weights != null && perfectSpans.isNotEmpty) {
+      final total = weights.totalWith([for (final s in perfectSpans) s.$1]);
+      result['total'] = total;
+      result['raw_total'] = total;
+      result['rank'] = rankForTotal(total);
+      result['wand_normalized'] = true;
+    }
     if (preview) return ScoreData.fromJson(result);
     if (wand.uses.isNotEmpty) result['wand'] = [for (final u in wand.uses) u.toJson()];
     if (field) result['field'] = {'lenience': TakeField.lenience};
@@ -224,4 +245,45 @@ class ScoringBridge {
     }
     return ScoreData.fromJson(result);
   }
+}
+
+/// The notes, the reference curve (without the notes the user deleted) and
+/// the take's curve in track time behind the noise gate, parsed for scoring.
+({ReferenceNotes notes, F0Track? refF0, F0Track takeF0}) _parseInputs(
+  String notesText,
+  String? refText,
+  String takeText,
+  double takeTimeOffset,
+  double? noiseGateDb,
+  Map<String, dynamic>? takeEnergyJson,
+) {
+  final notesMap = jsonDecode(notesText) as Map<String, dynamic>;
+  final notes = ReferenceNotes.fromJson(notesMap);
+  // Spans of notes the user deleted (ghosts) are excluded from the
+  // reference curve too, so they cannot count against the singer.
+  final spans = excludedSpansFromJson(notesMap);
+  final refRaw = refText == null ? null : F0Track.fromJson(jsonDecode(refText) as Map<String, dynamic>);
+  final refF0 = refRaw == null || spans.isEmpty
+      ? refRaw
+      : F0Track(
+          times: refRaw.times,
+          f0: [for (var i = 0; i < refRaw.f0.length; i++) i < refRaw.times.length && inSpans(spans, refRaw.times[i]) ? 0.0 : refRaw.f0[i]],
+          confidence: refRaw.confidence,
+          hop: refRaw.hop,
+          sampleRate: refRaw.sampleRate,
+        );
+  final takeRaw = F0Track.fromJson(jsonDecode(takeText) as Map<String, dynamic>);
+  final shifted = takeTimeOffset == 0
+      ? takeRaw
+      : F0Track(
+          times: takeRaw.times.map((t) => t + takeTimeOffset).toList(growable: false),
+          f0: takeRaw.f0,
+          confidence: takeRaw.confidence,
+          hop: takeRaw.hop,
+          sampleRate: takeRaw.sampleRate,
+        );
+  // The energy curve is already in track time (same offset), so the gate
+  // compares each take frame with the loudness recorded at that moment.
+  final takeF0 = (noiseGateDb != null && takeEnergyJson != null) ? applyNoiseGate(shifted, EnergyCurve.fromJson(takeEnergyJson), noiseGateDb) : shifted;
+  return (notes: notes, refF0: refF0, takeF0: takeF0);
 }

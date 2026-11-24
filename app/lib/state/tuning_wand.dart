@@ -5,6 +5,7 @@
 // from before the first use, for the singer only (never exported).
 
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -85,3 +86,70 @@ class TakeField {
 
 /// Whether a score was judged under the Resonance Field.
 bool fieldOfScore(Map<String, dynamic>? raw) => raw?['field'] is Map;
+
+/// What each note is worth with the Tuning Wand on a take (wand_weights.json
+/// in the take folder), so that tuning every note that can gain anything
+/// makes exactly 100: [base] is the take scored without any wand, [raw] how
+/// much a wand on each note alone adds to it (by onset in ms), and the
+/// shares spread 100 − base over the notes in proportion to [raw]. With
+/// wands the total is base + the shares of the notes tuned.
+class WandWeights {
+  const WandWeights({required this.key, required this.base, required this.raw});
+
+  /// What the figures were worked out from (they are redone when it changes).
+  final String key;
+  final double base;
+  final Map<int, double> raw;
+
+  static const fileName = 'wand_weights.json';
+
+  /// Bump when the scoring changes what a wand is worth.
+  static const version = 1;
+
+  static int onsetKey(double onset) => (onset * 1000).round();
+
+  /// Below this a note gains nothing (shown "—", not pickable).
+  static const minGain = 0.005;
+
+  /// Each note's share of 100 − [base]: proportional to what it adds alone;
+  /// all alike when none adds anything measurable.
+  Map<int, double> get shares {
+    final gap = math.max(0.0, 100 - base);
+    if (gap <= 0 || raw.isEmpty) return {for (final k in raw.keys) k: 0.0};
+    final positive = {for (final e in raw.entries) if (e.value > minGain) e.key: e.value};
+    if (positive.isEmpty) return {for (final k in raw.keys) k: gap / raw.length};
+    final sum = positive.values.fold<double>(0, (a, b) => a + b);
+    return {for (final k in raw.keys) k: positive.containsKey(k) ? gap * positive[k]! / sum : 0.0};
+  }
+
+  /// The total with the wand on the notes starting at [onsets].
+  double totalWith(Iterable<double> onsets) {
+    final s = shares;
+    final keys = {for (final o in onsets) onsetKey(o)};
+    final sum = keys.fold<double>(0, (a, k) => a + (s[k] ?? 0));
+    // Every note that can gain anything tuned: exactly 100.
+    final open = [for (final e in s.entries) if (e.value > minGain && !keys.contains(e.key)) e.key];
+    return open.isEmpty ? 100.0 : math.min(100.0, base + sum);
+  }
+
+  Map<String, dynamic> toJson() => {'key': key, 'base': base, 'raw': {for (final e in raw.entries) '${e.key}': e.value}};
+
+  static Future<WandWeights?> load(String takeDir, String key) async {
+    try {
+      final f = File(p.join(takeDir, fileName));
+      if (!await f.exists()) return null;
+      final j = jsonDecode(await f.readAsString());
+      if (j is! Map || j['key'] != key) return null;
+      final raw = <int, double>{};
+      for (final e in (j['raw'] as Map? ?? const {}).entries) {
+        final k = int.tryParse('${e.key}');
+        if (k != null && e.value is num) raw[k] = (e.value as num).toDouble();
+      }
+      return WandWeights(key: key, base: (j['base'] as num).toDouble(), raw: raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> save(String takeDir) => File(p.join(takeDir, fileName)).writeAsString(jsonEncode(toJson()));
+}

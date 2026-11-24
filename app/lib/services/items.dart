@@ -26,9 +26,16 @@ enum ItemKind {
 
   /// Asks the AI Mentor for singing tips on a take, through the Karaoke
   /// Battle relay (no API key of one's own needed).
-  mentorTicket(50, 1);
+  mentorTicket(50, 1),
 
-  const ItemKind(this.cost, this.daily);
+  /// Kept once had (not used up): the note analysis shows how much a wand
+  /// on each note would add.
+  weaknessGlasses(1000, 0, kept: true);
+
+  const ItemKind(this.cost, this.daily, {this.kept = false});
+
+  /// Kept for good once redeemed (one is all one needs), not used up.
+  final bool kept;
 
   /// Whether it can be had and used now (the AI Mentor waits for its relay).
   bool get available => this != mentorTicket || mentorAvailable;
@@ -135,7 +142,10 @@ class ItemService extends ChangeNotifier {
 
   int ownedOf(ItemKind k) => owned[k] ?? 0;
   int usedOf(ItemKind k) => used[k] ?? 0;
-  bool canRedeem(ItemKind k) => k.available && balance >= k.cost;
+  bool canRedeem(ItemKind k) => k.available && balance >= k.cost && !(k.kept && ownedOf(k) > 0);
+
+  /// Whether [k] is held (for kept items: whether it works).
+  bool has(ItemKind k) => ownedOf(k) > 0;
 
   Future<void> start() async {
     try {

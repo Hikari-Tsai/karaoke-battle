@@ -110,12 +110,36 @@ void main() {
     Map perNoteOf(ScoreData s, int i) => ((s.raw['note_metrics'] as Map)['per_note'] as List).cast<Map>().firstWhere((n) => n['index'] == i);
     final plain = await score();
     expect(rhythmOf(plain, 2)['onset'], 'miss', reason: 'not sung');
+    // 開發模式: what a wand on each note alone would add.
+    final (base, gains) = await ScoringBridge.wandGains(
+        notesJsonPath: path('notes.json'), refF0JsonPath: path('ref_f0.json'), takeF0JsonPath: path('take_f0.json'), scoreJsonPath: path('score.json'), calibratedTiming: true,
+        candidates: [for (final n in notes) (n['onset'] as double, n['offset'] as double)]);
+    expect(base, closeTo(plain.total, 1e-6), reason: 'the take without wands');
+    expect(gains[2], greaterThan(5), reason: 'the note left out gains the most');
+    expect(gains[0].abs(), lessThan(0.5), reason: 'a note sung well gains little');
+    expect(gains.every((g) => g >= 0), isTrue, reason: 'a wand never costs');
+    // Normalized: the shares fill the way to 100 exactly, and the total with
+    // wands is the take without them plus the shares of the notes tuned.
+    final weights = WandWeights(key: 'k', base: base, raw: {for (final (i, n) in notes.indexed) WandWeights.onsetKey(n['onset'] as double): gains[i]});
+    final shares = weights.shares;
+    expect(shares.values.fold<double>(0, (a, b) => a + b), closeTo(100 - base, 1e-9));
+    final open = [for (final n in notes) if (shares[WandWeights.onsetKey(n['onset'] as double)]! > WandWeights.minGain) n['onset'] as double];
+    expect(weights.totalWith(open), 100.0, reason: 'every note that can gain tuned');
+    final third = await ScoringBridge.scoreAndSave(
+        notesJsonPath: path('notes.json'), refF0JsonPath: path('ref_f0.json'), takeF0JsonPath: path('take_f0.json'), scoreJsonPath: path('score.json'), octaveInvariant: true, calibratedTiming: true,
+        previewSpans: [(2.5, 3.3)], weights: weights);
+    expect(third.total, closeTo(base + shares[WandWeights.onsetKey(2.5)]!, 1e-9), reason: 'the total moves by exactly the share shown');
     await TakeWand([WandUse(onset: 2.5, offset: 3.3, pitch: 62, at: DateTime(2026, 11, 24))]).save(dir.path);
     final tuned = await score();
     expect((rhythmOf(tuned, 2)['onset'], rhythmOf(tuned, 2)['offset']), ('perfect', 'perfect'), reason: 'the wand gives it all');
     expect((perNoteOf(tuned, 2)['voiced_fraction'], perNoteOf(tuned, 2)['pitch_coverage'], perNoteOf(tuned, 2)['matched']), (1.0, 1.0, true));
     expect(((tuned.raw['rhythm'] as Map)['counts'] as Map)['miss'], 0);
     expect(tuned.total, greaterThan(plain.total));
+    // A wand never costs points, and with every note tuned the take is 100.
+
+    await TakeWand([for (final n in notes) WandUse(onset: n['onset'] as double, offset: n['offset'] as double, pitch: n['pitch'] as double, at: DateTime(2026, 11, 25))]).save(dir.path);
+    final all = await score();
+    expect((all.total, all.rank), (100.0, 'SSS'), reason: 'every note tuned');
   });
 
   test('the Resonance Field judges the whole take twice as leniently', () async {
@@ -220,6 +244,11 @@ void main() {
     await again.setBalance(500);
     await again.setOwned(ItemKind.tuningWand, 9);
     expect((again.balance, again.earned, again.ownedOf(ItemKind.tuningWand)), (500, 55, 9));
+    // The Weakness Glasses: kept, one only.
+    await again.setBalance(2000);
+    expect(await again.redeem(ItemKind.weaknessGlasses), isTrue);
+    expect((again.has(ItemKind.weaknessGlasses), again.canRedeem(ItemKind.weaknessGlasses), again.balance), (true, false, 1000), reason: 'one is all one needs');
+    await again.setBalance(500);
     // Several at once: one celebration, used up together.
     final gains2 = <ItemGain>[];
     final sub2 = again.gains.listen(gains2.add);
