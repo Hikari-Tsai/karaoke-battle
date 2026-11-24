@@ -107,7 +107,7 @@ class Scorer {
     );
     // Notes fixed by the Tuning Wand: sung exactly as the reference.
     if (opt.perfectSpans.isNotEmpty) {
-      takeSemis = applyPerfectSpans(takeSemis, refSemis, opt.perfectSpans, hop: hop, offsetFrames: offset, calibratedTiming: opt.calibratedTiming);
+      takeSemis = applyPerfectSpans(takeSemis, refSemis, opt.perfectSpans, hop: hop, offsetFrames: offset, calibratedTiming: opt.calibratedTiming, alt: noteSemis);
       offset = estimateVoicingOffsetFrames(takeSemis, refSemis, maxOffsetFrames: maxOff);
     }
     final fixed = alignFixedOffset(
@@ -202,7 +202,7 @@ class Scorer {
       extensionSeconds: windows.good + 0.02,
       pitchTolerance: pitchTol,
     );
-    final rhythm = judgeRhythm(refNotes, timingNotes, windows, clockTrusted: trustClock);
+    final rhythm = judgeRhythm(refNotes, timingNotes, windows, clockTrusted: trustClock, perfect: perfectNoteIndices(refNotes, opt.perfectSpans));
 
     // --- 5c. Technique ----------------------------------------------------
     final maxGap = (0.08 / hop).floor();
@@ -328,6 +328,10 @@ class Scorer {
   /// the rhythm judgement expects it: the track clock when the latency is
   /// calibrated and the take sits within the tolerance, else shifted by the
   /// take's global offset [offsetFrames].
+  ///
+  /// Where the reference is silent inside the note (the original's pitch
+  /// was not caught there), the note's own pitch ([alt]) fills in, so even a
+  /// note the singer left out is sung all through.
   static List<double> applyPerfectSpans(
     List<double> take,
     List<double> ref,
@@ -335,6 +339,7 @@ class Scorer {
     required double hop,
     required int offsetFrames,
     required bool calibratedTiming,
+    List<double>? alt,
   }) {
     final fixed = alignFixedOffset(take, ref, hop: hop, offsetFrames: offsetFrames);
     // take ~ ref - octave (see estimateOctaveExactShift)
@@ -350,10 +355,21 @@ class Scorer {
         while (out.length <= t) {
           out.add(double.nan);
         }
-        out[t] = ref[j].isNaN ? double.nan : ref[j] - octave;
+        final target = !ref[j].isNaN ? ref[j] : (alt != null && j < alt.length ? alt[j] : double.nan);
+        out[t] = target.isNaN ? double.nan : target - octave;
       }
     }
     return out;
+  }
+
+  /// The indices of [notes] made perfect: those starting where one of
+  /// [spans] does (to the millisecond).
+  static Set<int> perfectNoteIndices(List<ReferenceNote> notes, List<(double, double)> spans) {
+    if (spans.isEmpty) return const {};
+    return {
+      for (var i = 0; i < notes.length; i++)
+        if (spans.any((s) => (s.$1 - notes[i].onset).abs() < 0.002)) i,
+    };
   }
 
   /// Largest estimated global offset still blamed on the singer when the

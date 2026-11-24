@@ -125,7 +125,8 @@ class FadeSlideIn extends StatelessWidget {
       );
 }
 
-/// A number counting up to [value] (with [format]) as it comes into view.
+/// A number counting up to [value] (with [format]) as it comes into view,
+/// then running from the shown number to each new [value].
 class CountUp extends StatelessWidget {
   const CountUp({super.key, required this.value, required this.format, this.style, this.delay = Duration.zero, this.duration = const Duration(milliseconds: 1400)});
   final double value;
@@ -139,11 +140,18 @@ class CountUp extends StatelessWidget {
         delay: delay,
         duration: duration,
         curve: Curves.easeOutCubic,
-        builder: (context, t, _) => Stack(alignment: AlignmentDirectional.centerStart, children: [
-          // The final text keeps the width while counting.
-          Opacity(opacity: 0, child: Text(format(value), style: style, maxLines: 1)),
-          Text(format(value * t), style: style, maxLines: 1),
-        ]),
+        // First a count up from 0; after that a new value runs from the one
+        // shown (points spent count down from where they were).
+        builder: (context, t, _) => TweenAnimationBuilder<double>(
+          tween: Tween<double>(end: value),
+          duration: const Duration(milliseconds: 900),
+          curve: Curves.easeOutCubic,
+          builder: (context, v, _) => Stack(alignment: AlignmentDirectional.centerStart, children: [
+            // The final text keeps the width while counting.
+            Opacity(opacity: 0, child: Text(format(value), style: style, maxLines: 1)),
+            Text(format(v * t), style: style, maxLines: 1),
+          ]),
+        ),
       );
 }
 

@@ -41,6 +41,7 @@ void main() {
     addTearDown(achievements.dispose);
     final identity = IdentityService(dataRoot: tmp.path);
     final items = ItemService.of(tmp.path, achievements);
+    addTearDown(items.dispose);
     await tester.runAsync(items.start);
     // Real file IO: outside the test's fake clock.
     await tester.runAsync(() => identity.start(machineId: () async => 'MACHINE-1', os: 'macOS 27.2.1'));
@@ -74,7 +75,8 @@ void main() {
     expect(find.text('銅牌'), findsOneWidget);
     expect(find.text('最新解鎖'), findsOneWidget);
     // Items: the points to spend (all earned so far) and the Tuning Wand.
-    expect(find.text('道具'), findsOneWidget);
+    expect(find.text('我的背包'), findsOneWidget);
+    expect(find.text('我的道具'), findsOneWidget);
     expect(find.text('可用點數'), findsOneWidget);
     final earned = achievements.points;
     expect(items.balance, earned);
@@ -82,23 +84,39 @@ void main() {
     expect(find.text('修音魔杖'), findsWidgets);
     await tester.runAsync(() => items.redeem(ItemKind.tuningWand));
     await tester.pump(const Duration(seconds: 2));
-    expect(items.balance, earned - 25);
-    expect(find.text('× 1'), findsOneWidget);
+    expect(items.balance, earned - ItemKind.tuningWand.cost);
+    expect(find.text('× 4'), findsNWidgets(2), reason: 'the day\'s 3 and the one redeemed, in the bag and on its slot');
+    expect(find.text('每日 05:00 重置'), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is Tooltip && (w.message ?? '').contains('修音魔杖 3 個、共鳴結界 1 個')), findsOneWidget, reason: 'what the reset tops up to, on hover');
     expect(find.text('即將推出'), findsNWidgets(ItemsSection.slots - ItemKind.values.length), reason: 'room kept for the items to come');
     expect(find.text(identity.identity!.userId), findsOneWidget, reason: 'the user ID');
     expect(find.textContaining('(macOS 27.2.1)'), findsOneWidget, reason: 'the device with its OS version');
     expect(find.text('這台'), findsOneWidget);
     expect(find.text('麥克風常客'), findsOneWidget);
-    expect(find.text('???'), findsNWidgets(6), reason: 'the secret ones, until found');
-    // The tier dots switch which tier a card shows, and back.
+    expect(find.text('???'), findsNWidgets(7), reason: 'the secret ones, until found');
+    // A tiered goal is a deck of cards: a tier's dot shuffles its card to the
+    // top, and again brings back the next tier to reach.
+    Future<void> settle() async {
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
     expect(find.text('0 / 500'), findsNothing);
     await tester.tap(find.byTooltip('金 · 完成 500 次有評分的演唱'));
-    await tester.pump(const Duration(seconds: 2));
+    await settle();
     expect(find.text('0 / 500'), findsOneWidget, reason: 'the gold of 500 takes');
     expect(find.text('+100'), findsWidgets);
     await tester.tap(find.byTooltip('金 · 完成 500 次有評分的演唱'));
-    await tester.pump(const Duration(seconds: 2));
+    await settle();
     expect(find.text('0 / 500'), findsNothing, reason: 'back to the next tier to reach');
+    final takesCard = find.ancestor(of: find.text('麥克風常客'), matching: find.byWidgetPredicate((w) => '${w.runtimeType}' == '_AchievementTile'));
+    Finder inCard(String text) => find.descendant(of: takesCard, matching: find.text(text));
+    expect(inCard('0 / 10'), findsOneWidget);
+    // Dragging the top card off sends it to the back: the silver comes up.
+    await tester.drag(inCard('0 / 10'), const Offset(160, 0));
+    await settle();
+    expect(inCard('0 / 100'), findsOneWidget, reason: 'the next card in the deck');
+    expect(inCard('0 / 10'), findsNothing);
     expect(find.byType(TierBadge), findsNWidgets(3), reason: 'the A, the SS and the name (家家) unlocked, as badges');
     // A circled i explains how a rule is judged; the secrets' only once seen.
     final tips = find.byType(InfoTip).evaluate().length;
@@ -106,10 +124,10 @@ void main() {
     // Debug builds with 開發模式 on show what the secrets ask for.
     await settings.setDevMode(true);
     await tester.pump();
-    expect(find.byType(InfoTip).evaluate().length, tips + 6, reason: 'the six secrets\' notes show too');
+    expect(find.byType(InfoTip).evaluate().length, tips + 7, reason: 'the seven secrets\' notes show too');
     expect(find.text('???'), findsNothing);
     expect(find.text('夜貓子'), findsOneWidget);
-    expect(find.text('開發模式'), findsNWidgets(6), reason: 'marked as seen only in 開發模式');
+    expect(find.text('開發模式'), findsNWidgets(7), reason: 'marked as seen only in 開發模式');
     // 開發模式 sets the points and items: from the button, or a double click.
     expect(find.text('設定點數和道具'), findsOneWidget);
     await tester.tap(find.text('設定點數和道具'));
@@ -125,13 +143,22 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect((items.balance, items.ownedOf(ItemKind.tuningWand)), (999, 7));
     expect(items.earned, achievements.points, reason: 'what achievements earned stays');
-    await tester.tap(find.text('× 7'));
+    await tester.tap(find.text('× 7').first);
     await tester.pump(const Duration(milliseconds: 50));
-    await tester.tap(find.text('× 7'));
+    await tester.tap(find.text('× 7').first);
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.widgetWithText(TextField, '修音魔杖 持有數量'), findsOneWidget, reason: 'a double click opens it too');
     await tester.tap(find.text('取消'));
     await tester.pump(const Duration(milliseconds: 500));
+    // 開發模式 undoes every trade.
+    await tester.tap(find.text('重置交易'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('重置'));
+    for (var i = 0; i < 12 && items.spent != 0; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    expect((items.spent, items.balance), (0, achievements.points));
     await settings.setDevMode(false);
     await tester.pump();
     expect(find.byType(SingingAvatar), findsNWidgets(1 + AvatarKind.values.length), reason: 'the singer and the look picker');

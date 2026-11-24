@@ -277,7 +277,7 @@ const achievementPoints = <String, List<int>>{
   // Live: songs sung on stream and days streamed
   'firstLive': [25], 'liveSongs': [10, 25, 100], 'liveDays': [10, 25, 100],
   // Secrets: worth more for being found; a time of day is easiest, twenty songs in a day hardest
-  'nightOwl': [25], 'earlyBird': [25], 'warmup': [50], 'highNote': [50], 'lowNote': [50], 'marathon': [100],
+  'nightOwl': [25], 'earlyBird': [25], 'warmup': [50], 'highNote': [50], 'lowNote': [50], 'marathon': [100], 'perfect100': [100],
 };
 
 /// How far past the measured range (semitones) the high and low notes go.
@@ -369,6 +369,8 @@ final achievements = <AchievementDef>[
   // --- E. secret: shown once found ---
   AchievementDef('nightOwl', AchievementCategory.secret, Icons.nightlight_round, [1], (f) => f.takes.any((t) => t.startedAt.hour < 5) ? 1 : 0, hidden: true),
   AchievementDef('marathon', AchievementCategory.secret, Icons.directions_run, [1], (f) => _byDay(f).values.any((d) => d.length >= 20) ? 1 : 0, hidden: true),
+  // A total that shows as 100.0 (items count too).
+  AchievementDef('perfect100', AchievementCategory.secret, Icons.diamond, [1], (f) => f.takes.any((t) => t.total >= 99.95) ? 1 : 0, hidden: true),
   // Three semitones past the measured range (the note reached, give or take
   // half a semitone); only once the range is measured.
   AchievementDef('highNote', AchievementCategory.secret, Icons.north, [1], (f) {

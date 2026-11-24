@@ -18,36 +18,48 @@ import 'tuning_wand.dart';
 /// The score of [take] before the Tuning Wand was first used on it, or null.
 Future<ScoreData?> originalScoreOf(TakeInfo take) => ScoringBridge.load(p.join(take.dir, TakeWand.originalScoreName));
 
-/// Uses one Tuning Wand (redeeming one first when none is held and
-/// [redeem] is set) on note [index] of [notes] and scores [take] again.
-/// Returns the new score; throws [StateError] when there is no wand to use.
+/// The score [take] would get with a Tuning Wand on each of the notes
+/// [indices] (nothing is saved or used up).
+Future<ScoreData> previewTuningWand({required AppServices services, required Song song, required TakeInfo take, required NoteList notes, required List<int> indices}) async {
+  final octaveInvariant = (await ScoringBridge.load(take.scoreJson))?.raw['octave_invariant'] as bool? ?? services.settings.octaveInvariant;
+  return SingSession.previewWand(services, services.library.files(song), take, octaveInvariant, [for (final i in indices) (notes.onset[i], notes.offset[i])]);
+}
+
+/// Uses a Tuning Wand on each of the notes [indices] of [notes] and scores
+/// [take] again once (redeeming the wands missing first when [redeem] is
+/// set). Returns the new score; throws [StateError] when there are not
+/// enough wands, and leaves the take as it was on any failure.
 Future<ScoreData> useTuningWand({
   required AppServices services,
   required Song song,
   required TakeInfo take,
   required NoteList notes,
-  required int index,
+  required List<int> indices,
   bool redeem = false,
 }) async {
+  const kind = ItemKind.tuningWand;
   final items = services.items;
-  if (items.ownedOf(ItemKind.tuningWand) <= 0) {
-    if (!redeem || !await items.redeem(ItemKind.tuningWand)) throw StateError('no wand');
-  }
   final files = services.library.files(song);
   final before = await TakeWand.load(take.dir);
-  if (before.hasNote(notes.onset[index])) throw StateError('already perfect');
+  final todo = [for (final i in indices.toSet()) if (!before.hasNote(notes.onset[i])) i];
+  if (todo.isEmpty) throw StateError('already perfect');
+  final short = todo.length - items.ownedOf(kind);
+  if (short > 0 && (!redeem || !await items.redeemMany(kind, short))) throw StateError('no wand');
   final original = File(p.join(take.dir, TakeWand.originalScoreName));
   final hadOriginal = await original.exists();
   if (!hadOriginal && await File(take.scoreJson).exists()) await File(take.scoreJson).copy(original.path);
-  final use = WandUse(onset: notes.onset[index], offset: notes.offset[index], pitch: notes.pitch[index], at: DateTime.now());
-  await TakeWand([...before.uses, use]).save(take.dir);
+  final now = DateTime.now();
+  await TakeWand([
+    ...before.uses,
+    for (final i in todo) WandUse(onset: notes.onset[i], offset: notes.offset[i], pitch: notes.pitch[i], at: now),
+  ]).save(take.dir);
   try {
     final octaveInvariant = (await ScoringBridge.load(take.scoreJson))?.raw['octave_invariant'] as bool? ?? services.settings.octaveInvariant;
     final score = await SingSession.scoreTake(services: services, files: files, take: take, octaveInvariant: octaveInvariant, reuseF0: true, keepGate: true);
-    await items.consume(ItemKind.tuningWand);
+    await items.consumeMany(kind, todo.length);
     return score;
   } catch (_) {
-    // Put the take back as it was; the wand stays in the bag.
+    // Put the take back as it was; the wands stay in the bag.
     await before.save(take.dir);
     if (!hadOriginal && await original.exists() && before.uses.isEmpty) await original.delete();
     rethrow;

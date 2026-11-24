@@ -151,13 +151,19 @@ Future<AiAdvice> requestAdvice({
   required http.Client client,
   Duration timeout = const Duration(minutes: 3),
   Duration retryDelay = const Duration(seconds: 2),
+  Uri? relay,
+  String clientId = '',
 }) async {
   final system = adviceSystemPrompt(lang);
   for (var attempt = 0;; attempt++) {
     try {
-      final text = provider == AiProvider.claude
-          ? await _askClaude(client, apiKey, model, system, prompt, timeout)
-          : await _askOpenAi(client, apiKey, model, system, prompt, timeout);
+      // Through the relay (the AI Mentor): the same Claude request, no key;
+      // the relay adds it. [clientId] lets it hold each install to its share.
+      final text = relay != null
+          ? await _askClaudeAt(client, relay, {'x-kb-client': clientId}, model, system, prompt, timeout)
+          : provider == AiProvider.claude
+              ? await _askClaude(client, apiKey, model, system, prompt, timeout)
+              : await _askOpenAi(client, apiKey, model, system, prompt, timeout);
       final Object? j;
       try {
         j = jsonDecode(text);
@@ -220,12 +226,16 @@ String _errorMessage(Map<String, dynamic> j, int status) {
 /// Models that take a server-side fallback when a safety classifier declines.
 bool _claudeHasFallback(String model) => !model.contains('haiku');
 
-Future<String> _askClaude(http.Client client, String apiKey, String model, String system, String prompt, Duration timeout) async {
+Future<String> _askClaude(http.Client client, String apiKey, String model, String system, String prompt, Duration timeout) =>
+    _askClaudeAt(client, Uri.parse('https://api.anthropic.com/v1/messages'), {'x-api-key': apiKey}, model, system, prompt, timeout);
+
+/// A Claude Messages request to [url] (the API, or the relay) with [auth].
+Future<String> _askClaudeAt(http.Client client, Uri url, Map<String, String> auth, String model, String system, String prompt, Duration timeout) async {
   Future<http.Response> send({required bool fallback}) => _post(
         client,
-        Uri.parse('https://api.anthropic.com/v1/messages'),
+        url,
         {
-          'x-api-key': apiKey,
+          ...auth,
           'anthropic-version': '2026-10-21',
           if (fallback) 'anthropic-beta': 'server-side-fallback-2026-07-01',
         },

@@ -79,6 +79,26 @@ void main() {
     expect(a.tips.length, 4);
   });
 
+  test('the AI Mentor: the same Claude request to the relay, without a key', () async {
+    late http.Request sent;
+    final client = MockClient((r) async {
+      sent = r;
+      return _json({'stop_reason': 'end_turn', 'content': [{'type': 'text', 'text': jsonEncode(_answer)}]});
+    });
+    final a = await requestAdvice(
+        provider: AiProvider.claude, apiKey: '', model: 'claude-sonnet-5-5', prompt: 'PROMPT', lang: 'ja', client: client, retryDelay: Duration.zero,
+        relay: Uri.parse('https://relay.example/advice'), clientId: 'user-1');
+    expect(sent.url.toString(), 'https://relay.example/advice');
+    expect(sent.headers.containsKey('x-api-key'), isFalse, reason: 'the relay holds the key');
+    expect(sent.headers['x-kb-client'], 'user-1');
+    final body = jsonDecode(sent.body) as Map<String, dynamic>;
+    expect(body['messages'], [
+      {'role': 'user', 'content': 'PROMPT'},
+    ], reason: 'the same raw data as "Ask AI"');
+    expect(body['system'], contains('Japanese'));
+    expect(a.summary, 'Good start.');
+  });
+
   test('Claude: Haiku is asked without a fallback, and a fallback refusal is retried without it', () async {
     final bodies = <Map<String, dynamic>>[];
     final ok = _json({'stop_reason': 'end_turn', 'content': [{'type': 'text', 'text': jsonEncode(_answer)}]});

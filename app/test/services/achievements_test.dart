@@ -190,6 +190,9 @@ void main() {
     expect(level('highNote', AchievementFacts(takes: f.takes, ownHigh: 73, ownLow: 45)), 0, reason: 'only 2 keys above C#5');
     expect(level('lowNote', AchievementFacts(takes: [take('d', '2026-11-13T20:00:00', 80, low: 42.4)], ownHigh: 72, ownLow: 45)), 1, reason: 'F#2, 3 keys below A2');
     expect(level('warmup', f), 1, reason: 'the 13th starts with an S');
+    expect(level('perfect100', f), 0);
+    expect(level('perfect100', AchievementFacts(takes: [take('a', '2026-11-14T20:00:00', 99.96, rank: 'SSS')])), 1, reason: 'shows as 100.0');
+    expect(level('perfect100', AchievementFacts(takes: [take('a', '2026-11-14T20:00:00', 99.94, rank: 'SSS')])), 0, reason: 'shows as 99.9');
     expect(level('earlyBird', f), 0, reason: 'no day starts between 7 and 9');
     final early = AchievementFacts(takes: [take('a', '2026-11-14T07:30:00', 70), take('a', '2026-11-14T10:00:00', 80)]);
     expect(level('earlyBird', early), 1);
@@ -277,7 +280,7 @@ void main() {
     expect(pts('shareCard'), 10);
     expect(pts('nightOwl'), lessThan(pts('rankSSS')), reason: 'a time of day is not an SSS');
     final secrets = achievements.where((a) => a.category == AchievementCategory.secret).fold<int>(0, (s, a) => s + a.pointsOf(1));
-    expect(secrets, 300, reason: 'the secrets are worth double');
+    expect(secrets, 400, reason: 'the secrets are worth double, and a 100 is worth 100');
     expect(pts('graduate'), lessThan(pts('takes', 3)));
     final basics = achievements.where((a) => a.category == AchievementCategory.basics).fold<int>(0, (s, a) => s + a.pointsOf(1));
     expect(basics, 110, reason: '17 tasks of 5 and graduating');

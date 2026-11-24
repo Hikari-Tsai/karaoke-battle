@@ -27,6 +27,7 @@ import '../widgets/calibration.dart';
 import '../../state/loudness.dart';
 import '../widgets/info_tip.dart';
 import 'setting_row.dart';
+import '../results/score_reveal.dart' show ResultSfx;
 import '../startup/setup_rows.dart';
 import '../startup/ytdlp_dialog.dart';
 import '../widgets/brand.dart';
@@ -681,6 +682,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text(tr('settings.resultSoundsHint')),
                 value: settings.resultSounds,
                 onChanged: settings.setResultSounds,
+              ),
+              SettingRow(
+                title: tr('settings.sfxVolume'),
+                subtitle: tr('settings.sfxVolumeHint'),
+                trailing: SliderControl(
+                  slider: Slider(
+                    divisions: 20,
+                    value: settings.sfxVolume,
+                    label: '${(settings.sfxVolume * 100).round()}%',
+                    onChanged: settings.resultSounds ? settings.setSfxVolume : null,
+                    // Hear the level just set.
+                    onChangeEnd: (_) => ResultSfx.once(settings, 'item'),
+                  ),
+                  value: '${(settings.sfxVolume * 100).round()}%',
+                ),
               ),
               // The same setting as the camera button on the sing screen.
               SwitchListTile(

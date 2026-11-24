@@ -21,6 +21,7 @@ import 'history/history_screen.dart';
 import 'rules/rules_screen.dart';
 import 'library/library_screen.dart';
 import 'profile/profile_screen.dart';
+import 'profile/item_celebration.dart';
 import 'profile/achievements_view.dart';
 import 'profile/singing_avatar.dart';
 import 'lyrics/no_lyrics_dialog.dart';
@@ -144,8 +145,8 @@ class _AppShellState extends State<AppShell> {
     if (!_readyGlobal) {
       return SetupGate(checking: _checking, onContinue: () => setState(() => _readyGlobal = true));
     }
-    // Achievement unlocks pop up over every page.
-    return AchievementPopups(
+    // Achievement unlocks and items gained pop up over every page.
+    return ItemGainPopups(child: AchievementPopups(
       child: Scaffold(
       body: Row(
         children: [
@@ -242,7 +243,7 @@ class _AppShellState extends State<AppShell> {
         ],
       ),
     ),
-    );
+    ));
   }
 }
 

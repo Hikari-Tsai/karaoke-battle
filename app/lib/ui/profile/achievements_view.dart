@@ -243,45 +243,234 @@ class _AchievementTile extends StatefulWidget {
   State<_AchievementTile> createState() => _AchievementTileState();
 }
 
-class _AchievementTileState extends State<_AchievementTile> {
+class _AchievementTileState extends State<_AchievementTile> with SingleTickerProviderStateMixin {
   bool _hover = false;
 
-  /// The tier picked with the dots (1-based); null shows the next to reach.
-  int? _view;
+  /// Tiered goals are a deck of cards, one per tier: the order, front first.
+  /// Dragging the top card off sends it to the back with a shuffle; a tier's
+  /// dot brings that card to the front. Null until the cards are touched (the
+  /// next tier to reach is on top).
+  List<int>? _order;
+  double _drag = 0;
+  double _from = 0;
+  int _sign = 1;
+  late final AnimationController _shuffle = AnimationController(vsync: this, duration: const Duration(milliseconds: 460));
+
+  /// The space the cards behind take (right and below).
+  static const deckInset = 14.0;
+
+  int get _count => widget.def.thresholds.length;
+  int get _defaultFront => widget.tier >= _count ? _count : widget.tier + 1;
+
+  List<int> get _deck => _order ?? [for (var k = 0; k < _count; k++) (_defaultFront - 1 + k) % _count + 1];
+
+  @override
+  void dispose() {
+    _shuffle.dispose();
+    super.dispose();
+  }
+
+  /// Sends the front card to the back, off to the right ([sign] 1) or left.
+  Future<void> _shuffleOnce(int sign, {Duration? duration}) async {
+    if (_shuffle.isAnimating || _count < 2) return;
+    setState(() {
+      _sign = sign;
+      _from = _drag;
+    });
+    _shuffle.duration = duration ?? const Duration(milliseconds: 460);
+    await _shuffle.forward(from: 0);
+    if (!mounted) return;
+    setState(() {
+      final d = _deck;
+      _order = [...d.skip(1), d.first];
+      _drag = 0;
+      _from = 0;
+      _shuffle.value = 0;
+    });
+  }
+
+  /// Shuffles until [tier]'s card is on top.
+  Future<void> _bringToFront(int tier) async {
+    var steps = _deck.indexOf(tier);
+    while (steps-- > 0 && mounted) {
+      await _shuffleOnce(1, duration: const Duration(milliseconds: 300));
+    }
+  }
+
+  @override
+  void didUpdateWidget(_AchievementTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A new tier reached: the next one comes on top again.
+    if (oldWidget.tier != widget.tier) _order = null;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final def = widget.def, tier = widget.tier, value = widget.value;
+    final def = widget.def, tier = widget.tier;
     final revealed = def.hidden && tier == 0 && _revealSecrets(context);
     final secret = def.hidden && tier == 0 && !revealed;
-    final maxed = tier >= def.thresholds.length;
-    // The tier shown: picked with the dots, else the next to reach (or the
-    // last one, when all are done).
-    final shown = _view ?? (maxed ? def.thresholds.length : tier + 1);
+    final border = tier > 0 ? medalColor(def, tier) : cs.outlineVariant;
+    final deck = def.tiered && !secret && _count > 1;
+
+    Widget card(Widget child, {bool front = true}) => AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: front && _hover ? cs.surfaceContainerHigh : cs.surfaceContainer,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: border.withValues(alpha: tier > 0 ? (_hover ? 0.9 : 0.5) : (_hover ? 0.5 : 0.25))),
+            boxShadow: deck ? const [BoxShadow(color: Color(0x40000000), blurRadius: 8, offset: Offset(0, 3))] : null,
+          ),
+          child: child,
+        );
+
+    Widget body;
+    if (!deck) {
+      body = Padding(padding: const EdgeInsets.only(right: deckInset, bottom: deckInset), child: card(_face(context, _defaultFront, secret: secret, revealed: revealed)));
+    } else {
+      body = AnimatedBuilder(
+        animation: _shuffle,
+        builder: (context, _) => LayoutBuilder(builder: (context, c) => _deckView(context, c.maxWidth, card, revealed)),
+      );
+      body = MouseRegion(
+        cursor: _shuffle.isAnimating ? SystemMouseCursors.basic : SystemMouseCursors.grab,
+        child: GestureDetector(
+          onHorizontalDragUpdate: (d) {
+            if (!_shuffle.isAnimating) setState(() => _drag += d.delta.dx);
+          },
+          onHorizontalDragEnd: (d) {
+            final v = d.primaryVelocity ?? 0;
+            if (_drag.abs() > 60 || v.abs() > 500) {
+              _shuffleOnce((_drag != 0 ? _drag : v).sign.toInt() == 0 ? 1 : (_drag != 0 ? _drag : v).sign.toInt());
+            } else {
+              setState(() => _drag = 0);
+            }
+          },
+          onHorizontalDragCancel: () => setState(() => _drag = 0),
+          child: body,
+        ),
+      );
+    }
+    final tile = MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      // Lifts a little under the pointer.
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, _hover ? -3 : 0, 0),
+        child: body,
+      ),
+    );
+    // 開發模式: a double click takes it back, to see it unlocked again.
+    if (tier == 0 || !devFeatures(context.watch<AppSettings>())) return tile;
+    return Tooltip(
+      message: tr('ach.devRevokeTip'),
+      waitDuration: const Duration(milliseconds: 600),
+      child: GestureDetector(onDoubleTap: () => _revoke(context), child: tile),
+    );
+  }
+
+  /// The deck: the cards behind peek out to the right and below; the top one
+  /// follows a drag, and a shuffle flies it out and tucks it in at the back
+  /// while the others move up.
+  Widget _deckView(BuildContext context, double width, Widget Function(Widget, {bool front}) card, bool revealed) {
+    final cs = Theme.of(context).colorScheme;
+    final d = _deck;
+    final n = d.length;
+    final u = _shuffle.value;
+    final e = Curves.easeInOutCubic.transform(u);
+    const step = deckInset / 2;
+    Offset slot(double k) => Offset(step * k, step * k);
+    double rot(double k) => 0.018 * k;
+    final w = width - deckInset;
+
+    // A card behind: its edge in the tier's colour (bright once reached).
+    Widget back(int t) {
+      final c = [_bronze, _silver, _gold][t - 1];
+      final got = t <= widget.tier;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: Color.alphaBlend(c.withValues(alpha: got ? 0.22 : 0.08), cs.surfaceContainer),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.withValues(alpha: got ? 0.9 : 0.35), width: 1.5),
+          boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 8, offset: Offset(0, 3))],
+        ),
+      );
+    }
+
+    Widget place(Offset o, double r, Widget child) => Positioned(
+          left: o.dx,
+          top: o.dy,
+          width: w,
+          bottom: deckInset - o.dy,
+          child: Transform.rotate(angle: r, alignment: Alignment.bottomCenter, child: child),
+        );
+
+    final cards = <Widget>[];
+    // The ones behind, back to front, moving up one place during a shuffle.
+    for (var k = n - 1; k >= 1; k--) {
+      final at = u > 0 ? slot(k - e) : slot(k.toDouble());
+      final r = u > 0 ? rot(k - e) : rot(k.toDouble());
+      final t = d[k];
+      final rising = k == 1 && u > 0;
+      cards.add(place(
+        at,
+        r,
+        rising
+            ? Stack(fit: StackFit.expand, children: [back(t), Opacity(opacity: e, child: IgnorePointer(child: card(_face(context, t, revealed: revealed))))])
+            : back(t),
+      ));
+    }
+    // The top card: follows the drag; in a shuffle it flies out, then tucks
+    // in behind the others.
+    final out = _sign * w * 0.42;
+    final Offset topAt;
+    final double topRot;
+    if (u == 0) {
+      topAt = Offset(_drag, 0);
+      topRot = _drag / 900;
+    } else if (u < 0.5) {
+      final a = Curves.easeOutCubic.transform(u * 2);
+      topAt = Offset(_from + (out - _from) * a, -10 * a);
+      topRot = (_from / 900) + (_sign * 0.22 - _from / 900) * a;
+    } else {
+      final a = Curves.easeInOutCubic.transform((u - 0.5) * 2);
+      final to = slot(n - 1.0);
+      topAt = Offset(out + (to.dx - out) * a, -10 + (to.dy + 10) * a);
+      topRot = _sign * 0.22 + (rot(n - 1.0) - _sign * 0.22) * a;
+    }
+    // The top card lays the deck out (the others fill its size); it is
+    // drawn last, or first once a shuffle tucks it in at the back.
+    final topFace = u < 0.5
+        ? card(_face(context, d.first, revealed: revealed))
+        : Stack(children: [
+            Positioned.fill(child: back(d.first)),
+            Opacity(opacity: 1 - (u - 0.5) * 2, child: IgnorePointer(child: card(_face(context, d.first, revealed: revealed)))),
+          ]);
+    final top = Padding(
+      padding: const EdgeInsets.only(right: deckInset, bottom: deckInset),
+      child: Transform.translate(offset: topAt, child: Transform.rotate(angle: topRot, alignment: Alignment.bottomCenter, child: topFace)),
+    );
+    return Stack(clipBehavior: Clip.none, children: u < 0.5 ? [...cards, top] : [top, ...cards]);
+  }
+
+  /// A card's face: the medal, name, what tier [shown] asks for, the bar, the
+  /// tier dots and the points.
+  Widget _face(BuildContext context, int shown, {bool secret = false, bool revealed = false}) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final def = widget.def, tier = widget.tier, value = widget.value;
     final reached = shown <= tier;
     final next = def.thresholds[shown - 1];
     final progress = reached ? 1.0 : (value / next).clamp(0.0, 1.0);
     final c = def.tiered ? [_bronze, _silver, _gold][shown - 1] : _categoryColor[def.category]!;
     final shownDate = shown - 1 < widget.dates.length ? widget.dates[shown - 1] : null;
     final delay = Duration(milliseconds: 120 + 50 * widget.index);
-    final border = tier > 0 ? medalColor(def, tier) : cs.outlineVariant;
-    final tile = MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      // Lifts a little under the pointer, its border brighter.
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        transform: Matrix4.translationValues(0, _hover ? -3 : 0, 0),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: _hover ? cs.surfaceContainerHigh : cs.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: border.withValues(alpha: tier > 0 ? (_hover ? 0.9 : 0.5) : (_hover ? 0.5 : 0.25))),
-        ),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // The medal pops in; an unlocked one catches the light now and then.
           Entrance(
             delay: delay,
@@ -359,7 +548,7 @@ class _AchievementTileState extends State<_AchievementTile> {
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => setState(() => _view = _view == t ? null : t),
+                          onTap: () => _bringToFront(t == shown ? _defaultFront : t),
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 3, 6, 3),
                             child: AnimatedContainer(
@@ -389,16 +578,7 @@ class _AchievementTileState extends State<_AchievementTile> {
               ],
             ]),
           ),
-        ]),
-      ),
-    );
-    // 開發模式: a double click takes it back, to see it unlocked again.
-    if (tier == 0 || !devFeatures(context.watch<AppSettings>())) return tile;
-    return Tooltip(
-      message: tr('ach.devRevokeTip'),
-      waitDuration: const Duration(milliseconds: 600),
-      child: GestureDetector(onDoubleTap: () => _revoke(context), child: tile),
-    );
+        ]);
   }
 
   Future<void> _revoke(BuildContext context) async {

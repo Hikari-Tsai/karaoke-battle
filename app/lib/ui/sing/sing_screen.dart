@@ -26,6 +26,7 @@ import '../../state/note_edits.dart';
 import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
 import '../results/results_screen.dart';
+import '../results/score_reveal.dart' show ResultSfx;
 import 'piano_roll.dart';
 import '../lyrics/lyrics_actions.dart';
 import 'lyrics_overlay.dart';
@@ -115,6 +116,38 @@ class _SingScreenState extends State<SingScreen>
 
   /// Start recording pressed: count down 3-2-1 (playback paused), then
   /// record. Pressing it again or Esc cancels.
+  /// Record: with a Resonance Field held and not cast yet, asks first
+  /// whether to sing in it; with none, straight to the countdown.
+  Future<void> _record() async {
+    final s = _session;
+    if (s == null || s.recording || _countdown != null) return;
+    final held = context.read<ItemService>().ownedOf(ItemKind.resonanceField);
+    if (!s.fieldArmed && held > 0) {
+      const cyan = Color(0xFF3FC8DE);
+      final use = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(Icons.wifi_tethering, color: cyan, size: 36),
+          title: Text(tr('field.askTitle')),
+          content: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: Text(tr('field.askBody', {'n': held}))),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('field.askNo'))),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: cyan, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.wifi_tethering, size: 18),
+              label: Text(tr('field.askYes')),
+            ),
+          ],
+        ),
+      );
+      if (use == null || !mounted) return; // closed: not recording yet
+      if (use && await s.setFieldArmed(true)) unawaited(ResultSfx.once(s.services.settings, 'field'));
+      if (!mounted) return;
+    }
+    _startCountdown();
+  }
+
   void _startCountdown() {
     final s = _session;
     if (s == null || s.recording || _countdown != null) return;
@@ -795,7 +828,7 @@ class _SingScreenState extends State<SingScreen>
                           session: s,
                           busy: _busy,
                           countdown: _countdown,
-                          onRecord: _startCountdown,
+                          onRecord: _record,
                           onCancelCountdown: _cancelCountdown,
                           onStop: _stopAndScore,
                           editing: _editing,
@@ -2094,7 +2127,8 @@ class _Controls extends StatelessWidget {
                   flex: 3,
                   child: Tooltip(
                   message: _volumeTip(s),
-                  child: Row(
+                  // Very narrow: the AUTO mark goes (its state is in the tooltip).
+                  child: LayoutBuilder(builder: (context, box) => Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.volume_up, size: 18),
@@ -2115,7 +2149,7 @@ class _Controls extends StatelessWidget {
                       ),
                       // Lit while the volume is automatic; grey once the
                       // slider was moved, and a click turns it back on.
-                      InkWell(
+                      if (box.maxWidth >= 120) InkWell(
                         borderRadius: BorderRadius.circular(4),
                         onTap: enabled && !s.volumeAuto ? s.setVolumeAuto : null,
                         child: Padding(
@@ -2130,7 +2164,7 @@ class _Controls extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ),
+                  )),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2145,14 +2179,18 @@ class _Controls extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Tooltip(
+                // Shrinks with the volume on a narrow window.
+                Flexible(
+                  flex: 2,
+                  child: Tooltip(
                   message: '${tr('sing.window')}: ${s.windowSeconds.toInt()} s',
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.zoom_in, size: 18),
-                      SizedBox(
-                        width: 100,
+                      Flexible(
+                        child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 100),
                         child: Slider(
                           value: s.windowSeconds,
                           min: 4,
@@ -2160,8 +2198,10 @@ class _Controls extends StatelessWidget {
                           divisions: 12,
                           onChanged: s.setWindowSeconds,
                         ),
+                        ),
                       ),
                     ],
+                  ),
                   ),
                 ),
                 IconButton(
@@ -2246,7 +2286,7 @@ class _FieldButton extends StatelessWidget {
     final items = context.read<ItemService>();
     const kind = ItemKind.resonanceField;
     if (items.ownedOf(kind) > 0) {
-      await s.setFieldArmed(true);
+      if (await s.setFieldArmed(true)) unawaited(ResultSfx.once(s.services.settings, 'field'));
       return;
     }
     final canBuy = items.canRedeem(kind);
@@ -2273,7 +2313,7 @@ class _FieldButton extends StatelessWidget {
         ],
       ),
     );
-    if (go == true) await s.setFieldArmed(true, redeem: true);
+    if (go == true && await s.setFieldArmed(true, redeem: true)) unawaited(ResultSfx.once(s.services.settings, 'field'));
   }
 
   @override
@@ -2281,18 +2321,20 @@ class _FieldButton extends StatelessWidget {
     final s = session;
     final held = context.watch<ItemService>().ownedOf(ItemKind.resonanceField);
     final on = s.fieldArmed;
-    final label = on ? tr('field.on') : '${tr('items.resonanceField.name')} × $held';
+    // Small (an icon and how many are held), so the record button keeps
+    // its room; the name and what it does are in the tooltip.
+    final label = on ? '✓' : '× $held';
     return Tooltip(
-      message: on ? tr('field.onTip') : tr('field.tip'),
+      message: '${tr('items.resonanceField.name')}\n${on ? tr('field.onTip') : tr('field.tip')}',
       child: on
           ? FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: _cyan, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(backgroundColor: _cyan, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12), visualDensity: VisualDensity.compact),
               onPressed: s.recording ? null : () => _toggle(context),
               icon: const Icon(Icons.wifi_tethering, size: 18),
               label: Text(label),
             )
           : OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: _cyan, side: BorderSide(color: _cyan.withValues(alpha: 0.6))),
+              style: OutlinedButton.styleFrom(foregroundColor: _cyan, side: BorderSide(color: _cyan.withValues(alpha: 0.6)), padding: const EdgeInsets.symmetric(horizontal: 12), visualDensity: VisualDensity.compact),
               onPressed: s.recording ? null : () => _toggle(context),
               icon: const Icon(Icons.wifi_tethering, size: 18),
               label: Text(label),

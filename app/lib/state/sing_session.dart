@@ -895,13 +895,19 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
 
   /// [keepGate]: the noise gate the take was scored with, not the current
   /// one (so only what changed on purpose moves the score).
-  static Future<ScoreData> _scoreSaved(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant, {bool keepGate = false}) async {
+  /// The score [take] would get with the Tuning Wand also used on the notes
+  /// [spans] (onset, offset; scored as it was, nothing saved).
+  static Future<ScoreData> previewWand(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant, List<(double, double)> spans) =>
+      _scoreSaved(services, files, take, octaveInvariant, keepGate: true, previewSpans: spans);
+
+  static Future<ScoreData> _scoreSaved(AppServices services, SongFiles files, TakeInfo take, bool octaveInvariant, {bool keepGate = false, List<(double, double)> previewSpans = const []}) async {
     final settings = services.settings;
+    final preview = previewSpans.isNotEmpty;
     double? gate = settings.noiseGateEnabled ? settings.noiseGateDb : null;
     if (keepGate) gate = ((await ScoringBridge.load(take.scoreJson))?.raw['noise_gate_db'] as num?)?.toDouble();
     // The take keeps the notes it is scored against, so later edits or
     // cleaning of the song's notes do not shift its results and replay.
-    await snapshotTakeNotes(files.notesJson, [take.dir]);
+    if (!preview) await snapshotTakeNotes(files.notesJson, [take.dir]);
     final score = await ScoringBridge.scoreAndSave(
       notesJsonPath: await take.notesFor(files.notesJson),
       refF0JsonPath: files.refF0Json,
@@ -915,8 +921,9 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       // Rhythm windows follow the song tempo (manual BPM first, else detected).
       tempoBpm: (await TempoOverride.load(files.tempoJson)).bpm ?? (await DetectedBeats.load(files.beatsJson))?.bpm,
       calibratedTiming: settings.latencySeconds != null,
+      previewSpans: previewSpans,
     );
-    services.library.markTakesChanged(files);
+    if (!preview) services.library.markTakesChanged(files);
     return score;
   }
 

@@ -8,11 +8,17 @@ third-party license. Re-run after tweaking:
 
 Needs numpy, scipy and ffmpeg (for the mp3 encode).
 
-  roll.mp3       slot-machine reel ticks, fast then slowing, timed to the
-                 score counter (ROLL_SECONDS, ROLL_EASE)
-  ding.mp3       the reels locking in: a thunk and a bell
-  celebrate.mp3  new personal best: fanfare stab, cheering crowd, applause
-                 and whistles
+  roll.mp3         slot-machine reel ticks, fast then slowing, timed to the
+                   score counter (ROLL_SECONDS, ROLL_EASE)
+  ding.mp3         the reels locking in: a thunk and a bell
+  ding_s.mp3       the same for an S or better: a bright chord and sparkles
+  celebrate.mp3    new personal best: fanfare stab, cheering crowd, applause
+                   and whistles
+  achievement.mp3  an achievement unlocked: a marimba run up to a ringing chord
+  item.mp3         an item redeemed: a harp sweep up to a chime
+  daily.mp3        the daily top-up: two music-box notes and a twinkle
+  wand.mp3         the Tuning Wand used: a swish up and sparkles, then a ting
+  field.mp3        the Resonance Field cast: a low swell opening into a shimmer
 """
 import os
 import subprocess
@@ -100,6 +106,140 @@ def ding():
         bell += amp * np.sin(2 * np.pi * 1320 * ratio * t) * np.exp(-t / decay)
     out = 0.5 * thunk
     place(out, 0.45 * bell, 0.02)
+    return out
+
+
+def bell_tone(freq, seconds, decay=0.9, partials=((1, 1, 1), (2.76, 0.5, 0.5), (5.40, 0.25, 0.28), (8.93, 0.12, 0.16))):
+    """A struck bell: inharmonic partials, each fading at its own rate."""
+    t = t_axis(seconds)
+    out = np.zeros_like(t)
+    for ratio, amp, d in partials:
+        out += amp * np.sin(2 * np.pi * freq * ratio * t) * np.exp(-t / (decay * d))
+    return out * np.minimum(t / 0.002, 1)
+
+
+def marimba(freq, seconds=0.5):
+    """A wooden bar: the fundamental and its 4th harmonic, short."""
+    t = t_axis(seconds)
+    out = np.sin(2 * np.pi * freq * t) * np.exp(-t / 0.22) + 0.35 * np.sin(2 * np.pi * freq * 4 * t) * np.exp(-t / 0.04)
+    return out * np.minimum(t / 0.002, 1)
+
+
+def pluck(freq, seconds=0.8):
+    """A harp string (Karplus-Strong)."""
+    n = int(seconds * SR)
+    period = max(2, int(SR / freq))
+    buf = rng.uniform(-1, 1, period)
+    out = np.zeros(n)
+    for i in range(n):
+        out[i] = buf[i % period]
+        buf[i % period] = 0.5 * (buf[i % period] + buf[(i + 1) % period]) * 0.996
+    return lowpass(out, 6000)
+
+
+def music_box(freq, seconds=1.4):
+    t = t_axis(seconds)
+    tone = np.sin(2 * np.pi * freq * t) + 0.3 * np.sin(2 * np.pi * freq * 3 * t) * np.exp(-t / 0.15)
+    return tone * np.exp(-t / 0.55) * np.minimum(t / 0.003, 1) * (1 + 0.08 * np.sin(2 * np.pi * 6 * t))
+
+
+def sparkles(seconds, count, lo=3000, hi=7000, start=0.0, spread=None, rise=False):
+    """Tiny high pings scattered over [start, start + spread]."""
+    out = np.zeros(int(seconds * SR))
+    spread = spread or seconds - start - 0.2
+    for k in range(count):
+        u = k / max(count - 1, 1)
+        f = (lo + (hi - lo) * u) if rise else rng.uniform(lo, hi)
+        at = start + (u * spread if rise else rng.uniform(0, spread))
+        t = t_axis(0.25)
+        ping = np.sin(2 * np.pi * f * t) * np.exp(-t / 0.05) * np.minimum(t / 0.003, 1)
+        place(out, ping * rng.uniform(0.3, 0.7), at)
+    return out
+
+
+def swish(seconds, f_from, f_to):
+    """Noise through a band that sweeps from [f_from] to [f_to]."""
+    # Fixed bands along the sweep, each faded in and out at its moment, so
+    # the filters run continuously (no clicks between blocks).
+    t = t_axis(seconds)
+    u = t / seconds
+    noise = rng.standard_normal(len(t))
+    out = np.zeros_like(t)
+    bands = 14
+    for k in range(bands):
+        c = f_from * (f_to / f_from) ** (k / (bands - 1))
+        band = bandpass(noise, c * 0.75, min(c * 1.33, SR / 2 - 100))
+        bump = np.exp(-((u - k / (bands - 1)) / (1.2 / bands)) ** 2)
+        out += band * bump
+    env = np.sin(np.pi * np.clip(u, 0, 1)) ** 1.5
+    return out * env
+
+
+def ding_s():
+    """S and up: the reels lock in, then a bright major chord and a sparkle run."""
+    out = ding() * 0.8
+    out = np.concatenate([out, np.zeros(int(0.8 * SR))])
+    for i, f in enumerate([1046.5, 1318.5, 1568.0, 2093.0]):
+        place(out, bell_tone(f, 1.8, 0.8) * 0.28, 0.05 + 0.04 * i)
+    out += sparkles(len(out) / SR, 10, 3500, 8000, start=0.12, spread=0.6, rise=True) * 0.35
+    return out
+
+
+def achievement():
+    """Unlocked: a marimba run G5-C6-E6-G6, then a ringing C major chord."""
+    out = np.zeros(int(2.4 * SR))
+    for i, f in enumerate([783.99, 1046.5, 1318.5, 1568.0]):
+        place(out, marimba(f) * 0.6, 0.075 * i)
+    for f in [1046.5, 1318.5, 1568.0, 2093.0]:
+        place(out, bell_tone(f, 2.0, 1.1) * 0.22, 0.32)
+    out += sparkles(2.4, 12, 3000, 7500, start=0.35, spread=1.0) * 0.3
+    return out
+
+
+def item():
+    """Redeemed: a harp sweep up a pentatonic scale to a chime."""
+    out = np.zeros(int(2.0 * SR))
+    scale = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5, 1174.66, 1318.5, 1568.0, 1760.0]
+    for i, f in enumerate(scale):
+        place(out, pluck(f, 0.9) * (0.35 + 0.04 * i), 0.035 * i)
+    place(out, bell_tone(2093.0, 1.6, 0.9) * 0.35, 0.38)
+    place(out, bell_tone(2637.0, 1.4, 0.7) * 0.2, 0.40)
+    out += sparkles(2.0, 8, 4000, 8000, start=0.4, spread=0.8) * 0.25
+    return out
+
+
+def daily():
+    """The daily top-up: two music-box notes and a soft twinkle."""
+    out = np.zeros(int(2.0 * SR))
+    place(out, music_box(1318.5) * 0.5, 0.0)
+    place(out, music_box(1975.5) * 0.5, 0.18)
+    place(out, music_box(1568.0) * 0.3, 0.18)
+    out += sparkles(2.0, 6, 4000, 7000, start=0.3, spread=0.6) * 0.2
+    return out
+
+
+def wand():
+    """The wand: a swish rising, sparkles trailing up, and a clear ting."""
+    out = np.zeros(int(1.8 * SR))
+    place(out, swish(0.45, 600, 6000) * 0.5, 0.0)
+    out += sparkles(1.8, 9, 2500, 7500, start=0.08, spread=0.4, rise=True) * 0.4
+    place(out, bell_tone(2349.3, 1.3, 0.8) * 0.5, 0.42)
+    place(out, bell_tone(3135.9, 1.0, 0.6) * 0.25, 0.43)
+    return out
+
+
+def field():
+    """The field: a low swell (a fifth) with wind, opening into a shimmer."""
+    length = 2.2
+    t = t_axis(length)
+    swell = np.minimum(t / 0.7, 1) ** 2 * np.exp(-np.maximum(t - 0.8, 0) / 0.6)
+    hum = (np.sin(2 * np.pi * 110 * t) + 0.6 * np.sin(2 * np.pi * 165 * t) + 0.3 * np.sin(2 * np.pi * 220 * t)) * swell * 0.5
+    wind = swish(1.2, 300, 2500) * 0.35
+    out = hum
+    place(out, wind, 0.0)
+    for i, f in enumerate([880.0, 1318.5, 1760.0, 2637.0]):
+        place(out, bell_tone(f, 1.4, 0.9) * 0.18, 0.7 + 0.05 * i)
+    out += sparkles(length, 10, 3000, 7000, start=0.75, spread=0.9) * 0.25
     return out
 
 
@@ -229,6 +369,11 @@ def write_mp3(name, x, peak=0.89):
 
 
 if __name__ == '__main__':
-    write_mp3('roll', roll(), 0.7)
-    write_mp3('ding', ding(), 0.8)
-    write_mp3('celebrate', celebrate())
+    only = set(sys.argv[1:])
+    sounds = {
+        'roll': (roll, 0.7), 'ding': (ding, 0.8), 'ding_s': (ding_s, 0.8), 'celebrate': (celebrate, 0.89),
+        'achievement': (achievement, 0.8), 'item': (item, 0.8), 'daily': (daily, 0.7), 'wand': (wand, 0.75), 'field': (field, 0.75),
+    }
+    for name, (make, peak) in sounds.items():
+        if not only or name in only:
+            write_mp3(name, make(), peak)

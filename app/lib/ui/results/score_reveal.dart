@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 
+import '../../services/settings.dart';
 import '../../state/i18n.dart';
 import '../widgets/rank.dart';
 
@@ -29,12 +30,31 @@ class SlotCurve extends Curve {
   double slope(double t) => power * math.pow(1 - t.clamp(0.0, 1.0), power - 1).toDouble();
 }
 
-/// The results sounds. Silent when turned off or under `flutter test`.
+/// The app's sound effects (synthesized by tools/sfx/make_sfx.py), at the
+/// effect volume from Settings. Silent when turned off or under
+/// `flutter test`.
 class ResultSfx {
-  ResultSfx({required this.enabled});
+  /// [only]: the sounds to open (all of them by default).
+  ResultSfx({required this.enabled, this.volume = 0.5, this.only});
   final bool enabled;
 
-  static const names = ['roll', 'ding', 'celebrate'];
+  /// 0..1 (Settings → effect volume).
+  final double volume;
+  final List<String>? only;
+
+  static const names = ['roll', 'ding', 'ding_s', 'celebrate', 'achievement', 'item', 'daily', 'wand', 'field'];
+
+  /// From the settings: on or off, and the volume.
+  factory ResultSfx.of(AppSettings settings, {List<String>? only}) => ResultSfx(enabled: settings.resultSounds, volume: settings.sfxVolume, only: only);
+
+  /// Opens [name] and plays it once (for a single moment).
+  static Future<void> once(AppSettings settings, String name) async {
+    final sfx = ResultSfx.of(settings, only: [name]);
+    await sfx.preload();
+    await sfx.play(name);
+    // Long enough for any of them to ring out.
+    Future<void>.delayed(const Duration(seconds: 8), sfx.dispose);
+  }
   static bool get _supported => !Platform.environment.containsKey('FLUTTER_TEST');
 
   final _players = <String, Player>{};
@@ -46,7 +66,7 @@ class ResultSfx {
 
   Future<void> _preload() async {
     if (!enabled || !_supported) return;
-    for (final name in names) {
+    for (final name in only ?? names) {
       try {
         final player = Player();
         if (_disposed) {
@@ -54,6 +74,7 @@ class ResultSfx {
           return;
         }
         _players[name] = player;
+        await player.setVolume((volume.clamp(0.0, 1.0) * 100).toDouble());
         await player.open(Media('asset:///assets/sfx/$name.mp3'), play: false);
       } catch (_) {
         // No sound is better than no results.

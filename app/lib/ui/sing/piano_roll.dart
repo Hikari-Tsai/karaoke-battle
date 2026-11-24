@@ -2,7 +2,8 @@
 //
 // Scrolling mode: a window of [windowSeconds] around a ValueListenable
 // position with the playhead at [playheadFraction]; repaints are driven by the
-// listenable (no widget rebuilds). Static mode: the whole [totalDuration].
+// listenable (no widget rebuilds). Static mode: the whole [totalDuration],
+// or a zoomed part of it ([viewStart], [viewSpan]).
 // Only the visible window is painted (binary searches into the flat arrays).
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -96,6 +97,8 @@ class PianoRollPainter extends CustomPainter {
     this.playheadFraction = 0.3,
     this.pitchShift = 0,
     this.totalDuration,
+    this.viewStart = 0,
+    this.viewSpan,
     this.gutter = 46,
     this.selectedNote,
     this.revision = 0,
@@ -108,7 +111,11 @@ class PianoRollPainter extends CustomPainter {
     this.sungMidi,
     this.wandNotes = const {},
     this.fieldAura = false,
+    this.selectedNotes = const {},
   }) : super(repaint: Listenable.merge([position, sungMidi]));
+
+  /// More notes framed like [selectedNote] (picked for the Tuning Wand).
+  final Set<int> selectedNotes;
 
   /// The Resonance Field is on: each note has a wide soft halo, the room the
   /// lenient judging gives.
@@ -165,6 +172,11 @@ class PianoRollPainter extends CustomPainter {
 
   /// When set, the painter is static and shows 0..totalDuration.
   final double? totalDuration;
+
+  /// Static view zoomed in: [viewSpan] seconds from [viewStart] (null: the
+  /// whole [totalDuration]).
+  final double viewStart;
+  final double? viewSpan;
   final double gutter;
 
   static final Map<String, TextPainter> _labelCache = {};
@@ -189,8 +201,8 @@ class PianoRollPainter extends CustomPainter {
     final bool isStatic = totalDuration != null;
     final double t0, t1;
     if (isStatic) {
-      t0 = 0;
-      t1 = math.max(totalDuration!, 1);
+      t0 = viewStart;
+      t1 = t0 + (viewSpan ?? math.max(totalDuration!, 1));
     } else {
       final pos = position?.value ?? 0;
       t0 = pos - windowSeconds * playheadFraction;
@@ -323,17 +335,20 @@ class PianoRollPainter extends CustomPainter {
       canvas.drawRRect(rect, paint);
       if (live && on < pos) _paintHits(canvas, rect, on, off, x);
       if (outline != null) canvas.drawRRect(rect, outline);
-      if (i == selectedNote) {
+      if (i == selectedNote || selectedNotes.contains(i)) {
+        // Yellow for the note being edited; purple for notes picked for the
+        // wand (gold is the tuned notes' own colour).
+        final c = i == selectedNote ? const Color(0xFFFFD60A) : const Color(0xFFC79BFF);
         canvas.drawRRect(
           rect.inflate(3),
           Paint()
-            ..color = const Color(0xFFFFD60A).withValues(alpha: 0.35)
+            ..color = c.withValues(alpha: 0.35)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
         );
         canvas.drawRRect(
           rect.inflate(1.5),
           Paint()
-            ..color = const Color(0xFFFFD60A)
+            ..color = c
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2.5,
         );
@@ -592,19 +607,31 @@ class PianoRollPainter extends CustomPainter {
       final yy = y(notes.pitch[i] + pitchShift);
       final rect = RRect.fromRectAndRadius(Rect.fromLTRB(x(on), yy - noteH / 2, math.max(x(off), x(on) + 2), yy + noteH / 2), Radius.circular(math.min(4, noteH / 2)));
       final played = isStatic || pos >= on;
-      // The glow: soft before the note plays, bright once it has.
+      final playing = !isStatic && pos >= on && pos < off;
+      // The whole note turns gold: lit once played, brightest (and pulsing)
+      // while it plays, so a tuned note stands out at a glance.
+      final pulse = playing ? 0.5 + 0.5 * math.sin((pos - on) * 14) : 0.0;
       canvas.drawRRect(
-        rect.inflate(4),
+        rect.inflate(playing ? 6 + 2 * pulse : 4),
         Paint()
-          ..color = _wandPurple.withValues(alpha: played ? 0.55 : 0.25)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+          ..color = _wandGold.withValues(alpha: playing ? 0.75 : (played ? 0.55 : 0.3))
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
       );
       canvas.drawRRect(
-        rect.inflate(1.5),
+        rect,
         Paint()
-          ..shader = LinearGradient(colors: [_wandGold, _wandPurple, _wandGold]).createShader(rect.outerRect)
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: played ? const [Color(0xFFFFF1B8), _wandGold, Color(0xFFF0A81E)] : const [Color(0xCCFFE9A0), Color(0xCCFFC94A)],
+          ).createShader(rect.outerRect),
+      );
+      canvas.drawRRect(
+        rect.inflate(1),
+        Paint()
+          ..shader = LinearGradient(colors: [_wandPurple, _wandGold, _wandPurple]).createShader(rect.outerRect)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
+          ..strokeWidth = 1.5,
       );
       // The tuned pitch, drawn as the note plays.
       if (played) {
@@ -614,7 +641,8 @@ class PianoRollPainter extends CustomPainter {
             Offset(x(on), yy),
             Offset(x(end), yy),
             Paint()
-              ..color = Colors.white.withValues(alpha: 0.95)
+              // Dark on the gold, so the tuned line still reads.
+              ..color = const Color(0xFF5B2DB8).withValues(alpha: 0.9)
               ..strokeWidth = isStatic ? 2 : 3
               ..strokeCap = StrokeCap.round,
           );
@@ -686,6 +714,7 @@ class PianoRollPainter extends CustomPainter {
   bool shouldRepaint(PianoRollPainter old) =>
       old.notes != notes ||
       !setEquals(old.wandNotes, wandNotes) ||
+      !setEquals(old.selectedNotes, selectedNotes) ||
       old.fieldAura != fieldAura ||
       old.refF0 != refF0 ||
       old.trace != trace ||
@@ -694,6 +723,8 @@ class PianoRollPainter extends CustomPainter {
       old.windowSeconds != windowSeconds ||
       old.pitchShift != pitchShift ||
       old.totalDuration != totalDuration ||
+      old.viewStart != viewStart ||
+      old.viewSpan != viewSpan ||
       old.position != position ||
       old.selectedNote != selectedNote ||
       old.revision != revision ||
@@ -845,7 +876,22 @@ class PianoRollView extends StatelessWidget {
     this.sungMidi,
     this.wandNotes = const {},
     this.fieldAura = false,
+    this.onSelectNote,
+    this.selectedNotes = const {},
+    this.viewStart = 0,
+    this.viewSpan,
   });
+
+  /// See [PianoRollPainter.viewStart] and [PianoRollPainter.viewSpan].
+  final double viewStart;
+  final double? viewSpan;
+
+  /// See [PianoRollPainter.selectedNotes].
+  final Set<int> selectedNotes;
+
+  /// A click picks the note under it (null: none there); the whole-song
+  /// view (with [totalDuration]) only.
+  final ValueChanged<int?>? onSelectNote;
 
   /// See [PianoRollPainter.wandNotes] and [PianoRollPainter.fieldAura].
   final Set<int> wandNotes;
@@ -877,8 +923,7 @@ class PianoRollView extends StatelessWidget {
   final bool live;
   final double liveHoldSeconds;
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _roll(BuildContext context) {
     return RepaintBoundary(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
@@ -894,6 +939,8 @@ class PianoRollView extends StatelessWidget {
             windowSeconds: windowSeconds,
             pitchShift: pitchShift,
             totalDuration: totalDuration,
+            viewStart: viewStart,
+            viewSpan: viewSpan,
             selectedNote: selectedNote,
             revision: revision,
             beatTimes: beatTimes,
@@ -905,10 +952,55 @@ class PianoRollView extends StatelessWidget {
             sungMidi: sungMidi,
             wandNotes: wandNotes,
             fieldAura: fieldAura,
+            selectedNotes: selectedNotes,
           ),
           child: const SizedBox.expand(),
         ),
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final roll = _roll(context);
+    if (onSelectNote == null || totalDuration == null) return roll;
+    return LayoutBuilder(
+      builder: (context, c) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTapUp: (d) => onSelectNote!(noteAt(d.localPosition, c.biggest)),
+          child: roll,
+        ),
+      ),
+    );
+  }
+
+  /// The note drawn at [p] in a roll of [size] (whole-song view), with a few
+  /// pixels to spare around short notes; null when there is none.
+  int? noteAt(Offset p, Size size) {
+    const gutter = 46.0;
+    final plotW = size.width - gutter;
+    if (p.dx < gutter || plotW <= 0 || notes.isEmpty) return null;
+    final span = viewSpan ?? math.max(totalDuration!, 1).toDouble();
+    final rows = (maxMidi - minMidi) + 1;
+    final rowH = size.height / rows;
+    final t = viewStart + (p.dx - gutter) / plotW * span;
+    final midi = minMidi - 0.5 + (size.height - p.dy) / rowH;
+    final slack = 5 / plotW * span; // seconds
+    int? best;
+    var bestD = double.infinity;
+    for (var i = 0; i < notes.length; i++) {
+      final on = notes.onset[i], off = notes.offset[i];
+      if (t < on - slack || t > off + slack) continue;
+      final dy = (notes.pitch[i] + pitchShift - midi).abs();
+      if (dy > 0.9) continue;
+      final dt = t < on ? on - t : (t > off ? t - off : 0.0);
+      final d = dy + dt / slack;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
   }
 }

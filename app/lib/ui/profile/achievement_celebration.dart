@@ -73,16 +73,16 @@ class _AchievementCelebrationState extends State<AchievementCelebration> with Ti
   }
 
   Future<void> _playSound() async {
-    bool on;
+    AppSettings settings;
     try {
-      on = context.read<AppSettings>().resultSounds;
+      settings = context.read<AppSettings>();
     } catch (_) {
       return;
     }
-    if (!on || widget.time != null) return;
-    final sfx = _sfx = ResultSfx(enabled: true);
+    if (!settings.resultSounds || widget.time != null) return;
+    final sfx = _sfx = ResultSfx.of(settings, only: const ['achievement']);
     await sfx.preload();
-    if (mounted) unawaited(sfx.play('ding'));
+    if (mounted) unawaited(sfx.play('achievement'));
   }
 
   @override
@@ -177,7 +177,7 @@ class _AchievementCelebrationState extends State<AchievementCelebration> with Ti
           _rise(t, 0.2, Text(kicker, textAlign: TextAlign.center, style: kickerStyle)),
           const SizedBox(height: 28),
           Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
-            Positioned.fill(child: CustomPaint(painter: _BurstPainter(t: t, spin: _spin.value, color: accent, rays: 0.6, halo: false))),
+            Positioned.fill(child: CustomPaint(painter: CelebrationBurstPainter(t: t, spin: _spin.value, color: accent, rays: 0.6, halo: false))),
             Wrap(alignment: WrapAlignment.center, spacing: 18, runSpacing: 22, children: [
               for (final (i, u) in shown.indexed) _smallMedal(theme, t, 0.35 + 0.16 * i, u),
             ]),
@@ -200,7 +200,7 @@ class _AchievementCelebrationState extends State<AchievementCelebration> with Ti
           width: 280,
           height: 280,
           child: Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
-            Positioned.fill(child: CustomPaint(painter: _BurstPainter(t: t, spin: _spin.value, color: accent))),
+            Positioned.fill(child: CustomPaint(painter: CelebrationBurstPainter(t: t, spin: _spin.value, color: accent))),
             _bigMedal(t, u, 150),
           ]),
         ),
@@ -312,8 +312,8 @@ class _AchievementCelebrationState extends State<AchievementCelebration> with Ti
 
 /// Behind the medal: turning rays, two shock rings, a burst of confetti and
 /// twinkling sparks, all flat.
-class _BurstPainter extends CustomPainter {
-  _BurstPainter({required this.t, required this.spin, required this.color, this.rays = 1, this.halo = true});
+class CelebrationBurstPainter extends CustomPainter {
+  CelebrationBurstPainter({required this.t, required this.spin, required this.color, this.rays = 1, this.halo = true});
   final double t;
   final double spin;
   final Color color;
@@ -434,7 +434,7 @@ class _BurstPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BurstPainter old) => old.t != t || old.spin != spin || old.color != color || old.rays != rays || old.halo != halo;
+  bool shouldRepaint(CelebrationBurstPainter old) => old.t != t || old.spin != spin || old.color != color || old.rays != rays || old.halo != halo;
 }
 
 class _Piece {

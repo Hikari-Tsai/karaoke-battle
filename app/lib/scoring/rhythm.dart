@@ -146,7 +146,9 @@ class RhythmResult {
 /// Judges every evaluable reference note from note metrics measured on a
 /// take that was aligned with a single global offset (so per-note timing
 /// errors are kept).
-RhythmResult judgeRhythm(List<ReferenceNote> refNotes, NoteMetrics notes, RhythmWindows w, {bool clockTrusted = false}) {
+/// Notes in [perfect] (made perfect with the Tuning Wand) are PERFECT at
+/// both ends whatever was measured.
+RhythmResult judgeRhythm(List<ReferenceNote> refNotes, NoteMetrics notes, RhythmWindows w, {bool clockTrusted = false, Set<int> perfect = const {}}) {
   final idx = <int>[];
   final on = <RhythmJudgement>[];
   final off = <RhythmJudgement?>[];
@@ -155,6 +157,12 @@ RhythmResult judgeRhythm(List<ReferenceNote> refNotes, NoteMetrics notes, Rhythm
   for (final r in notes.perNote) {
     if (!r.evaluable) continue;
     idx.add(r.index);
+    if (perfect.contains(r.index)) {
+      on.add(RhythmJudgement.perfect);
+      off.add(RhythmJudgement.perfect);
+      credit += 1;
+      continue;
+    }
     final e = r.onsetErrorMs;
     final jOn = e == null ? RhythmJudgement.miss : w.classify(e.abs() / 1000);
     on.add(jOn);

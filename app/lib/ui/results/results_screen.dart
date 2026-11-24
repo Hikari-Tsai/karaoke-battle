@@ -1,7 +1,10 @@
 // Results: total, rank, sub-scores, note table and a static overview roll.
+import 'dart:async';
+import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -78,43 +81,119 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   Set<int> _wanded = const {};
   bool _wanding = false;
 
+  /// The notes picked on the score above or in the list: the wand button
+  /// above applies to all of them at once.
+  Set<int> _picked = {};
+
   Set<int> _wandedOf(ScoreData? score, NoteList notes) {
     final uses = wandUsesOfScore(score?.raw);
     return {for (var i = 0; i < notes.length; i++) if (uses.any((u) => u.isNote(notes.onset[i]))) i};
   }
 
-  /// Asks, then uses a Tuning Wand on note [i] (redeeming one when none is
-  /// held and the points allow) and shows the new score.
-  Future<void> _useWand(int i) async {
+  /// Picks or drops note [i] (a note already tuned cannot be picked).
+  void _togglePick(int? i) {
+    if (i == null || _wanding) return;
+    if (_wanded.contains(i)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('wand.applied')), duration: const Duration(seconds: 2)));
+      return;
+    }
+    setState(() {
+      final next = {..._picked};
+      if (!next.remove(i)) next.add(i);
+      _picked = next;
+    });
+  }
+
+  /// "note 3 E4「愛」"
+  String _noteLabel(NoteList notes, int i) {
+    final lyric = _noteLyrics != null && i < _noteLyrics!.length ? _noteLyrics![i] : null;
+    return tr('wand.note', {'n': i + 1, 'note': noteName(notes.pitch[i] + _pitchShift)}) + (lyric != null && lyric != lyricHold ? '「$lyric」' : '');
+  }
+
+  /// Above the score: what is picked and the wand button, locked (with a
+  /// hint) until at least one note is picked.
+  Widget _wandBar(ThemeData theme, NoteList notes, ScoreData? score) {
+    const purple = Color(0xFFB57CFF);
+    final picked = (_picked.toList()..sort());
+    final held = context.watch<ItemService>().ownedOf(ItemKind.tuningWand);
+    final ready = picked.isNotEmpty && score != null && !_wanding && !_revealing;
+    final text = picked.isEmpty
+        ? tr('wand.pickHint')
+        : picked.length == 1
+            ? tr('wand.picked', {'note': _noteLabel(notes, picked.first)})
+            : tr('wand.pickedMany', {'n': picked.length});
+    return Row(children: [
+      Icon(picked.isEmpty ? Icons.touch_app_outlined : Icons.music_note, size: 18, color: picked.isEmpty ? theme.colorScheme.onSurfaceVariant : purple),
+      const SizedBox(width: 6),
+      Expanded(
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(color: picked.isEmpty ? theme.colorScheme.onSurfaceVariant : null, fontWeight: picked.isEmpty ? null : FontWeight.w700),
+        ),
+      ),
+      if (picked.isNotEmpty)
+        IconButton(tooltip: tr('wand.unpick'), visualDensity: VisualDensity.compact, onPressed: () => setState(() => _picked = {}), icon: const Icon(Icons.close, size: 18)),
+      const SizedBox(width: 4),
+      Tooltip(
+        message: picked.isEmpty ? tr('wand.pickFirst') : '',
+        child: FilledButton.icon(
+          style: FilledButton.styleFrom(backgroundColor: purple, foregroundColor: Colors.white),
+          onPressed: ready ? () => _useWand(picked) : null,
+          icon: Icon(ready ? Icons.auto_fix_high : Icons.lock_outline, size: 18),
+          label: Text(picked.length > 1 ? tr('wand.useButtonMany', {'k': picked.length, 'n': held}) : tr('wand.useButton', {'n': held})),
+        ),
+      ),
+    ]);
+  }
+
+  /// Asks (with the estimate), then uses a Tuning Wand on each picked note
+  /// (redeeming the ones missing when the points allow) and shows the new
+  /// score.
+  Future<void> _useWand(List<int> picked) async {
     final notes = _notes, score = _score;
-    if (notes == null || score == null || _wanding) return;
+    if (notes == null || score == null || _wanding || picked.isEmpty) return;
     final services = context.read<AppServices>();
     final items = services.items;
-    final held = items.ownedOf(ItemKind.tuningWand);
-    final canBuy = items.canRedeem(ItemKind.tuningWand);
-    final lyric = _noteLyrics != null && i < _noteLyrics!.length ? _noteLyrics![i] : null;
-    final what = tr('wand.note', {'n': i + 1, 'note': noteName(notes.pitch[i] + _pitchShift)}) + (lyric != null && lyric != lyricHold ? '「$lyric」' : '');
+    const kind = ItemKind.tuningWand;
+    final need = picked.length;
+    final held = items.ownedOf(kind);
+    final short = need - held;
+    final canBuy = short <= 0 || (kind.available && items.balance >= kind.cost * short);
+    final what = need == 1
+        ? _noteLabel(notes, picked.first)
+        : tr('wand.notes', {'list': picked.take(5).map((i) => '${i + 1}').join(tr('wand.listSep')), 'more': need > 5 ? tr('wand.andMore', {'n': need}) : '', 'n': need});
+    // What it would bring, worked out while the dialog is open.
+    final estimate = canBuy ? previewTuningWand(services: services, song: widget.song, take: widget.take, notes: notes, indices: picked) : null;
+    estimate?.ignore(); // the dialog may close before it is done
     final go = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.auto_fix_high, color: Color(0xFFB57CFF), size: 36),
         title: Text(tr('items.tuningWand.name')),
         content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Text(held > 0
-              ? tr('wand.ask', {'what': what, 'n': held})
-              : canBuy
-                  ? tr('wand.askRedeem', {'what': what, 'cost': ItemKind.tuningWand.cost, 'balance': items.balance})
-                  : tr('wand.none', {'cost': ItemKind.tuningWand.cost, 'balance': items.balance})),
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(short <= 0
+                ? tr('wand.askMany', {'what': what, 'k': need, 'n': held})
+                : canBuy
+                    ? tr('wand.askRedeemMany', {'what': what, 'k': need, 'n': held, 'short': short, 'cost': kind.cost * short, 'balance': items.balance})
+                    : tr('wand.noneMany', {'k': need, 'n': held, 'cost': kind.cost * short, 'balance': items.balance})),
+            if (estimate != null) ...[
+              const SizedBox(height: 14),
+              _WandEstimate(before: score, after: estimate),
+            ],
+          ]),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('cancel'))),
-          if (held > 0 || canBuy)
+          if (canBuy)
             FilledButton.icon(
               style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB57CFF), foregroundColor: Colors.white),
               onPressed: () => Navigator.pop(context, true),
               icon: const Icon(Icons.auto_fix_high, size: 18),
-              label: Text(held > 0 ? tr('wand.use') : tr('wand.redeemUse', {'cost': ItemKind.tuningWand.cost})),
+              label: Text(short <= 0 ? tr('wand.use') : tr('wand.redeemUse', {'cost': kind.cost * short})),
             ),
         ],
       ),
@@ -124,14 +203,16 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     final messenger = ScaffoldMessenger.of(context);
     try {
       final before = score.total;
-      final next = await useTuningWand(services: services, song: widget.song, take: widget.take, notes: notes, index: i, redeem: held == 0);
+      final next = await useTuningWand(services: services, song: widget.song, take: widget.take, notes: notes, indices: picked, redeem: short > 0);
       final original = await originalScoreOf(widget.take);
       if (!mounted) return;
       setState(() {
         _score = next;
         _original = original;
         _wanded = _wandedOf(next, notes);
+        _picked = {};
       });
+      unawaited(ResultSfx.once(services.settings, 'wand'));
       messenger.showSnackBar(SnackBar(content: Text(tr('wand.done', {'from': before.toStringAsFixed(1), 'to': next.total.toStringAsFixed(1)}))));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(tr('wand.failed', {'e': '$e'}))));
@@ -184,7 +265,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
           if (s == AnimationStatus.completed) _onRolled();
         });
       _stamp = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
-      _sfx = ResultSfx(enabled: context.read<AppSettings>().resultSounds)..preload();
+      _sfx = ResultSfx.of(context.read<AppSettings>(), only: const ['roll', 'ding', 'ding_s', 'celebrate'])..preload();
     }
     _load();
     _loadAdvice();
@@ -219,7 +300,8 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     if (_rolled || !mounted) return;
     setState(() => _rolled = true);
     _sfx?.stop('roll');
-    _sfx?.play('ding');
+    // An S or better lands with a brighter chord.
+    _sfx?.play(rankTier(widget.score?.rank) > 0 ? 'ding_s' : 'ding');
     _stamp?.forward();
     if (!widget.newRecord) {
       Future<void>.delayed(const Duration(milliseconds: 900), () => AchievementHold.remove(this));
@@ -477,7 +559,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                     flex: 5,
                                     child: Builder(builder: (context) {
                                       final range = pitchRangeFor(notes, _pitchShift);
-                                      return PianoRollView(
+                                      final roll = ZoomableRoll(
+                                        total: _duration > 0 ? _duration : 1,
+                                        builder: (start, span) => PianoRollView(
                                         notes: notes,
                                         refF0: _refF0 ?? F0Curve.empty(),
                                         trace: _trace,
@@ -488,7 +572,17 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                         keyboard: context.watch<AppSettings>().rollKeyboard,
                                         wandNotes: _wanded,
                                         fieldAura: fieldOfScore(score?.raw),
+                                        selectedNotes: _picked,
+                                        onSelectNote: _togglePick,
+                                        viewStart: start,
+                                        viewSpan: span,
+                                      ),
                                       );
+                                      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                                        _wandBar(theme, notes, score),
+                                        const SizedBox(height: 8),
+                                        Expanded(child: roll),
+                                      ]);
                                     }),
                                   ),
                                   const SizedBox(height: 12),
@@ -497,7 +591,15 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                     child: Card(
                                       margin: EdgeInsets.zero,
                                       child: Stack(children: [
-                                        _NoteTable(notes: notes, score: score, pitchShift: _pitchShift, lyrics: _noteLyrics, wanded: _wanded, onWand: score == null || _wanding || _revealing ? null : _useWand),
+                                        _NoteTable(
+                                          notes: notes,
+                                          score: score,
+                                          pitchShift: _pitchShift,
+                                          lyrics: _noteLyrics,
+                                          wanded: _wanded,
+                                          picked: _picked,
+                                          onPick: score == null || _wanding || _revealing ? null : _togglePick,
+                                        ),
                                         if (_wanding) const Positioned(left: 0, right: 0, top: 0, child: LinearProgressIndicator()),
                                       ]),
                                     ),
@@ -902,13 +1004,197 @@ class _StripesPainter extends CustomPainter {
   bool shouldRepaint(_StripesPainter old) => old.background != background || old.stripe != stripe;
 }
 
+/// The whole-song piano roll, zoomable in time: Ctrl/⌘ + wheel or a pinch
+/// zooms around the pointer, the wheel, a two-finger swipe or a drag moves
+/// along, and the buttons zoom in, out and back to the whole song. A thin
+/// bar under it shows which part is in view.
+class ZoomableRoll extends StatefulWidget {
+  const ZoomableRoll({super.key, required this.total, required this.builder});
+
+  /// The song's length (seconds).
+  final double total;
+
+  /// The roll for the part in view: [span] seconds from [start] (span null:
+  /// the whole song).
+  final Widget Function(double start, double? span) builder;
+
+  /// The shortest part one can zoom to (seconds).
+  static const minSpan = 2.0;
+  static const gutter = 46.0;
+
+  @override
+  State<ZoomableRoll> createState() => ZoomableRollState();
+}
+
+class ZoomableRollState extends State<ZoomableRoll> {
+  double zoom = 1;
+  double start = 0;
+  double _lastScale = 1;
+
+  double get _maxZoom => math.max(1, widget.total / ZoomableRoll.minSpan);
+  double get span => widget.total / zoom;
+
+  void _set(double z, double s) {
+    final zz = z.clamp(1.0, _maxZoom).toDouble();
+    final sp = widget.total / zz;
+    setState(() {
+      zoom = zz;
+      start = s.clamp(0.0, math.max(0.0, widget.total - sp)).toDouble();
+    });
+  }
+
+  /// Zooms by [factor] keeping the time at [frac] (0..1 across the plot) in place.
+  void zoomBy(double factor, [double frac = 0.5]) {
+    final at = start + frac * span;
+    final z = (zoom * factor).clamp(1.0, _maxZoom).toDouble();
+    _set(z, at - frac * widget.total / z);
+  }
+
+  void _pan(double dx, double plotW) {
+    if (zoom <= 1 || plotW <= 0) return;
+    _set(zoom, start + dx / plotW * span);
+  }
+
+  double _frac(double x, double width) => ((x - ZoomableRoll.gutter) / (width - ZoomableRoll.gutter)).clamp(0.0, 1.0);
+
+  @override
+  void didUpdateWidget(ZoomableRoll oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.total != widget.total) _set(zoom, start);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return LayoutBuilder(builder: (context, c) {
+      final plotW = c.maxWidth - ZoomableRoll.gutter;
+      return Stack(children: [
+        Positioned.fill(
+          child: Listener(
+            onPointerSignal: (e) {
+              if (e is! PointerScrollEvent) return;
+              final keys = HardwareKeyboard.instance;
+              if (keys.isControlPressed || keys.isMetaPressed) {
+                zoomBy(math.exp(-e.scrollDelta.dy / 240), _frac(e.localPosition.dx, c.maxWidth));
+              } else {
+                _pan(e.scrollDelta.dx != 0 ? e.scrollDelta.dx : e.scrollDelta.dy, plotW);
+              }
+            },
+            onPointerPanZoomStart: (_) => _lastScale = 1,
+            onPointerPanZoomUpdate: (e) {
+              if (e.scale != _lastScale) {
+                zoomBy(e.scale / _lastScale, _frac(e.localPosition.dx, c.maxWidth));
+                _lastScale = e.scale;
+              }
+              _pan(-e.panDelta.dx, plotW);
+            },
+            child: GestureDetector(
+              onHorizontalDragUpdate: zoom > 1 ? (d) => _pan(-d.delta.dx, plotW) : null,
+              child: widget.builder(start, zoom > 1 ? span : null),
+            ),
+          ),
+        ),
+        // Zoom buttons.
+        Positioned(
+          top: 6,
+          right: 6,
+          child: Container(
+            decoration: BoxDecoration(color: theme.colorScheme.surface.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(10)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(tooltip: tr('roll.zoomOut'), visualDensity: VisualDensity.compact, iconSize: 18, onPressed: zoom > 1 ? () => zoomBy(1 / 1.6) : null, icon: const Icon(Icons.zoom_out)),
+              Tooltip(
+                message: tr('roll.zoomHint'),
+                child: SizedBox(width: 44, child: Text('${zoom < 10 ? zoom.toStringAsFixed(1) : zoom.round()}×', textAlign: TextAlign.center, style: theme.textTheme.labelMedium)),
+              ),
+              IconButton(tooltip: tr('roll.zoomIn'), visualDensity: VisualDensity.compact, iconSize: 18, onPressed: zoom < _maxZoom ? () => zoomBy(1.6) : null, icon: const Icon(Icons.zoom_in)),
+              IconButton(tooltip: tr('roll.zoomFit'), visualDensity: VisualDensity.compact, iconSize: 18, onPressed: zoom > 1 ? () => _set(1, 0) : null, icon: const Icon(Icons.fit_screen)),
+            ]),
+          ),
+        ),
+        // Which part is in view.
+        if (zoom > 1)
+          Positioned(
+            left: ZoomableRoll.gutter + plotW * (start / widget.total),
+            width: math.max(12, plotW / zoom),
+            bottom: 2,
+            height: 4,
+            child: DecoratedBox(decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(2))),
+          ),
+      ]);
+    });
+  }
+}
+
+/// The wand dialog's estimate: the total and rank now and after, worked
+/// out by scoring the take with the note perfect (nothing saved).
+class _WandEstimate extends StatelessWidget {
+  const _WandEstimate({required this.before, required this.after});
+  final ScoreData before;
+  final Future<ScoreData> after;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const purple = Color(0xFFB57CFF);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: purple.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: purple.withValues(alpha: 0.35)),
+      ),
+      child: FutureBuilder<ScoreData>(
+        future: after,
+        builder: (context, snap) {
+          if (snap.hasError) return Text(tr('wand.estimateFailed'), style: theme.textTheme.bodySmall);
+          final a = snap.data;
+          if (a == null) {
+            return Row(children: [
+              const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+              const SizedBox(width: 10),
+              Text(tr('wand.estimating'), style: theme.textTheme.bodyMedium),
+            ]);
+          }
+          final gain = a.total - before.total;
+          final big = theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800);
+          final up = a.rank != before.rank;
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tr('wand.estimate'), style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFD9BDFF))),
+            const SizedBox(height: 6),
+            Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              Text(before.total.toStringAsFixed(1), style: big?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Icon(Icons.arrow_forward, size: 20)),
+              Text(a.total.toStringAsFixed(1), style: big?.copyWith(color: rankColor(a.rank))),
+              const SizedBox(width: 8),
+              Text('${gain >= 0 ? '+' : ''}${gain.toStringAsFixed(1)}', style: theme.textTheme.titleMedium?.copyWith(color: gain > 0 ? const Color(0xFF4CD964) : theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              RankChip(rank: before.rank),
+              const Padding(padding: EdgeInsets.symmetric(horizontal: 6), child: Icon(Icons.arrow_forward, size: 16)),
+              RankChip(rank: a.rank),
+            ]),
+            if (up) ...[
+              const SizedBox(height: 6),
+              Text(tr('wand.rankUp', {'from': before.rank, 'to': a.rank}), style: theme.textTheme.bodySmall?.copyWith(color: rankColor(a.rank), fontWeight: FontWeight.w700)),
+            ] else if (gain.abs() < 0.05) ...[
+              const SizedBox(height: 6),
+              Text(tr('wand.noGain'), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            ],
+          ]);
+        },
+      ),
+    );
+  }
+}
+
 class _NoteTable extends StatelessWidget {
-  const _NoteTable({required this.notes, required this.score, required this.pitchShift, this.lyrics, this.wanded = const {}, this.onWand});
+  const _NoteTable({required this.notes, required this.score, required this.pitchShift, this.lyrics, this.wanded = const {}, this.picked = const {}, this.onPick});
   final NoteList notes;
 
-  /// Notes fixed with the Tuning Wand, and using one on a note.
+  /// Notes fixed with the Tuning Wand, and the ones picked for it (also on
+  /// the score above): a row's box, or a click on the row, picks it.
   final Set<int> wanded;
-  final void Function(int index)? onWand;
+  final Set<int> picked;
+  final ValueChanged<int>? onPick;
   final ScoreData? score;
   final double pitchShift;
 
@@ -922,6 +1208,14 @@ class _NoteTable extends StatelessWidget {
       rows.addAll(score!.notes);
     }
     final byIndex = {for (final r in rows) r.index: r};
+    // More of what each note was judged on: the rhythm calls, how much of it
+    // was sung and in tune, and how steady a long note was.
+    final raw = score?.raw;
+    Map<int, Map> byNote(Object? list) => {for (final e in (list is List ? list : const [])) if (e is Map && e['index'] is int) e['index'] as int: e};
+    final perNote = byNote((raw?['note_metrics'] as Map?)?['per_note']);
+    final rhythm = byNote((raw?['rhythm'] as Map?)?['notes']);
+    final longs = byNote((raw?['technique'] as Map?)?['long_notes']);
+    DataColumn col(String key) => DataColumn(label: Tooltip(message: tr('results.col.$key.tip'), child: Text(tr('results.col.$key'))));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -940,11 +1234,25 @@ class _NoteTable extends StatelessWidget {
               ),
             ]),
           ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(padding: const EdgeInsets.only(top: 1), child: Icon(Icons.info_outline, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(tr('results.notesHint'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ),
+          ]),
+        ),
         Expanded(
-          child: SingleChildScrollView(
-            child: SizedBox(
-              width: double.infinity,
+          child: LayoutBuilder(builder: (context, c) => SingleChildScrollView(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: c.maxWidth),
               child: DataTable(
+                showCheckboxColumn: false,
+                columnSpacing: 18,
                 headingRowHeight: 36,
                 dataRowMinHeight: 28,
                 dataRowMaxHeight: 32,
@@ -953,37 +1261,78 @@ class _NoteTable extends StatelessWidget {
                   if (lyrics != null) DataColumn(label: Text(tr('results.lyric'))),
                   DataColumn(label: Text(tr('results.onset'))),
                   DataColumn(label: Text(tr('results.refPitch'))),
-                  DataColumn(label: Text(tr('results.sungDev'))),
-                  DataColumn(label: Text(tr('results.matched'))),
+                  DataColumn(label: Tooltip(message: tr('results.col.dev.tip'), child: Text(tr('results.sungDev')))),
+                  col('inTune'),
+                  col('attack'),
+                  col('release'),
+                  col('sung'),
+                  col('steady'),
+                  DataColumn(label: Tooltip(message: tr('results.col.matched.tip'), child: Text(tr('results.matched')))),
                   DataColumn(label: Tooltip(message: tr('items.tuningWand.name'), child: const Icon(Icons.auto_fix_high, size: 16))),
                 ],
                 rows: [
                   for (var i = 0; i < notes.length; i++)
-                    DataRow(cells: [
+                    DataRow(
+                      selected: picked.contains(i),
+                      onSelectChanged: onPick == null || wanded.contains(i) ? null : (_) => onPick!(i),
+                      cells: [
                       DataCell(Text('${i + 1}')),
                       if (lyrics != null) DataCell(_lyricCell(context, i < lyrics!.length ? lyrics![i] : null)),
                       DataCell(Text(notes.onset[i].toStringAsFixed(2))),
                       DataCell(Text(noteName(notes.pitch[i] + pitchShift))),
                       DataCell(_centsCell(context, byIndex[i]?.cents)),
+                      DataCell(_percentCell(context, (perNote[i]?['pitch_coverage'] as num?)?.toDouble())),
+                      DataCell(_callCell(context, rhythm[i]?['onset'] as String?)),
+                      DataCell(_callCell(context, rhythm[i]?['offset'] as String?)),
+                      DataCell(_percentCell(context, (perNote[i]?['voiced_fraction'] as num?)?.toDouble())),
+                      DataCell(_steadyCell(context, longs[i])),
                       DataCell(Icon(byIndex[i]?.matched == true ? Icons.check_circle : Icons.remove_circle_outline,
                           size: 16, color: byIndex[i]?.matched == true ? const Color(0xFF4CD964) : Theme.of(context).colorScheme.outline)),
                       DataCell(wanded.contains(i)
                           ? Tooltip(message: tr('wand.applied'), child: const Icon(Icons.auto_fix_high, size: 18, color: Color(0xFFB57CFF)))
-                          : IconButton(
-                              tooltip: tr('wand.useTip'),
-                              visualDensity: VisualDensity.compact,
-                              iconSize: 18,
-                              onPressed: onWand == null ? null : () => onWand!(i),
-                              icon: const Icon(Icons.auto_fix_normal),
+                          : Tooltip(
+                              message: tr('wand.pickTip'),
+                              child: Checkbox(
+                                visualDensity: VisualDensity.compact,
+                                activeColor: const Color(0xFFB57CFF),
+                                value: picked.contains(i),
+                                onChanged: onPick == null ? null : (_) => onPick!(i),
+                              ),
                             )),
                     ]),
                 ],
               ),
+              ),
             ),
-          ),
+          )),
         ),
       ],
     );
+  }
+
+  static const _good = Color(0xFF4CD964), _near = Color(0xFFFFCC00), _bad = Color(0xFFFF3B30);
+
+  /// A share (0..1) as a percentage: green from 90 %, yellow from 60 %.
+  Widget _percentCell(BuildContext context, double? v) {
+    if (v == null) return Text('—', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant));
+    final p = (v * 100).round();
+    return Text('$p%', style: TextStyle(color: p >= 90 ? _good : (p >= 60 ? _near : _bad), fontFeatures: const [FontFeature.tabularFigures()]));
+  }
+
+  /// A rhythm call: PERFECT / GREAT / GOOD / MISS in its colour.
+  Widget _callCell(BuildContext context, String? call) {
+    if (call == null) return Text('—', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant));
+    final color = switch (call) { 'perfect' => _good, 'great' => const Color(0xFF64D2FF), 'good' => _near, _ => _bad };
+    return Text(call.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.5));
+  }
+
+  /// A long note's wobble (cents) beside the original's: green within 10
+  /// cents of it, yellow within 40; "—" for short notes.
+  Widget _steadyCell(BuildContext context, Map? d) {
+    final st = (d?['stability_cents'] as num?)?.toDouble();
+    if (st == null) return Text('—', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant));
+    final over = st - ((d?['ref_stability_cents'] as num?)?.toDouble() ?? 0);
+    return Text('${st.round()}¢', style: TextStyle(color: over <= 10 ? _good : (over <= 40 ? _near : _bad), fontFeatures: const [FontFeature.tabularFigures()]));
   }
 
   Widget _lyricCell(BuildContext context, String? text) {

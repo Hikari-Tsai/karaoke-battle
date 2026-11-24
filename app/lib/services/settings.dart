@@ -209,6 +209,10 @@ class AppSettings extends ChangeNotifier {
 
   /// Results: the rolling-score ticks and the new-record cheer.
   bool get resultSounds => _get('result_sounds', true);
+
+  /// Sound effect volume, 0..1 (half the full level by default).
+  double get sfxVolume => _get('sfx_volume', 0.5).clamp(0.0, 1.0).toDouble();
+  Future<void> setSfxVolume(double v) => _set('sfx_volume', v.clamp(0.0, 1.0).toDouble());
   Future<void> setResultSounds(bool v) => _set('result_sounds', v);
 
   /// Sing screen: the meter panel is slid in.

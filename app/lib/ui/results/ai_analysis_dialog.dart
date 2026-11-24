@@ -19,7 +19,9 @@ import 'package:provider/provider.dart';
 import '../../advice/advice_prompt.dart';
 import '../../advice/ai_advice.dart';
 import '../../advice/take_analysis.dart';
+import '../../advice/mentor_relay.dart';
 import '../../advice/take_analysis_loader.dart';
+import '../../services/items.dart';
 import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
@@ -234,6 +236,80 @@ class _AiAnalysisDialogState extends State<_AiAnalysisDialog> {
     }
   }
 
+  /// Asks the AI Mentor through the relay with a Mentor Ticket (redeeming
+  /// one first, after asking, when none is held); the ticket is used up only
+  /// when an answer comes.
+  Future<void> _askMentor() async {
+    final services = context.read<AppServices>();
+    final items = services.items;
+    const kind = ItemKind.mentorTicket;
+    if (!kind.available) return;
+    if (items.ownedOf(kind) <= 0) {
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(Icons.school, color: Color(0xFFE9A93A), size: 36),
+          title: Text(tr('items.mentorTicket.name')),
+          content: Text(items.canRedeem(kind)
+              ? tr('mentor.askRedeem', {'cost': kind.cost, 'balance': items.balance})
+              : tr('mentor.none', {'cost': kind.cost, 'balance': items.balance})),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('cancel'))),
+            if (items.canRedeem(kind)) FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('mentor.redeemAsk', {'cost': kind.cost}))),
+          ],
+        ),
+      );
+      if (go != true || !await items.redeem(kind) || !mounted) return;
+    }
+    final analysis = _analysis!;
+    final lang = I18n.lang;
+    final client = http.Client();
+    _client = client;
+    _cancelled = false;
+    setState(() {
+      _view = _View.asking;
+      _askingModel = tr('items.mentorTicket.name');
+      _askError = null;
+    });
+    try {
+      final raw = await requestAdvice(
+        provider: AiProvider.claude,
+        apiKey: '',
+        model: kMentorModel,
+        prompt: _markdown(),
+        lang: lang,
+        client: client,
+        relay: Uri.parse(kMentorRelayUrl),
+        clientId: services.identity.identity?.userId ?? '',
+      );
+      final saved = SavedAdvice(advice: validateAdvice(raw, analysis), provider: 'mentor', model: kMentorModel, lang: lang, createdAt: DateTime.now());
+      await items.consume(kind);
+      try {
+        await saved.save(widget.take.adviceJson);
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() {
+        _saved = saved;
+        _view = _View.result;
+      });
+    } on AiAdviceException catch (e) {
+      if (!mounted || _cancelled) return;
+      setState(() {
+        _askError = e;
+        _view = _View.failed;
+      });
+    } catch (e) {
+      if (!mounted || _cancelled) return;
+      setState(() {
+        _askError = AiAdviceException('badResponse', '$e');
+        _view = _View.failed;
+      });
+    } finally {
+      client.close();
+      if (identical(_client, client)) _client = null;
+    }
+  }
+
   void _cancelAsk() {
     _cancelled = true;
     _client?.close();
@@ -355,6 +431,8 @@ class _AiAnalysisDialogState extends State<_AiAnalysisDialog> {
         const SizedBox(height: 10),
         Text(tr('advice.direct'), style: theme.textTheme.bodyMedium?.copyWith(height: 1.6)),
         ..._providerChoice(context),
+        const SizedBox(height: 12),
+        _mentorRow(context),
         const SizedBox(height: 10),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(Icons.info_outline, size: 16, color: theme.colorScheme.onSurfaceVariant),
@@ -376,6 +454,40 @@ class _AiAnalysisDialogState extends State<_AiAnalysisDialog> {
           Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
         ],
       ],
+    );
+  }
+
+  /// The AI Mentor: tips without a key of one's own, for a Mentor Ticket
+  /// (locked until the relay opens).
+  Widget _mentorRow(BuildContext context) {
+    final theme = Theme.of(context);
+    final items = context.watch<ItemService>();
+    const kind = ItemKind.mentorTicket;
+    final locked = !kind.available;
+    const gold = Color(0xFFE9A93A);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: gold.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: gold.withValues(alpha: locked ? 0.2 : 0.45)),
+      ),
+      child: Row(children: [
+        Icon(Icons.school, color: locked ? theme.colorScheme.onSurfaceVariant : gold),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tr('mentor.title'), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            Text(locked ? tr('items.lockedTip') : tr('mentor.note', {'n': items.ownedOf(kind)}), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          ]),
+        ),
+        const SizedBox(width: 10),
+        FilledButton.tonalIcon(
+          onPressed: locked || !_ready ? null : _askMentor,
+          icon: Icon(locked ? Icons.lock_outline : Icons.school, size: 18),
+          label: Text(locked ? tr('items.lockedButton') : tr('mentor.use')),
+        ),
+      ]),
     );
   }
 
