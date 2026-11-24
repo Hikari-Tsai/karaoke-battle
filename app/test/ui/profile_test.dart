@@ -72,7 +72,7 @@ void main() {
     expect(find.textContaining('(macOS 27.2.1)'), findsOneWidget, reason: 'the device with its OS version');
     expect(find.text('這台'), findsOneWidget);
     expect(find.text('麥克風常客'), findsOneWidget);
-    expect(find.text('???'), findsNWidgets(5), reason: 'the secret ones, until found');
+    expect(find.text('???'), findsNWidgets(6), reason: 'the secret ones, until found');
     // The tier dots switch which tier a card shows, and back.
     expect(find.text('0 / 500'), findsNothing);
     await tester.tap(find.byTooltip('金 · 完成 500 次有評分的演唱'));
@@ -89,10 +89,10 @@ void main() {
     // Debug builds with 開發模式 on show what the secrets ask for.
     await settings.setDevMode(true);
     await tester.pump();
-    expect(find.byType(InfoTip).evaluate().length, tips + 5, reason: 'the five secrets\' notes show too');
+    expect(find.byType(InfoTip).evaluate().length, tips + 6, reason: 'the six secrets\' notes show too');
     expect(find.text('???'), findsNothing);
     expect(find.text('夜貓子'), findsOneWidget);
-    expect(find.text('開發模式'), findsNWidgets(5), reason: 'marked as seen only in 開發模式');
+    expect(find.text('開發模式'), findsNWidgets(6), reason: 'marked as seen only in 開發模式');
     await settings.setDevMode(false);
     await tester.pump();
     expect(find.byType(SingingAvatar), findsNWidgets(1 + AvatarKind.values.length), reason: 'the singer and the look picker');

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:karaoke_battle/services/achievements.dart';
@@ -9,13 +10,14 @@ import 'package:karaoke_battle/services/settings.dart';
 import 'package:karaoke_battle/services/sidecars.dart';
 import 'package:karaoke_battle/services/song_library.dart';
 import 'package:karaoke_battle/state/i18n.dart';
+import 'package:karaoke_battle/state/song_data.dart';
 import 'package:karaoke_battle/ui/profile/achievements_view.dart' show achievementNote;
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
-TakeFact take(String song, String at, double total, {String rank = 'A', String lang = 'zh', double seconds = 200, int perfect = 0, int judged = 0, int misses = 0, double? high, Map<String, double?> subs = const {}}) {
+TakeFact take(String song, String at, double total, {String rank = 'A', String lang = 'zh', double seconds = 200, int perfect = 0, int judged = 0, int misses = 0, double? high, double? low, Map<String, double?> subs = const {}}) {
   final t = DateTime.parse(at);
-  return TakeFact(songId: song, language: lang, startedAt: t, createdAt: t, seconds: seconds, total: total, rank: rank, perfect: perfect, judged: judged, misses: misses, highPitch: high, subScores: subs);
+  return TakeFact(songId: song, language: lang, startedAt: t, createdAt: t, seconds: seconds, total: total, rank: rank, perfect: perfect, judged: judged, misses: misses, highPitch: high, lowPitch: low, subScores: subs);
 }
 
 int level(String id, AchievementFacts f) => achievementLevels(f)[id]!;
@@ -41,7 +43,7 @@ void main() {
 
   test('notes on how a rule is judged: in all three languages, where needed', () {
     AchievementDef d(String id) => achievements.firstWhere((a) => a.id == id);
-    for (final id in ['streak', 'decades', 'genres', 'firstLive', 'liveSongs', 'liveDays', 'firstD', 'rankSSS', 'fullPitch', 'highNote', 'challenger']) {
+    for (final id in ['streak', 'decades', 'genres', 'firstLive', 'liveSongs', 'liveDays', 'firstD', 'rankSSS', 'fullPitch', 'highNote', 'lowNote', 'challenger']) {
       expect(achievementNote(d(id)), isNotNull, reason: id);
     }
     expect(achievementNote(d('firstSong')), isNull, reason: 'its description says it all');
@@ -171,16 +173,22 @@ void main() {
     expect(level('challenger', before), 0, reason: 'only takes after the import count');
   });
 
-  test('secrets: night owl, marathon, high note and the first song of the day', () {
+  test('secrets: night owl, marathon, high and low notes and the first song of the day', () {
     final f = AchievementFacts(takes: [
       take('a', '2026-11-11T01:30:00', 70),
       for (var i = 0; i < 20; i++) take('b', DateTime(2026, 11, 12, 10).add(Duration(minutes: 10 * i)).toIso8601String(), 70),
-      take('c', '2026-11-13T19:00:00', 92, rank: 'S', high: 73),
+      take('c', '2026-11-13T19:00:00', 92, rank: 'S', high: 74.6, low: 45.4),
     ]);
     expect(level('nightOwl', f), 1);
     expect(level('marathon', f), 1);
-    expect(level('highNote', f), 1, reason: 'C#5 with no range measured');
-    expect(level('highNote', AchievementFacts(takes: f.takes, ownHigh: 76)), 0, reason: 'within the measured range');
+    expect(level('highNote', f), 0, reason: 'the range is not measured');
+    expect(level('lowNote', f), 0, reason: 'the range is not measured');
+    // Range A2..C5 (45..72): 3 keys past it is D#5 (75) and F#2 (42).
+    final measured = AchievementFacts(takes: f.takes, ownHigh: 72, ownLow: 45);
+    expect(level('highNote', measured), 1, reason: '74.6 rounds to D#5, 3 keys above C5');
+    expect(level('lowNote', measured), 0, reason: 'A2 is the bottom of the range, not below it');
+    expect(level('highNote', AchievementFacts(takes: f.takes, ownHigh: 73, ownLow: 45)), 0, reason: 'only 2 keys above C#5');
+    expect(level('lowNote', AchievementFacts(takes: [take('d', '2026-11-13T20:00:00', 80, low: 42.4)], ownHigh: 72, ownLow: 45)), 1, reason: 'F#2, 3 keys below A2');
     expect(level('warmup', f), 1, reason: 'the 13th starts with an S');
     expect(level('earlyBird', f), 0, reason: 'no day starts between 7 and 9');
     final early = AchievementFacts(takes: [take('a', '2026-11-14T07:30:00', 70), take('a', '2026-11-14T10:00:00', 80)]);
@@ -237,6 +245,24 @@ void main() {
     expect(titleParts('【自己紹介】Vtuber一問一答自己紹介【多帕/臺灣Vtuber】(中文ver.)'), isNot(contains('vtuber')));
   });
 
+  test('the sung span only counts pitch on the song\'s notes, near them', () {
+    // Notes at A2 (45) for 0..2 s and C4 (60) for 2..4 s; 10 ms frames.
+    final notes = NoteList(Float64List.fromList([0, 2]), Float64List.fromList([2, 4]), Float64List.fromList([45, 60]));
+    F0Curve curve(double Function(double t) midi, {double to = 5}) {
+      final n = (to / 0.01).round();
+      final times = Float64List.fromList([for (var i = 0; i < n; i++) i * 0.01]);
+      return F0Curve(times, Float64List.fromList([for (final t in times) midi(t)]), Float64List(n));
+    }
+    final sung = sungSpan(curve((t) => t < 2 ? 43 : 61), notes, 0)!;
+    expect(sung.low, 43);
+    expect(sung.high, 61);
+    // Mains hum at A#1 (34) under every note, and noise after the last one.
+    expect(sungSpan(curve((t) => t < 4 ? (t * 100).floor().isEven ? 34 : 45 : 90), notes, 0)!.low, 45, reason: 'hum under C2 never counts, even an octave under A2');
+    expect(sungSpan(curve((t) => t < 2 ? 33 : 48), notes, 0)!.high, 48, reason: 'C3 is C4 an octave down; G#1 is hum');
+    expect(sungSpan(curve((t) => 47, to: 4), notes, 2)!.low, 47, reason: 'the key change moves the notes up 2');
+    expect(sungSpan(curve((t) => 45, to: 0.5), notes, 0), isNull, reason: 'under 1.6 s on the notes');
+  });
+
   test('points follow how hard it is, on 5 / 10 / 25 / 50 / 100, one per tier', () {
     int pts(String id, [int tier = 1]) => achievements.firstWhere((a) => a.id == id).pointsOf(tier);
     for (final a in achievements) {
@@ -250,6 +276,8 @@ void main() {
     expect([pts('rankS'), pts('rankSS'), pts('rankSSS')], [25, 50, 100]);
     expect(pts('shareCard'), 10);
     expect(pts('nightOwl'), lessThan(pts('rankSSS')), reason: 'a time of day is not an SSS');
+    final secrets = achievements.where((a) => a.category == AchievementCategory.secret).fold<int>(0, (s, a) => s + a.pointsOf(1));
+    expect(secrets, 300, reason: 'the secrets are worth double');
     expect(pts('graduate'), lessThan(pts('takes', 3)));
     final basics = achievements.where((a) => a.category == AchievementCategory.basics).fold<int>(0, (s, a) => s + a.pointsOf(1));
     expect(basics, 110, reason: '17 tasks of 5 and graduating');

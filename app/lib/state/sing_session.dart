@@ -161,7 +161,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// Sets the automatic volume for the current track, when it is automatic.
   void _applyAutoVolume() {
     if (!volumeAuto) return;
-    volume = loudness?.autoGain(_loudKey) ?? 1.0;
+    volume = loudness?.autoGain(_loudKey, target: services.settings.targetLufs) ?? 1.0;
     _live?.volume = volume;
   }
 
@@ -370,7 +370,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
     final s = services.settings;
     _applySaved(await SongSingSettings.load(files.singSettingsJson));
     loudness = await SongLoudness.load(files.loudnessJson);
-    if (volumeAuto) volume = loudness?.autoGain(_loudKey) ?? 1.0;
+    if (volumeAuto) volume = loudness?.autoGain(_loudKey, target: services.settings.targetLufs) ?? 1.0;
     try {
       final l = LiveAudio.create(
         services.engine,
@@ -467,7 +467,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       _saveSoon();
       l.selectTrack(_stemIndex(t));
       l.guide = t == TrackKind.midi;
-      if (volumeAuto) volume = loudness?.autoGain(_loudKey) ?? 1.0;
+      if (volumeAuto) volume = loudness?.autoGain(_loudKey, target: services.settings.targetLufs) ?? 1.0;
       l.volume = volume;
     } catch (e) {
       initError = '$e';

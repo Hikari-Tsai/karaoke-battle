@@ -24,6 +24,7 @@ import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
 import '../library/add_song_dialog.dart';
 import '../widgets/calibration.dart';
+import '../../state/loudness.dart';
 import '../widgets/info_tip.dart';
 import '../startup/setup_rows.dart';
 import '../startup/ytdlp_dialog.dart';
@@ -469,6 +470,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: settings.sampleRate,
                     items: const [DropdownMenuItem(value: 44100, child: Text('44100 Hz')), DropdownMenuItem(value: 48000, child: Text('48000 Hz'))],
                     onChanged: (v) => v == null ? null : settings.setSampleRate(v),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // What the automatic volume on the sing screen aims for.
+              Row(
+                children: [
+                  Text(tr('settings.targetLufs')),
+                  InfoTip(sections: [(tr('settings.targetLufs'), tr('settings.targetLufsInfo'))]),
+                  Expanded(
+                    child: Slider(
+                      min: AppSettings.targetLufsMin,
+                      max: AppSettings.targetLufsMax,
+                      divisions: ((AppSettings.targetLufsMax - AppSettings.targetLufsMin) * 2).round(),
+                      value: settings.targetLufs,
+                      label: '${lufsLabel(settings.targetLufs)} LUFS',
+                      onChanged: settings.setTargetLufs,
+                    ),
+                  ),
+                  SizedBox(width: 80, child: Text('${lufsLabel(settings.targetLufs)} LUFS', textAlign: TextAlign.end)),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: settings.targetLufs == AppSettings.targetLufsDefault ? null : () => settings.setTargetLufs(AppSettings.targetLufsDefault),
+                    icon: const Icon(Icons.restart_alt, size: 18),
+                    label: Text(tr('settings.targetLufsReset')),
                   ),
                 ],
               ),

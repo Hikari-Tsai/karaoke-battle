@@ -2,7 +2,9 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:karaoke_battle/services/settings.dart';
 import 'package:karaoke_battle/state/loudness.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test('reads the integrated loudness and sample peak from the ebur128 summary', () {
@@ -39,6 +41,11 @@ void main() {
     const silent = SongLoudness(inst: TrackLoudness(lufs: -70, peakDb: -120));
     expect(silent.autoGain('inst'), isNull);
     expect(const SongLoudness().autoGain('mix'), isNull);
+    // A target set in Settings instead of the default -16.
+    expect(db(loud.autoGain('inst', target: -20)!), closeTo(-12, 0.01), reason: '-8 LUFS down to -20');
+    expect(db(loud.autoGain('mix', target: -12)!), closeTo(8, 0.01), reason: '-20 LUFS up to -12');
+    expect(lufsLabel(-16), '-16');
+    expect(lufsLabel(-15.5), '-15.5');
   });
 
   test('the volume slider is in decibels: mute, then -30 dB .. +12 dB', () {
@@ -72,5 +79,17 @@ void main() {
     File(path).writeAsStringSync('{oops');
     expect(await SongLoudness.load(path), isNull);
     dir.deleteSync(recursive: true);
+  });
+
+  test('the target loudness setting: -16 by default, half-dB steps within -24 .. -8', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await AppSettings.load();
+    expect(s.targetLufs, -16);
+    await s.setTargetLufs(-13.3);
+    expect(s.targetLufs, -13.5);
+    await s.setTargetLufs(-40);
+    expect(s.targetLufs, AppSettings.targetLufsMin);
+    await s.setTargetLufs(0);
+    expect(s.targetLufs, AppSettings.targetLufsMax);
   });
 }

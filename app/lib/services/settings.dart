@@ -93,6 +93,7 @@ class AppSettings extends ChangeNotifier {
     final v = _get('live_pitch_mode', 0);
     return v == 1 || v == 2 ? 1 : 0;
   }
+
   Future<void> setLivePitchMode(int m) => _set('live_pitch_mode', m == 0 ? 0 : 1);
 
   bool get dismissedBackendDialog => _get('dismissed_backend_dialog', false);
@@ -113,6 +114,11 @@ class AppSettings extends ChangeNotifier {
   double get noiseGateDb => (_prefs.getDouble('noise_gate_db') ?? noiseGateOff).clamp(noiseGateOff, noiseGateMax);
   Future<void> setNoiseGateDb(double db) => _set('noise_gate_db', db.clamp(noiseGateOff, noiseGateMax).toDouble());
   bool get noiseGateEnabled => noiseGateDb > noiseGateOff;
+
+  /// Loudness (LUFS) the automatic volume brings each song's track to.
+  static const double targetLufsDefault = -16, targetLufsMin = -24, targetLufsMax = -8;
+  double get targetLufs => (_prefs.getDouble('target_lufs') ?? targetLufsDefault).clamp(targetLufsMin, targetLufsMax).toDouble();
+  Future<void> setTargetLufs(double v) => _set('target_lufs', ((v * 2).round() / 2).clamp(targetLufsMin, targetLufsMax).toDouble());
 
   /// The user ticked "don't ask again" on the first-use calibration prompt.
   bool get calibrationPromptDismissed => _get('calib_prompt_dismissed', false);

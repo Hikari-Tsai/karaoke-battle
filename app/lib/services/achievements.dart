@@ -65,6 +65,7 @@ class TakeFact {
     this.judged = 0,
     this.misses = 0,
     this.highPitch,
+    this.lowPitch,
     this.pitchShift = 0,
     this.songSeconds,
   });
@@ -85,6 +86,9 @@ class TakeFact {
   /// A high pitch the take reached (MIDI, near the top of what was sung).
   final double? highPitch;
 
+  /// A low pitch the take reached (MIDI, near the bottom of what was sung).
+  final double? lowPitch;
+
   /// The key change it was sung in (semitones).
   final double pitchShift;
 
@@ -99,6 +103,7 @@ class AchievementFacts {
     this.chartGenres = const {},
     this.events = const {},
     this.ownHigh,
+    this.ownLow,
     this.songs = 0,
     this.readySongs = 0,
     this.lyricsSongs = 0,
@@ -164,6 +169,9 @@ class AchievementFacts {
 
   /// The top of the player's range (MIDI), when measured.
   final int? ownHigh;
+
+  /// The bottom of the player's range (MIDI), when measured.
+  final int? ownLow;
 }
 
 int _rankValue(String r) => switch (r) { 'SSS' => 7, 'SS' => 6, 'S' => 5, 'A' => 4, 'B' => 3, 'C' => 2, _ => 1 };
@@ -268,9 +276,34 @@ const achievementPoints = <String, List<int>>{
   'shareVideo': [10], 'shareReplay': [10], 'shareCard': [10], 'githubStar': [50], 'shares': [10, 25, 50], 'replaysIn': [10, 25, 50], 'challenger': [10, 25, 50],
   // Live: songs sung on stream and days streamed
   'firstLive': [25], 'liveSongs': [10, 25, 100], 'liveDays': [10, 25, 100],
-  // Secrets: a time of day is easy, twenty songs in a day is not
-  'nightOwl': [10], 'earlyBird': [10], 'warmup': [25], 'highNote': [25], 'marathon': [50],
+  // Secrets: worth more for being found; a time of day is easiest, twenty songs in a day hardest
+  'nightOwl': [25], 'earlyBird': [25], 'warmup': [50], 'highNote': [50], 'lowNote': [50], 'marathon': [100],
 };
+
+/// How far past the measured range (semitones) the high and low notes go.
+const rangeBeyond = 3;
+
+/// Near the bottom and the top of what a take sang: the 2nd and 98th
+/// percentiles of the confident pitch while a note of the song sounds and
+/// within 4 semitones of it (keyed by [shift]), or of it an octave away (a
+/// song sung an octave down or up). Hum, breath and noise between the notes
+/// or far from them do not count, nor anything under C2 (65 Hz; mains hum is
+/// 50 or 60 Hz); null below 100 such frames (1.6 s).
+({double low, double high})? sungSpan(F0Curve f0, NoteList notes, double shift) {
+  final v = <double>[];
+  for (var i = 0; i < f0.times.length; i++) {
+    final m = f0.midi[i];
+    if (!m.isFinite || m < 36) continue;
+    final n = notes.indexAt(f0.times[i]);
+    if (n < 0) continue;
+    final target = notes.pitch[n] + shift;
+    if ([-12, 0, 12].any((o) => (m - target - o).abs() <= 4)) v.add(m);
+  }
+  if (v.length < 100) return null;
+  v.sort();
+  double at(double q) => v[(v.length * q).floor().clamp(0, v.length - 1)];
+  return (low: at(0.02), high: at(0.98));
+}
 
 /// The first time of each rank, D to SSS: achievement id -> rank (the medal
 /// shows the rank in its colour).
@@ -336,10 +369,15 @@ final achievements = <AchievementDef>[
   // --- E. secret: shown once found ---
   AchievementDef('nightOwl', AchievementCategory.secret, Icons.nightlight_round, [1], (f) => f.takes.any((t) => t.startedAt.hour < 5) ? 1 : 0, hidden: true),
   AchievementDef('marathon', AchievementCategory.secret, Icons.directions_run, [1], (f) => _byDay(f).values.any((d) => d.length >= 20) ? 1 : 0, hidden: true),
+  // Three semitones past the measured range (the note reached, give or take
+  // half a semitone); only once the range is measured.
   AchievementDef('highNote', AchievementCategory.secret, Icons.north, [1], (f) {
-    // Above the player's range, or C5 and up when it is not measured.
-    final limit = f.ownHigh != null ? f.ownHigh! + 0.5 : 71.5;
-    return f.takes.any((t) => (t.highPitch ?? 0) > limit) ? 1 : 0;
+    final top = f.ownHigh;
+    return top != null && f.takes.any((t) => (t.highPitch ?? 0) >= top + rangeBeyond - 0.5) ? 1 : 0;
+  }, hidden: true),
+  AchievementDef('lowNote', AchievementCategory.secret, Icons.south, [1], (f) {
+    final bottom = f.ownLow;
+    return bottom != null && f.takes.any((t) => t.lowPitch != null && t.lowPitch! <= bottom - rangeBeyond + 0.5) ? 1 : 0;
   }, hidden: true),
   AchievementDef('earlyBird', AchievementCategory.secret, Icons.flutter_dash, [1], (f) {
     // The day's first song started between 7:00 and 9:00.
@@ -511,7 +549,7 @@ class AchievementService extends ChangeNotifier {
     library.addListener(_schedule);
     replays.addListener(_schedule);
     settings.addListener(_onSettings);
-    _lastSettingsKey = '$_ownHigh|${settings.latencySeconds != null}|${settings.playerName.isNotEmpty}';
+    _lastSettingsKey = '$_ownHigh|$_ownLow|${settings.latencySeconds != null}|${settings.playerName.isNotEmpty}';
     await evaluate(quiet: fresh);
   }
 
@@ -531,9 +569,14 @@ class AchievementService extends ChangeNotifier {
     return keys.isEmpty ? null : keys.reduce(math.max);
   }
 
+  int? get _ownLow {
+    final keys = settings.ownRangeKeys;
+    return keys.isEmpty ? null : keys.reduce(math.min);
+  }
+
   void _onSettings() {
     // Only the range, the latency and the name matter here.
-    final key = '$_ownHigh|${settings.latencySeconds != null}|${settings.playerName.isNotEmpty}';
+    final key = '$_ownHigh|$_ownLow|${settings.latencySeconds != null}|${settings.playerName.isNotEmpty}';
     if (key == _lastSettingsKey) return;
     _lastSettingsKey = key;
     _schedule();
@@ -627,7 +670,7 @@ class AchievementService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  final Map<String, double?> _highCache = {};
+  final Map<String, ({double low, double high})?> _spanCache = {};
 
   /// The facts from the library, replays, charts and settings.
   Future<AchievementFacts> collectFacts() async {
@@ -651,7 +694,8 @@ class AchievementService extends ChangeNotifier {
         perfect: n('perfect'),
         judged: n('perfect') + n('great') + n('good') + n('miss'),
         misses: n('miss'),
-        highPitch: await _highPitch(t.f0Json),
+        highPitch: (await _pitchSpan(t))?.high,
+        lowPitch: (await _pitchSpan(t))?.low,
         pitchShift: await _pitchShift(t.infoJson),
         songSeconds: e.song.durationSec,
       ));
@@ -678,6 +722,7 @@ class AchievementService extends ChangeNotifier {
       chartGenres: chart.genres,
       events: events.keys.toSet(),
       ownHigh: _ownHigh,
+      ownLow: _ownLow,
       songs: library.songs.length,
       readySongs: library.songs.where((s) => s.stage == PrepStage.done).length,
       lyricsSongs: lyricsSongs,
@@ -709,17 +754,24 @@ class AchievementService extends ChangeNotifier {
     }
   }
 
-  /// Near the top of what the take sang: the 98th percentile of the
-  /// confident pitch, so a stray spike does not count.
-  Future<double?> _highPitch(String f0Json) async {
-    if (_highCache.containsKey(f0Json)) return _highCache[f0Json];
-    double? high;
+  /// The low and high of what the take sang on the song's notes (see
+  /// [sungSpan]), with its notes, key change and timing.
+  Future<({double low, double high})?> _pitchSpan(TakeInfo take) async {
+    final key = take.f0Json;
+    if (_spanCache.containsKey(key)) return _spanCache[key];
+    ({double low, double high})? span;
     try {
-      final f0 = await F0Curve.load(f0Json, confidenceThreshold: 0.6);
-      final v = [for (final m in f0.midi) if (m.isFinite && m > 0) m]..sort();
-      if (v.length >= 20) high = v[(v.length * 0.98).floor().clamp(0, v.length - 1)];
+      // Take-file time to song time, as the results screen does.
+      var offset = 0.0;
+      final side = File('${take.wav}.json');
+      if (await side.exists()) {
+        final j = jsonDecode(await side.readAsString()) as Map<String, dynamic>;
+        offset = ((j['track_start_offset'] as num?)?.toDouble() ?? 0) - ((j['latency'] as num?)?.toDouble() ?? 0);
+      }
+      final f0 = await F0Curve.load(take.f0Json, confidenceThreshold: 0.6, timeOffset: offset);
+      span = sungSpan(f0, await NoteList.load(take.notesJson), await _pitchShift(take.infoJson));
     } catch (_) {}
-    return _highCache[f0Json] = high;
+    return _spanCache[key] = span;
   }
 
   /// Library songs that are on the cached hot songs charts, with their

@@ -33,8 +33,9 @@ class SongLoudness {
 
   static const fileName = 'loudness.json';
 
-  /// Target integrated loudness for the accompaniment. A little under the
-  /// -14 LUFS of streaming platforms, leaving room for the voice on top.
+  /// Default target integrated loudness for the accompaniment (set in
+  /// Settings). A little under the -14 LUFS of streaming platforms, leaving
+  /// room for the voice on top.
   static const targetLufs = -16.0;
 
   /// The gain never pushes the peak above this (dBFS) ...
@@ -70,12 +71,12 @@ class SongLoudness {
 
   TrackLoudness? of(String track) => track == 'mix' ? mix : inst;
 
-  /// Volume that brings [track] ('inst' / 'mix') to [targetLufs], limited by
+  /// Volume that brings [track] ('inst' / 'mix') to [target] LUFS, limited by
   /// its peak; null when it was not measured or is (nearly) silent.
-  double? autoGain(String track) {
+  double? autoGain(String track, {double target = targetLufs}) {
     final t = of(track);
     if (t == null || t.lufs < -60) return null;
-    var db = targetLufs - t.lufs;
+    var db = target - t.lufs;
     db = math.min(db, peakCeilingDb - t.peakDb);
     final g = math.pow(10, db / 20).toDouble();
     return g.clamp(minGain, maxGain);
@@ -102,6 +103,9 @@ class SongLoudness {
 
 /// Reads ffmpeg's ebur128 summary (the integrated "I:" and the sample
 /// "Peak:" lines); null when they are missing.
+/// "-16" or "-15.5": a target loudness without a needless decimal.
+String lufsLabel(double lufs) => lufs == lufs.roundToDouble() ? lufs.toStringAsFixed(0) : lufs.toStringAsFixed(1);
+
 TrackLoudness? parseEbur128Summary(String stderr) {
   final summary = stderr.lastIndexOf('Summary:');
   final text = summary >= 0 ? stderr.substring(summary) : stderr;

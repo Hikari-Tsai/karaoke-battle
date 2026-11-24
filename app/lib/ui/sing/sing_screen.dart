@@ -1937,7 +1937,7 @@ class _Controls extends StatelessWidget {
     final level = '${tr('sing.volume')} ${SongLoudness.gainDb(s.volume) ?? tr('sing.mute')}\n';
     if (!s.volumeAuto) return level + tr('sing.volumeManual');
     if (l == null) return level + tr('sing.volumeAutoPending');
-    return level + tr('sing.volumeAuto', {'lufs': l.lufs.toStringAsFixed(1), 'target': SongLoudness.targetLufs.toStringAsFixed(0)});
+    return level + tr('sing.volumeAuto', {'lufs': l.lufs.toStringAsFixed(1), 'target': lufsLabel(s.services.settings.targetLufs)});
   }
 
   @override
