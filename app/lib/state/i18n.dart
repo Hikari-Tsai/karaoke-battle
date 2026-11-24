@@ -166,7 +166,7 @@ const Map<String, (String, String, String)> _table = {
   'items.title': ('我的背包', 'My bag', 'マイバッグ'),
   'items.wallet': ('我的點數', 'My points', 'マイポイント'),
   'items.balance': ('可用點數', 'Points to spend', '使えるポイント'),
-  'items.walletLine': ('使用邪惡的資本力量改變戰局吧！', 'Use the wicked power of capital to turn the tide!', '邪悪な資本の力で戦局を変えよう！'),
+  'items.walletLine': ('使用成就點數來獲得更多道具', 'Spend achievement points on more items', '実績ポイントでアイテムを手に入れよう'),
   'items.bag': ('我的道具', 'My items', 'マイアイテム'),
   'items.shop': ('道具商店', 'Item shop', 'アイテムショップ'),
   'items.shopNote': ('用點數兌換道具', 'Redeem items with points', 'ポイントでアイテムと交換'),

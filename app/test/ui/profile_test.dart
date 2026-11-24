@@ -85,9 +85,9 @@ void main() {
     await tester.runAsync(() => items.redeem(ItemKind.tuningWand));
     await tester.pump(const Duration(seconds: 2));
     expect(items.balance, earned - ItemKind.tuningWand.cost);
-    expect(find.text('× 4'), findsNWidgets(2), reason: 'the day\'s 3 and the one redeemed, in the bag and on its slot');
+    expect(find.text('× 6'), findsNWidgets(2), reason: 'the day\'s 5 and the one redeemed, in the bag and on its slot');
     expect(find.text('每日 05:00 重置'), findsOneWidget);
-    expect(find.byWidgetPredicate((w) => w is Tooltip && (w.message ?? '').contains('修音魔杖 3 個、共鳴結界 1 個')), findsOneWidget, reason: 'what the reset tops up to, on hover');
+    expect(find.byWidgetPredicate((w) => w is Tooltip && (w.message ?? '').contains('修音魔杖 5 個、共鳴結界 2 個')), findsOneWidget, reason: 'what the reset tops up to, on hover');
     expect(find.text('即將推出'), findsNWidgets(ItemsSection.slots - ItemKind.values.length), reason: 'room kept for the items to come');
     expect(find.text(identity.identity!.userId), findsOneWidget, reason: 'the user ID');
     expect(find.textContaining('(macOS 27.2.1)'), findsOneWidget, reason: 'the device with its OS version');

@@ -181,7 +181,7 @@ void main() {
   test('items: redeemed with the points earned, used up one at a time, saved', () async {
     final dir = Directory.systemTemp.createTempSync('items');
     addTearDown(() => dir.deleteSync(recursive: true));
-    final earned = ValueNotifier(15);
+    final earned = ValueNotifier(8);
     var now = DateTime(2026, 11, 24, 10);
     ItemService service() => ItemService(dataRoot: dir.path, earnedPoints: () => earned.value, points: earned, clock: () => now);
     final items = service();
@@ -190,31 +190,31 @@ void main() {
     // The start's top-up came before anyone listened: kept for the screen.
     final missed = items.takeMissed();
     expect(missed.single.daily, isTrue);
-    expect(missed.single.items[ItemKind.tuningWand], 3);
+    expect(missed.single.items[ItemKind.tuningWand], 5);
     expect(items.takeMissed(), isEmpty, reason: 'once');
     final gains = <ItemGain>[];
     final sub = items.gains.listen(gains.add);
     addTearDown(sub.cancel);
-    expect((items.ownedOf(ItemKind.tuningWand), items.ownedOf(ItemKind.resonanceField)), (3, 1), reason: 'the day\'s allowance');
+    expect((items.ownedOf(ItemKind.tuningWand), items.ownedOf(ItemKind.resonanceField)), (5, 2), reason: 'the day\'s allowance');
     // The Mentor Ticket waits for its relay: none given, none to redeem.
     expect(ItemKind.mentorTicket.available, mentorAvailable);
     if (!mentorAvailable) {
       expect(items.ownedOf(ItemKind.mentorTicket), 0);
       expect(items.canRedeem(ItemKind.mentorTicket), isFalse);
     }
-    expect(items.balance, 15, reason: 'the allowance is free');
+    expect(items.balance, 8, reason: 'the allowance is free');
     expect(await items.redeem(ItemKind.tuningWand), isTrue);
-    expect((items.balance, items.ownedOf(ItemKind.tuningWand)), (5, 4));
+    expect((items.balance, items.ownedOf(ItemKind.tuningWand)), (3, 6));
     await Future<void>.delayed(Duration.zero);
     expect(gains.last.items, {ItemKind.tuningWand: 1}, reason: 'a redeem is celebrated');
-    expect((gains.last.cost, gains.last.daily), (10, false));
+    expect((gains.last.cost, gains.last.daily), (5, false));
     expect(await items.redeem(ItemKind.tuningWand), isFalse, reason: 'not enough points');
     var told = 0;
     items.addListener(() => told++);
     earned.value = 55;
     expect(told, 1, reason: 'new points show at once');
-    expect(items.balance, 45);
-    for (var i = 0; i < 4; i++) {
+    expect(items.balance, 50);
+    for (var i = 0; i < 6; i++) {
       expect(await items.consume(ItemKind.tuningWand), isTrue);
     }
     expect(await items.consume(ItemKind.tuningWand), isFalse, reason: 'none left');
@@ -225,12 +225,12 @@ void main() {
     expect(items.ownedOf(ItemKind.tuningWand), 0, reason: 'before 5:00 it is still the same sing day');
     now = DateTime(2026, 11, 25, 5);
     await items.refillIfDue();
-    expect((items.ownedOf(ItemKind.tuningWand), items.ownedOf(ItemKind.resonanceField)), (3, 1), reason: 'an unused field does not pile up');
+    expect((items.ownedOf(ItemKind.tuningWand), items.ownedOf(ItemKind.resonanceField)), (5, 2), reason: 'unused fields do not pile up');
     await Future<void>.delayed(Duration.zero);
     expect(gains.last.daily, isTrue);
-    expect(gains.last.items, {ItemKind.tuningWand: 3}, reason: 'only what was topped up');
+    expect(gains.last.items, {ItemKind.tuningWand: 5}, reason: 'only what was topped up');
     await items.refillIfDue();
-    expect(items.ownedOf(ItemKind.tuningWand), 3, reason: 'once a day');
+    expect(items.ownedOf(ItemKind.tuningWand), 5, reason: 'once a day');
     // More than the allowance is kept.
     await items.setOwned(ItemKind.tuningWand, 7);
     now = DateTime(2026, 11, 26, 8);
@@ -239,7 +239,7 @@ void main() {
     final again = service();
     addTearDown(again.dispose);
     await again.start();
-    expect((again.spent, again.ownedOf(ItemKind.tuningWand), again.usedOf(ItemKind.tuningWand), again.refilledDay), (10, 7, 4, DateTime(2026, 11, 26)));
+    expect((again.spent, again.ownedOf(ItemKind.tuningWand), again.usedOf(ItemKind.tuningWand), again.refilledDay), (5, 7, 6, DateTime(2026, 11, 26)));
     // 開發模式 sets them directly.
     await again.setBalance(500);
     await again.setOwned(ItemKind.tuningWand, 9);
@@ -247,7 +247,7 @@ void main() {
     // The Weakness Glasses: kept, one only.
     await again.setBalance(2000);
     expect(await again.redeem(ItemKind.weaknessGlasses), isTrue);
-    expect((again.has(ItemKind.weaknessGlasses), again.canRedeem(ItemKind.weaknessGlasses), again.balance), (true, false, 1000), reason: 'one is all one needs');
+    expect((again.has(ItemKind.weaknessGlasses), again.canRedeem(ItemKind.weaknessGlasses), again.balance), (true, false, 1500), reason: 'one is all one needs');
     await again.setBalance(500);
     // Several at once: one celebration, used up together.
     final gains2 = <ItemGain>[];
@@ -255,12 +255,12 @@ void main() {
     addTearDown(sub2.cancel);
     expect(await again.redeemMany(ItemKind.tuningWand, 3), isTrue);
     await Future<void>.delayed(Duration.zero);
-    expect((gains2.single.items[ItemKind.tuningWand], gains2.single.cost), (3, 30));
+    expect((gains2.single.items[ItemKind.tuningWand], gains2.single.cost), (3, 15));
     expect(await again.consumeMany(ItemKind.tuningWand, 13), isFalse, reason: 'only 12 held');
     expect(await again.consumeMany(ItemKind.tuningWand, 12), isTrue);
     expect(again.ownedOf(ItemKind.tuningWand), 0);
     await again.resetTrades();
-    expect((again.spent, again.balance, again.usedOf(ItemKind.tuningWand), again.ownedOf(ItemKind.tuningWand), again.ownedOf(ItemKind.resonanceField)), (0, 55, 0, 3, 1),
+    expect((again.spent, again.balance, again.usedOf(ItemKind.tuningWand), again.ownedOf(ItemKind.tuningWand), again.ownedOf(ItemKind.resonanceField)), (0, 55, 0, 5, 2),
         reason: 'every trade undone, the day\'s allowance held');
   });
 }

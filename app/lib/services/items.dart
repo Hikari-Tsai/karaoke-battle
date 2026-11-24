@@ -18,11 +18,11 @@ import 'sing_history.dart' show dayOf, kDayStartHour;
 /// An item that can be redeemed for points.
 enum ItemKind {
   /// Makes one note's pitch and timing perfect, then scores the take again.
-  tuningWand(10, 3),
+  tuningWand(5, 5),
 
   /// Cast before singing: the whole take is judged with pitch and timing
   /// twice as lenient.
-  resonanceField(50, 1),
+  resonanceField(20, 2),
 
   /// Asks the AI Mentor for singing tips on a take, through the Karaoke
   /// Battle relay (no API key of one's own needed).
@@ -30,7 +30,7 @@ enum ItemKind {
 
   /// Kept once had (not used up): the note analysis shows how much a wand
   /// on each note would add.
-  weaknessGlasses(1000, 0, kept: true);
+  weaknessGlasses(500, 0, kept: true);
 
   const ItemKind(this.cost, this.daily, {this.kept = false});
 
