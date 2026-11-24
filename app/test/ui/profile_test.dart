@@ -78,8 +78,8 @@ void main() {
     expect(find.text('我的背包'), findsOneWidget);
     expect(find.text('我的道具'), findsOneWidget);
     expect(find.text('可用點數'), findsOneWidget);
-    final earned = achievements.points;
-    expect(items.balance, earned);
+    final earned = achievements.points + items.dailyBonus;
+    expect(items.balance, earned, reason: 'achievements and today\'s bonus');
     expect(find.text('$earned'), findsWidgets, reason: 'the points to spend, counted up');
     expect(find.text('修音魔杖'), findsWidgets);
     await tester.runAsync(() => items.redeem(ItemKind.tuningWand));
@@ -158,7 +158,7 @@ void main() {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
       await tester.pump(const Duration(milliseconds: 200));
     }
-    expect((items.spent, items.balance), (0, achievements.points));
+    expect((items.spent, items.balance), (0, achievements.points + items.bonus), reason: "the day's bonus is not a trade");
     await settings.setDevMode(false);
     await tester.pump();
     expect(find.byType(SingingAvatar), findsNWidgets(1 + AvatarKind.values.length), reason: 'the singer and the look picker');

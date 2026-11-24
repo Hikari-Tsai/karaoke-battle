@@ -178,12 +178,43 @@ void main() {
     expect(RhythmWindows.forTempo(120).widened(2).perfect, closeTo(0.1, 1e-9));
   });
 
+  test('the first open each sing day gives 50 points, whatever is held', () async {
+    final dir = Directory.systemTemp.createTempSync('bonus');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final earned = ValueNotifier(1000);
+    var now = DateTime(2026, 11, 25, 10);
+    ItemService service() => ItemService(dataRoot: dir.path, earnedPoints: () => earned.value, points: earned, clock: () => now);
+    final items = service();
+    addTearDown(items.dispose);
+    await items.start();
+    expect((items.balance, items.bonus), (1050, 50), reason: 'opened today: 50 more');
+    final g = items.takeMissed().single;
+    expect((g.daily, g.points), (true, 50), reason: 'celebrated with the top-up');
+    await items.refillIfDue();
+    now = DateTime(2026, 11, 26, 4);
+    await items.refillIfDue();
+    expect(items.balance, 1050, reason: 'once a sing day (before 05:00 is still the 25th)');
+    final again = service();
+    addTearDown(again.dispose);
+    await again.start();
+    expect(again.balance, 1050, reason: 'reopening the same day gives nothing');
+    now = DateTime(2026, 11, 26, 5, 1);
+    await again.refillIfDue();
+    expect((again.balance, again.bonus), (1100, 100), reason: 'the next day');
+    again.takeMissed();
+    await again.resetTrades();
+    expect(again.balance, 1100, reason: 'not a trade: today\'s bonus is given again, not twice');
+    expect(again.takeMissed().single.points, 50, reason: 'as a first open today, celebrated');
+    await again.setBalance(10);
+    expect((again.balance, again.bonus), (10, 100));
+  });
+
   test('items: redeemed with the points earned, used up one at a time, saved', () async {
     final dir = Directory.systemTemp.createTempSync('items');
     addTearDown(() => dir.deleteSync(recursive: true));
     final earned = ValueNotifier(8);
     var now = DateTime(2026, 11, 24, 10);
-    ItemService service() => ItemService(dataRoot: dir.path, earnedPoints: () => earned.value, points: earned, clock: () => now);
+    ItemService service() => ItemService(dataRoot: dir.path, earnedPoints: () => earned.value, points: earned, clock: () => now, dailyBonus: 0);
     final items = service();
     addTearDown(items.dispose);
     await items.start();

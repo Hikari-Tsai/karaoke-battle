@@ -154,11 +154,15 @@ class _ItemCelebrationState extends State<ItemCelebration> with TickerProviderSt
   Widget _content(BuildContext context, double t) {
     final theme = Theme.of(context);
     final items = _items;
-    final accent = itemColor(items.first.key);
+    const gold = Color(0xFFE5A823);
+    final accent = items.isEmpty ? gold : itemColor(items.first.key);
     final kicker = widget.gain.daily ? tr('items.gotDaily') : tr('items.got');
     final kickerStyle = theme.textTheme.titleMedium?.copyWith(color: accent, fontWeight: FontWeight.w900, letterSpacing: 6 + 6 * (1 - _appear(t, 0.4, 0.6)));
     final pill = widget.gain.daily
-        ? (widget.nextReset == null ? null : tr('items.nextReset', {'at': resetLabel(widget.nextReset!)}))
+        ? [
+            if (widget.gain.points > 0) tr('items.gotPoints', {'n': widget.gain.points}),
+            if (widget.nextReset != null) tr('items.nextReset', {'at': resetLabel(widget.nextReset!)}),
+          ].join(' · ')
         : tr('items.gotCost', {'cost': widget.gain.cost, 'left': widget.balance ?? 0});
 
     Widget medal(ItemKind k, int n, double start, double size) {
@@ -182,7 +186,29 @@ class _ItemCelebrationState extends State<ItemCelebration> with TickerProviderSt
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        if (items.length == 1) ...[
+        // Only the day's points (no item needed topping up): a big coin.
+        if (items.isEmpty) ...[
+          SizedBox(
+            width: 280,
+            height: 280,
+            child: Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
+              Positioned.fill(child: CustomPaint(painter: CelebrationBurstPainter(t: t, spin: _spin.value, color: accent))),
+              Transform.scale(
+                scale: _appear(t, 0.1, 0.6, Curves.elasticOut),
+                child: Container(
+                  width: 170,
+                  height: 170,
+                  decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFFFE3A3), gold, Color(0xFFA86E12)])),
+                  child: const Icon(Icons.stars, size: 96, color: Colors.white),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 14),
+          _rise(t, 0.4, Text(kicker, textAlign: TextAlign.center, style: kickerStyle)),
+          const SizedBox(height: 10),
+          _rise(t, 0.55, Text(tr('items.gotPoints', {'n': widget.gain.points}), textAlign: TextAlign.center, style: theme.textTheme.displaySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)), dy: 30),
+        ] else if (items.length == 1) ...[
           SizedBox(
             width: 280,
             height: 280,
@@ -230,7 +256,7 @@ class _ItemCelebrationState extends State<ItemCelebration> with TickerProviderSt
             ]),
           ]),
         ],
-        if (pill != null) ...[
+        if (pill.isNotEmpty && !(items.isEmpty && widget.gain.daily && widget.nextReset == null)) ...[
           const SizedBox(height: 24),
           _rise(
             t,

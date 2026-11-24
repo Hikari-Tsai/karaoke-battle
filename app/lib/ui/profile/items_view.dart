@@ -689,6 +689,7 @@ class _BagCard extends StatelessWidget {
           // What the reset tops up to, on hover.
           Tooltip(
             message: tr('items.dailyTip2', {
+              'points': context.read<ItemService>().dailyBonus,
               'list': ItemKind.values.where((k) => k.available && k.daily > 0).map((k) => tr('items.dailyItem', {'item': tr('items.${k.name}.name'), 'n': k.daily})).join(tr('items.listSep')),
             }),
             child: Row(mainAxisSize: MainAxisSize.min, children: [

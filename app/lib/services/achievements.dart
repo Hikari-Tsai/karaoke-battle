@@ -46,8 +46,9 @@ class AchievementDef {
   /// The unlock key of a tier (1-based): "takes.2", or the id when single.
   String key(int tier) => tiered ? '$id.$tier' : id;
 
-  /// Points of a tier (1-based), from [achievementPoints].
-  int pointsOf(int tier) => achievementPoints[id]![tier - 1];
+  /// Points of a tier (1-based): its step in [achievementPoints] times
+  /// [achievementPointScale].
+  int pointsOf(int tier) => achievementPoints[id]![tier - 1] * achievementPointScale;
 }
 
 /// What one scored take tells about the player.
@@ -250,7 +251,12 @@ final _basics = <AchievementDef>[
   AchievementDef('watchDemo', AchievementCategory.basics, Icons.ondemand_video, [1], (f) => _event(f, 'basics.demo')),
 ];
 
-/// Points per tier, by how hard it is, on five steps: 5, 10, 25, 50, 100.
+/// Every tier's points are its step below times this (so the steps stay
+/// 10, 20, 50, 100, 200 as given).
+const achievementPointScale = 2;
+
+/// Points per tier, by how hard it is, on five steps: 5, 10, 25, 50, 100
+/// (times [achievementPointScale]).
 /// The beginner tasks are 5 (110 for all of them with graduating), a click
 /// is 10, real skill 25 and up, and the long haul (gold tiers) 100.
 const achievementPoints = <String, List<int>>{

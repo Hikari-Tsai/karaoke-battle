@@ -6,6 +6,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -47,9 +48,13 @@ enum ItemKind {
   final int daily;
 }
 
-/// Items just gained: redeemed ([daily] false) or the daily top-up.
+/// Items just gained: redeemed ([daily] false) or the daily top-up (with
+/// the day's bonus [points]).
 class ItemGain {
-  const ItemGain(this.items, {this.daily = false, this.cost = 0});
+  const ItemGain(this.items, {this.daily = false, this.cost = 0, this.points = 0});
+
+  /// Points given with it (the daily bonus).
+  final int points;
 
   /// What was gained and how many of each.
   final Map<ItemKind, int> items;
@@ -62,12 +67,18 @@ class ItemGain {
 class ItemService extends ChangeNotifier {
   /// [earnedPoints] reads the points achievements have earned; [points]
   /// tells when they change.
-  ItemService({required this.dataRoot, required this.earnedPoints, required this.points, DateTime Function()? clock}) : clock = clock ?? DateTime.now {
+  ItemService({required this.dataRoot, required this.earnedPoints, required this.points, DateTime Function()? clock, this.dailyBonus = 50}) : clock = clock ?? DateTime.now {
     points.addListener(notifyListeners);
   }
 
   /// The time now (a fixed one in tests).
   final DateTime Function() clock;
+
+  /// Points given on the first open of each sing day, whatever is held.
+  final int dailyBonus;
+
+  /// Points given by the daily bonus so far (they add to the balance).
+  int bonus = 0;
 
   /// The sing day of the last daily top-up.
   DateTime? refilledDay;
@@ -79,8 +90,9 @@ class ItemService extends ChangeNotifier {
     return DateTime(d.year, d.month, d.day + 1, kDayStartHour);
   }
 
-  /// Tops the items up to their daily allowance once per sing day (more
-  /// held than that is kept). Checked at start and every minute.
+  /// Once per sing day: tops the items up to their daily allowance (more
+  /// held than that is kept) and gives the day's bonus points. Checked at
+  /// start and every minute.
   Future<void> refillIfDue() async {
     final today = dayOf(clock());
     final last = refilledDay;
@@ -93,9 +105,10 @@ class ItemService extends ChangeNotifier {
       }
     }
     refilledDay = today;
+    bonus += dailyBonus;
     await _save();
     notifyListeners();
-    if (got.isNotEmpty) _gained(ItemGain(got, daily: true));
+    if (got.isNotEmpty || dailyBonus > 0) _gained(ItemGain(got, daily: true, points: dailyBonus));
   }
 
   /// With the points of [achievements].
@@ -138,7 +151,7 @@ class ItemService extends ChangeNotifier {
   int get earned => earnedPoints();
 
   /// Points left to spend.
-  int get balance => earned - spent;
+  int get balance => earned + bonus - spent;
 
   int ownedOf(ItemKind k) => owned[k] ?? 0;
   int usedOf(ItemKind k) => used[k] ?? 0;
@@ -152,6 +165,7 @@ class ItemService extends ChangeNotifier {
       if (await _file.exists()) {
         final j = jsonDecode(await _file.readAsString()) as Map<String, dynamic>;
         spent = (j['spent'] as num?)?.toInt() ?? 0;
+        bonus = (j['bonus'] as num?)?.toInt() ?? 0;
         refilledDay = DateTime.tryParse('${j['refilled_day']}');
         for (final k in ItemKind.values) {
           final o = (j['owned'] as Map?)?[k.name], u = (j['used'] as Map?)?[k.name];
@@ -213,22 +227,25 @@ class ItemService extends ChangeNotifier {
   /// Dev mode: the points to spend, set by what counts as spent (earned
   /// points stay as achievements give them).
   Future<void> setBalance(int points) async {
-    spent = earned - points;
+    spent = earned + bonus - points;
     await _save();
     notifyListeners();
   }
 
-  /// Dev mode: undoes every trade: the points spent come back, nothing is
-  /// counted as used, and the items held are what the day's top-up gives.
+  /// Dev mode: undoes every trade (the points spent come back, nothing is
+  /// counted as used, no item is held) and starts the day over as if the
+  /// app were opened for the first time today: the top-up and the day's
+  /// bonus come again, with their celebration.
   Future<void> resetTrades() async {
     spent = 0;
     used.clear();
     owned.clear();
-    for (final k in ItemKind.values) {
-      if (k.available && k.daily > 0) owned[k] = k.daily;
-    }
-    await _save();
-    notifyListeners();
+    final today = dayOf(clock());
+    final last = refilledDay;
+    // Today's bonus is given again below, not twice.
+    if (last != null && !today.isAfter(last)) bonus = math.max(0, bonus - dailyBonus);
+    refilledDay = null;
+    await refillIfDue();
   }
 
   /// Dev mode: how many [k] are held.
@@ -244,6 +261,7 @@ class ItemService extends ChangeNotifier {
       final tmp = File('${_file.path}.tmp');
       await tmp.writeAsString(const JsonEncoder.withIndent('  ').convert({
         'spent': spent,
+        'bonus': bonus,
         if (refilledDay != null) 'refilled_day': '${refilledDay!.year.toString().padLeft(4, '0')}-${refilledDay!.month.toString().padLeft(2, '0')}-${refilledDay!.day.toString().padLeft(2, '0')}',
         'owned': {for (final e in owned.entries) e.key.name: e.value},
         'used': {for (final e in used.entries) e.key.name: e.value},

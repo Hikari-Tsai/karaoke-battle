@@ -21,7 +21,7 @@ void main() {
     expect(find.text('成就解鎖！'), findsOneWidget);
     expect(find.text('麥克風常客'), findsOneWidget);
     expect(find.textContaining('100'), findsWidgets, reason: 'the silver tier asks for 100 takes');
-    expect(find.text('+25 點'), findsOneWidget);
+    expect(find.text('+50 點'), findsOneWidget);
     expect(find.byType(TierBadge), findsOneWidget, reason: 'the tier as a badge, not a word');
     await tester.tapAt(const Offset(20, 20));
     for (var i = 0; i < 4; i++) {
@@ -37,7 +37,7 @@ void main() {
     expect(find.text('第一首歌'), findsOneWidget);
     expect(find.text('報上名來'), findsNothing, reason: 'only the first five are shown');
     expect(find.text('還有 2 個成就解鎖'), findsOneWidget);
-    expect(find.text('+35 點'), findsOneWidget);
+    expect(find.text('+70 點'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 200));

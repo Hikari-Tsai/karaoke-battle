@@ -210,8 +210,8 @@ void main() {
     for (final a in achievements.where((a) => a.category == AchievementCategory.basics)) {
       expect(achievementLevels(f)[a.id], 1, reason: a.id);
     }
-    expect(achievements.firstWhere((a) => a.id == 'graduate').pointsOf(1), 25);
-    expect(achievements.firstWhere((a) => a.id == 'firstSong').pointsOf(1), 5);
+    expect(achievements.firstWhere((a) => a.id == 'graduate').pointsOf(1), 50);
+    expect(achievements.firstWhere((a) => a.id == 'firstSong').pointsOf(1), 10);
     // A task done before still counts towards graduating.
     final later = AchievementFacts(takes: [t], songs: 1, readySongs: 1, lyricsSongs: 1, customLyricsSongs: 1, ownBackingSongs: 1, latencySet: true, named: true, ownHigh: 72, events: {'basics.preview', 'basics.results', 'basics.replay', 'basics.charts', 'basics.deleteNote'}, unlocked: {'watchDemo'});
     expect(level('graduate', later), 1);
@@ -275,15 +275,15 @@ void main() {
       }
     }
     expect(achievementPoints.keys.toSet(), achievements.map((a) => a.id).toSet(), reason: 'no points for a removed id');
-    expect([for (var t = 1; t <= 3; t++) pts('takes', t)], [10, 25, 100]);
-    expect([pts('rankS'), pts('rankSS'), pts('rankSSS')], [25, 50, 100]);
-    expect(pts('shareCard'), 10);
+    expect([for (var t = 1; t <= 3; t++) pts('takes', t)], [20, 50, 200], reason: 'the steps doubled');
+    expect([pts('rankS'), pts('rankSS'), pts('rankSSS')], [50, 100, 200]);
+    expect(pts('shareCard'), 20);
     expect(pts('nightOwl'), lessThan(pts('rankSSS')), reason: 'a time of day is not an SSS');
     final secrets = achievements.where((a) => a.category == AchievementCategory.secret).fold<int>(0, (s, a) => s + a.pointsOf(1));
-    expect(secrets, 400, reason: 'the secrets are worth double, and a 100 is worth 100');
+    expect(secrets, 800, reason: 'the secrets are worth double, and a 100 is worth 100 (all doubled)');
     expect(pts('graduate'), lessThan(pts('takes', 3)));
     final basics = achievements.where((a) => a.category == AchievementCategory.basics).fold<int>(0, (s, a) => s + a.pointsOf(1));
-    expect(basics, 110, reason: '17 tasks of 5 and graduating');
+    expect(basics, 220, reason: '17 tasks of 10 and graduating');
   });
 
   group('service', () {
@@ -314,7 +314,7 @@ void main() {
       await svc.start();
       expect(svc.tierOf(achievements.firstWhere((a) => a.id == 'takes')), 1, reason: 'no takes now, still bronze');
       expect(svc.unlocked.containsKey('rankSSS'), isTrue);
-      expect(svc.points, 10 + 100);
+      expect(svc.points, 20 + 200, reason: "a bronze 10 and an SSS 100, doubled");
     });
 
     test('SSS songs tiers from before the change are given back quietly only when still reached', () async {
