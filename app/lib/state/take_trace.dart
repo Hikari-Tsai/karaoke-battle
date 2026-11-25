@@ -1,10 +1,11 @@
 // The sung pitch line of a recorded take, ready for the piano roll: pitches
 // are moved by the scoring shift, folded to the octave of the reference note
-// and coloured by distance (good <= 50 cents, near <= 100, off beyond).
+// and coloured by distance (good <= 50 cents, near <= 100, off beyond; times
+// the Resonance Field's lenience when the take was sung under it).
 import 'live_trace.dart';
 import 'song_data.dart';
 
-LiveTrace buildTakeTrace(NoteList notes, F0Curve takeF0, {double shift = 0, double pitchShift = 0}) {
+LiveTrace buildTakeTrace(NoteList notes, F0Curve takeF0, {double shift = 0, double pitchShift = 0, double lenience = 1}) {
   final trace = LiveTrace(takeF0.length + 1);
   for (var i = 0; i < takeF0.length; i++) {
     final m = takeF0.midi[i];
@@ -17,8 +18,7 @@ LiveTrace buildTakeTrace(NoteList notes, F0Curve takeF0, {double shift = 0, doub
     if (!ref.isNaN) {
       display = foldToOctaveOf(m + shift, ref);
       cents = (display - ref) * 100;
-      final a = cents.abs();
-      cat = a <= 50 ? PitchCategory.good : (a <= 100 ? PitchCategory.near : PitchCategory.off);
+      cat = PitchCategory.of(cents, lenience: lenience);
     }
     trace.add(takeF0.times[i], m, display, cents, cat);
   }

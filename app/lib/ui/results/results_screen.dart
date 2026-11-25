@@ -450,7 +450,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         final lines = (await services.pipeline.loadLyrics(widget.song)).primaryTrack?.shownLines ?? const <LyricLine>[];
         if (lines.isNotEmpty) noteLyrics = lyricsForNotes([for (var i = 0; i < notes.length; i++) notes.onset[i]], lines);
       } catch (_) {}
-      final trace = buildTakeTrace(notes, takeF0, shift: shift, pitchShift: _pitchShift);
+      final trace = buildTakeTrace(notes, takeF0, shift: shift, pitchShift: _pitchShift, lenience: lenienceOfScore(score?.raw));
       final original = await originalScoreOf(widget.take);
       _duration = <double>[widget.song.durationSec ?? 0, notes.endTime + 1, takeF0.isEmpty ? 0.0 : takeF0.times.last].reduce((a, b) => a > b ? a : b);
       if (!mounted) return;
@@ -1492,8 +1492,11 @@ class _NoteTable extends StatelessWidget {
 
   Widget _centsCell(BuildContext context, double? cents) {
     if (cents == null) return Text(tr('results.notAvailable'));
-    final a = cents.abs();
-    final color = a <= 50 ? const Color(0xFF4CD964) : (a <= 100 ? const Color(0xFFFFCC00) : const Color(0xFFFF3B30));
+    final color = switch (PitchCategory.of(cents, lenience: lenienceOfScore(score?.raw))) {
+      PitchCategory.good => const Color(0xFF4CD964),
+      PitchCategory.near => const Color(0xFFFFCC00),
+      _ => const Color(0xFFFF3B30),
+    };
     return Text('${cents >= 0 ? '+' : ''}${cents.toStringAsFixed(0)}', style: TextStyle(color: color));
   }
 }

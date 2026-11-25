@@ -87,6 +87,12 @@ class TakeField {
 /// Whether a score was judged under the Resonance Field.
 bool fieldOfScore(Map<String, dynamic>? raw) => raw?['field'] is Map;
 
+/// How much wider a score was judged: the field's lenience, else 1.
+double lenienceOfScore(Map<String, dynamic>? raw) {
+  final f = raw?['field'];
+  return f is Map ? ((f['lenience'] as num?)?.toDouble() ?? TakeField.lenience) : 1;
+}
+
 /// What each note is worth with the Tuning Wand on a take (wand_weights.json
 /// in the take folder), so that tuning every note that can gain anything
 /// makes exactly 100: [base] is the take scored without any wand, [raw] how

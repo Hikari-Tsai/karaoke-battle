@@ -4,9 +4,16 @@ import 'dart:typed_data';
 /// Colour category of a live frame relative to the reference note.
 class PitchCategory {
   static const none = 0; // no reference note at that time
-  static const good = 1; // |cents| <= 50
-  static const near = 2; // |cents| <= 100
+  static const good = 1; // |cents| <= 50 (times the lenience)
+  static const near = 2; // |cents| <= 100 (times the lenience)
   static const off = 3; // beyond
+
+  /// The colour band of a deviation. Under the Resonance Field ([lenience]
+  /// 2) the bands widen with the judging: green to a semitone each way.
+  static int of(double cents, {double lenience = 1}) {
+    final a = cents.abs() / lenience;
+    return a <= 50 ? good : (a <= 100 ? near : off);
+  }
 }
 
 class LiveTrace {

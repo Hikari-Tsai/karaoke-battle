@@ -18,6 +18,7 @@ import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
+import '../widgets/text_controllers.dart';
 import '../text_focus.dart';
 import 'lyrics_actions.dart';
 import '../widgets/app_dialog.dart';
@@ -281,10 +282,9 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
   }
 
   Future<void> _paste() async {
-    final c = TextEditingController();
     final text = await showDialog<String>(
       context: context,
-      builder: (ctx) => AppDialog(
+      builder: (ctx) => WithTextController(builder: (ctx, c) => AppDialog(
         title: Text(tr('lyrics.editor.paste')),
         content: SizedBox(
           width: 520,
@@ -298,9 +298,8 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('cancel'))),
           FilledButton(onPressed: () => Navigator.pop(ctx, c.text), child: Text(tr('ok'))),
         ],
-      ),
+      )),
     );
-    c.dispose();
     final lines = (text ?? '').split(RegExp(r'\r?\n')).map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
     if (lines.isEmpty) return;
     setState(() {
@@ -314,10 +313,9 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
   }
 
   Future<void> _shift() async {
-    final c = TextEditingController();
     final v = await showDialog<double>(
       context: context,
-      builder: (ctx) => AppDialog(
+      builder: (ctx) => WithTextController(builder: (ctx, c) => AppDialog(
         title: Text(tr('lyrics.editor.shift')),
         content: TextField(
           controller: c,
@@ -330,9 +328,8 @@ class _LyricsEditorScreenState extends State<LyricsEditorScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('cancel'))),
           FilledButton(onPressed: () => Navigator.pop(ctx, double.tryParse(c.text.trim())), child: Text(tr('ok'))),
         ],
-      ),
+      )),
     );
-    c.dispose();
     if (v == null || v == 0) return;
     setState(() {
       _remember();

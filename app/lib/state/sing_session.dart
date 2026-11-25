@@ -588,8 +588,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
         final folded = foldToOctaveOf(midi, ref);
         if (octaveAlign) display = folded;
         cents = ((octaveAlign || _octaveInvariant) ? (folded - ref) : (midi - ref)) * 100.0;
-        final a = cents.abs();
-        cat = a <= 50 ? PitchCategory.good : (a <= 100 ? PitchCategory.near : PitchCategory.off);
+        cat = PitchCategory.of(cents, lenience: lenience);
       }
       // The pitch line, while the track plays (recording or preview): frame
       // times are on the track clock then. Paused, they are capture time and
@@ -766,6 +765,10 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   }
 
   double get _lenience => fieldArmed ? TakeField.lenience : 1;
+
+  /// How much wider the judging is (2 with the Resonance Field armed): the
+  /// pitch line's and the HUD's colour bands widen with it.
+  double get lenience => _lenience;
 
   // ---- recording -----------------------------------------------------------------
 

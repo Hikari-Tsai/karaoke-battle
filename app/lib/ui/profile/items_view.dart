@@ -67,7 +67,8 @@ class ItemGlyph extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kind == ItemKind.weaknessGlasses) {
-      return SizedBox(width: size * 1.25, height: size, child: CustomPaint(painter: GlassesPainter(color: color)));
+      // Centred, so a parent's tight box (the medal's circle) cannot stretch it.
+      return Center(child: SizedBox.square(dimension: size, child: CustomPaint(painter: GlassesPainter(color: color))));
     }
     return Icon(itemIcon(kind), color: color, size: size);
   }
@@ -81,14 +82,15 @@ class GlassesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Sized like a Material icon: the whole box wide like the other icons, short arms.
     final w = size.width, h = size.height;
-    final r = w * 0.2;
-    final cy = h * 0.55;
-    final left = Offset(w * 0.28, cy), right = Offset(w * 0.72, cy);
+    final r = w * 0.185;
+    final cy = h * 0.56;
+    final left = Offset(w * 0.29, cy), right = Offset(w * 0.71, cy);
     final rim = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.075
+      ..strokeWidth = w * 0.08
       ..strokeCap = StrokeCap.round;
     // Lenses, a faint tint behind the rims.
     final lens = Paint()..color = color.withValues(alpha: 0.22);
@@ -97,10 +99,10 @@ class GlassesPainter extends CustomPainter {
     canvas.drawCircle(left, r, rim);
     canvas.drawCircle(right, r, rim);
     // The bridge over the nose.
-    canvas.drawArc(Rect.fromCenter(center: Offset(w / 2, cy - r * 0.15), width: w * 0.16, height: h * 0.22), math.pi * 1.1, math.pi * 0.8, false, rim);
+    canvas.drawArc(Rect.fromCenter(center: Offset(w / 2, cy - r * 0.1), width: w * 0.06, height: h * 0.1), math.pi * 1.1, math.pi * 0.8, false, rim);
     // The arms, going back from the outer edges.
-    canvas.drawLine(left - Offset(r, r * 0.25), Offset(w * 0.02, cy - r * 0.75), rim);
-    canvas.drawLine(right + Offset(r, -r * 0.25), Offset(w * 0.98, cy - r * 0.75), rim);
+    canvas.drawLine(left - Offset(r, r * 0.3), Offset(w * 0.02, cy - r * 0.85), rim);
+    canvas.drawLine(right + Offset(r, -r * 0.3), Offset(w * 0.98, cy - r * 0.85), rim);
     // A glint on each lens.
     final glint = Paint()
       ..color = color
@@ -479,9 +481,42 @@ Future<void> _resetTrades(BuildContext context) async {
 /// [focus] ('points' or an item's name) is the field to start in.
 Future<void> showItemsDevDialog(BuildContext context, {String? focus}) async {
   final items = context.read<ItemService>();
-  final points = TextEditingController(text: '${items.balance}');
-  final counts = {for (final k in ItemKind.values) k: TextEditingController(text: '${items.ownedOf(k)}')};
-  Widget field(String label, TextEditingController c, bool autofocus, {bool signed = false}) => Padding(
+  final result = await showDialog<_DevValues>(context: context, builder: (context) => _ItemsDevDialog(items: items, focus: focus));
+  if (result == null) return;
+  final p = result.points;
+  if (p != null && p != items.balance) await items.setBalance(p);
+  for (final MapEntry(key: k, value: n) in result.owned.entries) {
+    if (n != null && n != items.ownedOf(k)) await items.setOwned(k, n);
+  }
+}
+
+typedef _DevValues = ({int? points, Map<ItemKind, int?> owned});
+
+/// The dev dialog's fields. It owns the text controllers, so they live until
+/// the dialog has finished closing (its fields still build while it fades).
+class _ItemsDevDialog extends StatefulWidget {
+  const _ItemsDevDialog({required this.items, this.focus});
+  final ItemService items;
+  final String? focus;
+
+  @override
+  State<_ItemsDevDialog> createState() => _ItemsDevDialogState();
+}
+
+class _ItemsDevDialogState extends State<_ItemsDevDialog> {
+  late final _points = TextEditingController(text: '${widget.items.balance}');
+  late final _counts = {for (final k in ItemKind.values) k: TextEditingController(text: '${widget.items.ownedOf(k)}')};
+
+  @override
+  void dispose() {
+    _points.dispose();
+    for (final c in _counts.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Widget _field(String label, TextEditingController c, bool autofocus, {bool signed = false}) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: TextField(
           controller: c,
@@ -492,36 +527,32 @@ Future<void> showItemsDevDialog(BuildContext context, {String? focus}) async {
           onTap: () => c.selection = TextSelection(baseOffset: 0, extentOffset: c.text.length),
         ),
       );
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
+
+  @override
+  Widget build(BuildContext context) {
+    final focus = widget.focus;
+    return AlertDialog(
       title: Row(children: [const Icon(Icons.build_outlined, size: 20), const SizedBox(width: 8), Text(tr('items.devEdit'))]),
       content: SizedBox(
         width: 340,
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(tr('items.devHint'), style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 14),
-          field(tr('items.balance'), points, focus == null || focus == 'points', signed: true),
-          for (final k in ItemKind.values) field(tr('items.devOwned', {'item': tr('items.${k.name}.name')}), counts[k]!, focus == k.name),
+          _field(tr('items.balance'), _points, focus == null || focus == 'points', signed: true),
+          for (final k in ItemKind.values) _field(tr('items.devOwned', {'item': tr('items.${k.name}.name')}), _counts[k]!, focus == k.name),
         ]),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('cancel'))),
-        FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('items.devSave'))),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('cancel'))),
+        FilledButton(
+          onPressed: () => Navigator.pop<_DevValues>(context, (
+            points: int.tryParse(_points.text),
+            owned: {for (final MapEntry(key: k, value: c) in _counts.entries) k: int.tryParse(c.text)},
+          )),
+          child: Text(tr('items.devSave')),
+        ),
       ],
-    ),
-  );
-  if (ok == true) {
-    final p = int.tryParse(points.text);
-    if (p != null && p != items.balance) await items.setBalance(p);
-    for (final k in ItemKind.values) {
-      final n = int.tryParse(counts[k]!.text);
-      if (n != null && n != items.ownedOf(k)) await items.setOwned(k, n);
-    }
-  }
-  points.dispose();
-  for (final c in counts.values) {
-    c.dispose();
+    );
   }
 }
 
@@ -554,7 +585,7 @@ class _WalletCard extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(tr('items.wallet'), style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text(tr('items.balance'), style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFC9C4D8))),
+            Text(tr('items.walletSub', {'points': items.dailyBonus}), style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFFC9C4D8))),
             const SizedBox(height: 2),
             _DevEditable(
               focus: 'points',
@@ -685,19 +716,25 @@ class _BagCard extends StatelessWidget {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Text(tr('items.bag'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-          const Spacer(),
-          // What the reset tops up to, on hover.
-          Tooltip(
-            message: tr('items.dailyTip2', {
+          const SizedBox(width: 12),
+          // What the reset tops up to, on hover. On the right, shortened
+          // rather than overflowing in a narrow window.
+          Expanded(child: Align(alignment: Alignment.centerRight, child: Tooltip(
+            message: tr('items.dailyTip3', {
               'points': context.read<ItemService>().dailyBonus,
               'list': ItemKind.values.where((k) => k.available && k.daily > 0).map((k) => tr('items.dailyItem', {'item': tr('items.${k.name}.name'), 'n': k.daily})).join(tr('items.listSep')),
+              'kept': ItemKind.values.where((k) => k.kept).map((k) => tr('items.${k.name}.name')).join(tr('items.listSep')),
             }),
+            waitDuration: const Duration(milliseconds: 250),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.schedule, size: 15, color: Color(0xFF8FE6F2)),
               const SizedBox(width: 4),
-              Text(tr('items.daily'), style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFF8FE6F2), fontWeight: FontWeight.w700)),
+              Flexible(
+                child: Text(tr('items.daily'),
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelMedium?.copyWith(color: const Color(0xFF8FE6F2), fontWeight: FontWeight.w700)),
+              ),
             ]),
-          ),
+          ))),
         ]),
         const SizedBox(height: 12),
         if (held.isEmpty)

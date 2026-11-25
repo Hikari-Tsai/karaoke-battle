@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import '../../services/items.dart';
 import '../../services/settings.dart';
 import '../../services/song_library.dart';
+import '../../state/live_trace.dart' show PitchCategory;
 import '../../state/app_services.dart';
 import '../../services/streaming_apps.dart';
 import '../widgets/achievement_events.dart';
@@ -1545,11 +1546,11 @@ class _HudPanel extends StatelessWidget {
             final hasCents = !cents.isNaN;
             final color = !hasCents
                 ? cs.onSurface.withValues(alpha: 0.5)
-                : (cents.abs() <= 50
-                      ? const Color(0xFF4CD964)
-                      : (cents.abs() <= 100
-                            ? const Color(0xFFFFCC00)
-                            : const Color(0xFFFF3B30)));
+                : switch (PitchCategory.of(cents, lenience: session.lenience)) {
+                    PitchCategory.good => const Color(0xFF4CD964),
+                    PitchCategory.near => const Color(0xFFFFCC00),
+                    _ => const Color(0xFFFF3B30),
+                  };
             final level = ((hud.levelDb + 60) / 60).clamp(0.0, 1.0);
             return Column(
               mainAxisSize: MainAxisSize.min,

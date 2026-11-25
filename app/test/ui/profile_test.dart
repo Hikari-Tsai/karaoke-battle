@@ -77,7 +77,7 @@ void main() {
     // Items: the points to spend (all earned so far) and the Tuning Wand.
     expect(find.text('我的背包'), findsOneWidget);
     expect(find.text('我的道具'), findsOneWidget);
-    expect(find.text('可用點數'), findsOneWidget);
+    expect(find.text('每日+${items.dailyBonus}'), findsOneWidget);
     final earned = achievements.points + items.dailyBonus;
     expect(items.balance, earned, reason: 'achievements and today\'s bonus');
     expect(find.text('$earned'), findsWidgets, reason: 'the points to spend, counted up');
@@ -86,7 +86,9 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect(items.balance, earned - ItemKind.tuningWand.cost);
     expect(find.text('× 6'), findsNWidgets(2), reason: 'the day\'s 5 and the one redeemed, in the bag and on its slot');
-    expect(find.text('每日 05:00 重置'), findsOneWidget);
+    expect(find.text('每日5:00補充基礎道具'), findsOneWidget);
+    final tip = tester.widget<Tooltip>(find.ancestor(of: find.text('每日5:00補充基礎道具'), matching: find.byType(Tooltip)).first).message!;
+    expect(tip, allOf(contains('修音魔杖 5 個'), contains('共鳴結界 2 個'), contains('${items.dailyBonus} 點'), contains('弱點眼鏡')), reason: 'the hover tells what the top-up gives');
     expect(find.byWidgetPredicate((w) => w is Tooltip && (w.message ?? '').contains('修音魔杖 5 個、共鳴結界 2 個')), findsOneWidget, reason: 'what the reset tops up to, on hover');
     expect(find.text('即將推出'), findsNWidgets(ItemsSection.slots - ItemKind.values.length), reason: 'room kept for the items to come');
     expect(find.text(identity.identity!.userId), findsOneWidget, reason: 'the user ID');
@@ -117,6 +119,21 @@ void main() {
     await settle();
     expect(inCard('0 / 100'), findsOneWidget, reason: 'the next card in the deck');
     expect(inCard('0 / 10'), findsNothing);
+    // The arrows beside the dots turn it either way, round and round.
+    Finder arrow(String tip) => find.descendant(of: takesCard, matching: find.byTooltip(tip));
+    await tester.tap(arrow('上一張'));
+    await settle();
+    expect(inCard('0 / 10'), findsOneWidget, reason: 'the bronze back on top');
+    await tester.tap(arrow('上一張'));
+    await settle();
+    expect(inCard('0 / 500'), findsOneWidget, reason: 'from the bottom of the deck: the gold');
+    await tester.tap(arrow('下一張'));
+    await settle();
+    expect(inCard('0 / 10'), findsOneWidget);
+    await tester.tap(arrow('下一張'));
+    await settle();
+    expect(inCard('0 / 100'), findsOneWidget);
+    expect(inCard('0 / 10'), findsNothing);
     expect(find.byType(TierBadge), findsNWidgets(3), reason: 'the A, the SS and the name (家家) unlocked, as badges');
     // A circled i explains how a rule is judged; the secrets' only once seen.
     final tips = find.byType(InfoTip).evaluate().length;
@@ -143,6 +160,14 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect((items.balance, items.ownedOf(ItemKind.tuningWand)), (999, 7));
     expect(items.earned, achievements.points, reason: 'what achievements earned stays');
+    // Opened and closed again: its fields' controllers belong to the dialog
+    // and go with it (closing never touches a disposed one).
+    await tester.tap(find.text('設定點數和道具'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('取消'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tester.takeException(), isNull);
+    expect(find.text('取消'), findsNothing);
     await tester.tap(find.text('× 7').first);
     await tester.pump(const Duration(milliseconds: 50));
     await tester.tap(find.text('× 7').first);

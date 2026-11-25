@@ -13,6 +13,7 @@ import '../../state/scoring_bridge.dart';
 import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
 import '../../state/take_trace.dart';
+import '../../state/tuning_wand.dart';
 import '../widgets/judgement_popups.dart';
 
 class ReplayData {
@@ -70,7 +71,10 @@ Future<ReplayData> loadReplayData(AppServices services, Song song, TakeInfo take
   } catch (_) {}
   final score = await ScoringBridge.load(take.scoreJson);
   final takeF0 = await F0Curve.load(take.f0Json, confidenceThreshold: 0.4, timeOffset: offset);
-  final trace = buildTakeTrace(notes, takeF0, shift: (score?.shift ?? 0).toDouble(), pitchShift: pitchShift);
+  // Under the Resonance Field the colours and pop-ups judge as wide as the
+  // score did (as the live ones did while singing).
+  final lenience = lenienceOfScore(score?.raw);
+  final trace = buildTakeTrace(notes, takeF0, shift: (score?.shift ?? 0).toDouble(), pitchShift: pitchShift, lenience: lenience);
   Lyrics? lyrics;
   try {
     final lf = File(files.lyricsJson);
@@ -103,7 +107,7 @@ Future<ReplayData> loadReplayData(AppServices services, Song song, TakeInfo take
         midi: notes.pitch[i] + pitchShift,
         timing: n['onset'] as String,
         onsetErrorMs: errors[i],
-        cents: cents[i],
+        cents: cents[i] == null ? null : cents[i]! / lenience,
       ));
     }
     judgements.sort((a, b) => a.time.compareTo(b.time));

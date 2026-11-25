@@ -289,11 +289,39 @@ class _AchievementTileState extends State<_AchievementTile> with SingleTickerPro
     });
   }
 
-  /// Shuffles until [tier]'s card is on top.
+  /// The other way: the card at the back comes out from the left and onto
+  /// the top (the shuffle played backwards on the deck it leads to).
+  Future<void> _unshuffleOnce({Duration? duration}) async {
+    if (_shuffle.isAnimating || _count < 2) return;
+    setState(() {
+      final d = _deck;
+      _order = [d.last, ...d.take(d.length - 1)];
+      _sign = -1;
+      _drag = 0;
+      _from = 0;
+    });
+    _shuffle.duration = duration ?? const Duration(milliseconds: 460);
+    await _shuffle.reverse(from: 1);
+  }
+
+  /// The next card (the top one goes off to the left and to the back).
+  void _next() => _shuffleOnce(-1);
+
+  /// The card before (back from the bottom of the deck).
+  void _previous() => _unshuffleOnce();
+
+  /// Shuffles until [tier]'s card is on top, whichever way is shorter.
   Future<void> _bringToFront(int tier) async {
-    var steps = _deck.indexOf(tier);
-    while (steps-- > 0 && mounted) {
-      await _shuffleOnce(1, duration: const Duration(milliseconds: 300));
+    final i = _deck.indexOf(tier);
+    if (i <= 0) return;
+    const quick = Duration(milliseconds: 300);
+    final back = _count - i;
+    for (var k = 0; k < (i <= back ? i : back) && mounted; k++) {
+      if (i <= back) {
+        await _shuffleOnce(-1, duration: quick);
+      } else {
+        await _unshuffleOnce(duration: quick);
+      }
     }
   }
 
@@ -540,6 +568,7 @@ class _AchievementTileState extends State<_AchievementTile> with SingleTickerPro
                 // The tiers, filled as they are reached; click one to see it
                 // (again to go back to the next one to reach).
                 Row(children: [
+                  if (_count > 1) _arrow(context, Icons.chevron_left, tr('ach.prevCard'), _previous),
                   for (var t = 1; t <= def.thresholds.length; t++)
                     Tooltip(
                       message: '${tr('ach.tier$t')} · ${tr('ach.${def.id}.desc', {'n': _number(def, def.thresholds[t - 1])})}',
@@ -566,6 +595,7 @@ class _AchievementTileState extends State<_AchievementTile> with SingleTickerPro
                         ),
                       ),
                     ),
+                  if (_count > 1) _arrow(context, Icons.chevron_right, tr('ach.nextCard'), _next),
                   const Spacer(),
                   Text('+${def.pointsOf(shown)}', style: theme.textTheme.labelSmall?.copyWith(color: _gold, fontWeight: FontWeight.w700)),
                 ]),
@@ -579,6 +609,26 @@ class _AchievementTileState extends State<_AchievementTile> with SingleTickerPro
             ]),
           ),
         ]);
+  }
+
+  /// A small arrow beside the tier dots, turning the deck one card.
+  Widget _arrow(BuildContext context, IconData icon, String tip, VoidCallback onTap) {
+    final cs = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tip,
+      waitDuration: const Duration(milliseconds: 400),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.only(right: icon == Icons.chevron_left ? 4 : 0),
+            child: Icon(icon, size: 18, color: cs.onSurfaceVariant),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _revoke(BuildContext context) async {
