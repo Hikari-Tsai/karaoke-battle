@@ -8,6 +8,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../sing/piano_roll.dart' show PianoRollPainter;
+import '../sing/sing_screen.dart';
+
 import '../../services/prep_pipeline.dart';
 import '../../services/replay_library.dart';
 import '../../services/song_library.dart';
@@ -349,6 +352,16 @@ class _ReplayCardState extends State<_ReplayCard> {
 
   /// The backing track that came with the included song: applied once the
   /// song prepared from it is ready (here, or when watching).
+  Future<void> _battle(Song song) async {
+    await _linked(song);
+    if (!mounted) return;
+    final services = context.read<AppServices>();
+    if (await services.replays.addSharedLyrics(r, song, services.pipeline)) _snack(tr('replays.lyricsAdded'));
+    await _addBacking(song);
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => SingScreen(song: song, opponentId: r.id)));
+  }
+
   Future<void> _addBacking(Song song) async {
     final services = context.read<AppServices>();
     try {
@@ -541,8 +554,23 @@ class _ReplayCardState extends State<_ReplayCard> {
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(onPressed: () => _showCard(song, ready), icon: const Icon(Icons.style_outlined), label: Text(tr('replays.card'))),
-                if (ready)
-                  FilledButton.icon(onPressed: () => _watch(song), icon: const Icon(Icons.play_circle_outline), label: Text(tr('replays.watch')))
+                if (ready) ...[
+                  FilledButton.icon(onPressed: () => _watch(song), icon: const Icon(Icons.play_circle_outline), label: Text(tr('replays.watch'))),
+                  // Shadow battle: sing the song against this take, when its
+                  // sharer accepts challenges.
+                  Tooltip(
+                    message: r.acceptsChallenge ? tr('replays.battleTip', {'player': _player}) : tr('replays.noChallenge', {'player': _player}),
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: PianoRollPainter.ghostColor,
+                        side: BorderSide(color: PianoRollPainter.ghostColor.withValues(alpha: 0.6)),
+                      ),
+                      onPressed: r.acceptsChallenge ? () => _battle(song) : null,
+                      icon: const Icon(Icons.sports_kabaddi),
+                      label: Text(tr('replays.battle')),
+                    ),
+                  ),
+                ]
                 else if (song == null && r.youtubeId != null)
                   FilledButton.tonalIcon(
                     onPressed: _busy ? null : _download,

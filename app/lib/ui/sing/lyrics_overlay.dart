@@ -14,16 +14,24 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/settings.dart';
+import '../../state/duet_parts.dart';
 import '../../state/i18n.dart';
 import '../../state/lyrics.dart';
 import '../lyrics/lyrics_actions.dart';
+import 'piano_roll.dart' show PianoRollPainter;
 
 /// Font family of the sung lyrics (bundled jf open huninn).
 const lyricsFont = 'Huninn';
 
 class LyricsOverlay extends StatelessWidget {
-  const LyricsOverlay({super.key, required this.lyrics, required this.position, this.noteOnsets, this.noteOffsets, this.showRomaji = true});
+  const LyricsOverlay({super.key, required this.lyrics, required this.position, this.noteOnsets, this.noteOffsets, this.showRomaji = true, this.duetParts, this.duetMine});
   final Lyrics lyrics;
+
+  /// Duet: the part of each shown primary line, and the singer's own. Each
+  /// line then wears a badge (you, partner, together) and fills in its
+  /// colour; the partner's lines stay dimmer.
+  final List<DuetPart>? duetParts;
+  final DuetPart? duetMine;
 
   /// Show the romanised reading under Japanese lines when available.
   final bool showRomaji;
@@ -58,6 +66,37 @@ class LyricsOverlay extends StatelessWidget {
         valueListenable: position,
         builder: (context, t, _) {
           final i = main.indexAt(t);
+          final parts = duetMine != null && duetParts != null && duetParts!.length == main.lines.length ? duetParts : null;
+          DuetPart? partOf(LyricLine? l) => parts == null || l == null ? null : parts[main.lines.indexOf(l)];
+          Widget badged(Widget line, LyricLine? l, double size) {
+            final part = partOf(l);
+            if (part == null) return line;
+            final c = PianoRollPainter.duetColor(part, duetMine!);
+            return Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: size * 0.35, vertical: size * 0.08),
+                margin: EdgeInsets.only(right: size * 0.3),
+                decoration: BoxDecoration(color: c.withValues(alpha: 0.22), border: Border.all(color: c, width: 1.5), borderRadius: BorderRadius.circular(size)),
+                child: Text(PianoRollPainter.duetLabel(part, duetMine!), style: TextStyle(fontSize: size * 0.42, color: c, fontWeight: FontWeight.w800, height: 1.1, shadows: _shadow)),
+              ),
+              Flexible(child: line),
+            ]);
+          }
+
+          bool partnerLine(LyricLine? l) {
+            final part = partOf(l);
+            return part != null && !part.sungBy(duetMine!);
+          }
+
+          // A line's wipe colours: gold for the singer's own (and outside a
+          // duet), the part's colour otherwise; the other part's rest dimmer.
+          // The romaji under it and the line sliding out use the same.
+          Color fillOf(LyricLine l) {
+            final part = partOf(l);
+            return part == null || part == duetMine ? const Color(0xFFFFD60A) : PianoRollPainter.duetColor(part, duetMine!);
+          }
+
+          Color baseOf(LyricLine l) => partnerLine(l) ? Colors.white60 : Colors.white;
           final cur = i >= 0 ? main.lines[i] : null;
           final nextIdx = i >= 0 ? (i + 1 < main.lines.length ? i + 1 : -1) : main.nextAfter(t);
           final next = nextIdx >= 0 ? main.lines[nextIdx] : null;
@@ -88,12 +127,15 @@ class LyricsOverlay extends StatelessWidget {
           Widget slot;
           if (cur != null) {
             slot = Column(mainAxisSize: MainAxisSize.min, children: [
-              _WipeText(text: cur.text, fraction: frac, fontSize: big),
-              if (romaji(cur)) _WipeText(text: cur.romaji!, fraction: frac, fontSize: small * 0.95, weight: FontWeight.w600) else if (romajiRow) romajiGap,
+              badged(_WipeText(text: cur.text, fraction: frac, fontSize: big, fill: fillOf(cur), base: baseOf(cur)), cur, big),
+              if (romaji(cur))
+                _WipeText(text: cur.romaji!, fraction: frac, fontSize: small * 0.95, weight: FontWeight.w600, fill: fillOf(cur), base: baseOf(cur))
+              else if (romajiRow)
+                romajiGap,
             ]);
           } else if (upcoming != null) {
             slot = Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(upcoming.text, textAlign: TextAlign.center, style: TextStyle(fontSize: big, height: 1.25, color: Colors.white54, fontWeight: FontWeight.w700, shadows: _shadow)),
+              badged(Text(upcoming.text, textAlign: TextAlign.center, style: TextStyle(fontSize: big, height: 1.25, color: Colors.white54, fontWeight: FontWeight.w700, shadows: _shadow)), upcoming, big),
               if (romaji(upcoming))
                 Text(upcoming.romaji!, textAlign: TextAlign.center, style: TextStyle(fontSize: small * 0.95, height: 1.25, color: Colors.white38, shadows: _shadow))
               else if (romajiRow)
@@ -146,7 +188,7 @@ class LyricsOverlay extends StatelessWidget {
                       opacity: 1 - e,
                       child: Transform.translate(
                         offset: Offset(0, -e * big * 0.9),
-                        child: Transform.scale(scale: 1 - 0.15 * e, child: Center(child: _WipeText(text: prev.text, fraction: 1, fontSize: big))),
+                        child: Transform.scale(scale: 1 - 0.15 * e, child: Center(child: _WipeText(text: prev.text, fraction: 1, fontSize: big, fill: fillOf(prev), base: baseOf(prev)))),
                       ),
                     ),
                   ),
@@ -186,7 +228,10 @@ class LyricsOverlay extends StatelessWidget {
                     offset: Offset(0, (1 - pNext) * small),
                     child: Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(after?.text ?? ' ', textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: small, color: Colors.white38, shadows: _shadow)),
+                      child: badged(
+                          Text(after?.text ?? ' ', textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: small, color: Colors.white38, shadows: _shadow)),
+                          after,
+                          small),
                     ),
                   ),
                 ),
@@ -202,21 +247,24 @@ class LyricsOverlay extends StatelessWidget {
 /// A line drawn twice: white underneath and the sung part in gold on top,
 /// clipped to [fraction] of the text width.
 class _WipeText extends StatelessWidget {
-  const _WipeText({required this.text, required this.fraction, required this.fontSize, this.weight = FontWeight.w800});
+  const _WipeText({required this.text, required this.fraction, required this.fontSize, this.weight = FontWeight.w800, this.fill = const Color(0xFFFFD60A), this.base = Colors.white});
   final String text;
+
+  /// The sung part's colour and the rest's.
+  final Color fill, base;
   final double fraction;
   final double fontSize;
   final FontWeight weight;
 
   @override
   Widget build(BuildContext context) {
-    final base = TextStyle(fontSize: fontSize, fontWeight: weight, height: 1.25, shadows: LyricsOverlay._shadow);
+    final style = TextStyle(fontSize: fontSize, fontWeight: weight, height: 1.25, shadows: LyricsOverlay._shadow);
     return Stack(
       children: [
-        Text(text, textAlign: TextAlign.center, style: base.copyWith(color: Colors.white)),
+        Text(text, textAlign: TextAlign.center, style: style.copyWith(color: base)),
         ClipRect(
           clipper: _FractionClipper(fraction),
-          child: Text(text, textAlign: TextAlign.center, style: base.copyWith(color: const Color(0xFFFFD60A))),
+          child: Text(text, textAlign: TextAlign.center, style: style.copyWith(color: fill)),
         ),
       ],
     );

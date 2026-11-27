@@ -3,6 +3,9 @@
 // judged against, the sung pitch curve and the score. The dry vocal travels
 // as an MP3 next to it (`voice.file` names it); exports are a .zip of both.
 // Only format version 2 is read; earlier development formats are refused.
+// The player may let the receiver sing against the take (a shadow battle):
+// `accepts_challenge` true. A file without it (and every file from before it
+// existed) does not, so its take is only watched.
 // Subtitles the player added themselves (imported, pasted, typed or
 // recognised; not the video's own) travel in the optional `lyrics` field,
 // so the receiver sees the same lyrics; older apps ignore it.
@@ -98,7 +101,15 @@ class ReplayFile {
     this.backingFile,
     this.trackTimeline = const [],
     this.lyrics,
+    this.acceptsChallenge = false,
+    this.duetPart,
   });
+
+  /// The take sang one part of a duet ('a' or 'b'), or null: the whole song.
+  final String? duetPart;
+
+  /// The player lets the receiver sing a shadow battle against this take.
+  final bool acceptsChallenge;
 
   static const formatName = 'karaoke-battle-replay';
   static const formatVersion = 2;
@@ -173,11 +184,13 @@ class ReplayFile {
           'track': track,
           if (trackTimeline.isNotEmpty) 'track_timeline': [for (final e in trackTimeline) e.toJson()],
           'time_offset': timeOffset,
+          'duet': ?duetPart,
         },
         'notes': notes,
         'take_f0': takeF0,
         'score': score,
         'voice': voiceFile != null ? {'codec': 'mp3', 'file': voiceFile} : null,
+        if (acceptsChallenge) 'accepts_challenge': true,
         if (songAudioFile != null) 'song_audio': {'codec': 'mp3', 'file': songAudioFile},
         if (songAudioFile != null && songCoverFile != null) 'song_cover': {'type': 'jpeg', 'file': songCoverFile},
         if (songAudioFile != null && backingFile != null) 'backing_audio': {'codec': 'mp3', 'file': backingFile},
@@ -263,6 +276,9 @@ class ReplayFile {
       songCoverFile: songCoverFile,
       backingFile: backingFile,
       lyrics: _validLyrics(root['lyrics']),
+      // Only an explicit yes; missing or anything else is a no.
+      acceptsChallenge: root['accepts_challenge'] == true,
+      duetPart: take['duet'] == 'a' || take['duet'] == 'b' ? take['duet'] as String : null,
     );
   }
 

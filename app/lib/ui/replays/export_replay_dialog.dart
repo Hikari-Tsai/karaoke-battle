@@ -52,14 +52,20 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
   bool? _includeSong;
   bool get _localSong => widget.song.sourceType == SourceType.file;
 
-  /// Rough size of the included song (MP3 192 kbps), in MB, when known.
+  /// Rough size of the included song (MP3 192 kbps), in MB, when known:
+  /// with the backing track when there is one, and the song alone.
   String? _songMb;
+  String? _songOnlyMb;
 
   /// The song has a cover image, which goes with the included song.
   bool _hasCover = false;
 
   /// The user imported a backing track for the song: it goes with it too.
   bool _hasBacking = false;
+
+  /// Lets the receiver sing a shadow battle against this take (off unless
+  /// ticked).
+  bool _acceptsChallenge = false;
 
   @override
   void initState() {
@@ -75,12 +81,15 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
       _hasBacking = services.library.files(widget.song).hasUserInst;
       var seconds = widget.song.durationSec;
       if (seconds == null) {
-        // mix.wav: 44.1 kHz 16-bit stereo, near enough for an estimate.
+        // mix.wav: 44.1 kHz 32-bit float stereo, near enough for an estimate.
         final mix = File(services.library.files(widget.song).mixWav);
-        if (mix.existsSync()) seconds = mix.lengthSync() / (44100 * 4);
+        if (mix.existsSync()) seconds = mix.lengthSync() / (44100 * 2 * 4);
       }
       // The song, and the backing track at the same rate.
-      if (seconds != null && seconds > 0) _songMb = (seconds * 192000 / 8 / 1e6 * (_hasBacking ? 2 : 1)).toStringAsFixed(1);
+      if (seconds != null && seconds > 0) {
+        _songOnlyMb = (seconds * 192000 / 8 / 1e6).toStringAsFixed(1);
+        _songMb = (seconds * 192000 / 8 / 1e6 * (_hasBacking ? 2 : 1)).toStringAsFixed(1);
+      }
     }
   }
 
@@ -100,6 +109,7 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
         player: player,
         baseName: base,
         includeSong: _includeSong == true,
+        acceptsChallenge: _acceptsChallenge,
       );
       final uri = await FilePicker.saveFile(
         dialogTitle: tr('export.saveTitle'),
@@ -142,19 +152,17 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
           children: [
             Text(tr('export.body'), style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
-            Row(children: [
-              Icon(hasVoice ? Icons.folder_zip_outlined : Icons.mic_off, size: 20, color: theme.colorScheme.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Expanded(child: Text(tr(hasVoice ? 'export.contents' : 'export.noVoice'), style: theme.textTheme.bodySmall)),
-            ]),
-            if (_lyrics.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Row(children: [
-                Icon(Icons.subtitles_outlined, size: 20, color: theme.colorScheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Expanded(child: Text(tr('export.lyrics', {'names': _lyrics.join('、')}), style: theme.textTheme.bodySmall)),
-              ]),
-            ],
+            _contents(theme, hasVoice),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              value: _acceptsChallenge,
+              onChanged: _busy ? null : (v) => setState(() => _acceptsChallenge = v ?? false),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              title: Text(tr('export.acceptChallenge')),
+              subtitle: Text(tr('export.acceptChallengeNote')),
+            ),
             if (_localSong) ...[
               const SizedBox(height: 12),
               _songChoice(theme),
@@ -176,6 +184,40 @@ class _ExportReplayDialogState extends State<_ExportReplayDialog> {
         ),
       ],
     );
+  }
+
+  /// What the .zip will hold, item by item (the song's files follow the
+  /// choice below as it is made).
+  Widget _contents(ThemeData theme, bool hasVoice) {
+    final cs = theme.colorScheme;
+    final include = _includeSong;
+    Widget item(IconData icon, String text, {bool off = false}) => Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icon, size: 18, color: off ? cs.outline : cs.primary),
+            const SizedBox(width: 8),
+            Expanded(child: Text(text, style: theme.textTheme.bodySmall?.copyWith(color: off ? cs.onSurfaceVariant : null))),
+          ]),
+        );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(tr('export.inZip'), style: theme.textTheme.labelLarge),
+      item(Icons.data_object, tr('export.item.json')),
+      hasVoice ? item(Icons.mic, tr('export.contents')) : item(Icons.mic_off, tr('export.noVoice'), off: true),
+      _lyrics.isNotEmpty
+          ? item(Icons.subtitles_outlined, tr('export.lyrics', {'names': _lyrics.join('、')}))
+          : item(Icons.subtitles_off_outlined, tr('export.item.noLyrics'), off: true),
+      if (_localSong)
+        if (include == null)
+          item(Icons.help_outline, tr('export.item.songPending'), off: true)
+        else if (include) ...[
+          item(Icons.library_music_outlined, tr('export.item.song', {'size': _songOnlyMb == null ? '' : tr('export.item.about', {'mb': _songOnlyMb!})})),
+          if (_hasBacking) item(Icons.queue_music, tr('export.withBacking')),
+          if (_hasCover) item(Icons.image_outlined, tr('export.withCover')),
+        ] else
+          item(Icons.music_off_outlined, tr('export.item.noSong'), off: true)
+      else
+        item(Icons.smart_display_outlined, tr('export.item.youtube'), off: true),
+    ]);
   }
 
   /// Include the song or not, each with what it means.

@@ -262,18 +262,24 @@ class ScoringBridge {
   // Spans of notes the user deleted (ghosts) are excluded from the
   // reference curve too, so they cannot count against the singer.
   final spans = excludedSpansFromJson(notesMap);
+  // A duet part: the other part's lines are left out of both curves.
+  final duet = <(double, double)>[
+    for (final s in (notesMap['duet_spans'] as List? ?? const []))
+      if (s is List && s.length == 2 && s[0] is num && s[1] is num) ((s[0] as num).toDouble(), (s[1] as num).toDouble()),
+  ];
+  bool inDuet(double t) => duet.any((s) => t >= s.$1 && t <= s.$2);
   final refRaw = refText == null ? null : F0Track.fromJson(jsonDecode(refText) as Map<String, dynamic>);
-  final refF0 = refRaw == null || spans.isEmpty
+  final refF0 = refRaw == null || (spans.isEmpty && duet.isEmpty)
       ? refRaw
       : F0Track(
           times: refRaw.times,
-          f0: [for (var i = 0; i < refRaw.f0.length; i++) i < refRaw.times.length && inSpans(spans, refRaw.times[i]) ? 0.0 : refRaw.f0[i]],
+          f0: [for (var i = 0; i < refRaw.f0.length; i++) i < refRaw.times.length && (inSpans(spans, refRaw.times[i]) || inDuet(refRaw.times[i])) ? 0.0 : refRaw.f0[i]],
           confidence: refRaw.confidence,
           hop: refRaw.hop,
           sampleRate: refRaw.sampleRate,
         );
   final takeRaw = F0Track.fromJson(jsonDecode(takeText) as Map<String, dynamic>);
-  final shifted = takeTimeOffset == 0
+  final moved = takeTimeOffset == 0
       ? takeRaw
       : F0Track(
           times: takeRaw.times.map((t) => t + takeTimeOffset).toList(growable: false),
@@ -281,6 +287,15 @@ class ScoringBridge {
           confidence: takeRaw.confidence,
           hop: takeRaw.hop,
           sampleRate: takeRaw.sampleRate,
+        );
+  final shifted = duet.isEmpty
+      ? moved
+      : F0Track(
+          times: moved.times,
+          f0: [for (var i = 0; i < moved.f0.length; i++) i < moved.times.length && inDuet(moved.times[i]) ? 0.0 : moved.f0[i]],
+          confidence: moved.confidence,
+          hop: moved.hop,
+          sampleRate: moved.sampleRate,
         );
   // The energy curve is already in track time (same offset), so the gate
   // compares each take frame with the loudness recorded at that moment.

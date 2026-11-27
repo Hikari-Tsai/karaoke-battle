@@ -19,6 +19,8 @@ import '../services/song_library.dart';
 import '../services/settings.dart';
 import 'app_services.dart';
 import 'beat_grid.dart';
+import 'duet_parts.dart';
+import 'lyrics.dart';
 import 'ghost_notes.dart';
 import 'playback_clock.dart';
 import 'live_judge.dart';
@@ -241,6 +243,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   void replaceNotes(NoteList n) {
     notes = n;
     _songRange = null;
+    _duetNotes = null;
     _syncGuideSoon();
     notifyListeners();
   }
@@ -460,13 +463,22 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// Both stems are already in the engine: this is a short crossfade at the
   /// playing position, with no gap, so it is allowed while recording too.
   void setTrack(TrackKind t) {
+    // In a duet with the original singing the other part, this is the
+    // track under the singer's own lines.
+    if (duetPart != null && duetVoice) _duetBase = t;
+    _selectTrack(t);
+  }
+
+  void _selectTrack(TrackKind t, {bool auto = false}) {
     final l = _live;
     if (t == track || l == null || !_canPlay(t)) return;
     try {
       if (recording) _trackLog.add(TrackSwitch(_round3(l.position), t.name));
       track = t;
-      _trackSet = true;
-      _saveSoon();
+      if (!auto) {
+        _trackSet = true;
+        _saveSoon();
+      }
       l.selectTrack(_stemIndex(t));
       l.guide = t == TrackKind.midi;
       if (volumeAuto) volume = loudness?.autoGain(_loudKey, target: services.settings.targetLufs) ?? 1.0;
@@ -528,6 +540,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       _drainFrames(l, pos);
     }
     position.value = pos;
+    _followDuet(pos);
     // Throttled HUD update (~15 Hz).
     final now = DateTime.now();
     if (now.difference(_lastHud).inMilliseconds >= 66) {
@@ -770,6 +783,89 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
   /// pitch line's and the HUD's colour bands widen with it.
   double get lenience => _lenience;
 
+  // ---- duet ----------------------------------------------------------------------
+
+  /// Singing one part of a duet (null: the whole song). The lyrics are
+  /// split by [duetPlan] over [duetLines] (the shown primary lines).
+  DuetPart? duetPart;
+  DuetPlan? duetPlan;
+  List<LyricLine> duetLines = const [];
+
+  /// The parts over time, for the roll.
+  List<DuetSpan> duetSpans = const [];
+
+  /// The original singer (the song's mix) sings the other part and the
+  /// lines sung together; the singer's own lines play over [_duetBase].
+  bool duetVoice = true;
+  TrackKind? _duetBase;
+  NoteList? _duetNotes;
+
+  /// Sings [part] of [plan] (null part: back to the whole song).
+  void setDuet(DuetPart? part, {DuetPlan? plan, List<LyricLine>? lines}) {
+    if (recording) return;
+    final wasVoiced = duetPart != null && duetVoice;
+    duetPart = part;
+    if (plan != null) duetPlan = plan;
+    if (lines != null) duetLines = lines;
+    final p = duetPlan;
+    duetSpans = part == null || p == null ? const [] : p.spans(duetLines);
+    _duetNotes = null;
+    if (part != null && duetVoice && !wasVoiced) _duetBase = track == TrackKind.mix ? (_canPlay(TrackKind.inst) ? TrackKind.inst : track) : track;
+    if (part == null && wasVoiced && _duetBase != null) {
+      _selectTrack(_duetBase!, auto: true);
+      _duetBase = null;
+    }
+    judge = null;
+    notifyListeners();
+  }
+
+  void setDuetVoice(bool on) {
+    if (on == duetVoice || recording) return;
+    duetVoice = on;
+    if (duetPart == null) return;
+    if (on) {
+      _duetBase = track;
+    } else if (_duetBase != null) {
+      _selectTrack(_duetBase!, auto: true);
+      _duetBase = null;
+    }
+    notifyListeners();
+  }
+
+  /// The notes the singer is judged on: in a duet, without the other part's.
+  NoteList get judgedNotes {
+    final part = duetPart, plan = duetPlan;
+    if (part == null || plan == null) return notes;
+    return _duetNotes ??= () {
+      final drop = partnerNotes(notes, duetLines, plan, part);
+      final keep = [for (var i = 0; i < notes.length; i++) if (!drop.contains(i)) i];
+      return NoteList(
+        Float64List.fromList([for (final i in keep) notes.onset[i]]),
+        Float64List.fromList([for (final i in keep) notes.offset[i]]),
+        Float64List.fromList([for (final i in keep) notes.pitch[i]]),
+      );
+    }();
+  }
+
+  /// Whether the original sings at [t]: a line of the other part or one
+  /// sung together (a little early, so the switch is done as it starts).
+  bool _originalSingsAt(double t) {
+    final mine = duetPart;
+    if (mine == null) return false;
+    for (final s in duetSpans) {
+      if (s.start - 0.15 > t) break;
+      if (t <= s.end + 0.1) return s.part != mine;
+    }
+    return false;
+  }
+
+  void _followDuet(double pos) {
+    final base = _duetBase;
+    if (duetPart == null || !duetVoice || base == null || !_canPlay(TrackKind.mix)) return;
+    final want = _originalSingsAt(pos) ? TrackKind.mix : base;
+    if (want != track) _selectTrack(want, auto: true);
+  }
+
   // ---- recording -----------------------------------------------------------------
 
   Future<void> startRecording() async {
@@ -785,7 +881,7 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       _endReported = false;
       trace.clear();
       judge = LiveJudge(
-        notes: notes,
+        notes: judgedNotes,
         windows: RhythmWindows.forTempo(beatGrid.bpm).widened(_lenience),
         lenience: _lenience,
         pitchShift: pitchShift,
@@ -835,7 +931,19 @@ class SingSession extends ChangeNotifier implements PlaybackClock {
       'track': track.name,
       'track_timeline': [for (final e in _trackLog) e.toJson()],
       'duration': elapsed,
+      if (duetPart != null) 'duet': duetPart!.name,
     }));
+    // A duet part is judged on its own lines and those sung together: the
+    // take keeps the song's notes without the other part's.
+    final part = duetPart, plan = duetPlan;
+    if (part != null && plan != null) {
+      try {
+        final songNotes = jsonDecode(await File(files.notesJson).readAsString()) as Map<String, dynamic>;
+        await File(take.notesJson).writeAsString(jsonEncode(duetNotesJson(songNotes, duetLines, plan, part)));
+      } catch (e) {
+        AppLog.warn('duet notes: $e');
+      }
+    }
     if (fieldArmed) {
       // The take keeps the field (its scoring reads it); one is used up.
       await TakeField.mark(take.dir, DateTime.now());

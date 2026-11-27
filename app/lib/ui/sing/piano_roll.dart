@@ -11,6 +11,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../state/duet_parts.dart';
+import '../../state/i18n.dart';
 import '../../state/live_trace.dart';
 import '../../state/song_data.dart';
 
@@ -112,7 +114,33 @@ class PianoRollPainter extends CustomPainter {
     this.wandNotes = const {},
     this.fieldAura = false,
     this.selectedNotes = const {},
+    this.ghost,
+    this.ghostShift = 0,
+    this.duetSpans = const [],
+    this.duetMine,
   }) : super(repaint: Listenable.merge([position, sungMidi]));
+
+  /// Duet: who sings when. The other part's stretches are dimmed and a
+  /// coloured strip along the top names each stretch (you, partner, together)
+  /// from where [duetMine] stands.
+  final List<DuetSpan> duetSpans;
+  final DuetPart? duetMine;
+
+  /// Colours of the duet parts as seen by the singer.
+  static const duetYou = Color(0xFFFFD60A), duetPartner = Color(0xFF6EC6FF), duetTogether = Color(0xFF3DDC97);
+
+  static Color duetColor(DuetPart part, DuetPart mine) => part == DuetPart.both ? duetTogether : (part == mine ? duetYou : duetPartner);
+
+  static String duetLabel(DuetPart part, DuetPart mine) => tr(part == DuetPart.both ? 'duet.together' : (part == mine ? 'duet.you' : 'duet.partner'));
+
+  /// Shadow battle: the opponent's sung line, drawn in [ghostColor] under the
+  /// singer's own and moved by [ghostShift] semitones (the singer's key minus
+  /// theirs). On a scrolling roll it runs only up to the playhead, as if
+  /// they were singing along.
+  final LiveTrace? ghost;
+  final double ghostShift;
+
+  static const ghostColor = Color(0xFFC9A7FF);
 
   /// More notes framed like [selectedNote] (picked for the Tuning Wand).
   final Set<int> selectedNotes;
@@ -390,6 +418,10 @@ class PianoRollPainter extends CustomPainter {
             ..strokeCap = StrokeCap.round);
     }
 
+    final gh = ghost;
+    if (duetMine != null && duetSpans.isNotEmpty) _paintDuet(canvas, t0, t1, w, h, x);
+    if (gh != null && !gh.isEmpty) _paintGhost(canvas, gh, t0, isStatic ? t1 : math.min(t1, pos), plotW, rowH, isStatic, x, y);
+
     // Live / take trace, one path per colour category.
     final tr = trace;
     if (tr != null && !tr.isEmpty) {
@@ -444,6 +476,63 @@ class PianoRollPainter extends CustomPainter {
       if (live) _paintLiveCursor(canvas, pos, x, y, noteH);
     }
     canvas.restore();
+  }
+
+  void _paintDuet(Canvas canvas, double t0, double t1, double w, double h, double Function(double) x) {
+    final mine = duetMine!;
+    final dim = Paint()..color = colors.background.withValues(alpha: 0.6);
+    for (final s in duetSpans) {
+      if (s.end < t0) continue;
+      if (s.start > t1) break;
+      final l = math.max(gutter, x(s.start)), r = math.min(w, x(s.end));
+      if (r <= l) continue;
+      // The other part's lines: rest (their notes dimmed).
+      if (s.part != mine && s.part != DuetPart.both) canvas.drawRect(Rect.fromLTRB(l, 0, r, h), dim);
+      final c = duetColor(s.part, mine);
+      canvas.drawRect(Rect.fromLTRB(l, 0, r, 4), Paint()..color = c);
+      if (r - l > 34) {
+        final tp = _label(duetLabel(s.part, mine), c, 11);
+        tp.paint(canvas, Offset(math.min(math.max(l + 4, gutter + 4), r - tp.width - 2), 6));
+      }
+    }
+  }
+
+  void _paintGhost(Canvas canvas, LiveTrace gh, double from, double to, double plotW, double rowH, bool isStatic, double Function(double) x, double Function(double) y) {
+    if (to <= from) return;
+    final path = Path();
+    final i0 = gh.lowerBound(from), i1 = gh.lowerBound(to);
+    final stride = math.max(1, ((i1 - i0) / (plotW * 2)).floor());
+    var lastT = double.nan, lastY = 0.0;
+    var started = false;
+    for (var i = i0; i < i1; i += stride) {
+      final t = gh.timeAt(i);
+      final px = x(t), py = y(gh.displayAt(i) + ghostShift);
+      final gap = t - lastT > 0.08 * stride + 0.02;
+      if (!started || gap || (py - lastY).abs() > rowH * 7) {
+        path.moveTo(px, py);
+      } else {
+        path.lineTo(px, py);
+      }
+      started = true;
+      lastT = t;
+      lastY = py;
+    }
+    canvas.drawPath(
+        path,
+        Paint()
+          // A wide soft band: where both sing the same pitch it still shows
+          // around the singer's own (thinner) line drawn over it.
+          ..color = ghostColor.withValues(alpha: 0.55)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = isStatic ? 4 : 8
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round);
+    // On the live roll, a dot where they are now.
+    if (!isStatic && i1 > 0 && to - gh.timeAt(i1 - 1) < 0.15) {
+      final c = Offset(x(gh.timeAt(i1 - 1)), y(gh.displayAt(i1 - 1) + ghostShift));
+      canvas.drawCircle(c, 6, Paint()..color = ghostColor.withValues(alpha: 0.3));
+      canvas.drawCircle(c, 3.5, Paint()..color = ghostColor);
+    }
   }
 
   /// Lights up the stretches of a note (its [rect], from [on] to [off]) where
@@ -718,6 +807,10 @@ class PianoRollPainter extends CustomPainter {
       old.fieldAura != fieldAura ||
       old.refF0 != refF0 ||
       old.trace != trace ||
+      old.ghost != ghost ||
+      old.ghostShift != ghostShift ||
+      old.duetSpans != duetSpans ||
+      old.duetMine != duetMine ||
       old.minMidi != minMidi ||
       old.maxMidi != maxMidi ||
       old.windowSeconds != windowSeconds ||
@@ -880,7 +973,19 @@ class PianoRollView extends StatelessWidget {
     this.selectedNotes = const {},
     this.viewStart = 0,
     this.viewSpan,
+    this.ghost,
+    this.ghostShift = 0,
+    this.duetSpans = const [],
+    this.duetMine,
   });
+
+  /// See [PianoRollPainter.duetSpans] and [PianoRollPainter.duetMine].
+  final List<DuetSpan> duetSpans;
+  final DuetPart? duetMine;
+
+  /// See [PianoRollPainter.ghost] and [PianoRollPainter.ghostShift].
+  final LiveTrace? ghost;
+  final double ghostShift;
 
   /// See [PianoRollPainter.viewStart] and [PianoRollPainter.viewSpan].
   final double viewStart;
@@ -953,6 +1058,10 @@ class PianoRollView extends StatelessWidget {
             wandNotes: wandNotes,
             fieldAura: fieldAura,
             selectedNotes: selectedNotes,
+            ghost: ghost,
+            ghostShift: ghostShift,
+            duetSpans: duetSpans,
+            duetMine: duetMine,
           ),
           child: const SizedBox.expand(),
         ),

@@ -15,9 +15,9 @@ import 'package:karaoke_battle/ui/profile/achievements_view.dart' show achieveme
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
-TakeFact take(String song, String at, double total, {String rank = 'A', String lang = 'zh', double seconds = 200, int perfect = 0, int judged = 0, int misses = 0, double? high, double? low, Map<String, double?> subs = const {}}) {
+TakeFact take(String song, String at, double total, {String rank = 'A', String lang = 'zh', double seconds = 200, int perfect = 0, int judged = 0, int misses = 0, double? high, double? low, Map<String, double?> subs = const {}, ({String rival, double total})? battle}) {
   final t = DateTime.parse(at);
-  return TakeFact(songId: song, language: lang, startedAt: t, createdAt: t, seconds: seconds, total: total, rank: rank, perfect: perfect, judged: judged, misses: misses, highPitch: high, lowPitch: low, subScores: subs);
+  return TakeFact(songId: song, language: lang, startedAt: t, createdAt: t, seconds: seconds, total: total, rank: rank, perfect: perfect, judged: judged, misses: misses, highPitch: high, lowPitch: low, subScores: subs, battle: battle);
 }
 
 int level(String id, AchievementFacts f) => achievementLevels(f)[id]!;
@@ -43,7 +43,7 @@ void main() {
 
   test('notes on how a rule is judged: in all three languages, where needed', () {
     AchievementDef d(String id) => achievements.firstWhere((a) => a.id == id);
-    for (final id in ['streak', 'decades', 'genres', 'firstLive', 'liveSongs', 'liveDays', 'firstD', 'rankSSS', 'fullPitch', 'highNote', 'lowNote', 'challenger']) {
+    for (final id in ['streak', 'decades', 'genres', 'firstLive', 'liveSongs', 'liveDays', 'firstD', 'rankSSS', 'fullPitch', 'highNote', 'lowNote', 'challenger', 'battleWins', 'closeCall']) {
       expect(achievementNote(d(id)), isNotNull, reason: id);
     }
     expect(achievementNote(d('firstSong')), isNull, reason: 'its description says it all');
@@ -280,10 +280,38 @@ void main() {
     expect(pts('shareCard'), 20);
     expect(pts('nightOwl'), lessThan(pts('rankSSS')), reason: 'a time of day is not an SSS');
     final secrets = achievements.where((a) => a.category == AchievementCategory.secret).fold<int>(0, (s, a) => s + a.pointsOf(1));
-    expect(secrets, 800, reason: 'the secrets are worth double, and a 100 is worth 100 (all doubled)');
+    expect(secrets, 850, reason: 'the secrets are worth double, and a 100 is worth 100 (all doubled)');
     expect(pts('graduate'), lessThan(pts('takes', 3)));
     final basics = achievements.where((a) => a.category == AchievementCategory.basics).fold<int>(0, (s, a) => s + a.pointsOf(1));
     expect(basics, 220, reason: '17 tasks of 10 and graduating');
+  });
+
+  test('shadow battles: wins, rivals, a winning run, revenge and a photo finish', () {
+    TakeFact b(String at, double mine, String rival, double theirs) => take('s', at, mine, battle: (rival: rival, total: theirs));
+    final f = AchievementFacts(takes: [
+      take('s', '2026-11-01T20:00:00', 99), // not a battle
+      b('2026-11-02T20:00:00', 80, 'amy', 85), // lost to amy
+      b('2026-11-03T20:00:00', 90, 'bob', 85),
+      b('2026-11-04T20:00:00', 86.3, 'amy', 86), // revenge, by 0.3
+      b('2026-11-05T20:00:00', 91, 'bob', 70),
+      b('2026-11-06T20:00:00', 70.04, 'cat', 70.0), // a draw to 0.1 ends the run
+      b('2026-11-07T20:00:00', 95, 'cat', 70),
+    ]);
+    double m(String id) => achievements.firstWhere((a) => a.id == id).measure(f);
+    expect(m('firstBattle'), 1);
+    expect(m('battleWins'), 4);
+    expect(m('rivals'), 3);
+    expect(m('winStreak'), 3);
+    expect(m('revenge'), 1);
+    expect(m('closeCall'), 1);
+    expect(level('rivals', f), 1, reason: '3 rivals passes the bronze of 2');
+    final none = AchievementFacts(takes: [take('s', '2026-11-01T20:00:00', 99)]);
+    for (final id in ['firstBattle', 'battleWins', 'rivals', 'winStreak', 'revenge', 'closeCall']) {
+      expect(achievements.firstWhere((a) => a.id == id).measure(none), 0, reason: id);
+    }
+    // Beaten first, then losing again, is no revenge.
+    final noRevenge = AchievementFacts(takes: [b('2026-11-02T20:00:00', 90, 'amy', 85), b('2026-11-03T20:00:00', 80, 'amy', 85)]);
+    expect(achievements.firstWhere((a) => a.id == 'revenge').measure(noRevenge), 0);
   });
 
   group('service', () {

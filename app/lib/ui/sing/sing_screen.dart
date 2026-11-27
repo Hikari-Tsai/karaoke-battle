@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/items.dart';
+import '../../services/replay_library.dart';
 import '../../services/settings.dart';
 import '../../services/song_library.dart';
 import '../../state/live_trace.dart' show PitchCategory;
@@ -24,6 +25,8 @@ import '../../state/loudness.dart';
 import '../../state/lyrics.dart';
 import '../../state/ghost_notes.dart';
 import '../../state/note_edits.dart';
+import '../../state/duet_parts.dart';
+import '../../state/shadow_battle.dart';
 import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
 import '../results/results_screen.dart';
@@ -41,10 +44,17 @@ import '../widgets/judgement_popups.dart';
 import '../widgets/voice_fx.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/rank.dart';
 
 class SingScreen extends StatefulWidget {
-  const SingScreen({super.key, required this.song});
+  const SingScreen({super.key, required this.song, this.opponentId, this.duetPart});
   final Song song;
+
+  /// Start singing this part of a duet (a rematch of a duet battle).
+  final DuetPart? duetPart;
+
+  /// Start in a shadow battle against this imported replay (its id).
+  final String? opponentId;
 
   @override
   State<SingScreen> createState() => _SingScreenState();
@@ -375,7 +385,44 @@ class _SingScreenState extends State<SingScreen>
         jsonDecode(await f.readAsString()) as Map<String, dynamic>,
       );
       if (mounted) setState(() => _lyrics = l.isEmpty ? null : l);
+      // New lyrics, new parts.
+      final part = _session?.duetPart;
+      if (part != null && mounted) await _setDuet(part, fresh: true);
     } catch (_) {}
+  }
+
+  // ---- duet ----
+  DuetPlan? _duetPlan;
+  bool _duetBusy = false;
+
+  /// Sings [part] of the lyrics split in two (null: the whole song).
+  Future<void> _setDuet(DuetPart? part, {bool fresh = false}) async {
+    final s = _session;
+    if (s == null || s.recording) return;
+    if (part == null) {
+      s.setDuet(null);
+      setState(() {});
+      if (_opponentReplay != null) await _refreshOpponent();
+      return;
+    }
+    final lines = _lyrics?.shifted().primaryTrack?.lines ?? const <LyricLine>[];
+    if (lines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('duet.needLyrics'))));
+      return;
+    }
+    if (_duetPlan == null || fresh || _duetPlan!.length != lines.length) {
+      setState(() => _duetBusy = true);
+      try {
+        _duetPlan = await loadDuetPlan(s.files, lines);
+      } finally {
+        if (mounted) setState(() => _duetBusy = false);
+      }
+    }
+    if (!mounted) return;
+    s.setDuet(part, plan: _duetPlan, lines: lines);
+    setState(() {});
+    // The opponent now sings the other part.
+    if (_opponentReplay != null) await _refreshOpponent();
   }
 
   /// Placeholder for the lyrics menu of a song without lyrics.
@@ -409,6 +456,83 @@ class _SingScreenState extends State<SingScreen>
     // No unlock celebration over the song: it waits until this screen closes.
     AchievementHold.add(this);
     _load();
+    final id = widget.opponentId;
+    if (id != null) {
+      // Only a take its sharer lets others sing against.
+      final r = context.read<AppServices>().replays.items.where((r) => r.id == id && r.acceptsChallenge).firstOrNull;
+      if (r != null) _setOpponent(r);
+    }
+  }
+
+  // ---- shadow battle ----
+  ImportedReplay? _opponentReplay;
+  BattleOpponent? _opponent;
+  int _opponentGen = 0;
+
+  /// The opponent is being loaded (or scored again for a duet part).
+  bool _opponentBusy = false;
+
+  /// Sings against [r] (null: no battle).
+  Future<void> _setOpponent(ImportedReplay? r) async {
+    _opponentReplay = r;
+    await _refreshOpponent();
+  }
+
+  static DuetPart _otherPart(DuetPart p) => p == DuetPart.a ? DuetPart.b : DuetPart.a;
+
+  /// Loads the opponent for the current duet choice: in a duet they sing
+  /// the other part and are scored on it alone (as the singer is on theirs).
+  Future<void> _refreshOpponent() async {
+    final r = _opponentReplay;
+    final gen = ++_opponentGen;
+    if (r == null) {
+      setState(() {
+        _opponent = null;
+        _opponentBusy = false;
+      });
+      return;
+    }
+    final s = _session;
+    final messenger = ScaffoldMessenger.of(context);
+    final name = r.player.isEmpty ? tr('replays.unknownPlayer') : r.player;
+    final calibrated = context.read<AppServices>().settings.latencySeconds != null;
+    setState(() => _opponentBusy = true);
+    DuetPart? switchTo;
+    try {
+      final mine = s?.duetPart, plan = s?.duetPlan;
+      BattleOpponent o;
+      if (s != null && mine != null && plan != null) {
+        o = await BattleOpponent.loadPart(r, files: s.files, plan: plan, lines: s.duetLines, part: _otherPart(mine), calibratedTiming: calibrated);
+      } else {
+        o = await BattleOpponent.load(r);
+        // They sang one part only: a whole-song battle would not be fair.
+        if (o.sangPart != null && s != null) switchTo = _otherPart(o.sangPart!);
+      }
+      if (mounted && gen == _opponentGen) setState(() => _opponent = switchTo == null ? o : null);
+    } on DuetPartMissing catch (e) {
+      // They sang the singer's part: the singer takes the other one.
+      switchTo = _otherPart(e.sang);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('${tr('battle.loadFailed')}: $e')));
+    } finally {
+      if (mounted && gen == _opponentGen) setState(() => _opponentBusy = false);
+    }
+    if (switchTo != null && mounted && gen == _opponentGen) {
+      final part = switchTo == DuetPart.a ? 'A' : 'B';
+      messenger.showSnackBar(SnackBar(content: Text(tr('battle.partSwitched', {'player': name, 'theirs': switchTo == DuetPart.a ? 'B' : 'A', 'mine': part}))));
+      await _setDuet(switchTo);
+    }
+  }
+
+  Future<void> _pickOpponent() async {
+    final services = context.read<AppServices>();
+    final choices = battleOpponentsFor(services.replays, services.library, widget.song);
+    final picked = await showDialog<({ImportedReplay? replay})>(
+      context: context,
+      builder: (ctx) => _OpponentDialog(choices: choices, current: _opponentReplay?.id),
+    );
+    if (!mounted || picked == null) return;
+    await _setOpponent(picked.replay);
   }
 
   Future<void> _load() async {
@@ -466,6 +590,16 @@ class _SingScreenState extends State<SingScreen>
       _ticker = createTicker((_) => s.tick())..start();
       _loadBeats(s);
       setState(() {});
+      // Back for another go at a duet part (a rematch): the same part again.
+      final part = widget.duetPart;
+      if (part != null) {
+        if (_lyrics == null) await _loadLyrics(s.files.lyricsJson);
+        if (mounted) await _setDuet(part);
+      } else if (_opponentReplay != null) {
+        // The opponent was loaded before the session: again, now that a
+        // part they may have sung alone can be taken into account.
+        await _refreshOpponent();
+      }
     } catch (e) {
       if (mounted) setState(() => _loadError = '$e');
     }
@@ -524,6 +658,13 @@ class _SingScreenState extends State<SingScreen>
               .showSnackBar(SnackBar(content: Text(tr('sing.tooShort'))));
         }
         return;
+      }
+      // Kept before scoring: the achievements read it once the score lands.
+      final opponent = _opponent;
+      if (opponent != null) {
+        try {
+          await opponent.record.save(take.dir);
+        } catch (_) {}
       }
       final score = await s.processTake(take);
       if (!mounted) return;
@@ -712,6 +853,7 @@ class _SingScreenState extends State<SingScreen>
                         Expanded(
                           child: _RollArea(
                             session: s,
+                            opponent: _opponent,
                             editing: _editing,
                             selectedNote: _selected,
                             revision: _revision,
@@ -750,6 +892,8 @@ class _SingScreenState extends State<SingScreen>
                                     child: LyricsOverlay(
                                       lyrics: _lyrics!,
                                       position: s.position,
+                                      duetParts: s.duetPlan?.parts,
+                                      duetMine: s.duetPart,
                                       noteOnsets: s.notes.onset,
                                       noteOffsets: s.notes.offset,
                                       showRomaji: context
@@ -759,6 +903,13 @@ class _SingScreenState extends State<SingScreen>
                                   ),
                                 ),
                               _HudDrawer(session: s),
+                              if (_opponent != null && !_editing)
+                                Positioned(
+                                  top: 6,
+                                  left: 0,
+                                  right: 0,
+                                  child: Center(child: _BattleBoard(session: s, opponent: _opponent!)),
+                                ),
                               if (_editing)
                                 Positioned(
                                   top: 8,
@@ -834,6 +985,11 @@ class _SingScreenState extends State<SingScreen>
                           onStop: _stopAndScore,
                           editing: _editing,
                           onToggleEdit: _toggleEdit,
+                          opponent: _opponent,
+                          onPickOpponent: _pickOpponent,
+                          onDuet: _setDuet,
+                          duetBusy: _duetBusy,
+                          opponentBusy: _opponentBusy,
                         ),
                       ],
                     ),
@@ -902,8 +1058,12 @@ class _RollArea extends StatefulWidget {
     this.onDragNote,
     this.onNotePress,
     this.onNoteRelease,
+    this.opponent,
   });
   final SingSession session;
+
+  /// Shadow battle: the opponent's line runs along the roll.
+  final BattleOpponent? opponent;
 
   /// Note editing: clicks select notes (instead of seeking) and a vertical
   /// drag on a note changes its pitch by whole semitones.
@@ -1227,6 +1387,10 @@ class _RollAreaState extends State<_RollArea> {
                                         keyboard: settings.rollKeyboard,
                                         sungMidi: s.sungMidi,
                                         fieldAura: s.fieldArmed,
+                                        duetSpans: s.duetSpans,
+                                        duetMine: s.duetPart,
+                                        ghost: widget.opponent?.trace,
+                                        ghostShift: s.pitchShift - (widget.opponent?.pitchShift ?? 0),
                                       );
                                       final judge = s.judge;
                                       if (judge == null ||
@@ -1955,10 +2119,27 @@ class _Controls extends StatelessWidget {
     required this.onStop,
     required this.editing,
     required this.onToggleEdit,
+    this.opponent,
+    this.onPickOpponent,
+    this.onDuet,
+    this.duetBusy = false,
+    this.opponentBusy = false,
   });
+
+  /// The opponent is being loaded or scored for a part: no recording yet.
+  final bool opponentBusy;
   final bool editing;
+
+  /// Duet: sing part A or B (null: the whole song); the parts are being
+  /// worked out while [duetBusy].
+  final ValueChanged<DuetPart?>? onDuet;
+  final bool duetBusy;
   final VoidCallback onToggleEdit;
   final SingSession session;
+
+  /// The shadow battle's opponent (null: none) and how to choose one.
+  final BattleOpponent? opponent;
+  final VoidCallback? onPickOpponent;
   final bool busy;
 
   /// 3-2-1 before recording (null otherwise); the record button cancels it.
@@ -1980,7 +2161,7 @@ class _Controls extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = session;
     final cs = Theme.of(context).colorScheme;
-    final enabled = s.ready && !busy && countdown == null;
+    final enabled = s.ready && !busy && !duetBusy && !opponentBusy && countdown == null;
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -2234,6 +2415,12 @@ class _Controls extends StatelessWidget {
                       ],
                     ),
                   ),
+                // Duet: which part to sing, chosen before recording.
+                if (countdown == null && onDuet != null)
+                  Padding(padding: const EdgeInsets.only(right: 8), child: _DuetButton(session: s, busy: duetBusy, enabled: !s.recording && !busy, onPick: onDuet!)),
+                // The shadow battle's opponent, chosen before recording.
+                if (countdown == null && onPickOpponent != null)
+                  Padding(padding: const EdgeInsets.only(right: 8), child: _BattleButton(opponent: opponent, busy: opponentBusy, onPressed: s.recording || busy || opponentBusy ? null : onPickOpponent)),
                 // The Resonance Field, cast before recording.
                 if (countdown == null) Padding(padding: const EdgeInsets.only(right: 8), child: _FieldButton(session: s)),
                 if (countdown != null)
@@ -2340,6 +2527,294 @@ class _FieldButton extends StatelessWidget {
               icon: const Icon(Icons.wifi_tethering, size: 18),
               label: Text(label),
             ),
+    );
+  }
+}
+
+const _ghost = PianoRollPainter.ghostColor;
+
+/// Picks the duet part (A, B or the whole song) and whether the original
+/// sings the other part; lit with the part while one is chosen.
+class _DuetButton extends StatelessWidget {
+  const _DuetButton({required this.session, required this.busy, required this.enabled, required this.onPick});
+  final SingSession session;
+  final bool busy;
+  final bool enabled;
+  final ValueChanged<DuetPart?> onPick;
+
+  static const _green = PianoRollPainter.duetTogether;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = session;
+    final part = s.duetPart;
+    final icon = busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.people_alt, size: 18);
+    final label = Text(part == null ? tr('duet.button') : tr('duet.on', {'part': part == DuetPart.a ? 'A' : 'B'}));
+    return PopupMenuButton<String>(
+      enabled: enabled && !busy,
+      tooltip: tr('duet.tip'),
+      onSelected: (v) => switch (v) {
+        'a' => onPick(DuetPart.a),
+        'b' => onPick(DuetPart.b),
+        'off' => onPick(null),
+        'voice' => s.setDuetVoice(!s.duetVoice),
+        _ => null,
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(enabled: false, child: Text(tr('duet.pickTitle'), style: Theme.of(context).textTheme.labelMedium)),
+        CheckedPopupMenuItem(value: 'a', checked: part == DuetPart.a, child: Text(tr('duet.singA'))),
+        CheckedPopupMenuItem(value: 'b', checked: part == DuetPart.b, child: Text(tr('duet.singB'))),
+        CheckedPopupMenuItem(value: 'off', checked: part == null, child: Text(tr('duet.off'))),
+        const PopupMenuDivider(),
+        CheckedPopupMenuItem(value: 'voice', checked: s.duetVoice, enabled: s.hasMix, child: Tooltip(message: tr('duet.voiceTip'), child: Text(tr('duet.voice')))),
+      ],
+      child: IgnorePointer(
+        child: part == null
+            ? OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(foregroundColor: _green, side: BorderSide(color: _green.withValues(alpha: 0.6)), padding: const EdgeInsets.symmetric(horizontal: 12), visualDensity: VisualDensity.compact),
+                onPressed: enabled ? () {} : null,
+                icon: icon,
+                label: label,
+              )
+            : FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1FA971), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12), visualDensity: VisualDensity.compact),
+                onPressed: enabled ? () {} : null,
+                icon: icon,
+                label: label,
+              ),
+      ),
+    );
+  }
+}
+
+String _playerName(String player) => player.isEmpty ? tr('replays.unknownPlayer') : player;
+
+/// Chooses the shadow battle's opponent; lit with their name while one is set.
+class _BattleButton extends StatelessWidget {
+  const _BattleButton({required this.opponent, required this.onPressed, this.busy = false});
+  final BattleOpponent? opponent;
+  final bool busy;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final o = opponent;
+    final Widget icon = busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sports_kabaddi, size: 18);
+    final style = (o == null ? OutlinedButton.styleFrom : FilledButton.styleFrom)(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      visualDensity: VisualDensity.compact,
+    );
+    return Tooltip(
+      message: o == null ? tr('battle.tip') : tr('battle.onTip', {'player': _playerName(o.player), 'total': o.total.toStringAsFixed(1)}),
+      child: o == null
+          ? OutlinedButton.icon(
+              style: style.copyWith(
+                foregroundColor: const WidgetStatePropertyAll(_ghost),
+                side: WidgetStatePropertyAll(BorderSide(color: _ghost.withValues(alpha: 0.6))),
+              ),
+              onPressed: onPressed,
+              icon: icon,
+              label: Text(tr('battle.button')),
+            )
+          : FilledButton.icon(
+              style: style.copyWith(
+                backgroundColor: const WidgetStatePropertyAll(Color(0xFF7C5BD6)),
+                foregroundColor: const WidgetStatePropertyAll(Colors.white),
+              ),
+              onPressed: onPressed,
+              icon: icon,
+              label: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 120),
+                child: Text(_playerName(o.player), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+    );
+  }
+}
+
+/// The imported replays of this song to sing against. Pops a record whose
+/// replay is the one chosen (null: no battle); dismissing changes nothing.
+class _OpponentDialog extends StatelessWidget {
+  const _OpponentDialog({required this.choices, this.current});
+  final List<ImportedReplay> choices;
+  final String? current;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final loc = MaterialLocalizations.of(context);
+    return AlertDialog(
+      icon: const Icon(Icons.sports_kabaddi, color: _ghost, size: 36),
+      title: Text(tr('battle.pickTitle')),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460, maxHeight: 420),
+        child: choices.isEmpty
+            ? Text(tr('battle.empty'))
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(tr('battle.pickBody'), style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        for (final r in choices)
+                          ListTile(
+                            selected: r.id == current,
+                            selectedTileColor: _ghost.withValues(alpha: 0.12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            leading: Icon(r.id == current ? Icons.check_circle : Icons.person, color: r.id == current ? _ghost : cs.onSurfaceVariant),
+                            title: Text(_playerName(r.player), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            subtitle: Text(loc.formatShortDate(r.createdAt)),
+                            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text(r.total.toStringAsFixed(1), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: rankColor(r.rank))),
+                              const SizedBox(width: 8),
+                              RankChip(rank: r.rank),
+                            ]),
+                            onTap: () => Navigator.of(context).pop((replay: r)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+      actions: [
+        if (current != null) TextButton(onPressed: () => Navigator.of(context).pop((replay: null)), child: Text(tr('battle.none'))),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(tr(choices.isEmpty ? 'close' : 'cancel'))),
+      ],
+    );
+  }
+}
+
+/// The race at the top of the stage. Before recording it names the
+/// opponent; while recording it compares the running in-tune figures (see
+/// [RunningAccuracy]) with a tug-of-war bar.
+class _BattleBoard extends StatefulWidget {
+  const _BattleBoard({required this.session, required this.opponent});
+  final SingSession session;
+  final BattleOpponent opponent;
+
+  @override
+  State<_BattleBoard> createState() => _BattleBoardState();
+}
+
+class _BattleBoardState extends State<_BattleBoard> {
+  RunningAccuracy? _mine;
+  DateTime? _stamp;
+
+  /// The singer's figure, started again with each take; in a duet, on the
+  /// singer's own part and the lines sung together only.
+  RunningAccuracy _mineFor(SingSession s) {
+    final notes = s.judgedNotes;
+    if (_mine == null || _stamp != s.recordStartedAt || _mine!.notes != notes) {
+      _stamp = s.recordStartedAt;
+      _mine = RunningAccuracy(notes, s.trace);
+    }
+    return _mine!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.session;
+    final o = widget.opponent;
+    final theme = Theme.of(context);
+    final name = _playerName(o.player);
+    return ListenableBuilder(
+      listenable: Listenable.merge([s, s.position]),
+      builder: (context, _) {
+        final Widget body;
+        if (!s.recording) {
+          body = Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.sports_kabaddi, size: 16, color: _ghost),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 180),
+              child: Text(
+                o.part == null ? tr('battle.vs', {'player': name}) : tr('battle.vsPart', {'player': name, 'part': o.part == DuetPart.a ? 'A' : 'B'}),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(o.total.toStringAsFixed(1), style: theme.textTheme.labelLarge?.copyWith(color: rankColor(o.rank), fontWeight: FontWeight.w800)),
+            const SizedBox(width: 6),
+            RankChip(rank: o.rank),
+          ]);
+        } else {
+          final pos = s.position.value;
+          final settle = (s.latencyCompensation + 0.35).clamp(0.35, 1.2);
+          final mine = _mineFor(s).at(pos, settle: settle);
+          final theirs = o.race.at(pos, settle: settle);
+          final a = mine?.share, b = theirs?.share;
+          String pct(double? v) => v == null ? '–' : '${(v * 100).round()}%';
+          final String status;
+          Color statusColor = Colors.white70;
+          if (a == null || b == null) {
+            status = tr('battle.waiting');
+          } else {
+            final d = ((a - b) * 100).round();
+            if (d > 0) {
+              status = tr('battle.ahead', {'d': d});
+              statusColor = const Color(0xFF4CD964);
+            } else if (d < 0) {
+              status = tr('battle.behind', {'d': -d});
+              statusColor = const Color(0xFFFF6B6B);
+            } else {
+              status = tr('battle.tied');
+            }
+          }
+          // The bar: the singer's share of the two figures, half and half before any note.
+          final frac = (a == null || b == null || a + b <= 0) ? 0.5 : a / (a + b);
+          final numStyle = theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]);
+          final you = theme.colorScheme.primary;
+          body = Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(tr('battle.you'), style: theme.textTheme.labelMedium?.copyWith(color: Colors.white70)),
+              const SizedBox(width: 6),
+              SizedBox(width: 48, child: Text(pct(a), textAlign: TextAlign.right, style: numStyle?.copyWith(color: you))),
+              SizedBox(
+                width: 110,
+                child: Text(status, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w700)),
+              ),
+              SizedBox(width: 48, child: Text(pct(b), style: numStyle?.copyWith(color: _ghost))),
+              const SizedBox(width: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 90),
+                child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelMedium?.copyWith(color: Colors.white70)),
+              ),
+            ]),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: 260,
+              height: 6,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: Row(children: [
+                  Expanded(flex: (frac * 1000).round().clamp(1, 999), child: ColoredBox(color: you)),
+                  Expanded(flex: 1000 - (frac * 1000).round().clamp(1, 999), child: const ColoredBox(color: _ghost)),
+                ]),
+              ),
+            ),
+          ]);
+        }
+        return Tooltip(
+          message: s.recording ? tr('battle.liveTip') : tr('battle.ghostLegend', {'player': name}),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xCC12141B),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _ghost.withValues(alpha: 0.45)),
+            ),
+            child: body,
+          ),
+        );
+      },
     );
   }
 }

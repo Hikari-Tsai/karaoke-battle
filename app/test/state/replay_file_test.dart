@@ -29,6 +29,33 @@ ReplayFile sample({String? voice}) => ReplayFile(
     );
 
 void main() {
+  test('a duet take says which part it sang', () {
+    final base = sample().toJson();
+    expect((base['take'] as Map).containsKey('duet'), isFalse);
+    expect(ReplayFile.parse(jsonEncode(base)).duetPart, isNull);
+    for (final (v, want) in [('a', 'a'), ('b', 'b'), ('both', null), (1, null)]) {
+      final j = jsonDecode(jsonEncode(base)) as Map<String, dynamic>;
+      (j['take'] as Map)['duet'] = v;
+      expect(ReplayFile.parse(jsonEncode(j)).duetPart, want, reason: '$v');
+    }
+  });
+
+  test('a challenge is accepted only when the sharer ticked it', () {
+    final base = sample().toJson();
+    expect(base.containsKey('accepts_challenge'), isFalse, reason: 'not written unless ticked');
+    expect(ReplayFile.parse(jsonEncode(base)).acceptsChallenge, isFalse, reason: 'older files: no');
+    for (final v in ['true', 1, 'yes', null]) {
+      expect(ReplayFile.parse(jsonEncode({...base, 'accepts_challenge': v})).acceptsChallenge, isFalse, reason: '$v');
+    }
+    expect(ReplayFile.parse(jsonEncode({...base, 'accepts_challenge': true})).acceptsChallenge, isTrue);
+    final ticked = ReplayFile(
+      player: 'Hikari', exportedAt: DateTime.utc(2026), appVersion: '1', song: const ReplaySong(title: 't'), createdAt: DateTime.utc(2026),
+      pitchShift: 0, track: 'inst', timeOffset: 0, notes: base['notes'] as Map<String, dynamic>, takeF0: base['take_f0'] as Map<String, dynamic>,
+      score: base['score'] as Map<String, dynamic>, acceptsChallenge: true,
+    );
+    expect(ReplayFile.parse(ticked.encode()).acceptsChallenge, isTrue);
+  });
+
   test('round trip keeps every field', () {
     final r = ReplayFile.parse(sample(voice: '食虫植物 91.0 vocal.mp3').encode());
     expect(r.player, 'Hikari');

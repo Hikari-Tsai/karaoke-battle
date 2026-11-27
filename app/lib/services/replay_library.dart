@@ -69,9 +69,13 @@ class ImportedReplay {
     this.sourceType = 'file',
     this.songId,
     this.lyricsAddedTo,
+    this.acceptsChallenge = false,
   });
 
   final String id;
+
+  /// The sharer lets this take be sung against (see [ReplayFile.acceptsChallenge]).
+  final bool acceptsChallenge;
   final String dir;
   final String title;
   final String player;
@@ -134,6 +138,7 @@ class ImportedReplay {
         'source_type': sourceType,
         'song_id': songId,
         'lyrics_added_to': ?lyricsAddedTo,
+        if (acceptsChallenge) 'accepts_challenge': true,
       };
 
   static ImportedReplay fromJson(String dir, Map<String, dynamic> j) => ImportedReplay(
@@ -155,6 +160,7 @@ class ImportedReplay {
         sourceType: j['source_type'] as String? ?? 'file',
         songId: j['song_id'] as String?,
         lyricsAddedTo: j['lyrics_added_to'] as String?,
+        acceptsChallenge: j['accepts_challenge'] == true,
       )
         ..includedSongId = j['included_song_id'] as String?
         ..backingAddedTo = j['backing_added_to'] as String?;
@@ -331,6 +337,7 @@ class ReplayLibrary extends ChangeNotifier {
         'track': r.track,
         if (r.trackTimeline.isNotEmpty) 'track_timeline': [for (final e in r.trackTimeline) e.toJson()],
         'imported': true,
+        'duet': ?r.duetPart,
       }));
       // The replay screen maps take time with track_start_offset - latency.
       await File(p.join(dir, 'take.wav.json')).writeAsString(jsonEncode({'track_start_offset': r.timeOffset, 'latency': 0.0}));
@@ -382,6 +389,7 @@ class ReplayLibrary extends ChangeNotifier {
         durationSec: r.song.durationSec,
         language: r.song.language,
         sourceType: r.song.sourceType,
+        acceptsChallenge: r.acceptsChallenge,
       );
       await File(p.join(dir, 'meta.json')).writeAsString(jsonEncode(item.toJson()));
       _items.insert(0, item);
@@ -424,15 +432,18 @@ class ReplayLibrary extends ChangeNotifier {
     required String player,
     required String baseName,
     bool includeSong = false,
+    bool acceptsChallenge = false,
   }) async {
     Map<String, dynamic> readJson(String path) => jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
     var pitchShift = 0.0, track = 'inst', start = 0.0, latency = 0.0;
     var timeline = const <TrackSwitch>[];
+    String? duet;
     try {
       final info = readJson(take.infoJson);
       pitchShift = (info['pitch_shift'] as num?)?.toDouble() ?? 0;
       track = info['track'] as String? ?? 'inst';
       timeline = TrackSwitch.listFromJson(info['track_timeline']);
+      if (info['duet'] == 'a' || info['duet'] == 'b') duet = info['duet'] as String;
     } catch (_) {}
     try {
       final side = readJson('${take.wav}.json');
@@ -512,6 +523,8 @@ class ReplayLibrary extends ChangeNotifier {
       songCoverFile: coverName,
       backingFile: backingName,
       lyrics: await _sharedLyrics(files.lyricsJson),
+      acceptsChallenge: acceptsChallenge,
+      duetPart: duet,
     );
     final zip = Archive()..addFile(ArchiveFile.string('$baseName.json', file.encode()));
     // MP3 is already compressed: store it as is.

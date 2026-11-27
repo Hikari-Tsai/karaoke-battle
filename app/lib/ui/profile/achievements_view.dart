@@ -34,6 +34,7 @@ const _categoryColor = {
   AchievementCategory.ranks: Color(0xFF26A9C8),
   AchievementCategory.progress: Color(0xFF23B28E),
   AchievementCategory.explore: Color(0xFF8B62E8),
+  AchievementCategory.battle: Color(0xFFB45CD6),
   AchievementCategory.live: Color(0xFFE5484D),
   AchievementCategory.secret: Color(0xFFF08A3C),
 };
@@ -55,6 +56,7 @@ const _noteGroups = {
   'fullPitch': 'full', 'fullRhythm': 'full', 'fullStability': 'full', 'fullExpression': 'full', 'fullLongTone': 'full',
   'firstD': 'rank', 'firstC': 'rank', 'firstB': 'rank', 'firstA': 'rank', 'rankS': 'rank', 'rankSS': 'rank', 'rankSSS': 'rank',
   'firstLive': 'live', 'liveSongs': 'live',
+  'firstBattle': 'battle', 'battleWins': 'battle', 'rivals': 'battle', 'winStreak': 'battle', 'revenge': 'battle', 'closeCall': 'battle',
 };
 
 /// What needs saying about how [a] is judged (shown behind a circled i), or

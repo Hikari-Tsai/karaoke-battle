@@ -31,6 +31,8 @@ import 'ai_analysis_dialog.dart';
 import '../../state/take_trace.dart';
 import '../../state/live_trace.dart';
 import '../../state/scoring_bridge.dart';
+import '../../state/duet_parts.dart' show DuetPart, loadDuetPlan;
+import '../../state/shadow_battle.dart';
 import '../../state/sing_session.dart';
 import '../../state/song_data.dart';
 import '../../state/tuning_wand.dart';
@@ -77,6 +79,14 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
 
   /// The score before the Tuning Wand was first used (only shown here).
   ScoreData? _original;
+
+  /// The shadow battle this take was sung in (null: none), and the
+  /// opponent's line for the roll while their replay is still imported.
+  BattleRecord? _battle;
+
+  /// The duet part this take sang ('A' or 'B'; null: the whole song).
+  String? _duetPart;
+  BattleOpponent? _opponent;
 
   /// Notes fixed with the Tuning Wand (indices into [_notes]).
   Set<int> _wanded = const {};
@@ -441,6 +451,8 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       try {
         final info = jsonDecode(await File(widget.take.infoJson).readAsString()) as Map<String, dynamic>;
         _pitchShift = (info['pitch_shift'] as num?)?.toDouble() ?? 0;
+        final duet = info['duet'];
+        _duetPart = duet == 'a' ? 'A' : (duet == 'b' ? 'B' : null);
       } catch (_) {}
       final offset = await SingSession.takeTimeOffset(widget.take);
       final takeF0 = await F0Curve.load(widget.take.f0Json, confidenceThreshold: 0.4, timeOffset: offset);
@@ -452,6 +464,21 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       } catch (_) {}
       final trace = buildTakeTrace(notes, takeF0, shift: shift, pitchShift: _pitchShift, lenience: lenienceOfScore(score?.raw));
       final original = await originalScoreOf(widget.take);
+      final battle = await BattleRecord.load(widget.take.dir);
+      BattleOpponent? opponent;
+      if (battle != null) {
+        final r = services.replays.items.where((r) => r.id == battle.replayId).firstOrNull;
+        if (r != null) {
+          try {
+            final part = battle.part;
+            final lines = part == null ? const <LyricLine>[] : (await services.pipeline.loadLyrics(widget.song)).primaryTrack?.shownLines ?? const <LyricLine>[];
+            // A duet battle: their line only on the part they sang.
+            opponent = part != null && lines.isNotEmpty
+                ? await BattleOpponent.loadPart(r, files: files, plan: await loadDuetPlan(files, lines), lines: lines, part: part, calibratedTiming: services.settings.latencySeconds != null)
+                : await BattleOpponent.load(r);
+          } catch (_) {}
+        }
+      }
       _duration = <double>[widget.song.durationSec ?? 0, notes.endTime + 1, takeF0.isEmpty ? 0.0 : takeF0.times.last].reduce((a, b) => a > b ? a : b);
       if (!mounted) return;
       setState(() {
@@ -461,6 +488,8 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         _refF0 = refF0;
         _trace = trace;
         _original = original;
+        _battle = battle;
+        _opponent = opponent;
         _wanded = _wandedOf(score, notes);
       });
       unawaited(_computeGains());
@@ -553,6 +582,15 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                             _totalRow(theme, score),
                                             if (_roll != null && widget.previousBest != null) _bestMarker(theme, score),
                                             if (score.placeholder) Text(tr('results.placeholder'), style: theme.textTheme.labelSmall),
+                                            if (_duetPart != null)
+                                              Tooltip(
+                                                message: tr('duet.badgeTip', {'part': _duetPart}),
+                                                child: Row(children: [
+                                                  const Icon(Icons.people_alt, size: 14, color: PianoRollPainter.duetTogether),
+                                                  const SizedBox(width: 4),
+                                                  Text(tr('duet.badge', {'part': _duetPart}), style: theme.textTheme.labelMedium?.copyWith(color: PianoRollPainter.duetTogether)),
+                                                ]),
+                                              ),
                                             if (fieldOfScore(score.raw))
                                               Tooltip(
                                                 message: tr('field.badgeTip'),
@@ -632,6 +670,11 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                                       ),
                                                     ),
                                             ],
+                                            // The battle's outcome, once the score has been revealed.
+                                            if (_battle != null && !_revealing) ...[
+                                              const SizedBox(height: 12),
+                                              BattleCard(record: _battle!, mine: score.total, mineSubs: score.subScores),
+                                            ],
                                             const SizedBox(height: 8),
                                             Align(
                                               alignment: Alignment.centerLeft,
@@ -685,6 +728,8 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                         onSelectNote: _togglePick,
                                         viewStart: start,
                                         viewSpan: span,
+                                        ghost: _opponent?.trace,
+                                        ghostShift: _pitchShift - (_opponent?.pitchShift ?? 0),
                                       ),
                                       );
                                       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -734,9 +779,14 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                           ),
                           const SizedBox(width: 12),
                           FilledButton.icon(
-                            onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => SingScreen(song: widget.song))),
-                            icon: const Icon(Icons.mic),
-                            label: Text(tr('results.singAgain')),
+                            // After a battle: the same opponent again (while their replay is kept).
+                            onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => SingScreen(
+                                  song: widget.song,
+                                  opponentId: _opponent?.replayId,
+                                  duetPart: _opponent == null ? null : (_duetPart == 'A' ? DuetPart.a : (_duetPart == 'B' ? DuetPart.b : null)),
+                                ))),
+                            icon: Icon(_opponent != null ? Icons.sports_kabaddi : Icons.mic),
+                            label: Text(tr(_opponent != null ? 'battle.rematch' : 'results.singAgain')),
                           ),
                         ],
                       ),
@@ -1031,6 +1081,100 @@ class _AdviceCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A shadow battle's outcome: win, loss or draw on the totals, then each
+/// sub-score side by side (the better one lit).
+class BattleCard extends StatelessWidget {
+  const BattleCard({super.key, required this.record, required this.mine, required this.mineSubs});
+  final BattleRecord record;
+  final double mine;
+  final Map<String, double?> mineSubs;
+
+  static const _ghost = PianoRollPainter.ghostColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final name = record.player.isEmpty ? tr('replays.unknownPlayer') : record.player;
+    final outcome = record.outcome(mine);
+    final (label, color, icon) = switch (outcome) {
+      1 => (tr('battle.win'), const Color(0xFFFFC94D), Icons.emoji_events),
+      -1 => (tr('battle.lose'), const Color(0xFFFF8A80), Icons.sentiment_dissatisfied_outlined),
+      _ => (tr('battle.draw'), cs.onSurface, Icons.handshake_outlined),
+    };
+    final margin = (mine - record.total).abs();
+    final num = theme.textTheme.bodyMedium?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+    Widget cell(double? v, bool better, Color c) => SizedBox(
+          width: 44,
+          child: Text(v == null ? '–' : v.toStringAsFixed(0),
+              textAlign: TextAlign.right, style: num?.copyWith(color: better ? c : cs.onSurfaceVariant, fontWeight: better ? FontWeight.w800 : FontWeight.w400)),
+        );
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          const Icon(Icons.sports_kabaddi, size: 16, color: _ghost),
+          const SizedBox(width: 6),
+          Text(tr('battle.result'), style: theme.textTheme.labelLarge),
+          const SizedBox(width: 8),
+          Expanded(child: Text(tr('battle.vs', {'player': name}), maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelMedium?.copyWith(color: _ghost))),
+        ]),
+        if (record.part != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              tr('battle.parts', {'mine': record.part == DuetPart.a ? 'B' : 'A', 'player': name, 'theirs': record.part == DuetPart.a ? 'A' : 'B'}),
+              style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+            ),
+          ),
+        const SizedBox(height: 8),
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 8),
+          Text(label, style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w900)),
+          const Spacer(),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text.rich(
+              TextSpan(children: [
+                TextSpan(text: mine.toStringAsFixed(1), style: TextStyle(color: cs.primary)),
+                TextSpan(text: '  :  ', style: TextStyle(color: cs.onSurfaceVariant)),
+                TextSpan(text: record.total.toStringAsFixed(1), style: const TextStyle(color: _ghost)),
+              ]),
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontFeatures: const [FontFeature.tabularFigures()]),
+            ),
+            if (outcome != 0) Text(tr('battle.margin', {'d': margin.toStringAsFixed(1)}), style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+          ]),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          const Spacer(),
+          SizedBox(width: 44, child: Text(tr('battle.you'), textAlign: TextAlign.right, style: theme.textTheme.labelSmall?.copyWith(color: cs.primary))),
+          SizedBox(
+            width: 70,
+            child: Text(name, textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: _ghost)),
+          ),
+        ]),
+        for (final k in ScoreData.subScoreKeys)
+          if (mineSubs[k] != null || record.subScores[k] != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Row(children: [
+                Expanded(child: Text(tr('results.${k == 'long_tone' ? 'longTone' : k}'), style: theme.textTheme.bodySmall)),
+                cell(mineSubs[k], (mineSubs[k] ?? -1).round() > (record.subScores[k] ?? -1).round(), cs.primary),
+                const SizedBox(width: 26),
+                cell(record.subScores[k], (record.subScores[k] ?? -1).round() > (mineSubs[k] ?? -1).round(), _ghost),
+              ]),
+            ),
+      ]),
     );
   }
 }

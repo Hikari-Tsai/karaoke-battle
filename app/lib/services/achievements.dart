@@ -14,6 +14,7 @@ import 'package:flutter/material.dart' show IconData, Icons;
 import 'package:path/path.dart' as p;
 
 import '../state/scoring_bridge.dart';
+import '../state/shadow_battle.dart';
 import '../state/song_data.dart';
 import 'ktv_charts.dart';
 import 'replay_library.dart';
@@ -21,7 +22,7 @@ import 'settings.dart';
 import 'sing_history.dart';
 import 'song_library.dart';
 
-enum AchievementCategory { basics, total, skill, ranks, progress, explore, live, secret }
+enum AchievementCategory { basics, total, skill, ranks, progress, explore, battle, live, secret }
 
 /// One achievement: a single goal ([thresholds] has one value, usually 1) or
 /// tiers (bronze, silver, gold; two or three thresholds). [measure] gives the
@@ -69,7 +70,12 @@ class TakeFact {
     this.lowPitch,
     this.pitchShift = 0,
     this.songSeconds,
+    this.battle,
   });
+
+  /// Sung in a shadow battle: who against (their name, lower case, or the
+  /// replay when they gave none) and their total.
+  final ({String rival, double total})? battle;
   final String songId;
   final String language;
 
@@ -226,6 +232,33 @@ double _perfectSub(AchievementFacts f, String key) => f.takes.any((t) => (t.subS
 
 double _event(AchievementFacts f, String name) => f.events.contains(name) ? 1 : 0;
 
+/// The takes sung in a shadow battle, oldest first, with how each ended
+/// (1 won, 0 draw, -1 lost; see [battleOutcome]).
+List<({TakeFact take, int outcome})> _battles(AchievementFacts f) => [
+      for (final t in f.takes.where((t) => t.battle != null).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt)))
+        (take: t, outcome: battleOutcome(t.total, t.battle!.total)),
+    ];
+
+double _longestWinRun(AchievementFacts f) {
+  var best = 0, run = 0;
+  for (final b in _battles(f)) {
+    run = b.outcome == 1 ? run + 1 : 0;
+    best = math.max(best, run);
+  }
+  return best.toDouble();
+}
+
+/// Lost to someone, then beat them in a later battle.
+double _revenge(AchievementFacts f) {
+  final lostTo = <String>{};
+  for (final b in _battles(f)) {
+    final rival = b.take.battle!.rival;
+    if (b.outcome == 1 && lostTo.contains(rival)) return 1;
+    if (b.outcome == -1) lostTo.add(rival);
+  }
+  return 0;
+}
+
 /// The beginner tasks: one feature each, done once.
 final _basics = <AchievementDef>[
   // Getting started
@@ -282,8 +315,10 @@ const achievementPoints = <String, List<int>>{
   'shareVideo': [10], 'shareReplay': [10], 'shareCard': [10], 'githubStar': [50], 'shares': [10, 25, 50], 'replaysIn': [10, 25, 50], 'challenger': [10, 25, 50],
   // Live: songs sung on stream and days streamed
   'firstLive': [25], 'liveSongs': [10, 25, 100], 'liveDays': [10, 25, 100],
+  // Shadow battles: a first battle is a click away, a long winning run is not
+  'firstBattle': [10], 'battleWins': [10, 25, 100], 'rivals': [10, 25, 50], 'winStreak': [25, 50, 100], 'revenge': [25],
   // Secrets: worth more for being found; a time of day is easiest, twenty songs in a day hardest
-  'nightOwl': [25], 'earlyBird': [25], 'warmup': [50], 'highNote': [50], 'lowNote': [50], 'marathon': [100], 'perfect100': [100],
+  'nightOwl': [25], 'earlyBird': [25], 'warmup': [50], 'highNote': [50], 'lowNote': [50], 'marathon': [100], 'perfect100': [100], 'closeCall': [25],
 };
 
 /// How far past the measured range (semitones) the high and low notes go.
@@ -369,6 +404,12 @@ final achievements = <AchievementDef>[
   // Imported replays beaten: a take of their song after the import, above it.
   AchievementDef('challenger', AchievementCategory.explore, Icons.sports_kabaddi, [1, 5, 20], (f) => f.replays.where((r) => f.takes.any((t) => t.songId == r.songId && t.createdAt.isAfter(r.importedAt) && t.total > r.total)).length.toDouble()),
   // --- live: singing on stream ---
+  // --- shadow battles: singing against a friend's replay ---
+  AchievementDef('firstBattle', AchievementCategory.battle, Icons.sports_kabaddi, [1], (f) => _battles(f).isNotEmpty ? 1 : 0),
+  AchievementDef('battleWins', AchievementCategory.battle, Icons.emoji_events, [1, 10, 50], (f) => _battles(f).where((b) => b.outcome == 1).length.toDouble()),
+  AchievementDef('rivals', AchievementCategory.battle, Icons.groups_2, [2, 5, 10], (f) => {for (final b in _battles(f)) if (b.outcome == 1) b.take.battle!.rival}.length.toDouble()),
+  AchievementDef('winStreak', AchievementCategory.battle, Icons.whatshot, [3, 5, 10], _longestWinRun),
+  AchievementDef('revenge', AchievementCategory.battle, Icons.replay_circle_filled, [1], _revenge),
   AchievementDef('firstLive', AchievementCategory.live, Icons.live_tv, [1], (f) => f.live.isNotEmpty ? 1 : _event(f, 'live.first')),
   AchievementDef('liveSongs', AchievementCategory.live, Icons.queue_music, [10, 100, 500], (f) => f.live.length.toDouble()),
   AchievementDef('liveDays', AchievementCategory.live, Icons.event_available, [3, 10, 30], (f) => f.live.map(dayOf).toSet().length.toDouble()),
@@ -376,6 +417,7 @@ final achievements = <AchievementDef>[
   AchievementDef('nightOwl', AchievementCategory.secret, Icons.nightlight_round, [1], (f) => f.takes.any((t) => t.startedAt.hour < 5) ? 1 : 0, hidden: true),
   AchievementDef('marathon', AchievementCategory.secret, Icons.directions_run, [1], (f) => _byDay(f).values.any((d) => d.length >= 20) ? 1 : 0, hidden: true),
   // A total that shows as 100.0 (items count too).
+  AchievementDef('closeCall', AchievementCategory.secret, Icons.balance, [1], (f) => _battles(f).any((b) => b.outcome == 1 && b.take.total - b.take.battle!.total < 0.5) ? 1 : 0, hidden: true),
   AchievementDef('perfect100', AchievementCategory.secret, Icons.diamond, [1], (f) => f.takes.any((t) => t.total >= 99.95) ? 1 : 0, hidden: true),
   // Three semitones past the measured range (the note reached, give or take
   // half a semitone); only once the range is measured.
@@ -720,6 +762,7 @@ class AchievementService extends ChangeNotifier {
         lowPitch: (await _pitchSpan(t))?.low,
         pitchShift: await _pitchShift(t.infoJson),
         songSeconds: e.song.durationSec,
+        battle: _battleFact(await BattleRecord.load(t.dir)),
       ));
     }
     var lyricsSongs = 0, customLyricsSongs = 0, ownBackingSongs = 0;
@@ -765,6 +808,12 @@ class AchievementService extends ChangeNotifier {
       importedReplays: replays.items.length,
       shares: counts['shares'] ?? 0,
     );
+  }
+
+  static ({String rival, double total})? _battleFact(BattleRecord? b) {
+    if (b == null) return null;
+    final name = b.player.trim().toLowerCase();
+    return (rival: name.isEmpty ? 'replay:${b.replayId}' : name, total: b.total);
   }
 
   Future<double> _pitchShift(String takeJson) async {

@@ -74,6 +74,17 @@ void main() {
     expect(again.items.single.youtubeId, 'trrLxXbRjeM');
   });
 
+  test('accepting challenges is kept through import and reload; without it, no', () async {
+    final yes = ReplayFile.parse(_file().encode()).toJson()..['accepts_challenge'] = true;
+    final a = (await replays.import((File(p.join(tmp.path, 'yes.json'))..writeAsStringSync(jsonEncode(yes))).path)).single;
+    final b = (await replays.import((File(p.join(tmp.path, 'no.json'))..writeAsStringSync(_file().encode())).path)).single;
+    expect(a.acceptsChallenge, isTrue);
+    expect(b.acceptsChallenge, isFalse);
+    final again = ReplayLibrary(paths, Sidecars(paths, SidecarCatalog({})));
+    await again.reload();
+    expect({for (final r in again.items) r.id: r.acceptsChallenge}, {a.id: true, b.id: false});
+  });
+
   test('a bad file leaves nothing behind', () async {
     final src = File(p.join(tmp.path, 'bad.json'))..writeAsStringSync('{"format":"karaoke-battle-replay","version":1}');
     await expectLater(replays.import(src.path), throwsA(isA<ReplayFormatException>()));

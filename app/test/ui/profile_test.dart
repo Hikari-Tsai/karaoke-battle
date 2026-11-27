@@ -95,7 +95,7 @@ void main() {
     expect(find.textContaining('(macOS 27.2.1)'), findsOneWidget, reason: 'the device with its OS version');
     expect(find.text('這台'), findsOneWidget);
     expect(find.text('麥克風常客'), findsOneWidget);
-    expect(find.text('???'), findsNWidgets(7), reason: 'the secret ones, until found');
+    expect(find.text('???'), findsNWidgets(8), reason: 'the secret ones, until found');
     // A tiered goal is a deck of cards: a tier's dot shuffles its card to the
     // top, and again brings back the next tier to reach.
     Future<void> settle() async {
@@ -141,10 +141,10 @@ void main() {
     // Debug builds with 開發模式 on show what the secrets ask for.
     await settings.setDevMode(true);
     await tester.pump();
-    expect(find.byType(InfoTip).evaluate().length, tips + 7, reason: 'the seven secrets\' notes show too');
+    expect(find.byType(InfoTip).evaluate().length, tips + 8, reason: 'the eight secrets\' notes show too');
     expect(find.text('???'), findsNothing);
     expect(find.text('夜貓子'), findsOneWidget);
-    expect(find.text('開發模式'), findsNWidgets(7), reason: 'marked as seen only in 開發模式');
+    expect(find.text('開發模式'), findsNWidgets(8), reason: 'marked as seen only in 開發模式');
     // 開發模式 sets the points and items: from the button, or a double click.
     expect(find.text('設定點數和道具'), findsOneWidget);
     await tester.tap(find.text('設定點數和道具'));
