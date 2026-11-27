@@ -23,8 +23,13 @@ import '../widgets/shine.dart';
 import '../widgets/achievement_events.dart';
 import 'demo_video_dialog.dart';
 
-/// Where the website keeps the replay files (GitHub Pages, site/assets).
+/// Where the website keeps the demo videos (GitHub Pages, site/assets).
 const demoReplayBase = 'https://hikari-tsai.github.io/karaoke-battle/assets';
+
+/// Where the demo replay files are downloaded from: the 「範例檔案下載」
+/// release (tag `samples`), the one source the website links to as well.
+/// (Older app versions still fetch the copies kept in site/assets.)
+const demoReplayFiles = 'https://github.com/Hikari-Tsai/karaoke-battle/releases/download/samples';
 
 class SssDemo {
   const SssDemo({
@@ -173,7 +178,7 @@ class _SssDemosState extends State<SssDemos> with TickerProviderStateMixin {
     try {
       await Directory(services.paths.cache).create(recursive: true);
       await _downloader.download(
-        Uri.parse('$demoReplayBase/${d.file}'),
+        Uri.parse('$demoReplayFiles/${d.file}'),
         tmp,
         onProgress: (pr) {
           if (mounted) setState(() => _busy[d.key] = pr.fraction);
