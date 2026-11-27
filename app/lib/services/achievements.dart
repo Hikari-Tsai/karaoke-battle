@@ -16,6 +16,7 @@ import 'package:path/path.dart' as p;
 import '../state/scoring_bridge.dart';
 import '../state/shadow_battle.dart';
 import '../state/song_data.dart';
+import '../state/take_cheer.dart';
 import 'ktv_charts.dart';
 import 'replay_library.dart';
 import 'settings.dart';
@@ -124,7 +125,12 @@ class AchievementFacts {
     this.artists = const {},
     this.importedReplays = 0,
     this.shares = 0,
+    this.cheers = 0,
   });
+
+  /// Viewers' donations received with 觀眾加油 on (kept even if the take
+  /// they went to is deleted).
+  final int cheers;
 
   /// The year each song came out: the hot songs charts' release year (the
   /// earliest their entries give), else YouTube's; songs with neither have
@@ -314,7 +320,7 @@ const achievementPoints = <String, List<int>>{
   'languages': [10, 25, 50], 'genres': [10, 25, 50], 'chartSong': [10, 25, 50], 'decades': [10, 25, 50], 'artists': [10, 25, 50],
   'shareVideo': [10], 'shareReplay': [10], 'shareCard': [10], 'githubStar': [50], 'shares': [10, 25, 50], 'replaysIn': [10, 25, 50], 'challenger': [10, 25, 50],
   // Live: songs sung on stream and days streamed
-  'firstLive': [25], 'liveSongs': [10, 25, 100], 'liveDays': [10, 25, 100],
+  'firstLive': [25], 'liveSongs': [10, 25, 100], 'liveDays': [10, 25, 100], 'cheers': [10, 25, 100],
   // Shadow battles: a first battle is a click away, a long winning run is not
   'firstBattle': [10], 'battleWins': [10, 25, 100], 'rivals': [10, 25, 50], 'winStreak': [25, 50, 100], 'revenge': [25],
   // Secrets: worth more for being found; a time of day is easiest, twenty songs in a day hardest
@@ -413,6 +419,7 @@ final achievements = <AchievementDef>[
   AchievementDef('firstLive', AchievementCategory.live, Icons.live_tv, [1], (f) => f.live.isNotEmpty ? 1 : _event(f, 'live.first')),
   AchievementDef('liveSongs', AchievementCategory.live, Icons.queue_music, [10, 100, 500], (f) => f.live.length.toDouble()),
   AchievementDef('liveDays', AchievementCategory.live, Icons.event_available, [3, 10, 30], (f) => f.live.map(dayOf).toSet().length.toDouble()),
+  AchievementDef('cheers', AchievementCategory.live, Icons.volunteer_activism, [10, 50, 200], (f) => f.cheers.toDouble()),
   // --- E. secret: shown once found ---
   AchievementDef('nightOwl', AchievementCategory.secret, Icons.nightlight_round, [1], (f) => f.takes.any((t) => t.startedAt.hour < 5) ? 1 : 0, hidden: true),
   AchievementDef('marathon', AchievementCategory.secret, Icons.directions_run, [1], (f) => _byDay(f).values.any((d) => d.length >= 20) ? 1 : 0, hidden: true),
@@ -648,6 +655,13 @@ class AchievementService extends ChangeNotifier {
     await evaluate();
   }
 
+  /// A viewer's donation received with 觀眾加油 on.
+  Future<void> recordCheer() async {
+    counts['cheers'] = (counts['cheers'] ?? 0) + 1;
+    await _save();
+    await evaluate();
+  }
+
   /// A scored take sung with a streaming app open (once per take).
   Future<void> recordLive(String takeId, {DateTime? at}) async {
     if (live.containsKey(takeId)) return;
@@ -740,8 +754,10 @@ class AchievementService extends ChangeNotifier {
   Future<AchievementFacts> collectFacts() async {
     final chart = await _chartFacts();
     final takes = <TakeFact>[];
+    var cheersOnTakes = 0;
     for (final e in await loadSingHistory(library)) {
       final t = e.take;
+      cheersOnTakes += (await TakeCheer.load(t.dir)).items.length;
       final score = await ScoringBridge.load(t.scoreJson);
       final counts = (score?.raw['rhythm'] is Map ? ((score!.raw['rhythm'] as Map)['counts'] as Map?) : null) ?? const {};
       int n(String k) => (counts[k] as num?)?.toInt() ?? 0;
@@ -807,6 +823,9 @@ class AchievementService extends ChangeNotifier {
       },
       importedReplays: replays.items.length,
       shares: counts['shares'] ?? 0,
+      // The count, or the donations on the takes when more (credited before
+      // the count was kept).
+      cheers: math.max(counts['cheers'] ?? 0, cheersOnTakes),
     );
   }
 

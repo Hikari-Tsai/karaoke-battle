@@ -313,4 +313,36 @@ class AppSettings extends ChangeNotifier {
 
   int get overlayPort => _get('overlay_port', 0);
   Future<void> setOverlayPort(int port) => _set('overlay_port', port);
+
+  /// The duet part a battle starts on: 'a' (the default), 'b', or 'whole'
+  /// (no parts). Changing the part during a battle changes it too.
+  String get battlePart => switch (_prefs.getString('battle_part')) { 'b' => 'b', 'whole' => 'whole', _ => 'a' };
+  Future<void> setBattlePart(String v) => _set('battle_part', v == 'b' || v == 'whole' ? v : 'a');
+
+  /// 直播工具 › 觀眾加油: viewers' donations add points to the last song sung.
+  bool get cheerEnabled => _get('cheer_enabled', false);
+  Future<void> setCheerEnabled(bool v) => _set('cheer_enabled', v);
+
+  /// 綠界's 贊助成功動畫網址 ('' = not set up). Not a secret: ECPay's public
+  /// donate link carries the same ID.
+  String get ecpayAlertUrl => _prefs.getString('ecpay_alert_url') ?? '';
+  Future<void> setEcpayAlertUrl(String v) => _set('ecpay_alert_url', v.trim());
+
+  /// 歐付寶's 贊助成功動畫網址 ('' = not set up).
+  String get opayAlertUrl => _prefs.getString('opay_alert_url') ?? '';
+  Future<void> setOpayAlertUrl(String v) => _set('opay_alert_url', v.trim());
+
+  /// The 贊助成功動畫網址 of 'ecpay' or 'opay'.
+  String alertUrlOf(String provider) => provider == 'opay' ? opayAlertUrl : ecpayAlertUrl;
+  Future<void> setAlertUrlOf(String provider, String v) => provider == 'opay' ? setOpayAlertUrl(v) : setEcpayAlertUrl(v);
+
+  /// Donations already counted, by service and id (the last 300).
+  List<String> get cheerSeenIds => _prefs.getStringList('cheer_seen_ids') ?? const [];
+  Future<void> setCheerSeenIds(List<String> ids) => _prefs.setStringList('cheer_seen_ids', ids.length > 300 ? ids.sublist(ids.length - 300) : ids);
+
+  /// How many NT$ make one point of cheer: 150 by default, and no less.
+  static const cheerTwdPerPointDefault = 150;
+  static const cheerTwdPerPointMin = 150;
+  int get cheerTwdPerPoint => _get('cheer_twd_per_point', cheerTwdPerPointDefault).clamp(cheerTwdPerPointMin, 100000).toInt();
+  Future<void> setCheerTwdPerPoint(int v) => _set('cheer_twd_per_point', v.clamp(cheerTwdPerPointMin, 100000).toInt());
 }

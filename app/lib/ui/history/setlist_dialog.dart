@@ -13,6 +13,7 @@ import '../../services/sing_history.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 /// A day's setlist, or with [range] the OBS setlist: the History's range
 /// (from [since], or all takes), the same as the OBS text file.
@@ -144,7 +145,7 @@ class _SetlistDialogState extends State<_SetlistDialog> {
             const SizedBox(height: 4),
             Text(tr('setlist.obsHint'), style: theme.textTheme.bodySmall),
             const SizedBox(height: 6),
-            SelectableText(services.setlistLog.todayFile, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            PrivateText.selectable(services.setlistLog.todayFile, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
             const SizedBox(height: 4),
             Wrap(spacing: 4, children: [
               TextButton.icon(

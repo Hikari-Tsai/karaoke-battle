@@ -11,6 +11,7 @@ import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 enum YtDlpIssue { broken, pathOnly, failed }
 
@@ -84,7 +85,7 @@ class _YtDlpDialogState extends State<_YtDlpDialog> {
             Text(body),
             if (error != null && error.isNotEmpty) ...[
               const SizedBox(height: 8),
-              SelectableText(error, maxLines: 6, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error)),
+              PrivateText.selectable(error, maxLines: 6, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error)),
               ReportBugButton(error: error, where: 'yt-dlp'),
             ],
             if (busy) ...[
@@ -96,7 +97,7 @@ class _YtDlpDialogState extends State<_YtDlpDialog> {
             if (done) ...[
               const SizedBox(height: 12),
               Text(tr('ytdlp.done'), style: theme.textTheme.bodyMedium),
-              SelectableText(_result!.message, maxLines: 6, style: theme.textTheme.bodySmall),
+              PrivateText.selectable(_result!.message, maxLines: 6, style: theme.textTheme.bodySmall),
             ],
             if (widget.issue == YtDlpIssue.pathOnly && !done)
               CheckboxListTile(

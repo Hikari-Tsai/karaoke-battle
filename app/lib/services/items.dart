@@ -224,6 +224,16 @@ class ItemService extends ChangeNotifier {
     return true;
   }
 
+  /// Points given for something other than achievements (觀眾加油: one per
+  /// NT\$10 of a viewer's donation); they add to the balance like the
+  /// daily bonus.
+  Future<void> addBonus(int points) async {
+    if (points <= 0) return;
+    bonus += points;
+    await _save();
+    notifyListeners();
+  }
+
   /// Dev mode: the points to spend, set by what counts as spent (earned
   /// points stay as achievements give them).
   Future<void> setBalance(int points) async {

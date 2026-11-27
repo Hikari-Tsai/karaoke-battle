@@ -444,4 +444,11 @@ void main() {
       await sub.cancel();
     });
   });
+
+  test('人氣王: viewer cheers received, in three tiers', () {
+    expect(level('cheers', const AchievementFacts(cheers: 9)), 0);
+    expect(level('cheers', const AchievementFacts(cheers: 10)), 1);
+    expect(level('cheers', const AchievementFacts(cheers: 50)), 2);
+    expect(level('cheers', const AchievementFacts(cheers: 200)), 3);
+  });
 }

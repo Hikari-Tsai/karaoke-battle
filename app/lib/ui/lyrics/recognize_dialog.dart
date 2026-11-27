@@ -15,6 +15,7 @@ import '../../state/setup_controller.dart';
 import '../startup/setup_rows.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 /// What to do: recognise with Whisper, or time [pasted] lyrics (with
 /// Whisper when [useWhisper], else from the notes).
@@ -299,7 +300,7 @@ class _RecognizeDialogState extends State<_RecognizeDialog> {
           TextButton(onPressed: _cancelAndClose, child: Text(tr('cancel'))),
         ];
       case _Phase.failed:
-        body = [SelectableText(_error, style: TextStyle(color: theme.colorScheme.error))];
+        body = [PrivateText.selectable(_error, style: TextStyle(color: theme.colorScheme.error))];
         actions = [
           ReportBugButton(error: _error, where: widget.request.pasted != null ? 'align lyrics' : 'recognize lyrics'),
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(tr('close'))),

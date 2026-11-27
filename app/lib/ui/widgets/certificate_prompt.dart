@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../state/i18n.dart';
 import 'app_dialog.dart';
+import 'private_text.dart';
 
 Future<bool> showCertificatePrompt(BuildContext context, Uri url, String error) async {
   final ok = await showDialog<bool>(
@@ -30,7 +31,7 @@ Future<bool> showCertificatePrompt(BuildContext context, Uri url, String error) 
                 ExpansionTile(
                   tilePadding: EdgeInsets.zero,
                   title: Text(tr('settings.calibFail.details'), style: theme.textTheme.bodySmall),
-                  children: [SelectableText('$url\n$error', style: theme.textTheme.bodySmall)],
+                  children: [PrivateText.selectable('$url\n$error', style: theme.textTheme.bodySmall)],
                 ),
               ],
             ),

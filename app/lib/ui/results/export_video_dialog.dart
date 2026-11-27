@@ -15,6 +15,7 @@ import '../widgets/error_report.dart';
 import '../replays/export_replay_dialog.dart' show replayBaseName;
 import 'video_export.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 Future<void> showExportVideoDialog(BuildContext context, {required Song song, required TakeInfo take}) async {
   // The player name shown in the video is the profile's.
@@ -148,7 +149,7 @@ class _ExportVideoDialogState extends State<_ExportVideoDialog> {
         width: 440,
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (_error != null)
-            SelectableText('${tr('error')}: $_error', style: TextStyle(color: theme.colorScheme.error))
+            PrivateText.selectable('${tr('error')}: $_error', style: TextStyle(color: theme.colorScheme.error))
           else if (_done)
             Text(tr('video.done', {'path': widget.outPath}))
           else ...[

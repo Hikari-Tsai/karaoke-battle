@@ -294,4 +294,22 @@ void main() {
     expect((again.spent, again.balance, again.usedOf(ItemKind.tuningWand), again.ownedOf(ItemKind.tuningWand), again.ownedOf(ItemKind.resonanceField)), (0, 55, 0, 5, 2),
         reason: 'every trade undone, the day\'s allowance held');
   });
+
+  test('觀眾加油 item points add to the balance and stay through a reset', () async {
+    final dir = await Directory.systemTemp.createTemp('items_cheer');
+    addTearDown(() => dir.delete(recursive: true));
+    final earned = ValueNotifier(0);
+    final items = ItemService(dataRoot: dir.path, earnedPoints: () => earned.value, points: earned, dailyBonus: 0);
+    addTearDown(items.dispose);
+    await items.start();
+    await items.addBonus(30);
+    await items.addBonus(0);
+    expect(items.balance, 30);
+    await items.resetTrades();
+    expect(items.balance, 30);
+    final again = ItemService(dataRoot: dir.path, earnedPoints: () => earned.value, points: earned, dailyBonus: 0);
+    addTearDown(again.dispose);
+    await again.start();
+    expect(again.balance, 30, reason: 'kept in items.json');
+  });
 }

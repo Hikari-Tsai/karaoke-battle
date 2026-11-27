@@ -45,6 +45,7 @@ import '../widgets/voice_fx.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/rank.dart';
+import '../widgets/private_text.dart';
 
 class SingScreen extends StatefulWidget {
   const SingScreen({super.key, required this.song, this.opponentId, this.duetPart});
@@ -395,6 +396,35 @@ class _SingScreenState extends State<SingScreen>
   DuetPlan? _duetPlan;
   bool _duetBusy = false;
 
+  /// The singer picked a part (or the whole song) on this screen: a battle
+  /// then keeps it instead of the part from the settings.
+  bool _duetPicked = false;
+
+  /// The duet button: sings that part; during a battle it also becomes the
+  /// part battles start on (Settings › 對戰預設分部).
+  Future<void> _pickDuet(DuetPart? part) async {
+    _duetPicked = true;
+    if (_opponentReplay != null) {
+      unawaited(context.read<AppSettings>().setBattlePart(part == null ? 'whole' : (part == DuetPart.b ? 'b' : 'a')));
+    }
+    await _setDuet(part);
+  }
+
+  /// A battle starts on the part from the settings (A unless changed),
+  /// unless the singer already picked one here or it is a rematch of a part.
+  /// Without lyrics there are no parts and the whole song is sung. Returns
+  /// whether a part was set (which loads the opponent for it).
+  Future<bool> _applyBattlePart() async {
+    final s = _session;
+    if (s == null || _opponentReplay == null || _duetPicked || s.duetPart != null || widget.duetPart != null) return false;
+    final pref = context.read<AppSettings>().battlePart;
+    if (pref == 'whole') return false;
+    if (_lyrics == null) await _loadLyrics(s.files.lyricsJson);
+    if (!mounted || (_lyrics?.shifted().primaryTrack?.lines ?? const <LyricLine>[]).isEmpty) return false;
+    await _setDuet(pref == 'b' ? DuetPart.b : DuetPart.a);
+    return true;
+  }
+
   /// Sings [part] of the lyrics split in two (null: the whole song).
   Future<void> _setDuet(DuetPart? part, {bool fresh = false}) async {
     final s = _session;
@@ -475,6 +505,7 @@ class _SingScreenState extends State<SingScreen>
   /// Sings against [r] (null: no battle).
   Future<void> _setOpponent(ImportedReplay? r) async {
     _opponentReplay = r;
+    if (r != null && await _applyBattlePart()) return;
     await _refreshOpponent();
   }
 
@@ -596,9 +627,10 @@ class _SingScreenState extends State<SingScreen>
         if (_lyrics == null) await _loadLyrics(s.files.lyricsJson);
         if (mounted) await _setDuet(part);
       } else if (_opponentReplay != null) {
-        // The opponent was loaded before the session: again, now that a
-        // part they may have sung alone can be taken into account.
-        await _refreshOpponent();
+        // The opponent was loaded before the session: again, now on the
+        // battle part from the settings, and taking into account a part
+        // they may have sung alone.
+        if (!await _applyBattlePart()) await _refreshOpponent();
       }
     } catch (e) {
       if (mounted) setState(() => _loadError = '$e');
@@ -795,7 +827,7 @@ class _SingScreenState extends State<SingScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SelectableText('${tr('error')}: $_loadError'),
+                    PrivateText.selectable('${tr('error')}: $_loadError'),
                     const SizedBox(height: 12),
                     ReportBugButton(error: _loadError!, where: 'open sing screen'),
                   ],
@@ -843,7 +875,7 @@ class _SingScreenState extends State<SingScreen>
                               color: cs.errorContainer,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: SelectableText(
+                            child: PrivateText.selectable(
                               '${tr('sing.audioInitFailed')}: ${s.initError}',
                               style: TextStyle(color: cs.onErrorContainer),
                             ),
@@ -987,7 +1019,7 @@ class _SingScreenState extends State<SingScreen>
                           onToggleEdit: _toggleEdit,
                           opponent: _opponent,
                           onPickOpponent: _pickOpponent,
-                          onDuet: _setDuet,
+                          onDuet: _pickDuet,
                           duetBusy: _duetBusy,
                           opponentBusy: _opponentBusy,
                         ),

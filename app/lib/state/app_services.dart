@@ -12,6 +12,7 @@ import '../engine/engine.dart';
 import '../services/achievements.dart';
 import '../services/items.dart';
 import '../services/backing_import.dart';
+import '../services/cheer.dart';
 import '../services/identity.dart';
 import '../services/ai_keys.dart';
 import '../services/app_log.dart';
@@ -22,6 +23,7 @@ import '../services/prep_pipeline.dart';
 import '../services/replay_library.dart';
 import '../services/settings.dart';
 import '../services/sing_history.dart';
+import '../services/streaming_apps.dart';
 import '../services/sidecars.dart';
 import '../services/song_library.dart';
 import 'i18n.dart';
@@ -68,6 +70,15 @@ class AppServices {
   /// The player's UUID and the devices it has been used on (identity.json).
   late final IdentityService identity = IdentityService(dataRoot: paths.root);
 
+  /// 直播模式: masks private details while a streaming app is running.
+  late final StreamingWatch streaming = StreamingWatch()..start();
+
+  /// 觀眾加油: viewers' donations add points to the last song sung.
+  late final CheerService cheer = CheerService(library: library, settings: settings, onCheer: (c) {
+    unawaited(achievements.recordCheer());
+    unawaited(items.addBonus(c.itemPoints));
+  });
+
   /// Path of the SwiftF0 model file (may not exist yet).
   String get swiftF0ModelPath => models.pathOf(ModelRegistry.swiftF0, 'model.onnx');
 
@@ -82,6 +93,8 @@ class AppServices {
   void dispose() {
     _artistTimer?.cancel();
     setlistLog.stop();
+    cheer.dispose();
+    streaming.dispose();
     items.dispose();
     achievements.dispose();
     pipeline.dispose();

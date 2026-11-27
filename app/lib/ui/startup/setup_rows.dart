@@ -9,6 +9,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../../state/setup_controller.dart';
 import '../widgets/error_report.dart';
+import '../widgets/private_text.dart';
 import 'ytdlp_dialog.dart';
 
 /// One model with state + install/remove controls (shared with Settings).
@@ -107,7 +108,7 @@ class SidecarRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(nameOf(kind)),
-                    Text(s.path ?? tr('notInstalled'), style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis),
+                    PrivateText(s.path ?? tr('notInstalled'), style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),

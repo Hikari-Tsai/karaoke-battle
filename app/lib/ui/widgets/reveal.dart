@@ -6,6 +6,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
+import 'live_score.dart';
+
 /// The website's entrance easing (cubic-bezier(0.16, 1, 0.3, 1)).
 const revealEase = Cubic(0.16, 1, 0.3, 1);
 
@@ -142,11 +144,11 @@ class CountUp extends StatelessWidget {
         curve: Curves.easeOutCubic,
         // First a count up from 0; after that a new value runs from the one
         // shown (points spent count down from where they were).
-        builder: (context, t, _) => TweenAnimationBuilder<double>(
-          tween: Tween<double>(end: value),
+        // (Held, like every score, while a 觀眾加油 celebration covers it.)
+        builder: (context, t, _) => LiveScore(
+          value: value,
           duration: const Duration(milliseconds: 900),
-          curve: Curves.easeOutCubic,
-          builder: (context, v, _) => Stack(alignment: AlignmentDirectional.centerStart, children: [
+          builder: (context, v) => Stack(alignment: AlignmentDirectional.centerStart, children: [
             // The final text keeps the width while counting.
             Opacity(opacity: 0, child: Text(format(value), style: style, maxLines: 1)),
             Text(format(v * t), style: style, maxLines: 1),

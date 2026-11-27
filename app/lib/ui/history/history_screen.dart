@@ -1,4 +1,5 @@
-// 演唱紀錄: what you sang and how it scored, newest first, grouped by day.
+// 直播工具 (was 演唱紀錄): 觀眾加油 at the top, then what you sang and how
+// it scored, newest first, grouped by day.
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,12 +10,14 @@ import '../../services/sing_history.dart';
 import '../../services/song_library.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
+import '../live/cheer_widgets.dart';
 import '../results/results_screen.dart';
 import 'setlist_dialog.dart';
 import '../widgets/brand.dart';
 import '../widgets/rank.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/reveal.dart';
+import '../widgets/live_score.dart';
 import '../widgets/stats_card.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -184,7 +187,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: BrandedTitle(tr('history.title')),
+        bottom: const PreferredSize(preferredSize: Size.fromHeight(CheerBar.height), child: CheerBar()),
         actions: [
+          // 觀眾加油: the payment services' 贊助成功動畫網址.
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilledButton.tonalIcon(
+              onPressed: () => showCheerSetupDialog(context),
+              icon: const Icon(Icons.volunteer_activism),
+              label: Text(tr('cheer.setupTitle')),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilledButton.tonalIcon(
@@ -453,17 +466,28 @@ class _HistoryRowState extends State<_HistoryRow> {
                         ]),
                       ),
                       const SizedBox(width: 12),
-                      Text(
-                        t.total!.toStringAsFixed(1),
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: rc,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                          shadows: [if (rankTier(t.rank) > 0) Shadow(color: rc.withValues(alpha: 0.45), blurRadius: 14)],
-                        ),
+                      CheerBadge(take: t, trailingGap: 8),
+                      // Counts up when 觀眾加油 adds points while shown.
+                      LiveScore(
+                        value: t.total!,
+                        builder: (context, v) {
+                          final rank = liveRank(v, t.total!, t.rank);
+                          final c = rankColor(rank);
+                          return Row(mainAxisSize: MainAxisSize.min, children: [
+                            Text(
+                              v.toStringAsFixed(1),
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: c,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                                shadows: [if (rankTier(rank) > 0) Shadow(color: c.withValues(alpha: 0.45), blurRadius: 14)],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            RankChip(rank: rank, fontSize: 12),
+                          ]);
+                        },
                       ),
-                      const SizedBox(width: 8),
-                      RankChip(rank: t.rank, fontSize: 12),
                       const SizedBox(width: 10),
                       TextButton(onPressed: widget.onOpen, child: Text(tr('library.viewResult'))),
                       IconButton(

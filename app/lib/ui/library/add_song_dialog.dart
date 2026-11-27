@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 const kLanguages = ['zh', 'ja', 'yue', 'en'];
 const kMediaExtensions = ['mp4', 'mkv', 'webm', 'mov', 'mp3', 'm4a', 'wav', 'flac', 'ogg', 'aac'];
@@ -208,7 +209,7 @@ class _AddSongDialogState extends State<AddSongDialog> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              SelectableText(_error!, style: TextStyle(color: cs.error)),
+              PrivateText.selectable(_error!, style: TextStyle(color: cs.error)),
             ],
             if (_busy) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
           ],

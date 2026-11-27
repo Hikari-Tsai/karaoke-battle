@@ -26,6 +26,7 @@ import '../library/add_song_dialog.dart';
 import '../widgets/calibration.dart';
 import '../../state/loudness.dart';
 import '../widgets/info_tip.dart';
+import '../live/cheer_widgets.dart';
 import 'setting_row.dart';
 import '../results/score_reveal.dart' show ResultSfx;
 import '../startup/setup_rows.dart';
@@ -34,6 +35,7 @@ import '../widgets/brand.dart';
 import '../widgets/voice_fx.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -706,7 +708,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: settings.showVideo,
                 onChanged: settings.setShowVideo,
               ),
+              // The duet part a shadow battle starts on (changing it on the
+              // sing screen during a battle changes it here too).
+              SettingRow(
+                title: tr('settings.battlePart'),
+                subtitle: tr('settings.battlePartHint'),
+                trailing: SizedBox(
+                  width: SettingRow.controlWidth,
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: settings.battlePart,
+                    items: [
+                      DropdownMenuItem(value: 'a', child: Text(tr('duet.singA'))),
+                      DropdownMenuItem(value: 'b', child: Text(tr('duet.singB'))),
+                      DropdownMenuItem(value: 'whole', child: Text(tr('duet.off'))),
+                    ],
+                    onChanged: (v) => v == null ? null : settings.setBattlePart(v),
+                  ),
+                ),
+              ),
             ],
+          ),
+          // ---- 直播工具：觀眾加油 (donations add points to the last song) --------------------
+          _Section(
+            title: tr('cheer.settings'),
+            children: const [CheerSettings()],
           ),
           // ---- AI singing tips: service and API key ----------------------------------------
           _Section(
@@ -719,7 +745,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Row(
                 children: [
-                  Expanded(child: SelectableText(services.paths.root)),
+                  Expanded(child: PrivateText(services.paths.root, selectable: true)),
                   TextButton.icon(onPressed: () => revealPath(services.paths.root), icon: const Icon(Icons.folder_open), label: Text(tr('open'))),
                 ],
               ),

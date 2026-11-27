@@ -30,6 +30,7 @@ import '../replays/export_replay_dialog.dart' show replayBaseName;
 import '../settings/ai_settings_dialog.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 Future<void> showAiAnalysisDialog(BuildContext context, {required Song song, required TakeInfo take}) {
   return showDialog<void>(context: context, builder: (_) => _AiAnalysisDialog(song: song, take: take));
@@ -520,7 +521,7 @@ class _AiAnalysisDialogState extends State<_AiAnalysisDialog> {
         ]),
         if (e.detail.isNotEmpty && e.kind != 'badRequest') ...[
           const SizedBox(height: 8),
-          SelectableText(e.detail, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          PrivateText.selectable(e.detail, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         ],
       ],
     );

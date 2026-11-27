@@ -33,8 +33,11 @@ import '../widgets/error_report.dart';
 import 'add_song_dialog.dart';
 import 'backing_import_dialog.dart';
 import 'library_stats.dart';
+import '../live/cheer_widgets.dart' show CheerBadge;
 import '../widgets/app_dialog.dart';
+import '../widgets/live_score.dart';
 import '../widgets/reveal.dart';
+import '../widgets/private_text.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -639,22 +642,33 @@ class _SongCardState extends State<_SongCard> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // 觀眾加油 already in the score: say so.
+                        CheerBadge(take: best, trailingGap: 8),
                         // The trophy is for an S or better.
                         if (rankTier(best.rank) > 0) ...[
                           const Icon(Icons.emoji_events, color: trophyColor, size: 22),
                           const SizedBox(width: 4),
                         ],
-                        Text(
-                          best.total!.toStringAsFixed(1),
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: rankColor(best.rank),
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                            shadows: [if (rankTier(best.rank) > 0) Shadow(color: rankColor(best.rank).withValues(alpha: 0.45), blurRadius: 14)],
-                          ),
+                        // Counts up when 觀眾加油 adds points while shown.
+                        LiveScore(
+                          value: best.total!,
+                          builder: (context, v) {
+                            final rank = liveRank(v, best.total!, best.rank);
+                            return Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text(
+                                v.toStringAsFixed(1),
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: rankColor(rank),
+                                  fontFeatures: const [FontFeature.tabularFigures()],
+                                  shadows: [if (rankTier(rank) > 0) Shadow(color: rankColor(rank).withValues(alpha: 0.45), blurRadius: 14)],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              RankChip(rank: rank),
+                            ]);
+                          },
                         ),
-                        const SizedBox(width: 6),
-                        RankChip(rank: best.rank),
                       ],
                     ),
                   ),
@@ -751,7 +765,7 @@ class _SongCardState extends State<_SongCard> {
             ],
             if (song.error != null && song.stage == PrepStage.failed) ...[
               const SizedBox(height: 6),
-              SelectableText(song.error!, style: theme.textTheme.bodySmall?.copyWith(color: cs.error), maxLines: 3),
+              PrivateText.selectable(song.error!, style: theme.textTheme.bodySmall?.copyWith(color: cs.error), maxLines: 3),
               // Logged by the pipeline when it failed.
               if (song.error != tr('library.cancelled'))
                 Align(alignment: Alignment.centerLeft, child: ReportBugButton(error: song.error!, log: false)),
@@ -978,15 +992,21 @@ class _TakeRow extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(t.total!.toStringAsFixed(1), style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: color)),
-                    const SizedBox(width: 6),
-                    RankChip(rank: t.rank, fontSize: 12),
+                    LiveScore(
+                      value: t.total!,
+                      builder: (context, v) => Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(v.toStringAsFixed(1), style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: color)),
+                        const SizedBox(width: 6),
+                        RankChip(rank: liveRank(v, t.total!, t.rank), fontSize: 12),
+                      ]),
+                    ),
                   ],
                 ),
               ),
         title: Row(
           children: [
             Text(date, style: theme.textTheme.bodyMedium),
+            if (t.total != null) CheerBadge(take: t, leadingGap: 8),
             if (isBest) ...[
               const SizedBox(width: 8),
               if (rankTier(t.rank) > 0) ...[

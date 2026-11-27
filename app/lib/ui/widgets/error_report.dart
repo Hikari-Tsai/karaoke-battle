@@ -8,6 +8,7 @@ import '../../services/app_log.dart';
 import '../../services/problem_report.dart';
 import '../../state/i18n.dart';
 import 'app_dialog.dart';
+import 'private_text.dart';
 
 /// "Report bug" for [error]; logs the error once when it appears.
 class ReportBugButton extends StatefulWidget {
@@ -55,7 +56,7 @@ Future<void> showErrorDialog(BuildContext context, Object error, {StackTrace? st
         title: Text(title ?? tr('error')),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560, maxHeight: 360),
-          child: SingleChildScrollView(child: SelectableText(message ?? '$error')),
+          child: SingleChildScrollView(child: PrivateText.selectable(message ?? '$error')),
         ),
         actions: [
           ReportBugButton(error: error, stack: stack, where: where),

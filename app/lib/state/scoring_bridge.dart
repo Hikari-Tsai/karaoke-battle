@@ -16,6 +16,7 @@ import 'package:path/path.dart' as p;
 
 import 'energy_curve.dart';
 import 'note_edits.dart';
+import 'take_cheer.dart';
 import 'tuning_wand.dart';
 
 class ScoreNoteRow {
@@ -225,7 +226,7 @@ class ScoringBridge {
       // The take as sung, without the items, for the AI tips.
       return (run(items: true), withItems ? run(items: false) : null);
     });
-    final (result, raw) = scored;
+    var (result, raw) = scored;
     if (weights != null && perfectSpans.isNotEmpty) {
       final total = weights.totalWith([for (final s in perfectSpans) s.$1]);
       result['total'] = total;
@@ -233,6 +234,9 @@ class ScoringBridge {
       result['rank'] = rankForTotal(total);
       result['wand_normalized'] = true;
     }
+    // 觀眾加油: donations credited to this take stay added when it is re-scored.
+    final cheer = await TakeCheer.load(p.dirname(scoreJsonPath));
+    if (!cheer.isEmpty) result = withCheer(result, cheer.points);
     if (preview) return ScoreData.fromJson(result);
     if (wand.uses.isNotEmpty) result['wand'] = [for (final u in wand.uses) u.toJson()];
     if (field) result['field'] = {'lenience': TakeField.lenience};

@@ -7,6 +7,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import 'error_report.dart';
 import 'app_dialog.dart';
+import 'private_text.dart';
 
 /// Maps a calibration failure to a localized explanation with a fix.
 String calibrationAdvice(Object e) {
@@ -67,7 +68,7 @@ class CalibrationErrorPanel extends StatelessWidget {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: SelectableText(details!, style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', color: cs.onErrorContainer)),
+                    child: PrivateText.selectable(details!, style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', color: cs.onErrorContainer)),
                   ),
                 ],
               ),

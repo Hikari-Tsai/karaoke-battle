@@ -29,6 +29,7 @@ import '../widgets/voice_fx.dart';
 import '../widgets/error_report.dart';
 import 'replay_data.dart';
 import '../../state/tuning_wand.dart';
+import '../widgets/private_text.dart';
 
 class ReplayScreen extends StatefulWidget {
   const ReplayScreen({super.key, required this.song, required this.take, this.notesJsonPath, this.player, this.imported = false});
@@ -172,7 +173,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SingleTickerProviderSt
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      SelectableText('${tr('error')}: $_error'),
+                      PrivateText.selectable('${tr('error')}: $_error'),
                       const SizedBox(height: 12),
                       ReportBugButton(error: _error!, where: 'open replay'),
                     ]),

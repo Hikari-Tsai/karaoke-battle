@@ -2,6 +2,7 @@
 // by the "KARAOKE BATTLE" logotype. Colours come from the app icon: the deep
 // violet -> magenta background and the white microphone (scripts/make_icon.py).
 import 'package:flutter/material.dart';
+import 'private_text.dart' show LiveModeBadge;
 
 class Brand {
   Brand._();
@@ -81,6 +82,8 @@ class BrandedTitle extends StatelessWidget {
           color: cs.outlineVariant,
         ),
         Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+        // 直播模式 (a streaming app is running): said right after the title.
+        const LiveModeBadge(leadingGap: 12),
       ],
     );
   }

@@ -41,6 +41,8 @@ import '../../services/dev_mode.dart';
 import '../../services/items.dart';
 import '../sing/piano_roll.dart';
 import '../sing/sing_screen.dart';
+import '../widgets/live_score.dart';
+import '../widgets/private_text.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key, required this.song, required this.take, this.score, this.newRecord = false, this.previousBest});
@@ -379,10 +381,23 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     }
     _load();
     _loadAdvice();
+    _library = context.read<AppServices>().library..takesChanged.addListener(_onTakesChanged);
+  }
+
+  SongLibrary? _library;
+
+  /// The take's score changed on disk (觀眾加油 added points): show the new
+  /// total, which counts up to it (see LiveScore).
+  Future<void> _onTakesChanged() async {
+    if (_library?.takesChanged.value?.songId != widget.song.id || _score == null) return;
+    final next = await ScoringBridge.load(widget.take.scoreJson);
+    if (!mounted || next == null || _score == null || next.total == _score!.total) return;
+    setState(() => _score = next);
   }
 
   @override
   void dispose() {
+    _library?.takesChanged.removeListener(_onTakesChanged);
     AchievementHold.remove(this);
     _roll?.dispose();
     _stamp?.dispose();
@@ -554,7 +569,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         ],
       ),
       body: _error != null
-          ? Center(child: SelectableText(_error!))
+          ? Center(child: PrivateText.selectable(_error!))
           : notes == null
               ? const Center(child: CircularProgressIndicator())
               : Padding(
@@ -673,7 +688,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                                             // The battle's outcome, once the score has been revealed.
                                             if (_battle != null && !_revealing) ...[
                                               const SizedBox(height: 12),
-                                              BattleCard(record: _battle!, mine: score.total, mineSubs: score.subScores),
+                                              LiveScore(value: score.total, builder: (context, mine) => BattleCard(record: _battle!, mine: mine, mineSubs: score.subScores)),
                                             ],
                                             const SizedBox(height: 8),
                                             Align(
@@ -816,7 +831,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   }
 
   // S and above shine and sparkle (see RankChip).
-  Widget _rankChip(ThemeData theme, ScoreData score) => RankChip(rank: score.rank, fontSize: theme.textTheme.headlineSmall?.fontSize ?? 24);
+  Widget _rankChip(ThemeData theme, String? rank) => RankChip(rank: rank, fontSize: theme.textTheme.headlineSmall?.fontSize ?? 24);
 
   /// The total's halo in the rank's colour, slowly brightening and dimming
   /// ([t] on the shine clock; null: still).
@@ -831,50 +846,63 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   Widget _totalRow(ThemeData theme, ScoreData score) {
     final style = theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.primary) ?? const TextStyle(fontSize: 57);
     final roll = _roll, stamp = _stamp;
+    // A total that changes while shown (觀眾加油) counts up to the new one.
     if (roll == null || stamp == null) {
-      return ShineTicker(
-        builder: (context, t) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(score.total.toStringAsFixed(1), style: _glowing(style, score, t)),
-          const SizedBox(width: 12),
-          Padding(padding: const EdgeInsets.only(bottom: 10), child: _rankChip(theme, score)),
-        ]),
+      return LiveScore(
+        value: score.total,
+        builder: (context, v) => ShineTicker(
+          builder: (context, t) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text(v.toStringAsFixed(1), style: _glowing(style, score, t)),
+            const SizedBox(width: 12),
+            Padding(padding: const EdgeInsets.only(bottom: 10), child: _rankChip(theme, liveRank(v, score.total, score.rank))),
+          ]),
+        ),
       );
     }
-    // Spin to the total as shown (one decimal), so the last reel lands square.
-    final target = _shown(score);
-    final intDigits = target >= 100 ? 3 : (target >= 10 ? 2 : 1);
-    return AnimatedBuilder(
-      animation: Listenable.merge([roll, stamp]),
-      builder: (context, _) {
-        final u = roll.value;
-        final perFrame = u >= 1 ? 0.0 : _slot.slope(u) * target * 10 / (kRevealRoll.inMilliseconds / 1000 * 60);
-        final s = Curves.easeOutBack.transform(stamp.value);
-        // Once landed, the total glows like the rank (ShineTicker below).
-        return ShineTicker(builder: (context, t) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          FittedBox(
-            child: RollingNumber(value: target * _slot.transform(u), intDigits: intDigits, style: u >= 1 ? _glowing(style, score, t) : style, tenthsPerFrame: perFrame),
-          ),
-          const SizedBox(width: 12),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Opacity(
-              opacity: (stamp.value * 3).clamp(0.0, 1.0),
-              child: Transform.scale(scale: 1 + 1.8 * (1 - s), child: _rankChip(theme, score)),
-            ),
-          ),
-        ]));
+    return LiveScore(
+      value: score.total,
+      builder: (context, v) {
+        // Spin to the total as shown (one decimal), so the last reel lands square.
+        final target = (v * 10).roundToDouble() / 10;
+        final intDigits = target >= 100 ? 3 : (target >= 10 ? 2 : 1);
+        final rank = liveRank(v, score.total, score.rank);
+        return AnimatedBuilder(
+          animation: Listenable.merge([roll, stamp]),
+          builder: (context, _) {
+            final u = roll.value;
+            final perFrame = u >= 1 ? 0.0 : _slot.slope(u) * target * 10 / (kRevealRoll.inMilliseconds / 1000 * 60);
+            final s = Curves.easeOutBack.transform(stamp.value);
+            // Once landed, the total glows like the rank (ShineTicker below).
+            return ShineTicker(builder: (context, t) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              FittedBox(
+                child: RollingNumber(value: target * _slot.transform(u), intDigits: intDigits, style: u >= 1 ? _glowing(style, score, t) : style, tenthsPerFrame: perFrame),
+              ),
+              const SizedBox(width: 12),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Opacity(
+                  opacity: (stamp.value * 3).clamp(0.0, 1.0),
+                  child: Transform.scale(scale: 1 + 1.8 * (1 - s), child: _rankChip(theme, rank)),
+                ),
+              ),
+            ]));
+          },
+        );
       },
     );
   }
 
   /// "Best 85.2" under the spinning total, turning gold once it is passed.
+  /// (觀眾加油 that lifts the total past the best breaks it too.)
   Widget _bestMarker(ThemeData theme, ScoreData score) {
     final best = widget.previousBest!;
-    return AnimatedBuilder(
+    return LiveScore(
+      value: score.total,
+      builder: (context, v) => AnimatedBuilder(
       animation: _roll!,
       builder: (context, _) {
-        final shown = _shown(score) * _slot.transform(_roll!.value);
-        final broken = widget.newRecord && shown > best;
+        final shown = (v * 10).roundToDouble() / 10 * _slot.transform(_roll!.value);
+        final broken = (widget.newRecord || score.total > best) && shown > best;
         return Padding(
           padding: const EdgeInsets.only(top: 2, bottom: 4),
           child: Align(
@@ -902,10 +930,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
           ),
         );
       },
+      ),
     );
   }
-
-  static double _shown(ScoreData score) => (score.total * 10).roundToDouble() / 10;
 
   static String _camel(String k) => k == 'long_tone' ? 'longTone' : k;
 

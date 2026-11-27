@@ -18,6 +18,7 @@ import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/error_report.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 const _audioExtensions = ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'mp4', 'webm'];
 
@@ -316,7 +317,7 @@ class _ErrorBody extends StatelessWidget {
   Widget build(BuildContext context) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text(tr('backing.failed'), style: TextStyle(color: Theme.of(context).colorScheme.error)),
     const SizedBox(height: 8),
-    SelectableText('$error', style: Theme.of(context).textTheme.bodySmall),
+    PrivateText.selectable('$error', style: Theme.of(context).textTheme.bodySmall),
     const SizedBox(height: 12),
     ReportBugButton(error: '$error', where: 'import backing'),
   ]);

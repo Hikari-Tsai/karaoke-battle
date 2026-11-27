@@ -9,6 +9,7 @@ import '../../services/app_paths.dart';
 import '../../state/app_services.dart';
 import '../../state/i18n.dart';
 import '../widgets/app_dialog.dart';
+import '../widgets/private_text.dart';
 
 const _macDefault = '~/Library/Application Support/com.karaokebattle.karaokeBattle/KaraokeBattle';
 const _winDefault = r'%APPDATA%\com.karaokebattle\karaoke_battle\KaraokeBattle';
@@ -71,7 +72,7 @@ class _MoveGuideDialog extends StatelessWidget {
             extra: Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Row(children: [
-                Expanded(child: SelectableText(paths.root, style: mono)),
+                Expanded(child: PrivateText(paths.root, style: mono, selectable: true)),
                 IconButton(
                   tooltip: tr('setlist.copyPath'),
                   icon: const Icon(Icons.copy, size: 18),
