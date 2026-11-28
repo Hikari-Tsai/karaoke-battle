@@ -480,7 +480,9 @@ class _AiSettingsSummaryState extends State<AiSettingsSummary> {
     final found = <String>{};
     for (final p in const ['claude', 'openai']) {
       try {
-        if (await services.aiKeys.read(p) != null) found.add(p);
+        // Only whether one is saved: reading the key would bring up the
+        // keychain prompt each time Settings opens.
+        if (await services.aiKeys.has(p)) found.add(p);
       } catch (_) {}
     }
     if (mounted) setState(() => _withKey = found);

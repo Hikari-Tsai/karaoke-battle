@@ -166,7 +166,7 @@ class _AiAnalysisDialogState extends State<_AiAnalysisDialog> {
     final out = <String>{};
     for (final p in _providers) {
       try {
-        if (await services.aiKeys.read(p) != null) out.add(p);
+        if (await services.aiKeys.has(p)) out.add(p);
       } catch (_) {}
     }
     return out;

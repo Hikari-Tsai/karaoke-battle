@@ -191,7 +191,7 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Text(tr('charts.about.${vendor.name}'), style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            _LinkedText(tr('charts.about.${vendor.name}'), style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 16),
             _VendorSection(
               key: ValueKey(vendor),
@@ -351,38 +351,52 @@ class _SourceLine extends StatelessWidget {
   final KtvVendor vendor;
   final String name;
 
-  static const repoName = 'ktv-charts';
-  static final repoUrl = Uri.parse('https://github.com/Hikari-Tsai/ktv-charts');
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final style = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    const mark = '\u0000';
-    final parts = tr(vendor == KtvVendor.vtuber ? 'charts.source.vtuber' : 'charts.source', {'vendor': name, 'repo': mark}).split(mark);
-    return Text.rich(
-      TextSpan(children: [
-        TextSpan(text: parts.first),
-        if (parts.length > 1) ...[
-          WidgetSpan(
-            alignment: PlaceholderAlignment.baseline,
-            baseline: TextBaseline.alphabetic,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => launchUrl(repoUrl),
-                child: Tooltip(
-                  message: repoUrl.toString(),
-                  child: Text(repoName, style: style?.copyWith(color: theme.colorScheme.primary, decoration: TextDecoration.underline, decorationColor: theme.colorScheme.primary)),
-                ),
-              ),
-            ),
+    return _LinkedText(tr(vendor == KtvVendor.vtuber ? 'charts.source.vtuber' : 'charts.source', {'vendor': name, 'repo': _LinkedText.repoName}), style: style);
+  }
+}
+
+/// Text with the names of the people and projects behind the charts linked
+/// to their pages.
+class _LinkedText extends StatelessWidget {
+  const _LinkedText(this.text, {this.style});
+  final String text;
+  final TextStyle? style;
+
+  static const repoName = 'ktv-charts';
+  static final links = {
+    repoName: Uri.parse('https://github.com/Hikari-Tsai/ktv-charts'),
+    '語風薯薯': Uri.parse('https://www.youtube.com/@%E8%AA%9E%E9%A2%A8%E8%96%AF%E8%96%AF%E6%92%BF%E5%88%B0%E8%B2%93Kazeimo'),
+  };
+  static final _names = RegExp(links.keys.map(RegExp.escape).join('|'));
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final linkStyle = style?.copyWith(color: cs.primary, decoration: TextDecoration.underline, decorationColor: cs.primary);
+    final spans = <InlineSpan>[];
+    var at = 0;
+    for (final m in _names.allMatches(text)) {
+      if (m.start > at) spans.add(TextSpan(text: text.substring(at, m.start)));
+      final url = links[m[0]!]!;
+      spans.add(WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => launchUrl(url),
+            child: Tooltip(message: Uri.decodeFull(url.toString()), child: Text(m[0]!, style: linkStyle)),
           ),
-          TextSpan(text: parts.sublist(1).join()),
-        ],
-      ]),
-      style: style,
-    );
+        ),
+      ));
+      at = m.end;
+    }
+    if (at < text.length) spans.add(TextSpan(text: text.substring(at)));
+    return Text.rich(TextSpan(children: spans), style: style);
   }
 }
 

@@ -9,8 +9,14 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 abstract class AiKeyStore {
-  /// The key saved for [provider] ('claude' or 'openai'), or null.
+  /// The key saved for [provider] ('claude' or 'openai'), or null. On
+  /// macOS this reads the secret, so the system may ask the user first.
   Future<String?> read(String provider);
+
+  /// Whether a key is saved for [provider], without reading it: on macOS
+  /// only the item's existence is looked up, which needs no permission, so
+  /// showing what is set up never brings up the keychain prompt.
+  Future<bool> has(String provider);
 
   /// Saves [key] for [provider]; null or empty removes it.
   Future<void> write(String provider, String? key);
@@ -30,6 +36,9 @@ class SecureAiKeyStore implements AiKeyStore {
   }
 
   @override
+  Future<bool> has(String provider) => _storage.containsKey(key: _name(provider));
+
+  @override
   Future<void> write(String provider, String? key) async {
     final v = key?.trim() ?? '';
     if (v.isEmpty) {
@@ -46,6 +55,9 @@ class MemoryAiKeyStore implements AiKeyStore {
 
   @override
   Future<String?> read(String provider) async => keys[provider];
+
+  @override
+  Future<bool> has(String provider) async => keys.containsKey(provider);
 
   @override
   Future<void> write(String provider, String? key) async {
